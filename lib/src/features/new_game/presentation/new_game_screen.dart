@@ -98,7 +98,7 @@ class _NewGameScreenState extends State<NewGameScreen> {
               ),
               const SizedBox(height: 32),
               FilledButton.icon(
-                onPressed: _isSaving ? null : () => _createCampaign(context),
+                onPressed: _isSaving ? null : _createCampaign,
                 icon: _isSaving
                     ? const SizedBox(
                         width: 18,
@@ -115,10 +115,11 @@ class _NewGameScreenState extends State<NewGameScreen> {
     );
   }
 
-  Future<void> _createCampaign(final BuildContext context) async {
+  Future<void> _createCampaign() async {
     setState(() => _isSaving = true);
 
     final AppScope scope = AppScope.of(context);
+    final NavigatorState navigator = Navigator.of(context);
     final CampaignState campaign = scope.gameEngine.createCampaign(
       draft: CampaignDraft(
         setting: _setting,
@@ -135,13 +136,12 @@ class _NewGameScreenState extends State<NewGameScreen> {
     }
 
     setState(() => _isSaving = false);
-    await Navigator.of(context).pushReplacement(
+    await navigator.pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => ChatScreen(campaignId: campaign.id),
       ),
     );
   }
-
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -150,12 +150,10 @@ class _SectionTitle extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(final BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(
-        context,
-      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-    );
-  }
+  Widget build(final BuildContext context) => Text(
+    title,
+    style: Theme.of(
+      context,
+    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+  );
 }

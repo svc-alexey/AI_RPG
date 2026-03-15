@@ -206,6 +206,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final AiSettings settings = await scope.settingsRepository.loadAiSettings();
     final AppLanguage appLanguage = await scope.settingsRepository.loadAppLanguage();
 
+    if (!mounted) {
+      return;
+    }
+
     _provider = settings.provider;
     _appLanguage = appLanguage;
     _fastResponses = settings.fastResponses;
@@ -254,8 +258,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       final AppScope scope = AppScope.of(context);
-      final AiClient client = scope.aiServiceFactory.create(_buildSettings());
-      await client.checkConnection(settings: _buildSettings());
+      final AiSettings settings = _buildSettings();
+      final AiClient client = scope.aiServiceFactory.create(settings);
+      await client.checkConnection(settings: settings);
       if (!mounted) {
         return;
       }
@@ -310,6 +315,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
+    final AppScope scope = AppScope.of(context);
+    final AppLocalizations l10n = context.l10n;
     setState(() {
       _isDetectingModel = true;
       if (!silentWhenUnavailable) {
@@ -322,11 +329,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : _baseUrlController.text.trim();
 
     try {
-      final List<String> modelIds = await _fetchModelIds(baseUrl);
+      final List<String> modelIds = await _fetchModelIds(baseUrl, l10n);
       final String modelId = _selectPreferredModel(modelIds);
       if (modelId.isEmpty) {
         if (!silentWhenUnavailable && mounted) {
-          setState(() => _status = context.l10n.noLmStudioModel);
+          setState(() => _status = l10n.noLmStudioModel);
         }
         return;
       }
@@ -334,7 +341,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _baseUrlController.text = baseUrl;
       _modelController.text = modelId;
 
-      final AppScope scope = AppScope.of(context);
       await scope.settingsRepository.saveAiSettings(_buildSettings());
 
       if (!mounted) {
@@ -342,14 +348,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       setState(() {
-        _status = context.l10n.selectedLmStudioModel(modelId);
+        _status = l10n.selectedLmStudioModel(modelId);
       });
     } catch (error) {
       if (!mounted || silentWhenUnavailable) {
         return;
       }
       setState(() {
-        _status = context.l10n.detectLmStudioFailed(error);
+        _status = l10n.detectLmStudioFailed(error);
       });
     } finally {
       if (mounted) {
@@ -358,7 +364,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<List<String>> _fetchModelIds(final String baseUrl) async {
+  Future<List<String>> _fetchModelIds(
+    final String baseUrl,
+    final AppLocalizations l10n,
+  ) async {
     final Uri uri = Uri.parse('${_normalizeBaseUrl(baseUrl)}/models');
     final http.Response response = await http
         .get(
@@ -368,23 +377,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .timeout(const Duration(seconds: 5));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(context.l10n.serverReturned(response.statusCode));
+      throw Exception(l10n.serverReturned(response.statusCode));
     }
 
     final Object? decoded = jsonDecode(response.body);
     if (decoded is! Map<String, Object?>) {
-      throw Exception(context.l10n.unexpectedResponseFormat);
+      throw Exception(l10n.unexpectedResponseFormat);
     }
 
     final List<Object?> items =
         (decoded['data'] as List<Object?>?) ?? const <Object?>[];
 
     return items
-        .map((final Object? item) => item as Map<String, Object?>?)
+        .map((item) => item as Map<String, Object?>?)
         .whereType<Map<String, Object?>>()
-        .map((final Map<String, Object?> item) => (item['id'] as String?) ?? '')
-        .map((final String item) => item.trim())
-        .where((final String item) => item.isNotEmpty)
+        .map((item) => (item['id'] as String?) ?? '')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
         .toList();
   }
 
@@ -393,7 +402,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return '';
     }
 
-    final Iterable<String> chatModels = modelIds.where((final String modelId) {
+    final Iterable<String> chatModels = modelIds.where((modelId) {
       final String normalized = modelId.toLowerCase();
       return !normalized.contains('embedding') &&
           !normalized.contains('embed') &&
