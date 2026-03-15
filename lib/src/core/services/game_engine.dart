@@ -1,8 +1,11 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 
 class GameEngine {
   const GameEngine();
+
+  static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
 
   CampaignState createCampaign({
     required final CampaignDraft draft,
@@ -72,23 +75,24 @@ class GameEngine {
       CampaignSetting.sciFi => 'Sci-fi',
     };
 
+    final String introText = switch (language) {
+      AppLanguage.ru =>
+        '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.',
+      AppLanguage.en =>
+        '${character.name} arrives at "$location". The air is tense, the objective is already set, and the next choice will define the tone of the whole campaign.',
+    };
+
     final ChatMessage intro = ChatMessage(
       id: '${id}_intro',
       role: ChatRole.narrator,
-      text:
-          switch (language) {
-            AppLanguage.ru =>
-              '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.',
-            AppLanguage.en =>
-              '${character.name} arrives at "$location". The air is tense, the objective is already set, and the next choice will define the tone of the whole campaign.',
-          },
+      text: introText,
       createdAt: now,
     );
 
     return CampaignState(
       id: id,
       schemaVersion: 1,
-      title: '${character.name} — $settingLabel',
+      title: '${character.name} - $settingLabel',
       setting: draft.setting,
       mode: draft.mode,
       difficulty: draft.difficulty,
@@ -96,10 +100,11 @@ class GameEngine {
       location: location,
       objective: objective,
       turnNumber: 0,
-      summary: switch (language) {
-        AppLanguage.ru => 'Кампания только началась.',
-        AppLanguage.en => 'The campaign has only just begun.',
-      },
+      memory: _memoryManager.createInitialMemory(
+        language: language,
+        objective: objective,
+        introText: introText,
+      ),
       inventory: switch (language) {
         AppLanguage.ru => const <String>['Полевые записи', 'Дорожный набор'],
         AppLanguage.en => const <String>['Field Notes', 'Travel Kit'],
@@ -123,6 +128,7 @@ class GameEngine {
   }
 
   CampaignState applyTurn({
+    required final AppLanguage language,
     required final CampaignState state,
     required final String playerAction,
     required final TurnResult result,
@@ -171,10 +177,6 @@ class GameEngine {
         ),
       );
 
-    final String summary = result.memoryEntry.trim().isEmpty
-        ? state.summary
-        : result.memoryEntry.trim();
-
     return state.copyWith(
       character: character,
       turnNumber: state.turnNumber + 1,
@@ -182,7 +184,12 @@ class GameEngine {
       questLog: questLog,
       messages: messages,
       choices: result.choices,
-      summary: summary,
+      memory: _memoryManager.updateMemory(
+        language: language,
+        previousState: state,
+        result: result,
+        playerAction: playerAction,
+      ),
       updatedAt: now,
     );
   }

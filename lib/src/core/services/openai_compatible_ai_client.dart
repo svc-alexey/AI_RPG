@@ -4,11 +4,14 @@ import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
+import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class OpenAiCompatibleAiClient implements AiClient {
   const OpenAiCompatibleAiClient();
+
+  static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
 
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {
@@ -134,7 +137,9 @@ class OpenAiCompatibleAiClient implements AiClient {
     final Map<String, Object?> message =
         choice['message'] as Map<String, Object?>? ?? const <String, Object?>{};
     final String content = (message['content'] as String?) ?? '';
-    final String jsonString = fastMode ? content.trim() : _extractJson(content, language);
+    final String jsonString = fastMode
+        ? content.trim()
+        : _extractJson(content, language);
     final Object? turnDecoded = _safeJsonDecode(jsonString);
     if (turnDecoded is! Map<String, Object?>) {
       throw AiTurnException(
@@ -239,17 +244,21 @@ Rules:
     required final bool fastMode,
   }) {
     final String fastPrefix = fastMode ? '/no_think\n' : '';
+    final Map<String, Object?> contextPayload = _memoryManager.buildAiContext(
+      state,
+    );
+
     return switch (language) {
       AppLanguage.ru => '''
-${fastPrefix}Состояние кампании:
-${jsonEncode(state.toJson())}
+${fastPrefix}Контекст кампании:
+${jsonEncode(contextPayload)}
 
 Действие игрока:
 $playerAction
 ''',
       AppLanguage.en => '''
-${fastPrefix}Campaign state:
-${jsonEncode(state.toJson())}
+${fastPrefix}Campaign context:
+${jsonEncode(contextPayload)}
 
 Player action:
 $playerAction

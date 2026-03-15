@@ -418,6 +418,15 @@ class AppLocalizations {
     AppLanguage.en =>
       'The model did not return JSON in the expected format. The campaign state was not changed.',
   };
+  String get activeGoalTitle => switch (language) {
+    AppLanguage.ru => 'Активная цель',
+    AppLanguage.en => 'Active Goal',
+  };
+
+  String get recentEventsTitle => switch (language) {
+    AppLanguage.ru => 'Последние события',
+    AppLanguage.en => 'Recent Events',
+  };
 }
 
 extension AppLocalizationsBuildContext on BuildContext {

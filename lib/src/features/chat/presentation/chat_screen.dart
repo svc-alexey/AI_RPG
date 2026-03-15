@@ -1,7 +1,7 @@
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
-import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
@@ -236,15 +236,33 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(height: 16),
           Text(l10n.inventory, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          for (final String item in campaign.inventory) Text('• $item'),
+          for (final String item in campaign.inventory) Text('- $item'),
           const SizedBox(height: 16),
           Text(l10n.questLog, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          for (final String item in campaign.questLog) Text('• $item'),
+          for (final String item in campaign.questLog) Text('- $item'),
           const SizedBox(height: 16),
           Text(l10n.summary, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(campaign.summary),
+          const SizedBox(height: 16),
+          Text(
+            l10n.activeGoalTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(campaign.activeGoal),
+          const SizedBox(height: 16),
+          Text(
+            l10n.recentEventsTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          for (final RecentTurnSummary item in campaign.recentTurns)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text('- ${item.playerAction} -> ${item.outcome}'),
+            ),
         ],
       ),
     );
@@ -316,12 +334,13 @@ class _ChatScreenState extends State<ChatScreen> {
       final CampaignState nextState = suggestionsOnly
           ? campaign.copyWith(
               choices: result.choices,
-              summary: result.memoryEntry.isEmpty
-                  ? campaign.summary
-                  : result.memoryEntry,
+              memory: campaign.memory.copyWith(
+                activeSituation: result.narration,
+              ),
               updatedAt: DateTime.now(),
             )
           : scope.gameEngine.applyTurn(
+              language: language,
               state: campaign,
               playerAction: action,
               result: result,

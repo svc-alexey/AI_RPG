@@ -5,5 +5,5 @@
 Статус:
 - архитектурный этап: done
 - аналитический этап: done
-- реализация: pending
-- QA: pending
+- реализация: done
+- QA: done with minor follow-up
