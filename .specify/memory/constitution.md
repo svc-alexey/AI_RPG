@@ -1,50 +1,60 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# AI_PRG Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Engine-First Source of Truth (NON-NEGOTIABLE)
+LLM никогда не является источником истины состояния игры.  
+Источник истины только один: детерминированный игровой движок + сохраненное состояние.
+Любой `ai_response.state_changes` считается недоверенным до прохождения валидатора.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Structured AI Contracts Only
+Все интеграции AI работают через единый gateway и строгий JSON-контракт.
+Свободный текст без структурированных полей не используется для изменения состояния.
+Изменения контракта допускаются только версионируемо и обратно совместимо.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Layered Memory for Coherence
+Память кампании строится слоями:
+1. Recent turns.
+2. Rolling summary.
+3. Entity cards.
+4. World canon.
+Длинные кампании не должны полагаться только на сырой лог ходов.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Flutter Architecture Discipline
+Клиент строится по feature-first структуре с разделением слоев:
+`presentation -> application -> domain -> data`.
+`domain` не зависит от Flutter UI и провайдерных SDK.
+Сетевые вызовы и AI вызовы из UI напрямую запрещены.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Quality Gates Before Merge
+Перед merge обязательны:
+1. `flutter analyze` без ошибок.
+2. `flutter test` без падений.
+3. Тесты/валидация для изменений доменных правил и контрактов.
+4. Обновление документации при изменении схем и правил.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Tech Constraints and Standards
+1. Клиентский стек: Flutter.
+2. Линтинг и анализатор: [analysis_options.yaml](../../analysis_options.yaml).
+3. Доменные правила Flutter: [FlutterRules.md](../../FlutterRules.md).
+4. Продуктовый источник требований: [PRD.md](../../PRD.md).
+5. Архитектурный источник: [Architecture.md](../../Architecture.md).
+6. Контракт сущностей: [entities.models.json](../../entities.models.json).
+7. Стратегический контекст и этапы: [Plan.md](../../Plan.md).
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Workflow
+1. `speckit.constitution` обновляется при изменении принципов.
+2. Любая новая фича проходит цепочку `specify -> plan -> tasks -> implement`.
+3. Изменение контракта данных требует миграционного плана и фиксации версии.
+4. Для долгоживущих фич обязательна проверка на совместимость save/load.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+1. Конституция имеет приоритет над локальными ad-hoc решениями.
+2. Любое исключение из принципов документируется в PR с явным обоснованием.
+3. Поправки в конституцию:
+   - обновление версии;
+   - дата изменения;
+   - перечень затронутых документов.
+4. Контекст проекта поддерживается в `.specify/memory/project-context.md`.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-03-15 | **Last Amended**: 2026-03-15
