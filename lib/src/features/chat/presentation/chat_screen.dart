@@ -242,6 +242,21 @@ class _ChatScreenState extends State<ChatScreen> {
           Text('Сводка', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(campaign.summary),
+          const SizedBox(height: 16),
+          Text('Активная цель', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(campaign.activeGoal),
+          const SizedBox(height: 16),
+          Text(
+            'Последние события',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          for (final RecentTurnSummary item in campaign.recentTurns)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text('• ${item.playerAction} -> ${item.outcome}'),
+            ),
         ],
       ),
     );
@@ -311,9 +326,9 @@ class _ChatScreenState extends State<ChatScreen> {
       final CampaignState nextState = suggestionsOnly
           ? campaign.copyWith(
               choices: result.choices,
-              summary: result.memoryEntry.isEmpty
-                  ? campaign.summary
-                  : result.memoryEntry,
+              memory: campaign.memory.copyWith(
+                activeSituation: result.narration,
+              ),
               updatedAt: DateTime.now(),
             )
           : scope.gameEngine.applyTurn(

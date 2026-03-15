@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
+import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class OpenAiCompatibleAiClient implements AiClient {
   const OpenAiCompatibleAiClient();
+
+  static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
 
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {
@@ -209,9 +212,12 @@ ${fastPrefix}Ты повествовательный ИИ для детерми�
     required final bool fastMode,
   }) {
     final String fastPrefix = fastMode ? '/no_think\n' : '';
+    final Map<String, Object?> contextPayload = _memoryManager.buildAiContext(
+      state,
+    );
     return '''
-${fastPrefix}Состояние кампании:
-${jsonEncode(state.toJson())}
+${fastPrefix}Контекст кампании:
+${jsonEncode(contextPayload)}
 
 Действие игрока:
 $playerAction

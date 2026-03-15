@@ -24,8 +24,8 @@
 - цель: ускорение ответов LM Studio через `/no_think` и строгий JSON-формат
 
 ### `summary-memory`
-- статус: analysis-ready
+- статус: implemented
 - папка: [docs/features/summary-memory](D:/AI_PRG/docs/features/summary-memory)
-- этап: разработчик
+- этап: qa follow-up
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: rolling summary и устойчивая память кампании

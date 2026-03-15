@@ -1,7 +1,10 @@
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 
 class GameEngine {
   const GameEngine();
+
+  static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
 
   CampaignState createCampaign(final CampaignDraft draft) {
     final DateTime now = DateTime.now();
@@ -37,11 +40,13 @@ class GameEngine {
       CampaignSetting.sciFi => 'Sci-fi',
     };
 
+    final String introText =
+        '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.';
+
     final ChatMessage intro = ChatMessage(
       id: '${id}_intro',
       role: ChatRole.narrator,
-      text:
-          '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.',
+      text: introText,
       createdAt: now,
     );
 
@@ -56,7 +61,10 @@ class GameEngine {
       location: location,
       objective: objective,
       turnNumber: 0,
-      summary: 'Кампания только началась.',
+      memory: _memoryManager.createInitialMemory(
+        objective: objective,
+        introText: introText,
+      ),
       inventory: const <String>['Полевые записи', 'Дорожный набор'],
       questLog: <String>[objective],
       messages: <ChatMessage>[intro],
@@ -118,10 +126,6 @@ class GameEngine {
         ),
       );
 
-    final String summary = result.memoryEntry.trim().isEmpty
-        ? state.summary
-        : result.memoryEntry.trim();
-
     return state.copyWith(
       character: character,
       turnNumber: state.turnNumber + 1,
@@ -129,7 +133,11 @@ class GameEngine {
       questLog: questLog,
       messages: messages,
       choices: result.choices,
-      summary: summary,
+      memory: _memoryManager.updateMemory(
+        previousState: state,
+        result: result,
+        playerAction: playerAction,
+      ),
       updatedAt: now,
     );
   }
