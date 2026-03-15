@@ -44,3 +44,10 @@
 - папка: [docs/features/quality-pass-stabilization](D:/AI_PRG/docs/features/quality-pass-stabilization)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: снизить lint-шум, укрепить ключевые user flow и подготовить проект к следующему product layer
+
+### `next-product-layer`
+
+- статус: analysis-ready
+- папка: [docs/features/next-product-layer](D:/AI_PRG/docs/features/next-product-layer)
+- источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
+- цель: Narrative depth — углубление повествования (атмосфера, эмоции, диалоги) через расширение AI-промптов
