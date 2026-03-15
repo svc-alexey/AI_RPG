@@ -1,3 +1,4 @@
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
@@ -10,6 +11,7 @@ class AppScope extends InheritedWidget {
     required this.campaignRepository,
     required this.aiServiceFactory,
     required this.gameEngine,
+    required this.appLanguageListenable,
     required super.child,
     super.key,
   });
@@ -18,6 +20,7 @@ class AppScope extends InheritedWidget {
   final CampaignRepository campaignRepository;
   final AiServiceFactory aiServiceFactory;
   final GameEngine gameEngine;
+  final ValueNotifier<AppLanguage> appLanguageListenable;
 
   static AppScope of(final BuildContext context) {
     final AppScope? scope = context
@@ -31,6 +34,7 @@ class AppScope extends InheritedWidget {
     return settingsRepository != oldWidget.settingsRepository ||
         campaignRepository != oldWidget.campaignRepository ||
         aiServiceFactory != oldWidget.aiServiceFactory ||
-        gameEngine != oldWidget.gameEngine;
+        gameEngine != oldWidget.gameEngine ||
+        appLanguageListenable != oldWidget.appLanguageListenable;
   }
 }

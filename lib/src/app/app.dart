@@ -1,4 +1,6 @@
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/app/theme.dart';
 import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
@@ -21,6 +23,8 @@ class _AiRpgAppState extends State<AiRpgApp> {
   final AiServiceFactory _aiServiceFactory = const AiServiceFactory();
   final GameEngine _gameEngine = const GameEngine();
   final LmStudioAutoConfig _lmStudioAutoConfig = const LmStudioAutoConfig();
+  final ValueNotifier<AppLanguage> _appLanguageListenable =
+      ValueNotifier<AppLanguage>(AppLanguage.ru);
   bool _didBootstrap = false;
 
   @override
@@ -34,10 +38,17 @@ class _AiRpgAppState extends State<AiRpgApp> {
   }
 
   Future<void> _bootstrap() async {
+    _appLanguageListenable.value = await _settingsRepository.loadAppLanguage();
     await _lmStudioAutoConfig.sync(_settingsRepository);
     if (mounted) {
       setState(() {});
     }
+  }
+
+  @override
+  void dispose() {
+    _appLanguageListenable.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,11 +58,18 @@ class _AiRpgAppState extends State<AiRpgApp> {
       campaignRepository: _campaignRepository,
       aiServiceFactory: _aiServiceFactory,
       gameEngine: _gameEngine,
-      child: MaterialApp(
-        title: 'ИИ RPG',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(),
-        home: const HomeScreen(),
+      appLanguageListenable: _appLanguageListenable,
+      child: ValueListenableBuilder<AppLanguage>(
+        valueListenable: _appLanguageListenable,
+        builder: (final BuildContext context, final AppLanguage _, _) {
+          final AppLocalizations l10n = AppLocalizations.of(context);
+          return MaterialApp(
+            title: l10n.appTitle,
+            debugShowCheckedModeBanner: false,
+            theme: buildAppTheme(),
+            home: const HomeScreen(),
+          );
+        },
       ),
     );
   }

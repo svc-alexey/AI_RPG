@@ -1,3 +1,4 @@
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
@@ -9,6 +10,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final AppLocalizations l10n = context.l10n;
 
     return Scaffold(
       body: DecoratedBox(
@@ -48,7 +50,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Минимальный desktop-first клиент: чат, настройки провайдера, локальные сохранения и интеграция с LM Studio.',
+                          l10n.homeDescription,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: const Color(0xFF2E2A23),
                             height: 1.45,
@@ -63,7 +65,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                             );
                           },
-                          child: const Text('Новая кампания'),
+                          child: Text(l10n.newCampaign),
                         ),
                         const SizedBox(height: 12),
                         OutlinedButton(
@@ -74,7 +76,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                             );
                           },
-                          child: const Text('Сохранения'),
+                          child: Text(l10n.saves),
                         ),
                         const SizedBox(height: 12),
                         TextButton(
@@ -85,20 +87,15 @@ class HomeScreen extends StatelessWidget {
                               ),
                             );
                           },
-                          child: const Text('Настройки ИИ'),
+                          child: Text(l10n.aiSettings),
                         ),
                       ],
                     ),
                   ),
-                  const _InfoCard(
+                  _InfoCard(
                     width: 360,
-                    title: 'Что уже есть',
-                    lines: <String>[
-                      'Локальная история кампаний',
-                      'Один полный игровой ход через ИИ',
-                      'Демо-режим без модели',
-                      'Совместимый с OpenAI endpoint для LM Studio',
-                    ],
+                    title: l10n.whatsIncluded,
+                    lines: l10n.homeFeatureLines,
                   ),
                 ],
               ),
@@ -124,6 +121,9 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final AppLocalizations l10n = context.l10n;
+    final String resolvedTitle = title.isEmpty ? l10n.whatsIncluded : title;
+    final List<String> resolvedLines = lines.isEmpty ? l10n.homeFeatureLines : lines;
 
     return Container(
       width: width,
@@ -137,13 +137,13 @@ class _InfoCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(
-            title,
+            resolvedTitle,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 16),
-          for (final String line in lines)
+          for (final String line in resolvedLines)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(

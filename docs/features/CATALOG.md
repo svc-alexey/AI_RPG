@@ -10,9 +10,9 @@
 ## Активные и запланированные фичи
 
 ### `localization-ru-en`
-- статус: analysis-ready
+- статус: implemented
 - папка: [docs/features/localization-ru-en](D:/AI_PRG/docs/features/localization-ru-en)
-- этап: разработчик
+- этап: qa follow-up
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: полная локализация интерфейса и AI-слоя для `ru/en`
 

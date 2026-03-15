@@ -1,7 +1,10 @@
 import 'dart:convert';
 
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -19,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _timeoutController = TextEditingController();
 
   AiProviderType _provider = AiProviderType.lmStudio;
+  AppLanguage _appLanguage = AppLanguage.ru;
   bool _fastResponses = true;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -48,8 +52,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(final BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Настройки ИИ')),
+      appBar: AppBar(title: Text(l10n.aiSettings)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Center(
@@ -59,23 +65,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(24),
                   children: <Widget>[
                     Text(
-                      'LM Studio и OpenAI-compatible endpoint',
+                      l10n.languageTitle,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Для LM Studio по умолчанию используется http://127.0.0.1:1234/v1. Если локальный сервер LM Studio запущен, приложение само подберет подходящую загруженную модель.',
+                    SegmentedButton<AppLanguage>(
+                      segments: <ButtonSegment<AppLanguage>>[
+                        ButtonSegment<AppLanguage>(
+                          value: AppLanguage.ru,
+                          label: Text(l10n.russian),
+                        ),
+                        ButtonSegment<AppLanguage>(
+                          value: AppLanguage.en,
+                          label: Text(l10n.english),
+                        ),
+                      ],
+                      selected: <AppLanguage>{_appLanguage},
+                      onSelectionChanged: (final Set<AppLanguage> selection) {
+                        setState(() => _appLanguage = selection.first);
+                      },
                     ),
+                    const SizedBox(height: 32),
+                    Text(
+                      l10n.aiSettingsTitle,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(l10n.aiSettingsDescription),
                     const SizedBox(height: 24),
                     SegmentedButton<AiProviderType>(
-                      segments: const <ButtonSegment<AiProviderType>>[
-                        ButtonSegment<AiProviderType>(
+                      segments: <ButtonSegment<AiProviderType>>[
+                        const ButtonSegment<AiProviderType>(
                           value: AiProviderType.lmStudio,
                           label: Text('LM Studio'),
                         ),
                         ButtonSegment<AiProviderType>(
                           value: AiProviderType.openAiCompatible,
-                          label: Text('Совместимый с OpenAI'),
+                          label: Text(l10n.openAiCompatible),
                         ),
                       ],
                       selected: <AiProviderType>{_provider},
@@ -86,38 +112,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 20),
                     TextField(
                       controller: _baseUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Базовый URL',
-                      ),
+                      decoration: InputDecoration(labelText: l10n.baseUrl),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _modelController,
-                      decoration: const InputDecoration(labelText: 'Модель'),
+                      decoration: InputDecoration(labelText: l10n.model),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _apiKeyController,
-                      decoration: const InputDecoration(
-                        labelText: 'API-ключ',
-                        hintText: 'Для LM Studio обычно не нужен',
+                      decoration: InputDecoration(
+                        labelText: l10n.apiKey,
+                        hintText: l10n.apiKeyHint,
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _timeoutController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Таймаут в секундах',
+                      decoration: InputDecoration(
+                        labelText: l10n.timeoutSeconds,
                       ),
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Быстрый режим LM Studio'),
-                      subtitle: const Text(
-                        'Добавляет /no_think и строгий JSON-формат для более быстрых ответов.',
-                      ),
+                      title: Text(l10n.fastModeTitle),
+                      subtitle: Text(l10n.fastModeSubtitle),
                       value: _fastResponses,
                       onChanged: (final bool value) {
                         setState(() => _fastResponses = value);
@@ -146,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('Сохранить настройки'),
+                              : Text(l10n.saveSettings),
                         ),
                         OutlinedButton(
                           onPressed: _isChecking ? null : _checkConnection,
@@ -158,15 +180,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('Проверить подключение'),
+                              : Text(l10n.checkConnection),
                         ),
                         TextButton(
                           onPressed: _isDetectingModel
                               ? null
                               : _detectAndApplyLmStudioModel,
-                          child: _isDetectingModel
-                              ? const Text('Подбираю модель...')
-                              : const Text('Подобрать модель автоматически'),
+                          child: Text(
+                            _isDetectingModel
+                                ? l10n.detectingModel
+                                : l10n.detectModel,
+                          ),
                         ),
                       ],
                     ),
@@ -180,8 +204,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _load() async {
     final AppScope scope = AppScope.of(context);
     final AiSettings settings = await scope.settingsRepository.loadAiSettings();
+    final AppLanguage appLanguage = await scope.settingsRepository.loadAppLanguage();
 
     _provider = settings.provider;
+    _appLanguage = appLanguage;
     _fastResponses = settings.fastResponses;
     _baseUrlController.text =
         settings.baseUrl.trim().isEmpty &&
@@ -207,6 +233,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final AppScope scope = AppScope.of(context);
     await scope.settingsRepository.saveAiSettings(_buildSettings());
+    await scope.settingsRepository.saveAppLanguage(_appLanguage);
+    scope.appLanguageListenable.value = _appLanguage;
 
     if (!mounted) {
       return;
@@ -214,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _isSaving = false;
-      _status = 'Настройки сохранены.';
+      _status = context.l10n.settingsSaved;
     });
   }
 
@@ -226,17 +254,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       final AppScope scope = AppScope.of(context);
-      final client = scope.aiServiceFactory.create(_buildSettings());
+      final AiClient client = scope.aiServiceFactory.create(_buildSettings());
       await client.checkConnection(settings: _buildSettings());
       if (!mounted) {
         return;
       }
-      setState(() => _status = 'Подключение успешно.');
+      setState(() => _status = context.l10n.connectionOk);
     } catch (error) {
       if (!mounted) {
         return;
       }
-      setState(() => _status = 'Не удалось подключиться: $error');
+      setState(() => _status = context.l10n.connectionFailed(error));
     } finally {
       if (mounted) {
         setState(() => _isChecking = false);
@@ -298,10 +326,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String modelId = _selectPreferredModel(modelIds);
       if (modelId.isEmpty) {
         if (!silentWhenUnavailable && mounted) {
-          setState(() {
-            _status =
-                'LM Studio ответил, но подходящая модель не найдена.';
-          });
+          setState(() => _status = context.l10n.noLmStudioModel);
         }
         return;
       }
@@ -317,15 +342,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       setState(() {
-        _status = 'Автоматически выбрана модель LM Studio: $modelId';
+        _status = context.l10n.selectedLmStudioModel(modelId);
       });
     } catch (error) {
       if (!mounted || silentWhenUnavailable) {
         return;
       }
       setState(() {
-        _status =
-            'Не удалось автоматически определить модель LM Studio. Убедись, что локальный сервер запущен: $error';
+        _status = context.l10n.detectLmStudioFailed(error);
       });
     } finally {
       if (mounted) {
@@ -344,12 +368,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .timeout(const Duration(seconds: 5));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('сервер вернул ${response.statusCode}');
+      throw Exception(context.l10n.serverReturned(response.statusCode));
     }
 
     final Object? decoded = jsonDecode(response.body);
     if (decoded is! Map<String, Object?>) {
-      throw Exception('неожиданный формат ответа');
+      throw Exception(context.l10n.unexpectedResponseFormat);
     }
 
     final List<Object?> items =

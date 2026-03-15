@@ -1,3 +1,4 @@
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
@@ -27,15 +28,14 @@ class _SavesScreenState extends State<SavesScreen> {
 
   @override
   Widget build(final BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Сохраненные кампании')),
+      appBar: AppBar(title: Text(l10n.savedCampaigns)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _campaigns.isEmpty
-          ? const Center(
-              child: Text(
-                'Пока нет сохранений. Создай новую кампанию на главном экране.',
-              ),
+          ? Center(
+              child: Text(l10n.noSavesYet),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -45,9 +45,7 @@ class _SavesScreenState extends State<SavesScreen> {
                 return Card(
                   child: ListTile(
                     title: Text(campaign.title),
-                    subtitle: Text(
-                      '${campaign.location} • ход ${campaign.turnNumber}',
-                    ),
+                    subtitle: Text(l10n.saveSubtitle(campaign)),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
