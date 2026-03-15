@@ -10,9 +10,9 @@
 ## Активные и запланированные фичи
 
 ### `localization-ru-en`
-- статус: planned
+- статус: analysis-ready
 - папка: [docs/features/localization-ru-en](D:/AI_PRG/docs/features/localization-ru-en)
-- этап: архитектор
+- этап: разработчик
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: полная локализация интерфейса и AI-слоя для `ru/en`
 
@@ -24,8 +24,8 @@
 - цель: ускорение ответов LM Studio через `/no_think` и строгий JSON-формат
 
 ### `summary-memory`
-- статус: planned
+- статус: analysis-ready
 - папка: [docs/features/summary-memory](D:/AI_PRG/docs/features/summary-memory)
-- этап: архитектор
+- этап: разработчик
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: rolling summary и устойчивая память кампании
