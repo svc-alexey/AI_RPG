@@ -166,6 +166,11 @@ class AppLocalizations {
     AppLanguage.en => 'Save',
   };
 
+  String get campaignInfo => switch (language) {
+    AppLanguage.ru => 'Информация о кампании',
+    AppLanguage.en => 'Campaign info',
+  };
+
   String get chatInputHint => switch (language) {
     AppLanguage.ru => 'Что делает герой дальше?',
     AppLanguage.en => 'What does the hero do next?',

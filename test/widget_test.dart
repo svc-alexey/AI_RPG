@@ -235,6 +235,32 @@ void main() {
     expect(find.text(english.saveSettings), findsOneWidget);
     expect(find.byType(OutlinedButton), findsWidgets);
   });
+
+  testWidgets('Игровой чат на узкой ширине: drawer для sidebar, чат занимает основную область', (
+    tester,
+  ) async {
+    final CampaignState campaign = _sampleCampaign();
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'campaign.ids': <String>[campaign.id],
+      'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+    });
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(size: Size(360, 640)),
+        child: _buildScopedApp(
+          ChatScreen(campaignId: campaign.id),
+          language: AppLanguage.en,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.menu), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text(english.send), findsOneWidget);
+    expect(find.text(english.suggest), findsOneWidget);
+  });
 }
 
 Widget _buildScopedApp(

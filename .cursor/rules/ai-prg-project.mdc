@@ -1,0 +1,15 @@
+---
+description: AI_PRG project rules — always apply
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# AI_PRG — Обязательные правила проекта
+
+Всегда соблюдай правила из `.cursorrules` и `.specify/memory/`:
+
+1. **Перед разработкой** — прочитай `.specify/memory/constitution.md`, `project-settings.md`, `project-context.md`
+2. **Качество** — `flutter analyze`, `flutter test` перед merge
+3. **Перезапуск** — после реализации, если нужен restart приложения — выполни его (`flutter run` или hot restart)
+4. **Локализация** — ru + en для UX
+5. **Фичи** — architecture → prd → implementation → qa; feature packet в `docs/features/<slug>/`

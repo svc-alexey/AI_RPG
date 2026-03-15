@@ -15,14 +15,15 @@ AI_PRG is a narrative RPG built with Flutter where AI generates narration and ac
 
 ## 3. Sources of Truth
 
-1. Constitution: `.specify/memory/constitution.md`
-2. Product requirements: `PRD.md`
-3. Architecture: `Architecture.md`
-4. Project Flutter rules: `FlutterRules.md`
-5. Analyzer and lint config: `analysis_options.yaml`
-6. Strategic and implementation roadmap: `Plan.md`, `ImplementationPlan.md`
-7. Feature registry: `docs/features/CATALOG.md`
-8. Team workflow and commands: `docs/features/COMMANDS.md`
+1. Project rules (always applied): `.cursorrules`, `.cursor/rules/ai-prg-project.mdc`
+2. Constitution: `.specify/memory/constitution.md`
+3. Product requirements: `PRD.md`
+4. Architecture: `Architecture.md`
+5. Project Flutter rules: `FlutterRules.md`
+6. Analyzer and lint config: `analysis_options.yaml`
+7. Strategic and implementation roadmap: `Plan.md`, `ImplementationPlan.md`
+8. Feature registry: `docs/features/CATALOG.md`
+9. Team workflow and commands: `docs/features/COMMANDS.md`
 
 ## 4. Domain Invariants
 
@@ -81,3 +82,9 @@ AI_PRG is a narrative RPG built with Flutter where AI generates narration and ac
 4. The text input and its action buttons must be part of one bottom composer row or composer block.
 5. Send and suggest actions should not live in visually detached sections away from the text field.
 6. On mobile widths, the input composer stays pinned near the bottom and the chat content remains the main focus.
+
+## 11. App Restart After Implementation
+
+1. After implementing changes, if an app restart is required to see them (e.g., hot reload insufficient, native/manifest changes), the agent **MUST** restart the application.
+2. For Flutter: `flutter run` or hot restart (R in terminal) when the app is already running.
+3. Do not leave restart to the user when it is clearly needed.

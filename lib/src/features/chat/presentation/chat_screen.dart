@@ -18,6 +18,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputController = TextEditingController();
   bool _isLoading = true;
   bool _isSending = false;
@@ -59,9 +60,20 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
+    const double wideBreakpoint = 760;
+    final bool wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
+
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text(campaign.title),
+        leading: wide
+            ? null
+            : IconButton(
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                icon: const Icon(Icons.menu),
+                tooltip: l10n.campaignInfo,
+              ),
         actions: <Widget>[
           IconButton(
             onPressed: _save,
@@ -81,31 +93,27 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+      drawer: wide
+          ? null
+          : Drawer(
+              child: AetherBackdrop(
+                child: SafeArea(
+                  child: _buildSidebar(campaign),
+                ),
+              ),
+            ),
       body: AetherBackdrop(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final bool wide = constraints.maxWidth >= 760;
-              if (wide) {
-                return Row(
+          child: wide
+              ? Row(
                   children: <Widget>[
                     SizedBox(width: 260, child: _buildSidebar(campaign)),
                     const SizedBox(width: 20),
                     Expanded(child: _buildChatColumn(campaign)),
                   ],
-                );
-              }
-
-              return Column(
-                children: <Widget>[
-                  Expanded(child: _buildChatColumn(campaign)),
-                  const SizedBox(height: 12),
-                  SizedBox(height: 240, child: _buildSidebar(campaign)),
-                ],
-              );
-            },
-          ),
+                )
+              : _buildChatColumn(campaign),
         ),
       ),
     );
@@ -131,9 +139,36 @@ class _ChatScreenState extends State<ChatScreen> {
         Expanded(
           child: AetherCard(
             child: ListView.separated(
-              itemCount: visibleMessages.length,
+              itemCount: visibleMessages.length +
+                  (campaign.choices.isNotEmpty ? 1 : 0),
               separatorBuilder: (_, _) => const SizedBox(height: 14),
               itemBuilder: (context, index) {
+                if (index >= visibleMessages.length) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 720),
+                      padding: const EdgeInsets.all(18),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: campaign.choices
+                            .take(3)
+                            .map(
+                              (choice) => ActionChip(
+                                label: Text(choice),
+                                onPressed: _isSending
+                                    ? null
+                                    : () {
+                                        _inputController.text = choice;
+                                      },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  );
+                }
                 final ChatMessage message = visibleMessages[index];
                 final bool isPlayer = message.role == ChatRole.player;
                 final bool isSystem = message.role == ChatRole.system;
@@ -174,55 +209,124 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: campaign.choices.take(3).map((choice) => ActionChip(
-              label: Text(choice),
-              onPressed: _isSending
-                  ? null
-                  : () {
-                      _inputController.text = choice;
-                    },
-            )).toList(),
-        ),
-        const SizedBox(height: 16),
-        AetherCard(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: TextField(
-                  controller: _inputController,
-                  minLines: 1,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: l10n.chatInputHint,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: _isSending
-                    ? null
-                    : () => _runTurn(suggestionsOnly: false),
-                child: _isSending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final bool composerWide = constraints.maxWidth >= 400;
+            return AetherCard(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: composerWide
+                  ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: <Widget>[
+                          Expanded(
+                            child: TextField(
+                              controller: _inputController,
+                              minLines: 1,
+                              maxLines: 4,
+                              decoration: InputDecoration(
+                                hintText: l10n.chatInputHint,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              right: 10,
+                              bottom: 8,
+                              top: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                FilledButton(
+                                  onPressed: _isSending
+                                      ? null
+                                      : () => _runTurn(suggestionsOnly: false),
+                                  child: _isSending
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(l10n.send),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _isSending
+                                      ? null
+                                      : () => _runTurn(suggestionsOnly: true),
+                                  child: Text(l10n.suggest),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       )
-                    : Text(l10n.send),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _isSending
-                    ? null
-                    : () => _runTurn(suggestionsOnly: true),
-                child: Text(l10n.suggest),
-              ),
-            ],
-          ),
+                  : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          TextField(
+                            controller: _inputController,
+                            minLines: 1,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: l10n.chatInputHint,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                            child: Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: _isSending
+                                        ? null
+                                        : () =>
+                                            _runTurn(suggestionsOnly: false),
+                                    child: _isSending
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(l10n.send),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _isSending
+                                        ? null
+                                        : () =>
+                                            _runTurn(suggestionsOnly: true),
+                                    child: Text(l10n.suggest),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+            );
+          },
         ),
       ],
     );

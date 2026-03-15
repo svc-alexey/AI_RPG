@@ -23,6 +23,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _timeoutController = TextEditingController();
 
   AiProviderType _provider = AiProviderType.lmStudio;
+  Map<AiProviderType, ProviderProfile> _profiles =
+      <AiProviderType, ProviderProfile>{};
   AppLanguage _appLanguage = AppLanguage.ru;
   bool _fastResponses = true;
   bool _isLoading = true;
@@ -247,25 +249,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     final AppScope scope = AppScope.of(context);
-    final AiSettings settings = await scope.settingsRepository.loadAiSettings();
-    final AppLanguage appLanguage = await scope.settingsRepository.loadAppLanguage();
+    final ProviderScopedSettings scoped =
+        await scope.settingsRepository.loadProviderScopedSettings();
+    final AppLanguage appLanguage =
+        await scope.settingsRepository.loadAppLanguage();
 
     if (!mounted) {
       return;
     }
 
-    _provider = settings.provider;
+    _provider = scoped.activeProvider;
+    _profiles = Map<AiProviderType, ProviderProfile>.from(scoped.profiles);
     _appLanguage = appLanguage;
-    _fastResponses = settings.fastResponses;
-    _baseUrlController.text =
-        settings.baseUrl.trim().isEmpty
-        ? AiSettings.defaultBaseUrlFor(settings.provider)
-        : settings.baseUrl;
-    _modelController.text = settings.model.trim().isEmpty
-        ? settings.provider.defaultModel
-        : settings.model;
-    _apiKeyController.text = settings.apiKey;
-    _timeoutController.text = settings.timeoutSeconds.toString();
+    _fastResponses = scoped.fastResponses;
+    _applyProfileToForm(scoped.profileFor(_provider));
 
     setState(() => _isLoading = false);
 
@@ -274,14 +271,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _applyProfileToForm(final ProviderProfile profile) {
+    _baseUrlController.text = profile.baseUrl.trim().isEmpty
+        ? AiSettings.defaultBaseUrlFor(_provider)
+        : profile.baseUrl;
+    _modelController.text = profile.model.trim().isEmpty
+        ? _provider.defaultModel
+        : profile.model;
+    _apiKeyController.text = profile.apiKey;
+    _timeoutController.text = profile.timeoutSeconds.toString();
+  }
+
+  void _saveCurrentFormToProfile() {
+    final ProviderProfile current = _profiles[_provider] ??
+        ProviderProfile.defaultsFor(_provider);
+    _profiles[_provider] = current.copyWith(
+      baseUrl: _baseUrlController.text.trim(),
+      model: _modelController.text.trim(),
+      apiKey: _apiKeyController.text.trim(),
+      timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
+    );
+  }
+
   Future<void> _save() async {
     setState(() {
       _isSaving = true;
       _status = null;
     });
 
+    _saveCurrentFormToProfile();
     final AppScope scope = AppScope.of(context);
-    await scope.settingsRepository.saveAiSettings(_buildSettings());
+    final ProviderScopedSettings toSave = ProviderScopedSettings(
+      activeProvider: _provider,
+      profiles: Map<AiProviderType, ProviderProfile>.from(_profiles),
+      fastResponses: _fastResponses,
+    );
+    await scope.settingsRepository.saveProviderScopedSettings(toSave);
     await scope.settingsRepository.saveAppLanguage(_appLanguage);
     scope.appLanguageListenable.value = _appLanguage;
 
@@ -323,26 +348,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   AiSettings _buildSettings() => AiSettings(
-      provider: _provider,
-      baseUrl: _baseUrlController.text.trim(),
-      model: _modelController.text.trim(),
-      apiKey: _apiKeyController.text.trim(),
-      timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
-      fastResponses: _fastResponses,
-    );
+        provider: _provider,
+        baseUrl: _baseUrlController.text.trim(),
+        model: _modelController.text.trim(),
+        apiKey: _apiKeyController.text.trim(),
+        timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
+        fastResponses: _fastResponses,
+      );
 
   Future<void> _handleProviderChanged(final AiProviderType provider) async {
+    _saveCurrentFormToProfile();
+
     setState(() {
       _provider = provider;
       _status = null;
-      final String defaultUrl = AiSettings.defaultBaseUrlFor(provider);
-      if (defaultUrl.isNotEmpty) {
-        _baseUrlController.text = defaultUrl;
-      }
-      final String defaultModel = provider.defaultModel;
-      if (defaultModel.isNotEmpty) {
-        _modelController.text = defaultModel;
-      }
+      final ProviderProfile profile = _profiles[provider] ??
+          ProviderProfile.defaultsFor(provider);
+      _applyProfileToForm(profile);
       if (provider == AiProviderType.openRouter) {
         final int? currentTimeout = int.tryParse(_timeoutController.text.trim());
         if (currentTimeout == null || currentTimeout < 120) {
@@ -393,8 +415,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       _baseUrlController.text = baseUrl;
       _modelController.text = modelId;
-
-      await scope.settingsRepository.saveAiSettings(_buildSettings());
+      _saveCurrentFormToProfile();
+      await scope.settingsRepository.saveProviderScopedSettings(
+        ProviderScopedSettings(
+          activeProvider: _provider,
+          profiles: Map<AiProviderType, ProviderProfile>.from(_profiles),
+          fastResponses: _fastResponses,
+        ),
+      );
 
       if (!mounted) {
         return;

@@ -1,5 +1,7 @@
 # AI_PRG: Project Settings for SpecKit and Codex
 
+**Применение правил**: Правила из этого файла и `.specify/memory/` всегда применяются через `.cursorrules` и `.cursor/rules/ai-prg-project.mdc`. При добавлении новых правил — обновляй этот файл и `.cursorrules`.
+
 ## 1. Core Quality Commands
 
 ```powershell
@@ -30,15 +32,16 @@ flutter test
 
 When working on a new feature, always take into account:
 
-1. `.specify/memory/constitution.md`
-2. `.specify/memory/project-context.md`
-3. `.specify/memory/project-settings.md`
-4. `PRD.md`
-5. `Architecture.md`
-6. `FlutterRules.md`
-7. `ImplementationPlan.md`
-8. `docs/features/CATALOG.md`
-9. `docs/features/COMMANDS.md`
+1. `.cursorrules` (always applied by Cursor)
+2. `.specify/memory/constitution.md`
+3. `.specify/memory/project-context.md`
+4. `.specify/memory/project-settings.md`
+5. `PRD.md`
+6. `Architecture.md`
+7. `FlutterRules.md`
+8. `ImplementationPlan.md`
+9. `docs/features/CATALOG.md`
+10. `docs/features/COMMANDS.md`
 
 ## 5. Implementation Plan Rule
 
@@ -75,12 +78,19 @@ When working on a new feature, always take into account:
 
 ## 9. Mobile Adaptation Rule
 
-1. All new UX and layout work must be designed and checked for mobile-sized screens, not only desktop windows.
-2. Desktop support should extend the layout, not define it.
-3. Wide layouts may introduce sidebars and split panes, but narrow layouts must remain fully usable without horizontal compression or detached controls.
-4. If a screen contains gameplay, messaging, or creation flows, those flows must be operable with the primary actions visible in the viewport on mobile.
+1. New screens are treated as mobile-first by default; desktop extends the layout.
+2. All new UX and layout work must be designed and checked for mobile-sized screens, not only desktop windows.
+3. Desktop support should extend the layout, not define it.
+4. Wide layouts may introduce sidebars and split panes, but narrow layouts must remain fully usable without horizontal compression or detached controls.
+5. If a screen contains gameplay, messaging, or creation flows, those flows must be operable with the primary actions visible in the viewport on mobile.
 
-## 10. Chat Screen Rule
+## 10. App Restart Rule
+
+1. After implementing changes, if an app restart is required to see the changes (e.g., hot reload is insufficient, native code changed, manifest changed), the agent **MUST** restart the application.
+2. For Flutter: use `flutter run` (or hot restart if the app is already running in a terminal).
+3. Do not skip restart when it is clearly needed; the user should not have to restart manually.
+
+## 11. Chat Screen Rule
 
 1. The gameplay transcript is the dominant area of the screen.
 2. Character stats, quest state, and progress details belong in a sidebar, drawer, or collapsible block.
