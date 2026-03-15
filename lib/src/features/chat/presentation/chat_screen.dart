@@ -1,4 +1,6 @@
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
@@ -41,6 +43,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(final BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
     final CampaignState? campaign = _campaign;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -48,8 +51,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (campaign == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Кампания не найдена')),
-        body: const Center(child: Text('Не удалось открыть кампанию.')),
+        appBar: AppBar(title: Text(l10n.campaignNotFound)),
+        body: Center(child: Text(l10n.campaignOpenFailed)),
       );
     }
 
@@ -60,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             onPressed: _save,
             icon: const Icon(Icons.save_outlined),
-            tooltip: 'Сохранить',
+            tooltip: l10n.saveTooltip,
           ),
           IconButton(
             onPressed: () {
@@ -71,7 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
               );
             },
             icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Настройки ИИ',
+            tooltip: l10n.aiSettings,
           ),
         ],
       ),
@@ -104,6 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildChatColumn(final CampaignState campaign) {
+    final AppLocalizations l10n = context.l10n;
     return Column(
       children: <Widget>[
         if (_status != null)
@@ -173,8 +177,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 controller: _inputController,
                 minLines: 1,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Что делает герой дальше?',
+                decoration: InputDecoration(
+                  hintText: l10n.chatInputHint,
                 ),
               ),
             ),
@@ -189,14 +193,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Отправить'),
+                  : Text(l10n.send),
             ),
             const SizedBox(width: 8),
             OutlinedButton(
               onPressed: _isSending
                   ? null
                   : () => _runTurn(suggestionsOnly: true),
-              child: const Text('Подсказать'),
+              child: Text(l10n.suggest),
             ),
           ],
         ),
@@ -206,6 +210,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildSidebar(final CampaignState campaign) {
     final CharacterStats character = campaign.character;
+    final AppLocalizations l10n = context.l10n;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFFF6EEDC),
@@ -221,25 +226,23 @@ class _ChatScreenState extends State<ChatScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          Text('Локация: ${campaign.location}'),
-          Text('Цель: ${campaign.objective}'),
-          Text('Ход: ${campaign.turnNumber}'),
+          Text('${l10n.location}: ${campaign.location}'),
+          Text('${l10n.objective}: ${campaign.objective}'),
+          Text('${l10n.turn}: ${campaign.turnNumber}'),
           const SizedBox(height: 16),
-          Text('Здоровье ${character.hp}/${character.maxHp}'),
-          Text('Энергия ${character.energy}/${character.maxEnergy}'),
-          Text(
-            'Сила ${character.might} • Ум ${character.wit} • Дух ${character.spirit}',
-          ),
+          Text(l10n.healthLabel(character)),
+          Text(l10n.energyLabel(character)),
+          Text(l10n.statsLabel(character)),
           const SizedBox(height: 16),
-          Text('Инвентарь', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.inventory, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           for (final String item in campaign.inventory) Text('• $item'),
           const SizedBox(height: 16),
-          Text('Журнал задач', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.questLog, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           for (final String item in campaign.questLog) Text('• $item'),
           const SizedBox(height: 16),
-          Text('Сводка', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.summary, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(campaign.summary),
         ],
@@ -276,7 +279,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) {
       return;
     }
-    setState(() => _status = 'Кампания сохранена.');
+    setState(() => _status = context.l10n.campaignSaved);
   }
 
   Future<void> _runTurn({required final bool suggestionsOnly}) async {
@@ -287,7 +290,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final String action = _inputController.text.trim();
     if (!suggestionsOnly && action.isEmpty) {
-      setState(() => _status = 'Сначала введи действие героя.');
+      setState(() => _status = context.l10n.actionRequired);
       return;
     }
 
@@ -298,11 +301,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final AppScope scope = AppScope.of(context);
+      final AppLanguage language = scope.appLanguageListenable.value;
       final AiSettings settings = await scope.settingsRepository
           .loadAiSettings();
       final AiClient client = scope.aiServiceFactory.create(settings);
       final TurnResult result = await client.generateTurn(
         settings: settings,
+        language: language,
         state: campaign,
         playerAction: action,
         suggestionsOnly: suggestionsOnly,
@@ -333,8 +338,8 @@ class _ChatScreenState extends State<ChatScreen> {
         _settings = settings;
         _isSending = false;
         _status = suggestionsOnly
-            ? 'Варианты действий обновлены.'
-            : 'Ход завершен ${_settings.isConfigured ? 'через ИИ' : 'в демо-режиме'}.';
+            ? context.l10n.suggestionsUpdated(_settings.isConfigured)
+            : context.l10n.turnCompleted(_settings.isConfigured);
         if (!suggestionsOnly) {
           _inputController.clear();
         }
@@ -347,7 +352,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       setState(() {
         _isSending = false;
-        _status = 'Ошибка хода: $error';
+        _status = context.l10n.turnError(error);
       });
     }
   }
@@ -367,8 +372,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if ((error.rawResponse ?? '').trim().isNotEmpty) {
       nextState = scope.gameEngine.appendSystemMessage(
         state: nextState,
-        text:
-            'Техническая заметка: сырой ответ модели сохранен для отладки и не был применен к состоянию игры.',
+        text: context.l10n.rawModelResponseSaved,
       );
     }
 

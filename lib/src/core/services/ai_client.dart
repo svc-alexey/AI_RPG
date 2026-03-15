@@ -1,4 +1,5 @@
 import 'package:ai_prg/src/core/models/ai_settings.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 
 abstract class AiClient {
@@ -6,6 +7,7 @@ abstract class AiClient {
 
   Future<TurnResult> generateTurn({
     required AiSettings settings,
+    required AppLanguage language,
     required CampaignState state,
     required String playerAction,
     required bool suggestionsOnly,

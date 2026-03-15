@@ -1,3 +1,4 @@
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
@@ -26,9 +27,10 @@ class _NewGameScreenState extends State<NewGameScreen> {
   @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final AppLocalizations l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Новая кампания')),
+      appBar: AppBar(title: Text(l10n.newCampaign)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 880),
@@ -36,59 +38,59 @@ class _NewGameScreenState extends State<NewGameScreen> {
             padding: const EdgeInsets.all(24),
             children: <Widget>[
               Text(
-                'Соберем первый рабочий сценарий',
+                l10n.buildScenarioTitle,
                 style: theme.textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
               Text(
-                'Выбираем сеттинг, режим и имя героя. После создания сразу откроется игровой чат.',
+                l10n.buildScenarioDescription,
                 style: theme.textTheme.bodyLarge,
               ),
               const SizedBox(height: 24),
               TextField(
                 controller: _heroController,
-                decoration: const InputDecoration(
-                  labelText: 'Имя героя',
-                  hintText: 'Мира, Ясень, Грач...',
+                decoration: InputDecoration(
+                  labelText: l10n.heroName,
+                  hintText: l10n.heroNameHint,
                 ),
               ),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Сеттинг'),
+              _SectionTitle(title: l10n.settingTitle),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: CampaignSetting.values.map((item) {
                   return ChoiceChip(
-                    label: Text(_settingLabel(item)),
+                    label: Text(l10n.settingLabel(item)),
                     selected: _setting == item,
                     onSelected: (_) => setState(() => _setting = item),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Режим истории'),
+              _SectionTitle(title: l10n.storyModeTitle),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: StoryMode.values.map((item) {
                   return ChoiceChip(
-                    label: Text(_modeLabel(item)),
+                    label: Text(l10n.storyModeLabel(item)),
                     selected: _mode == item,
                     onSelected: (_) => setState(() => _mode = item),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Сложность'),
+              _SectionTitle(title: l10n.difficultyTitle),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: DifficultyLevel.values.map((item) {
                   return ChoiceChip(
-                    label: Text(_difficultyLabel(item)),
+                    label: Text(l10n.difficultyLabel(item)),
                     selected: _difficulty == item,
                     onSelected: (_) => setState(() => _difficulty = item),
                   );
@@ -104,7 +106,7 @@ class _NewGameScreenState extends State<NewGameScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.auto_stories_rounded),
-                label: const Text('Создать кампанию'),
+                label: Text(l10n.createCampaignButton),
               ),
             ],
           ),
@@ -118,12 +120,13 @@ class _NewGameScreenState extends State<NewGameScreen> {
 
     final AppScope scope = AppScope.of(context);
     final CampaignState campaign = scope.gameEngine.createCampaign(
-      CampaignDraft(
+      draft: CampaignDraft(
         setting: _setting,
         mode: _mode,
         difficulty: _difficulty,
         heroName: _heroController.text,
       ),
+      language: scope.appLanguageListenable.value,
     );
 
     await scope.campaignRepository.saveCampaign(campaign);
@@ -139,22 +142,6 @@ class _NewGameScreenState extends State<NewGameScreen> {
     );
   }
 
-  String _settingLabel(final CampaignSetting value) => switch (value) {
-    CampaignSetting.fantasy => 'Фэнтези',
-    CampaignSetting.detective => 'Детектив',
-    CampaignSetting.sciFi => 'Sci-fi',
-  };
-
-  String _modeLabel(final StoryMode value) => switch (value) {
-    StoryMode.shortStory => 'Короткая история',
-    StoryMode.longCampaign => 'Длинная кампания',
-  };
-
-  String _difficultyLabel(final DifficultyLevel value) => switch (value) {
-    DifficultyLevel.easy => 'Легко',
-    DifficultyLevel.medium => 'Нормально',
-    DifficultyLevel.hardcore => 'Хардкор',
-  };
 }
 
 class _SectionTitle extends StatelessWidget {

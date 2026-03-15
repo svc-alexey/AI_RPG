@@ -1,13 +1,22 @@
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 
 class GameEngine {
   const GameEngine();
 
-  CampaignState createCampaign(final CampaignDraft draft) {
+  CampaignState createCampaign({
+    required final CampaignDraft draft,
+    required final AppLanguage language,
+  }) {
     final DateTime now = DateTime.now();
     final String id = now.microsecondsSinceEpoch.toString();
     final CharacterStats character = CharacterStats(
-      name: draft.heroName.trim().isEmpty ? 'Странник' : draft.heroName.trim(),
+      name: draft.heroName.trim().isEmpty
+          ? switch (language) {
+              AppLanguage.ru => 'Странник',
+              AppLanguage.en => 'Wayfarer',
+            }
+          : draft.heroName.trim(),
       hp: 12,
       maxHp: 12,
       energy: 8,
@@ -18,22 +27,48 @@ class GameEngine {
     );
 
     final String location = switch (draft.setting) {
-      CampaignSetting.fantasy => 'Пепельные врата',
-      CampaignSetting.detective => 'Ночной квартал',
-      CampaignSetting.sciFi => 'Кольцо Орфея',
+      CampaignSetting.fantasy => switch (language) {
+        AppLanguage.ru => 'Пепельные врата',
+        AppLanguage.en => 'Ashen Gate',
+      },
+      CampaignSetting.detective => switch (language) {
+        AppLanguage.ru => 'Ночной квартал',
+        AppLanguage.en => 'Night Quarter',
+      },
+      CampaignSetting.sciFi => switch (language) {
+        AppLanguage.ru => 'Кольцо Орфея',
+        AppLanguage.en => 'Orpheus Ring',
+      },
     };
 
     final String objective = switch (draft.setting) {
-      CampaignSetting.fantasy =>
-        'Понять, почему древние врата снова пробудились.',
-      CampaignSetting.detective => 'Найти первую зацепку до рассвета.',
-      CampaignSetting.sciFi =>
-        'Стабилизировать станцию до следующего всплеска.',
+      CampaignSetting.fantasy => switch (language) {
+        AppLanguage.ru =>
+          'Понять, почему древние врата снова пробудились.',
+        AppLanguage.en =>
+          'Understand why the ancient gate has awakened again.',
+      },
+      CampaignSetting.detective => switch (language) {
+        AppLanguage.ru => 'Найти первую зацепку до рассвета.',
+        AppLanguage.en => 'Find the first lead before dawn.',
+      },
+      CampaignSetting.sciFi => switch (language) {
+        AppLanguage.ru =>
+          'Стабилизировать станцию до следующего всплеска.',
+        AppLanguage.en =>
+          'Stabilize the station before the next surge.',
+      },
     };
 
     final String settingLabel = switch (draft.setting) {
-      CampaignSetting.fantasy => 'Фэнтези',
-      CampaignSetting.detective => 'Детектив',
+      CampaignSetting.fantasy => switch (language) {
+        AppLanguage.ru => 'Фэнтези',
+        AppLanguage.en => 'Fantasy',
+      },
+      CampaignSetting.detective => switch (language) {
+        AppLanguage.ru => 'Детектив',
+        AppLanguage.en => 'Detective',
+      },
       CampaignSetting.sciFi => 'Sci-fi',
     };
 
@@ -41,7 +76,12 @@ class GameEngine {
       id: '${id}_intro',
       role: ChatRole.narrator,
       text:
-          '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.',
+          switch (language) {
+            AppLanguage.ru =>
+              '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.',
+            AppLanguage.en =>
+              '${character.name} arrives at "$location". The air is tense, the objective is already set, and the next choice will define the tone of the whole campaign.',
+          },
       createdAt: now,
     );
 
@@ -56,15 +96,28 @@ class GameEngine {
       location: location,
       objective: objective,
       turnNumber: 0,
-      summary: 'Кампания только началась.',
-      inventory: const <String>['Полевые записи', 'Дорожный набор'],
+      summary: switch (language) {
+        AppLanguage.ru => 'Кампания только началась.',
+        AppLanguage.en => 'The campaign has only just begun.',
+      },
+      inventory: switch (language) {
+        AppLanguage.ru => const <String>['Полевые записи', 'Дорожный набор'],
+        AppLanguage.en => const <String>['Field Notes', 'Travel Kit'],
+      },
       questLog: <String>[objective],
       messages: <ChatMessage>[intro],
-      choices: const <String>[
-        'Осмотреться вокруг',
-        'Двинуться к цели',
-        'Попросить больше деталей',
-      ],
+      choices: switch (language) {
+        AppLanguage.ru => const <String>[
+            'Осмотреться вокруг',
+            'Двинуться к цели',
+            'Попросить больше деталей',
+          ],
+        AppLanguage.en => const <String>[
+            'Look around',
+            'Move toward the objective',
+            'Ask for more detail',
+          ],
+      },
       updatedAt: now,
     );
   }
