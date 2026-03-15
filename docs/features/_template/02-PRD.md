@@ -3,6 +3,7 @@
 ## 1. Контекст
 
 Перед началом изучить:
+
 - [PRD.md](D:/AI_PRG/PRD.md)
 - [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - [.specify/memory/project-context.md](D:/AI_PRG/.specify/memory/project-context.md)

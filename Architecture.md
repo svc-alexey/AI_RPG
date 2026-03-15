@@ -1,113 +1,87 @@
-# Архитектура: Схема модулей
+# Архитектура: схема модулей
 
 ## 1. Модули верхнего уровня
+
 ```mermaid
 flowchart LR
-    UI[Flutter-клиент UI]
-    APP[Слой приложения]
-    ENGINE[Игровой движок]
-    MEMORY[Система памяти]
-    AI[AI Gateway]
-    STORE[Локальное хранилище]
-    BACKEND[Backend-сервисы]
-    PROVIDERS[AI-провайдеры]
+    UI["Flutter UI"]
+    APP["Application Layer"]
+    ENGINE["Game Engine"]
+    MEMORY["Memory Layer"]
+    AI["AI Gateway"]
+    STORE["Local Storage"]
 
     UI --> APP
     APP --> ENGINE
     APP --> MEMORY
     APP --> AI
     APP --> STORE
-    AI --> PROVIDERS
-    APP --> BACKEND
-    MEMORY --> STORE
-    ENGINE --> STORE
-    BACKEND --> PROVIDERS
 ```
 
-## 2. Декомпозиция клиентских модулей
+## 2. Клиентская декомпозиция
+
 ```mermaid
 flowchart TB
-    subgraph Client[Flutter-клиент]
-      Screens[Экраны\nSetup/Character/Game/Map/Inventory/Memory/Settings]
-      StateMgmt[Управление состоянием]
-      Orchestrator[Оркестратор хода]
-      Domain[Доменные модели]
-      Validator[Валидатор состояния]
-      MemoryMgr[Менеджер памяти]
-      AiClient[Клиент AI Gateway]
-      Repo[Репозитории]
-      LocalDB[(SQLite/локальная БД)]
-      Secure[(Secure Storage)]
+    subgraph Client["Flutter Client"]
+      Screens["Screens"]
+      State["State / App Scope"]
+      Domain["Domain Models"]
+      Services["Services"]
+      Repos["Repositories"]
+      Local["Local Storage"]
     end
 
-    Screens --> StateMgmt
-    StateMgmt --> Orchestrator
-    Orchestrator --> AiClient
-    Orchestrator --> Validator
-    Orchestrator --> MemoryMgr
-    Orchestrator --> Repo
-    Repo --> LocalDB
-    Repo --> Secure
-    Domain --> StateMgmt
+    Screens --> State
+    State --> Services
+    State --> Repos
+    Services --> Domain
+    Repos --> Domain
+    Repos --> Local
 ```
 
-## 3. Адаптеры AI Gateway
-```mermaid
-flowchart LR
-    Contract[Единый AI-контракт\nJSON in/out]
-    OpenAI[OpenAI-compatible адаптер]
-    LM[LM Studio адаптер]
-    Anthropic[Anthropic адаптер]
-    Gemini[Gemini адаптер]
-    Custom[Кастомный endpoint адаптер]
+## 3. Основные архитектурные правила
 
-    Contract --> OpenAI
-    Contract --> LM
-    Contract --> Anthropic
-    Contract --> Gemini
-    Contract --> Custom
-```
+1. UI не является источником истины для игрового состояния.
+2. AI не является источником истины для игрового состояния.
+3. Игровой state изменяется только через детерминированную логику приложения.
+4. AI-слой работает через единый gateway и structured contract.
+5. Память кампании строится слоями: recent turns, rolling summary, active goal, active situation.
 
-## 4. Конвейер обработки хода
+## 4. Ключевые модули текущего MVP
+
+1. `lib/src/app/*` — bootstrapping, app scope, theme, localization.
+2. `lib/src/core/models/*` — доменные модели кампании, персонажа, AI settings.
+3. `lib/src/core/repositories/*` — локальные репозитории настроек и кампаний.
+4. `lib/src/core/services/*` — game engine, AI clients, LM Studio auto-config, memory manager.
+5. `lib/src/features/*` — пользовательские экраны и feature-level UI.
+
+## 5. Игровой цикл
+
 ```mermaid
 sequenceDiagram
-    participant P as Игрок
-    participant UI as Экран игры
-    participant ORCH as Оркестратор хода
-    participant MEM as Менеджер памяти
-    participant AI as AI Gateway
-    participant VAL as Валидатор
-    participant DB as Хранилище
+    participant U as User
+    participant C as Chat Screen
+    participant A as AI Client
+    participant E as Game Engine
+    participant S as Storage
 
-    P->>UI: Отправляет действие
-    UI->>ORCH: runTurn(action)
-    ORCH->>MEM: buildContext(campaignId)
-    MEM-->>ORCH: summary + сущности + недавние ходы
-    ORCH->>AI: generateNextTurn(request JSON)
-    AI-->>ORCH: narration + state_changes + choices
-    ORCH->>VAL: validateAndNormalize(delta, rules)
-    VAL-->>ORCH: accepted/rejected changes
-    ORCH->>DB: persist turn log + updated state + memory
-    ORCH-->>UI: render narration + updated UI state
+    U->>C: Send action
+    C->>A: generateTurn(...)
+    A-->>C: structured turn result
+    C->>E: applyTurn(...)
+    E-->>C: updated CampaignState
+    C->>S: saveCampaign(...)
 ```
 
-## 5. Матрица ответственности
-1. `Screens/UI`: рендеринг, ввод игрока, локальное UI-состояние.
-2. `Turn Orchestrator`: центральный use-case поток каждого хода.
-3. `State Validator`: принудительное соблюдение детерминированных правил игры.
-4. `Memory Manager`: cadence summaries, карточки сущностей, сбор контекста.
-5. `AI Gateway`: абстракция провайдеров и нормализация ответа.
-6. `Repositories/Storage`: сохранение данных и миграции схем.
-7. `Backend`: прокси встроенного ключа, entitlements, аналитика, модерация, облачные сохранения.
+## 6. Сохранения и совместимость
 
-## 6. Владение данными
-1. Источник истины состояния игры: `игровой движок + сохраненное состояние`.
-2. Выход AI: недоверенный proposal до подтверждения валидатором.
-3. Канон памяти: обновляется подсистемой памяти, не напрямую из UI.
-4. Состояние подписки/прав: authoritative на backend.
+1. Кампания хранится как сериализуемая модель состояния.
+2. Изменения схемы должны по возможности сохранять обратную совместимость.
+3. Новые поля memory-слоя должны иметь fallback для старых save.
 
-## 7. Стратегия версионирования
-1. `prompt_version` в AI-запросах.
-2. `schema_version` в каждой сохраненной сущности.
-3. `ruleset_version` в метаданных кампании.
-4. Backward-compatible парсер логов ходов там, где это возможно.
+## 7. AI слой
+
+1. Поддерживается OpenAI-compatible endpoint.
+2. LM Studio используется как локальный AI provider.
+3. Для LM Studio поддержан fast mode через `/no_think` с fallback.
+4. Невалидный AI-ответ не должен ломать state кампании.

@@ -1,22 +1,23 @@
 # Features Workflow
 
-Каждая новая фича, если это не bugfix, проходит через отдельную feature-папку.
+Каждая новая фича, если это не bugfix, проходит через отдельный feature-пакет.
 
-Порядок работы:
+## Порядок работы
+
 1. Пользователь формулирует задачу.
-2. Задача добавляется в [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md) как чекбокс.
-3. Задача регистрируется в [docs/features/CATALOG.md](D:/AI_PRG/docs/features/CATALOG.md), чтобы она попадала в общий scope проекта.
-4. Для задачи создается отдельная папка в `docs/features/<feature-slug>/`.
-5. Папка создается по шаблону из `docs/features/_template/`.
-6. Внутри feature-папки работа идет строго по этапам:
+2. Задача добавляется в [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md).
+3. Задача регистрируется в [docs/features/CATALOG.md](D:/AI_PRG/docs/features/CATALOG.md).
+4. Для задачи создается отдельная ветка `codex/<feature-slug>`.
+5. Для задачи создается папка `docs/features/<feature-slug>/`.
+6. Внутри feature-пакета работа идет по этапам:
    - `01-Architecture.md`
    - `02-PRD.md`
    - `03-Implementation.md`
    - `04-QA.md`
 7. Только после архитектуры и аналитики допускается реализация.
-8. Каждый этап роли ведется в отдельном окне/треде: архитектор, аналитик, разработчик и тестировщик не смешиваются в одном рабочем окне.
 
-Что обязательно учитывать в каждой feature-папке:
+## Что обязательно учитывать в каждом feature-пакете
+
 - [PRD.md](D:/AI_PRG/PRD.md)
 - [Architecture.md](D:/AI_PRG/Architecture.md)
 - [FlutterRules.md](D:/AI_PRG/FlutterRules.md)

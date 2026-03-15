@@ -1,8 +1,18 @@
-# Implementation: Summary Memory
+# Implementation: summary-memory
 
-- [x] Архитектурный этап завершен
-- [x] PRD/feature-spec завершен
+## Статус
+
+- [x] Архитектура заполнена
+- [x] PRD заполнен
 - [x] Реализация начата
 - [x] Реализация завершена
-- [x] Проверки выполнены
+- [x] Проверки пройдены
 - [x] QA-этап завершен
+
+## Ключевые задачи
+
+- [x] Ввести `CampaignMemory`
+- [x] Добавить `CampaignMemoryManager`
+- [x] Передавать в AI compact context
+- [x] Показать memory-блок в UI
+- [x] Сохранить совместимость со старыми save
