@@ -229,3 +229,45 @@
 - [ ] Команда может переходить к следующему product layer без возврата к базовой инфраструктуре
 - [ ] Ключевые экраны приведены к единому целевому визуальному стилю
 - [ ] Есть минимально работающий промо-процесс для набора первых тестеров и сбора раннего фидбека
+
+## Backlog: Provider-scoped AI Settings
+
+Goal: store `apiKey`, `model`, `baseUrl`, and timeout separately for each provider so switching between `LM Studio`, `OpenAI Compatible`, `OpenRouter`, and `DeepSeek` does not overwrite other provider profiles.
+
+Tasks:
+
+- [ ] Design a provider-scoped settings structure instead of one shared `AiSettings` payload
+- [ ] Store `apiKey`, `baseUrl`, `model`, and `timeoutSeconds` independently for each provider
+- [ ] Add migration from the current shared settings shape so existing user settings are preserved
+- [ ] Update the settings screen so switching provider restores that provider's saved values immediately
+- [ ] Make provider switching work on the fly without losing in-progress form values
+- [ ] Add tests for switching `OpenRouter` -> `DeepSeek` -> back and verifying both profiles stay intact
+
+Expected result:
+
+- [ ] Each provider keeps its own token, model, base URL, and timeout
+- [ ] Provider switching no longer resets previously entered credentials
+- [ ] The user can compare and switch providers quickly without re-entering secrets and model ids
+
+## Backlog: Mobile Adaptation and Gameplay Screen Redesign
+
+Goal: adapt the app for mobile-sized screens by default and redesign the gameplay screen so the chat area becomes the primary focus instead of the metadata column.
+
+Tasks:
+
+- [ ] Add a mobile-adaptation requirement to project memory and SpecKit rules so new screens are treated as mobile-first by default
+- [ ] Audit all core screens for narrow-width behavior: `Home`, `New Game`, `Chat`, `Settings`, `Saves`
+- [ ] Redesign the gameplay screen so the conversation occupies most of the visible area
+- [ ] Move stats, quests, progress, and secondary campaign info into a sidebar, drawer, or collapsible panel
+- [ ] Keep at most 3 AI suggestion actions directly above the text input as hint chips
+- [ ] Merge the text field, send action, and suggest action into one composer block at the bottom of the screen
+- [ ] Remove detached action buttons that sit far away from the input field
+- [ ] Verify the gameplay layout on desktop, tablet-width, and phone-width breakpoints
+- [ ] Add widget or golden coverage for narrow-width gameplay layout behavior
+
+Expected result:
+
+- [ ] The game screen feels focused on play, not on side metadata
+- [ ] The main chat area occupies most of the screen on both desktop and mobile
+- [ ] The input composer and its actions stay grouped at the bottom
+- [ ] Mobile layouts remain usable without cramped or broken controls

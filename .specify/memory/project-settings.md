@@ -1,34 +1,34 @@
-# AI_PRG: Настройки проекта для SpecKit и Codex
+# AI_PRG: Project Settings for SpecKit and Codex
 
-## 1. Базовые команды качества
+## 1. Core Quality Commands
 
 ```powershell
 flutter analyze
 flutter test
 ```
 
-## 2. Политика локализации
+## 2. Localization Policy
 
-1. Язык по умолчанию: русский (`ru`).
-2. Обязательный второй язык: английский (`en`).
-3. Язык влияет и на UI, и на AI-слой.
-4. Новая фича не считается завершенной, если она затрагивает UX, но реализована только для одного языка.
+1. Default language: Russian (`ru`)
+2. Required second language: English (`en`)
+3. Language affects both UI and AI behavior
+4. A UX-facing feature is incomplete if it works correctly in only one language
 
-## 3. Pipeline для новых фич
+## 3. Feature Pipeline
 
-1. Если задача не bugfix, сначала идет архитектурный этап.
-2. После архитектуры обязателен аналитический этап с PRD/feature-spec.
-3. Только потом идет разработка.
-4. После разработки обязателен этап тестирования.
-5. Роли фиксированы:
-   - архитектор
-   - аналитик
-   - разработчик
-   - тестировщик
+1. If a task is not a bugfix, it starts with an architecture step.
+2. Architecture is followed by an analytical step with a PRD or feature spec.
+3. Only then does implementation begin.
+4. Testing is mandatory after implementation.
+5. The project follows explicit roles:
+   - architect
+   - analyst
+   - developer
+   - tester
 
-## 4. Контекст для SpecKit
+## 4. Required Context for Feature Work
 
-При работе над новой фичей обязательно учитывать:
+When working on a new feature, always take into account:
 
 1. `.specify/memory/constitution.md`
 2. `.specify/memory/project-context.md`
@@ -40,35 +40,50 @@ flutter test
 8. `docs/features/CATALOG.md`
 9. `docs/features/COMMANDS.md`
 
-## 5. Правило для implementation plan
+## 5. Implementation Plan Rule
 
-1. Отдельный implementation plan ведется как checklist.
-2. Все этапы и подзадачи оформляются через `[ ]` и `[x]`.
-3. Статус задач обязан обновляться по мере выполнения.
+1. The implementation plan is maintained as a checklist.
+2. Stages and tasks use `[ ]` and `[x]`.
+3. Task status must be updated as work progresses.
 
-## 6. Правило для feature-пакетов
+## 6. Feature Packet Rule
 
-1. Новая фича получает папку `docs/features/<feature-slug>/`.
-2. Папка создается по шаблону `docs/features/_template/`.
-3. Фича одновременно регистрируется в `docs/features/CATALOG.md`.
-4. Для фичи создается отдельная git-ветка `codex/<feature-slug>`.
-5. Внутри feature-пакета должны быть:
+1. Every new feature gets a folder `docs/features/<feature-slug>/`.
+2. The folder is created from `docs/features/_template/`.
+3. The feature is registered in `docs/features/CATALOG.md`.
+4. The feature gets its own git branch `codex/<feature-slug>`.
+5. Each feature packet should contain:
    - `README.md`
    - `01-Architecture.md`
    - `02-PRD.md`
    - `03-Implementation.md`
    - `04-QA.md`
 
-## 7. Автономный режим
+## 7. Autonomous Mode Rule
 
-1. Если пользователь говорит "выполняй фичу", агент проходит pipeline сам.
-2. Агент сам обновляет implementation plan, каталог фич и feature-пакет.
-3. Остановка только при скрытом риске, неоднозначности или необходимости выбора с последствиями.
+1. If the user asks to execute a feature, the agent proceeds through the pipeline autonomously.
+2. The agent updates the implementation plan, feature catalog, and feature packet as needed.
+3. Stop only when there is hidden risk, real ambiguity, or a choice with meaningful consequences.
 
-## 8. Git workflow
+## 8. Git Workflow
 
-1. Каждая новая фича разрабатывается в отдельной ветке `codex/<feature-slug>`.
-2. Реализация, проверки и документация фичи ведутся внутри feature-ветки.
-3. Если фича рабочая и проверки пройдены, агент сливает ее в `master`.
-4. После merge в `master` проверки запускаются повторно.
-5. `master` хранит только стабильное состояние.
+1. Every new feature is developed in a dedicated branch `codex/<feature-slug>`.
+2. Implementation, tests, and docs happen inside that feature branch.
+3. A validated feature branch is merged into `master`.
+4. After merge, checks run again on the integrated state.
+5. `master` should remain stable.
+
+## 9. Mobile Adaptation Rule
+
+1. All new UX and layout work must be designed and checked for mobile-sized screens, not only desktop windows.
+2. Desktop support should extend the layout, not define it.
+3. Wide layouts may introduce sidebars and split panes, but narrow layouts must remain fully usable without horizontal compression or detached controls.
+4. If a screen contains gameplay, messaging, or creation flows, those flows must be operable with the primary actions visible in the viewport on mobile.
+
+## 10. Chat Screen Rule
+
+1. The gameplay transcript is the dominant area of the screen.
+2. Character stats, quest state, and progress details belong in a sidebar, drawer, or collapsible block.
+3. AI suggestion chips live above the input composer and are limited to the top three options.
+4. The text field, send action, and suggest action are grouped into one composer area.
+5. The chat input must remain visually and spatially connected to its action buttons.

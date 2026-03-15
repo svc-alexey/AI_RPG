@@ -1,66 +1,83 @@
-# AI_PRG: Единый контекст проекта
+# AI_PRG: Project Context
 
-## 1. Назначение документа
+## 1. Purpose
 
-Этот файл фиксирует стабильный контекст проекта для SpecKit и feature-пакетов:
+This file defines the stable project context for SpecKit and feature packets:
 
-1. Общие продуктовые цели.
-2. Архитектурные инварианты.
-3. Технические ограничения.
-4. Источники истины по требованиям и процессу.
+1. Product goals
+2. Architecture invariants
+3. Technical constraints
+4. Sources of truth for requirements and process
 
-## 2. Продукт в одном абзаце
+## 2. Product Summary
 
-AI_PRG — это narrative RPG на Flutter, где AI генерирует повествование и варианты действий, а детерминированный движок валидирует и применяет только допустимые изменения игрового состояния. Проект поддерживает локальные сохранения, LM Studio через OpenAI-compatible endpoint, два языковых режима (`ru` по умолчанию и `en`) и layered memory для длинных кампаний.
+AI_PRG is a narrative RPG built with Flutter where AI generates narration and action options, while a deterministic game engine validates and applies only allowed state changes. The project supports local saves, multiple AI providers through an OpenAI-compatible gateway, Russian and English UX, and layered memory for long-running campaigns.
 
-## 3. Источники истины
+## 3. Sources of Truth
 
-1. Конституция проекта: `.specify/memory/constitution.md`
+1. Constitution: `.specify/memory/constitution.md`
 2. Product requirements: `PRD.md`
-3. Архитектура: `Architecture.md`
-4. Flutter-правила проекта: `FlutterRules.md`
-5. Analyzer/lint конфигурация: `analysis_options.yaml`
-6. Стратегический и implementation-план: `Plan.md`, `ImplementationPlan.md`
-7. Реестр фич: `docs/features/CATALOG.md`
-8. Протокол команд и workflow: `docs/features/COMMANDS.md`
+3. Architecture: `Architecture.md`
+4. Project Flutter rules: `FlutterRules.md`
+5. Analyzer and lint config: `analysis_options.yaml`
+6. Strategic and implementation roadmap: `Plan.md`, `ImplementationPlan.md`
+7. Feature registry: `docs/features/CATALOG.md`
+8. Team workflow and commands: `docs/features/COMMANDS.md`
 
-## 4. Доменные инварианты
+## 4. Domain Invariants
 
-1. AI output недоверенный до валидации.
-2. Источник истины по игровому state — движок и сохраненное состояние, а не свободный текст модели.
-3. Изменения мира, инвентаря и прогресса применяются только через детерминированную логику приложения.
-4. Save/load должны сохранять совместимость по мере эволюции MVP.
+1. AI output is never trusted before validation.
+2. The engine and persisted campaign state are the source of truth, not the free-form text returned by a model.
+3. World changes, inventory updates, and progress changes are applied only through deterministic application logic.
+4. Save and load flows must preserve compatibility as the MVP evolves.
 
-## 5. Технологический профиль
+## 5. Technology Profile
 
-1. Клиент: Flutter, desktop-first.
-2. AI-слой: provider-agnostic gateway и адаптеры.
-3. Локальный AI-режим: LM Studio через OpenAI-compatible API.
-4. Хранение: локальные сохранения кампаний и настроек.
+1. Client: Flutter
+2. AI layer: provider-agnostic gateway plus adapters
+3. Local AI mode: LM Studio via OpenAI-compatible API
+4. Storage: local campaign saves and local settings
 
-## 6. Обязательная синхронизация документов
+## 6. Documentation Sync Rules
 
-1. При изменении требований обновляется `PRD.md`.
-2. При изменении структуры приложения обновляется `Architecture.md`.
-3. При изменении правил разработки обновляются `FlutterRules.md` и `.specify/memory/*`.
-4. При изменении roadmap обновляется `ImplementationPlan.md`.
+1. Update `PRD.md` when requirements change.
+2. Update `Architecture.md` when application structure changes.
+3. Update `FlutterRules.md` and `.specify/memory/*` when engineering rules change.
+4. Update `ImplementationPlan.md` when roadmap priorities change.
 
-## 7. Feature-пакеты
+## 7. Feature Packet Rules
 
-1. Каждая новая фича, если это не bugfix, получает отдельную папку в `docs/features/<feature-slug>/`.
-2. Каждая новая фича регистрируется в `docs/features/CATALOG.md`.
-3. Каждая новая фича получает отдельную git-ветку `codex/<feature-slug>`.
-4. До реализации должны быть заполнены `01-Architecture.md` и `02-PRD.md`.
-5. Каждая ролевая стадия ведется как отдельный логический этап: архитектор, аналитик, разработчик, тестировщик.
+1. Every new feature, unless it is a bugfix, gets its own folder in `docs/features/<feature-slug>/`.
+2. Every new feature is registered in `docs/features/CATALOG.md`.
+3. Every new feature gets its own git branch `codex/<feature-slug>`.
+4. Before implementation, `01-Architecture.md` and `02-PRD.md` must be prepared.
+5. Feature work follows explicit stages: architect, analyst, developer, tester.
 
-## 8. Локализация как инвариант продукта
+## 8. Localization Invariant
 
-1. Приложение стартует на русском языке по умолчанию.
-2. Обязательны два полноценных языковых режима: `ru` и `en`.
-3. Переключение языка должно влиять на весь UX:
-   - интерфейс
-   - кнопки и подписи
-   - ошибки и статусы
-   - стартовые игровые тексты
+1. The application starts in Russian by default.
+2. Two full language modes are required: `ru` and `en`.
+3. Language selection must affect the full UX:
+   - interface labels
+   - buttons and hints
+   - errors and statuses
+   - starter campaign text
    - AI prompt layer
-4. Фича не считается завершенной, если она реализована только для одного языка, когда затрагивает пользовательский опыт.
+4. A feature is not considered complete if it affects user-facing UX but is implemented only for one language.
+
+## 9. Mobile-First UX Invariant
+
+1. The product must be treated as mobile-adapted by default, even if desktop remains supported.
+2. New UI work is not considered complete until it is verified on narrow phone-sized layouts.
+3. Primary gameplay actions must remain reachable with one-thumb interaction zones on small screens.
+4. Dense informational blocks must collapse, move to drawers, or move to side panels depending on available width.
+5. The game screen must prioritize the playable conversation area over metadata panels.
+
+## 10. Gameplay Screen Layout Expectations
+
+1. The chat transcript should occupy the largest visible area of the play screen.
+2. Character stats, quest progress, and secondary campaign metadata should move into a sidebar, drawer, or collapsible panel instead of dominating the main column.
+3. Up to three AI suggestion chips should sit directly above the input area.
+4. The text input and its action buttons must be part of one bottom composer row or composer block.
+5. Send and suggest actions should not live in visually detached sections away from the text field.
+6. On mobile widths, the input composer stays pinned near the bottom and the chat content remains the main focus.
