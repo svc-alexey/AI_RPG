@@ -1,3 +1,4 @@
+import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
@@ -24,6 +25,8 @@ class _ChatScreenState extends State<ChatScreen> {
   CampaignState? _campaign;
   AiSettings _settings = const AiSettings.defaults();
   String? _status;
+  ChatMessage? _pendingPlayerMessage;
+  ChatMessage? _pendingNarratorMessage;
 
   @override
   void didChangeDependencies() {
@@ -78,29 +81,31 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final bool wide = constraints.maxWidth >= 980;
-            if (wide) {
-              return Row(
+      body: AetherBackdrop(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool wide = constraints.maxWidth >= 760;
+              if (wide) {
+                return Row(
+                  children: <Widget>[
+                    SizedBox(width: 260, child: _buildSidebar(campaign)),
+                    const SizedBox(width: 20),
+                    Expanded(child: _buildChatColumn(campaign)),
+                  ],
+                );
+              }
+
+              return Column(
                 children: <Widget>[
-                  Expanded(flex: 5, child: _buildChatColumn(campaign)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: 300, child: _buildSidebar(campaign)),
+                  Expanded(child: _buildChatColumn(campaign)),
+                  const SizedBox(height: 12),
+                  SizedBox(height: 240, child: _buildSidebar(campaign)),
                 ],
               );
-            }
-
-            return Column(
-              children: <Widget>[
-                Expanded(child: _buildChatColumn(campaign)),
-                const SizedBox(height: 12),
-                SizedBox(height: 220, child: _buildSidebar(campaign)),
-              ],
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -108,101 +113,116 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildChatColumn(final CampaignState campaign) {
     final AppLocalizations l10n = context.l10n;
+    final List<ChatMessage> visibleMessages = _visibleMessages(campaign);
     return Column(
       children: <Widget>[
         if (_status != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+          AetherCard(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(_status!),
+              child: Text(
+                _status!,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
           ),
+        if (_status != null) const SizedBox(height: 12),
         Expanded(
-          child: ListView.separated(
-            itemCount: campaign.messages.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final ChatMessage message = campaign.messages[index];
-              final bool isPlayer = message.role == ChatRole.player;
-              final bool isSystem = message.role == ChatRole.system;
+          child: AetherCard(
+            child: ListView.separated(
+              itemCount: visibleMessages.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                final ChatMessage message = visibleMessages[index];
+                final bool isPlayer = message.role == ChatRole.player;
+                final bool isSystem = message.role == ChatRole.system;
 
-              return Align(
-                alignment: isPlayer
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isPlayer
-                        ? const Color(0xFF2F4A3C)
-                        : isSystem
-                        ? const Color(0xFFE7DDD0)
-                        : const Color(0xFFF4EAD7),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Text(
-                    message.text,
-                    style: TextStyle(
-                      color: isPlayer ? Colors.white : const Color(0xFF241F1A),
-                      height: 1.45,
+                return Align(
+                  alignment: isPlayer
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isPlayer
+                          ? AetherPalette.accentSoft.withValues(alpha: 0.42)
+                          : isSystem
+                          ? AetherPalette.panelSoft.withValues(alpha: 0.92)
+                          : AetherPalette.panel.withValues(alpha: 0.96),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: (isPlayer
+                                ? AetherPalette.accent
+                                : AetherPalette.panelBorder)
+                            .withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Text(
+                      message.text,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: isSystem
+                            ? AetherPalette.textMuted
+                            : AetherPalette.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: campaign.choices.take(3).map((choice) {
-            return ActionChip(
+          children: campaign.choices.take(3).map((choice) => ActionChip(
               label: Text(choice),
               onPressed: _isSending
                   ? null
                   : () {
                       _inputController.text = choice;
                     },
-            );
-          }).toList(),
+            )).toList(),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: TextField(
-                controller: _inputController,
-                minLines: 1,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: l10n.chatInputHint,
+        AetherCard(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: _inputController,
+                  minLines: 1,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: l10n.chatInputHint,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            FilledButton(
-              onPressed: _isSending
-                  ? null
-                  : () => _runTurn(suggestionsOnly: false),
-              child: _isSending
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.send),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: _isSending
-                  ? null
-                  : () => _runTurn(suggestionsOnly: true),
-              child: Text(l10n.suggest),
-            ),
-          ],
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: _isSending
+                    ? null
+                    : () => _runTurn(suggestionsOnly: false),
+                child: _isSending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.send),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _isSending
+                    ? null
+                    : () => _runTurn(suggestionsOnly: true),
+                child: Text(l10n.suggest),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -211,11 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildSidebar(final CampaignState campaign) {
     final CharacterStats character = campaign.character;
     final AppLocalizations l10n = context.l10n;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF6EEDC),
-        borderRadius: BorderRadius.circular(24),
-      ),
+    return AetherCard(
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
@@ -223,7 +239,7 @@ class _ChatScreenState extends State<ChatScreen> {
             character.name,
             style: Theme.of(
               context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Text('${l10n.location}: ${campaign.location}'),
@@ -315,6 +331,21 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _isSending = true;
       _status = null;
+      if (!suggestionsOnly) {
+        final DateTime now = DateTime.now();
+        _pendingPlayerMessage = ChatMessage(
+          id: 'pending_player',
+          role: ChatRole.player,
+          text: action,
+          createdAt: now,
+        );
+        _pendingNarratorMessage = ChatMessage(
+          id: 'pending_narrator',
+          role: ChatRole.narrator,
+          text: '...',
+          createdAt: now,
+        );
+      }
     });
 
     try {
@@ -330,6 +361,10 @@ class _ChatScreenState extends State<ChatScreen> {
         playerAction: action,
         suggestionsOnly: suggestionsOnly,
       );
+
+      if (!suggestionsOnly) {
+        await _animatePendingNarration(result.narration);
+      }
 
       final CampaignState nextState = suggestionsOnly
           ? campaign.copyWith(
@@ -356,6 +391,8 @@ class _ChatScreenState extends State<ChatScreen> {
         _campaign = nextState;
         _settings = settings;
         _isSending = false;
+        _pendingPlayerMessage = null;
+        _pendingNarratorMessage = null;
         _status = suggestionsOnly
             ? context.l10n.suggestionsUpdated(_settings.isConfigured)
             : context.l10n.turnCompleted(_settings.isConfigured);
@@ -364,6 +401,7 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
     } on AiTurnException catch (error) {
+      _clearPendingMessages();
       await _handleAiTurnException(error);
     } catch (error) {
       if (!mounted) {
@@ -371,6 +409,8 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       setState(() {
         _isSending = false;
+        _pendingPlayerMessage = null;
+        _pendingNarratorMessage = null;
         _status = context.l10n.turnError(error);
       });
     }
@@ -404,7 +444,59 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _campaign = nextState;
       _isSending = false;
+      _pendingPlayerMessage = null;
+      _pendingNarratorMessage = null;
       _status = error.userMessage;
+    });
+  }
+
+  List<ChatMessage> _visibleMessages(final CampaignState campaign) {
+    final List<ChatMessage> messages = List<ChatMessage>.from(campaign.messages);
+    if (_pendingPlayerMessage != null) {
+      messages.add(_pendingPlayerMessage!);
+    }
+    if (_pendingNarratorMessage != null) {
+      messages.add(_pendingNarratorMessage!);
+    }
+    return messages;
+  }
+
+  Future<void> _animatePendingNarration(final String narration) async {
+    final List<String> words = narration
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.isEmpty || !mounted) {
+      return;
+    }
+
+    String buffer = '';
+    for (int i = 0; i < words.length; i += 2) {
+      final int end = (i + 2 < words.length) ? i + 2 : words.length;
+      final String chunk = words.sublist(i, end).join(' ');
+      buffer = buffer.isEmpty ? chunk : '$buffer $chunk';
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pendingNarratorMessage = ChatMessage(
+          id: 'pending_narrator',
+          role: ChatRole.narrator,
+          text: buffer,
+          createdAt: _pendingNarratorMessage?.createdAt ?? DateTime.now(),
+        );
+      });
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+    }
+  }
+
+  void _clearPendingMessages() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _pendingPlayerMessage = null;
+      _pendingNarratorMessage = null;
     });
   }
 }

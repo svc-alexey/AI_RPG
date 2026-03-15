@@ -32,7 +32,7 @@ class SettingsRepository {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final String raw = preferences.getString(_appLanguageKey) ?? AppLanguage.ru.code;
     return AppLanguage.values.firstWhere(
-      (final AppLanguage item) => item.code == raw,
+      (final item) => item.code == raw,
       orElse: () => AppLanguage.ru,
     );
   }

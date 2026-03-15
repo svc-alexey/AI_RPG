@@ -6,7 +6,30 @@ enum DifficultyLevel { easy, medium, hardcore }
 
 enum ChatRole { narrator, player, system }
 
+Map<String, Object?> _jsonMap(final Object? value) {
+  if (value is Map) {
+    return value.map(
+      (key, item) => MapEntry(key.toString(), item),
+    );
+  }
+  return const <String, Object?>{};
+}
+
+List<Object?> _jsonList(final Object? value) =>
+    value is List ? List<Object?>.from(value) : const <Object?>[];
+
 class CharacterStats {
+  factory CharacterStats.fromJson(final Map<String, Object?> json) => CharacterStats(
+      name: (json['name'] as String?) ?? 'Р“РµСЂРѕР№',
+      hp: (json['hp'] as num?)?.toInt() ?? 12,
+      maxHp: (json['maxHp'] as num?)?.toInt() ?? 12,
+      energy: (json['energy'] as num?)?.toInt() ?? 8,
+      maxEnergy: (json['maxEnergy'] as num?)?.toInt() ?? 8,
+      might: (json['might'] as num?)?.toInt() ?? 2,
+      wit: (json['wit'] as num?)?.toInt() ?? 2,
+      spirit: (json['spirit'] as num?)?.toInt() ?? 2,
+    );
+
   const CharacterStats({
     required this.name,
     required this.hp,
@@ -36,8 +59,7 @@ class CharacterStats {
     final int? might,
     final int? wit,
     final int? spirit,
-  }) {
-    return CharacterStats(
+  }) => CharacterStats(
       name: name ?? this.name,
       hp: hp ?? this.hp,
       maxHp: maxHp ?? this.maxHp,
@@ -47,7 +69,6 @@ class CharacterStats {
       wit: wit ?? this.wit,
       spirit: spirit ?? this.spirit,
     );
-  }
 
   Map<String, Object?> toJson() => <String, Object?>{
     'name': name,
@@ -59,22 +80,21 @@ class CharacterStats {
     'wit': wit,
     'spirit': spirit,
   };
-
-  factory CharacterStats.fromJson(final Map<String, Object?> json) {
-    return CharacterStats(
-      name: (json['name'] as String?) ?? 'Герой',
-      hp: (json['hp'] as int?) ?? 12,
-      maxHp: (json['maxHp'] as int?) ?? 12,
-      energy: (json['energy'] as int?) ?? 8,
-      maxEnergy: (json['maxEnergy'] as int?) ?? 8,
-      might: (json['might'] as int?) ?? 2,
-      wit: (json['wit'] as int?) ?? 2,
-      spirit: (json['spirit'] as int?) ?? 2,
-    );
-  }
 }
 
 class ChatMessage {
+  factory ChatMessage.fromJson(final Map<String, Object?> json) => ChatMessage(
+      id: (json['id'] as String?) ?? '',
+      role: ChatRole.values.firstWhere(
+        (final item) => item.name == json['role'],
+        orElse: () => ChatRole.system,
+      ),
+      text: (json['text'] as String?) ?? '',
+      createdAt:
+          DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
+          DateTime.now(),
+    );
+
   const ChatMessage({
     required this.id,
     required this.role,
@@ -93,23 +113,15 @@ class ChatMessage {
     'text': text,
     'createdAt': createdAt.toIso8601String(),
   };
-
-  factory ChatMessage.fromJson(final Map<String, Object?> json) {
-    return ChatMessage(
-      id: (json['id'] as String?) ?? '',
-      role: ChatRole.values.firstWhere(
-        (final ChatRole item) => item.name == json['role'],
-        orElse: () => ChatRole.system,
-      ),
-      text: (json['text'] as String?) ?? '',
-      createdAt:
-          DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
-          DateTime.now(),
-    );
-  }
 }
 
 class RecentTurnSummary {
+  factory RecentTurnSummary.fromJson(final Map<String, Object?> json) => RecentTurnSummary(
+      playerAction: (json['playerAction'] as String?) ?? '',
+      outcome: (json['outcome'] as String?) ?? '',
+      stateHint: (json['stateHint'] as String?) ?? '',
+    );
+
   const RecentTurnSummary({
     required this.playerAction,
     required this.outcome,
@@ -125,17 +137,18 @@ class RecentTurnSummary {
     'outcome': outcome,
     'stateHint': stateHint,
   };
-
-  factory RecentTurnSummary.fromJson(final Map<String, Object?> json) {
-    return RecentTurnSummary(
-      playerAction: (json['playerAction'] as String?) ?? '',
-      outcome: (json['outcome'] as String?) ?? '',
-      stateHint: (json['stateHint'] as String?) ?? '',
-    );
-  }
 }
 
 class CampaignMemory {
+  factory CampaignMemory.fromJson(final Map<String, Object?> json) => CampaignMemory(
+      rollingSummary: (json['rollingSummary'] as String?) ?? '',
+      activeGoal: (json['activeGoal'] as String?) ?? '',
+      activeSituation: (json['activeSituation'] as String?) ?? '',
+      recentTurns: _jsonList(json['recentTurns'])
+          .map((final item) => RecentTurnSummary.fromJson(_jsonMap(item)))
+          .toList(),
+    );
+
   const CampaignMemory({
     required this.rollingSummary,
     required this.activeGoal,
@@ -153,40 +166,34 @@ class CampaignMemory {
     final String? activeGoal,
     final String? activeSituation,
     final List<RecentTurnSummary>? recentTurns,
-  }) {
-    return CampaignMemory(
+  }) => CampaignMemory(
       rollingSummary: rollingSummary ?? this.rollingSummary,
       activeGoal: activeGoal ?? this.activeGoal,
       activeSituation: activeSituation ?? this.activeSituation,
       recentTurns: recentTurns ?? this.recentTurns,
     );
-  }
 
   Map<String, Object?> toJson() => <String, Object?>{
     'rollingSummary': rollingSummary,
     'activeGoal': activeGoal,
     'activeSituation': activeSituation,
-    'recentTurns': recentTurns
-        .map((final RecentTurnSummary item) => item.toJson())
-        .toList(),
+    'recentTurns': recentTurns.map((final item) => item.toJson()).toList(),
   };
-
-  factory CampaignMemory.fromJson(final Map<String, Object?> json) {
-    return CampaignMemory(
-      rollingSummary: (json['rollingSummary'] as String?) ?? '',
-      activeGoal: (json['activeGoal'] as String?) ?? '',
-      activeSituation: (json['activeSituation'] as String?) ?? '',
-      recentTurns: ((json['recentTurns'] as List<Object?>?) ?? const <Object?>[])
-          .map(
-            (final Object? item) =>
-                RecentTurnSummary.fromJson(item! as Map<String, Object?>),
-          )
-          .toList(),
-    );
-  }
 }
 
 class StateChanges {
+  factory StateChanges.fromJson(final Map<String, Object?> json) => StateChanges(
+      hpDelta: (json['hpDelta'] as num?)?.toInt() ?? 0,
+      energyDelta: (json['energyDelta'] as num?)?.toInt() ?? 0,
+      inventoryAdd: _jsonList(json['inventoryAdd'])
+          .map((final item) => item.toString())
+          .toList(),
+      inventoryRemove: _jsonList(json['inventoryRemove'])
+          .map((final item) => item.toString())
+          .toList(),
+      questNote: (json['questNote'] as String?) ?? '',
+    );
+
   const StateChanges({
     required this.hpDelta,
     required this.energyDelta,
@@ -215,25 +222,24 @@ class StateChanges {
     'inventoryRemove': inventoryRemove,
     'questNote': questNote,
   };
-
-  factory StateChanges.fromJson(final Map<String, Object?> json) {
-    return StateChanges(
-      hpDelta: (json['hpDelta'] as num?)?.toInt() ?? 0,
-      energyDelta: (json['energyDelta'] as num?)?.toInt() ?? 0,
-      inventoryAdd:
-          ((json['inventoryAdd'] as List<Object?>?) ?? const <Object?>[])
-              .map((final Object? item) => item.toString())
-              .toList(),
-      inventoryRemove:
-          ((json['inventoryRemove'] as List<Object?>?) ?? const <Object?>[])
-              .map((final Object? item) => item.toString())
-              .toList(),
-      questNote: (json['questNote'] as String?) ?? '',
-    );
-  }
 }
 
 class TurnResult {
+  factory TurnResult.fromJson(final Map<String, Object?> json) => TurnResult(
+      narration:
+          (json['narration'] as String?) ?? 'РњРёСЂ РЅРµРЅР°РґРѕР»РіРѕ Р·Р°РјРёСЂР°РµС‚ РІ С‚РёС€РёРЅРµ.',
+      choices: _jsonList(json['choices'])
+          .map((final item) => item.toString())
+          .toList(),
+      stateChanges: StateChanges.fromJson(
+        _jsonMap(json['state_changes'] ?? json['stateChanges']),
+      ),
+      memoryEntry:
+          (json['memory_entry'] as String?) ??
+          (json['memoryEntry'] as String?) ??
+          '',
+    );
+
   const TurnResult({
     required this.narration,
     required this.choices,
@@ -245,28 +251,64 @@ class TurnResult {
   final List<String> choices;
   final StateChanges stateChanges;
   final String memoryEntry;
-
-  factory TurnResult.fromJson(final Map<String, Object?> json) {
-    return TurnResult(
-      narration:
-          (json['narration'] as String?) ?? 'Мир ненадолго замирает в тишине.',
-      choices: ((json['choices'] as List<Object?>?) ?? const <Object?>[])
-          .map((final Object? item) => item.toString())
-          .toList(),
-      stateChanges: StateChanges.fromJson(
-        (json['state_changes'] as Map<String, Object?>?) ??
-            (json['stateChanges'] as Map<String, Object?>?) ??
-            const <String, Object?>{},
-      ),
-      memoryEntry:
-          (json['memory_entry'] as String?) ??
-          (json['memoryEntry'] as String?) ??
-          '',
-    );
-  }
 }
 
 class CampaignState {
+  factory CampaignState.fromJson(final Map<String, Object?> json) {
+    final Map<String, Object?> memoryJson = _jsonMap(json['memory']);
+    final List<Object?> messagesJson = _jsonList(json['messages']);
+    final CampaignMemory memory = memoryJson.isNotEmpty
+        ? CampaignMemory.fromJson(memoryJson)
+        : CampaignMemory(
+            rollingSummary: (json['summary'] as String?) ?? '',
+            activeGoal:
+                (json['objective'] as String?) ?? 'РџРµСЂРµР¶РёС‚СЊ РїРµСЂРІСѓСЋ СЃС†РµРЅСѓ РєР°РјРїР°РЅРёРё.',
+            activeSituation: messagesJson.isNotEmpty
+                ? (_jsonMap(messagesJson.last)['text'] as String?) ?? ''
+                : '',
+            recentTurns: const <RecentTurnSummary>[],
+          );
+
+    return CampaignState(
+      id: (json['id'] as String?) ?? '',
+      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
+      title: (json['title'] as String?) ?? 'РљР°РјРїР°РЅРёСЏ',
+      setting: CampaignSetting.values.firstWhere(
+        (final item) => item.name == json['setting'],
+        orElse: () => CampaignSetting.fantasy,
+      ),
+      mode: StoryMode.values.firstWhere(
+        (final item) => item.name == json['mode'],
+        orElse: () => StoryMode.shortStory,
+      ),
+      difficulty: DifficultyLevel.values.firstWhere(
+        (final item) => item.name == json['difficulty'],
+        orElse: () => DifficultyLevel.easy,
+      ),
+      character: CharacterStats.fromJson(_jsonMap(json['character'])),
+      location: (json['location'] as String?) ?? 'РќРµРёР·РІРµСЃС‚РЅР°СЏ Р»РѕРєР°С†РёСЏ',
+      objective:
+          (json['objective'] as String?) ?? 'РџРµСЂРµР¶РёС‚СЊ РїРµСЂРІСѓСЋ СЃС†РµРЅСѓ РєР°РјРїР°РЅРёРё.',
+      turnNumber: (json['turnNumber'] as num?)?.toInt() ?? 0,
+      memory: memory,
+      inventory: _jsonList(json['inventory'])
+          .map((final item) => item.toString())
+          .toList(),
+      questLog: _jsonList(json['questLog'])
+          .map((final item) => item.toString())
+          .toList(),
+      messages: messagesJson
+          .map((final item) => ChatMessage.fromJson(_jsonMap(item)))
+          .toList(),
+      choices: _jsonList(json['choices'])
+          .map((final item) => item.toString())
+          .toList(),
+      updatedAt:
+          DateTime.tryParse((json['updatedAt'] as String?) ?? '') ??
+          DateTime.now(),
+    );
+  }
+
   const CampaignState({
     required this.id,
     required this.schemaVersion,
@@ -320,8 +362,7 @@ class CampaignState {
     final List<ChatMessage>? messages,
     final List<String>? choices,
     final DateTime? updatedAt,
-  }) {
-    return CampaignState(
+  }) => CampaignState(
       id: id,
       schemaVersion: schemaVersion,
       title: title ?? this.title,
@@ -339,7 +380,6 @@ class CampaignState {
       choices: choices ?? this.choices,
       updatedAt: updatedAt ?? this.updatedAt,
     );
-  }
 
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
@@ -356,74 +396,10 @@ class CampaignState {
     'summary': memory.rollingSummary,
     'inventory': inventory,
     'questLog': questLog,
-    'messages': messages.map((final ChatMessage item) => item.toJson()).toList(),
+    'messages': messages.map((final item) => item.toJson()).toList(),
     'choices': choices,
     'updatedAt': updatedAt.toIso8601String(),
   };
-
-  factory CampaignState.fromJson(final Map<String, Object?> json) {
-    final CampaignMemory memory =
-        (json['memory'] as Map<String, Object?>?) != null
-        ? CampaignMemory.fromJson(json['memory']! as Map<String, Object?>)
-        : CampaignMemory(
-            rollingSummary: (json['summary'] as String?) ?? '',
-            activeGoal:
-                (json['objective'] as String?) ?? 'Пережить первую сцену кампании.',
-            activeSituation: ((json['messages'] as List<Object?>?) ?? const <Object?>[])
-                    .isNotEmpty
-                ? (((json['messages'] as List<Object?>).last
-                            as Map<String, Object?>)['text']
-                        as String?) ??
-                    ''
-                : '',
-            recentTurns: const <RecentTurnSummary>[],
-          );
-
-    return CampaignState(
-      id: (json['id'] as String?) ?? '',
-      schemaVersion: (json['schemaVersion'] as int?) ?? 1,
-      title: (json['title'] as String?) ?? 'Кампания',
-      setting: CampaignSetting.values.firstWhere(
-        (final CampaignSetting item) => item.name == json['setting'],
-        orElse: () => CampaignSetting.fantasy,
-      ),
-      mode: StoryMode.values.firstWhere(
-        (final StoryMode item) => item.name == json['mode'],
-        orElse: () => StoryMode.shortStory,
-      ),
-      difficulty: DifficultyLevel.values.firstWhere(
-        (final DifficultyLevel item) => item.name == json['difficulty'],
-        orElse: () => DifficultyLevel.easy,
-      ),
-      character: CharacterStats.fromJson(
-        (json['character'] as Map<String, Object?>?) ??
-            const <String, Object?>{},
-      ),
-      location: (json['location'] as String?) ?? 'Неизвестная локация',
-      objective:
-          (json['objective'] as String?) ?? 'Пережить первую сцену кампании.',
-      turnNumber: (json['turnNumber'] as int?) ?? 0,
-      memory: memory,
-      inventory: ((json['inventory'] as List<Object?>?) ?? const <Object?>[])
-          .map((final Object? item) => item.toString())
-          .toList(),
-      questLog: ((json['questLog'] as List<Object?>?) ?? const <Object?>[])
-          .map((final Object? item) => item.toString())
-          .toList(),
-      messages: ((json['messages'] as List<Object?>?) ?? const <Object?>[])
-          .map(
-            (final Object? item) =>
-                ChatMessage.fromJson(item! as Map<String, Object?>),
-          )
-          .toList(),
-      choices: ((json['choices'] as List<Object?>?) ?? const <Object?>[])
-          .map((final Object? item) => item.toString())
-          .toList(),
-      updatedAt:
-          DateTime.tryParse((json['updatedAt'] as String?) ?? '') ??
-          DateTime.now(),
-    );
-  }
 }
 
 class CampaignDraft {

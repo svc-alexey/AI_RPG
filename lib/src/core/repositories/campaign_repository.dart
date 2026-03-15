@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CampaignRepository {
@@ -19,10 +20,7 @@ class CampaignRepository {
       }
     }
 
-    campaigns.sort(
-      (final CampaignState a, final CampaignState b) =>
-          b.updatedAt.compareTo(a.updatedAt),
-    );
+    campaigns.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return campaigns;
   }
 
@@ -33,12 +31,19 @@ class CampaignRepository {
       return null;
     }
 
-    final Object? decoded = jsonDecode(raw);
-    if (decoded is! Map<String, Object?>) {
+    try {
+      final Object? decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return null;
+      }
+
+      return CampaignState.fromJson(
+        decoded.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    } catch (error) {
+      debugPrint('Failed to load campaign $id: $error');
       return null;
     }
-
-    return CampaignState.fromJson(decoded);
   }
 
   Future<void> saveCampaign(final CampaignState campaign) async {
@@ -60,6 +65,7 @@ class CampaignRepository {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final List<String> ids =
         preferences.getStringList(_campaignIdsKey) ?? <String>[];
+    // ignore: cascade_invocations
     ids.remove(id);
     await preferences.setStringList(_campaignIdsKey, ids);
     await preferences.remove(_campaignKey(id));

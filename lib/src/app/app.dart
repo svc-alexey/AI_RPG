@@ -1,7 +1,7 @@
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
-import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/app/theme.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
@@ -52,8 +52,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
   }
 
   @override
-  Widget build(final BuildContext context) {
-    return AppScope(
+  Widget build(final BuildContext context) => AppScope(
       settingsRepository: _settingsRepository,
       campaignRepository: _campaignRepository,
       aiServiceFactory: _aiServiceFactory,
@@ -61,7 +60,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
       appLanguageListenable: _appLanguageListenable,
       child: ValueListenableBuilder<AppLanguage>(
         valueListenable: _appLanguageListenable,
-        builder: (final BuildContext context, final AppLanguage _, _) {
+        builder: (final context, final _, _) {
           final AppLocalizations l10n = AppLocalizations.of(context);
           return MaterialApp(
             title: l10n.appTitle,
@@ -72,5 +71,4 @@ class _AiRpgAppState extends State<AiRpgApp> {
         },
       ),
     );
-  }
 }

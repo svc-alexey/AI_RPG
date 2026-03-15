@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
@@ -56,148 +57,191 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aiSettings)),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 880),
-                child: ListView(
-                  padding: const EdgeInsets.all(24),
-                  children: <Widget>[
-                    Text(
-                      l10n.languageTitle,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<AppLanguage>(
-                      segments: <ButtonSegment<AppLanguage>>[
-                        ButtonSegment<AppLanguage>(
-                          value: AppLanguage.ru,
-                          label: Text(l10n.russian),
-                        ),
-                        ButtonSegment<AppLanguage>(
-                          value: AppLanguage.en,
-                          label: Text(l10n.english),
-                        ),
-                      ],
-                      selected: <AppLanguage>{_appLanguage},
-                      onSelectionChanged: (final Set<AppLanguage> selection) {
-                        setState(() => _appLanguage = selection.first);
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      l10n.aiSettingsTitle,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(l10n.aiSettingsDescription),
-                    const SizedBox(height: 24),
-                    SegmentedButton<AiProviderType>(
-                      segments: <ButtonSegment<AiProviderType>>[
-                        const ButtonSegment<AiProviderType>(
-                          value: AiProviderType.lmStudio,
-                          label: Text('LM Studio'),
-                        ),
-                        ButtonSegment<AiProviderType>(
-                          value: AiProviderType.openAiCompatible,
-                          label: Text(l10n.openAiCompatible),
-                        ),
-                      ],
-                      selected: <AiProviderType>{_provider},
-                      onSelectionChanged: (final Set<AiProviderType> selection) {
-                        _handleProviderChanged(selection.first);
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _baseUrlController,
-                      decoration: InputDecoration(labelText: l10n.baseUrl),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _modelController,
-                      decoration: InputDecoration(labelText: l10n.model),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _apiKeyController,
-                      decoration: InputDecoration(
-                        labelText: l10n.apiKey,
-                        hintText: l10n.apiKeyHint,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _timeoutController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: l10n.timeoutSeconds,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(l10n.fastModeTitle),
-                      subtitle: Text(l10n.fastModeSubtitle),
-                      value: _fastResponses,
-                      onChanged: (final bool value) {
-                        setState(() => _fastResponses = value);
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    if (_status != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          _status!,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: <Widget>[
-                        FilledButton(
-                          onPressed: _isSaving ? null : _save,
-                          child: _isSaving
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(l10n.saveSettings),
-                        ),
-                        OutlinedButton(
-                          onPressed: _isChecking ? null : _checkConnection,
-                          child: _isChecking
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(l10n.checkConnection),
-                        ),
-                        TextButton(
-                          onPressed: _isDetectingModel
-                              ? null
-                              : _detectAndApplyLmStudioModel,
-                          child: Text(
-                            _isDetectingModel
-                                ? l10n.detectingModel
-                                : l10n.detectModel,
+      body: AetherBackdrop(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 920),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: AetherPageReveal(
+                      child: ListView(
+                        children: <Widget>[
+                          Text(
+                            l10n.aiSettings,
+                            style: Theme.of(context).textTheme.headlineLarge,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 26),
+                          _SettingsSection(
+                            title: l10n.languageTitle,
+                            child: SegmentedButton<AppLanguage>(
+                              segments: <ButtonSegment<AppLanguage>>[
+                                ButtonSegment<AppLanguage>(
+                                  value: AppLanguage.ru,
+                                  label: Text(l10n.russian),
+                                ),
+                                ButtonSegment<AppLanguage>(
+                                  value: AppLanguage.en,
+                                  label: Text(l10n.english),
+                                ),
+                              ],
+                              selected: <AppLanguage>{_appLanguage},
+                              onSelectionChanged: (final selection) {
+                                setState(() => _appLanguage = selection.first);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _SettingsSection(
+                            title: 'AI Provider',
+                            child: Column(
+                              children: <Widget>[
+                                _ProviderTile(
+                                  title: 'LM Studio',
+                                  subtitle: 'Local server',
+                                  selected: _provider == AiProviderType.lmStudio,
+                                  onTap: () => _handleProviderChanged(
+                                    AiProviderType.lmStudio,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _ProviderTile(
+                                  title: l10n.openAiCompatible,
+                                  subtitle: 'OpenAI-compatible API',
+                                  selected: _provider ==
+                                      AiProviderType.openAiCompatible,
+                                  onTap: () => _handleProviderChanged(
+                                    AiProviderType.openAiCompatible,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _ProviderTile(
+                                  title: l10n.openRouter,
+                                  subtitle: 'Unified gateway for many models',
+                                  selected: _provider == AiProviderType.openRouter,
+                                  onTap: () => _handleProviderChanged(
+                                    AiProviderType.openRouter,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _ProviderTile(
+                                  title: l10n.deepSeek,
+                                  subtitle: 'Official DeepSeek API',
+                                  selected: _provider == AiProviderType.deepSeek,
+                                  onTap: () => _handleProviderChanged(
+                                    AiProviderType.deepSeek,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _SettingsSection(
+                            title: 'Connection',
+                            child: Column(
+                              children: <Widget>[
+                                TextField(
+                                  controller: _baseUrlController,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.baseUrl,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: _modelController,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.model,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: _apiKeyController,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.apiKey,
+                                    hintText: l10n.apiKeyHint,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: _timeoutController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.timeoutSeconds,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(l10n.fastModeTitle),
+                                  subtitle: Text(l10n.fastModeSubtitle),
+                                  value: _fastResponses,
+                                  onChanged: _provider.supportsFastResponses
+                                      ? (final value) {
+                                          setState(() => _fastResponses = value);
+                                        }
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_status != null) ...<Widget>[
+                            const SizedBox(height: 16),
+                            Text(
+                              _status!,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                          const SizedBox(height: 28),
+                          FilledButton(
+                            onPressed: _isSaving ? null : _save,
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(l10n.saveSettings),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: <Widget>[
+                              OutlinedButton(
+                                onPressed: _isChecking ? null : _checkConnection,
+                                child: _isChecking
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Text(l10n.checkConnection),
+                              ),
+                              OutlinedButton(
+                                onPressed: !_provider.supportsModelAutoDetect ||
+                                        _isDetectingModel
+                                    ? null
+                                    : _detectAndApplyLmStudioModel,
+                                child: Text(
+                                  _isDetectingModel
+                                      ? l10n.detectingModel
+                                      : l10n.detectModel,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -214,11 +258,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _appLanguage = appLanguage;
     _fastResponses = settings.fastResponses;
     _baseUrlController.text =
-        settings.baseUrl.trim().isEmpty &&
-            settings.provider == AiProviderType.lmStudio
-        ? const AiSettings.defaults().baseUrl
+        settings.baseUrl.trim().isEmpty
+        ? AiSettings.defaultBaseUrlFor(settings.provider)
         : settings.baseUrl;
-    _modelController.text = settings.model;
+    _modelController.text = settings.model.trim().isEmpty
+        ? settings.provider.defaultModel
+        : settings.model;
     _apiKeyController.text = settings.apiKey;
     _timeoutController.text = settings.timeoutSeconds.toString();
 
@@ -277,8 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  AiSettings _buildSettings() {
-    return AiSettings(
+  AiSettings _buildSettings() => AiSettings(
       provider: _provider,
       baseUrl: _baseUrlController.text.trim(),
       model: _modelController.text.trim(),
@@ -286,17 +330,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
       fastResponses: _fastResponses,
     );
-  }
 
   Future<void> _handleProviderChanged(final AiProviderType provider) async {
     setState(() {
       _provider = provider;
       _status = null;
-      if (provider == AiProviderType.lmStudio &&
-          _baseUrlController.text.trim().isEmpty) {
-        _baseUrlController.text = const AiSettings.defaults().baseUrl;
+      final String defaultUrl = AiSettings.defaultBaseUrlFor(provider);
+      if (defaultUrl.isNotEmpty) {
+        _baseUrlController.text = defaultUrl;
       }
-      if (provider != AiProviderType.lmStudio) {
+      final String defaultModel = provider.defaultModel;
+      if (defaultModel.isNotEmpty) {
+        _modelController.text = defaultModel;
+      }
+      if (provider == AiProviderType.openRouter) {
+        final int? currentTimeout = int.tryParse(_timeoutController.text.trim());
+        if (currentTimeout == null || currentTimeout < 120) {
+          _timeoutController.text = '120';
+        }
+      }
+      if (!provider.supportsFastResponses) {
         _fastResponses = false;
       } else if (!_fastResponses) {
         _fastResponses = true;
@@ -419,4 +472,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _normalizeBaseUrl(final String baseUrl) => baseUrl.endsWith('/')
       ? baseUrl.substring(0, baseUrl.length - 1)
       : baseUrl;
+}
+
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(final BuildContext context) => AetherCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: AetherPalette.textMuted,
+              letterSpacing: 3,
+            ),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+}
+
+class _ProviderTile extends StatelessWidget {
+  const _ProviderTile({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(final BuildContext context) => AetherCard(
+      highlight: selected,
+      child: SizedBox(
+        width: double.infinity,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                  color: selected
+                      ? AetherPalette.accent
+                      : AetherPalette.textMuted,
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(title, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
 }

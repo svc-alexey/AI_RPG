@@ -150,7 +150,7 @@ class GameEngine {
     final List<String> inventory = List<String>.from(state.inventory)
       ..addAll(result.stateChanges.inventoryAdd)
       ..removeWhere(
-        (final String item) =>
+        (final item) =>
             result.stateChanges.inventoryRemove.contains(item),
       );
 

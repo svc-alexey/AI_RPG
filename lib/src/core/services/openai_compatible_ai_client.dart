@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:ai_prg/src/core/models/ai_settings.dart';
@@ -13,16 +14,45 @@ class OpenAiCompatibleAiClient implements AiClient {
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
 
+  Map<String, Object?> _jsonMap(final Object? value) {
+    if (value is Map) {
+      return value.map((key, item) => MapEntry(key.toString(), item));
+    }
+    return const <String, Object?>{};
+  }
+
+  List<Object?> _jsonList(final Object? value) =>
+      value is List ? List<Object?>.from(value) : const <Object?>[];
+
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {
     final Uri uri = Uri.parse('${_normalizedBaseUrl(settings.baseUrl)}/models');
-    final http.Response response = await http
-        .get(uri, headers: _headers(settings))
-        .timeout(Duration(seconds: settings.timeoutSeconds));
+    final http.Response response;
+
+    try {
+      response = await http
+          .get(uri, headers: _headers(settings))
+          .timeout(Duration(seconds: _effectiveTimeoutSeconds(settings)));
+    } on TimeoutException {
+      throw AiTurnException(
+        userMessage: _timeoutError(
+          settings: settings,
+          language: AppLanguage.en,
+        ),
+        recoverable: true,
+      );
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw const AiTurnException(
-        userMessage: 'Could not connect to the AI endpoint.',
+      final String rawResponse = _responseText(response);
+      throw AiTurnException(
+        userMessage: _friendlyAiEndpointError(
+          settings: settings,
+          language: AppLanguage.en,
+          statusCode: response.statusCode,
+          detail: _extractProviderErrorDetail(rawResponse),
+        ),
+        rawResponse: rawResponse,
       );
     }
   }
@@ -95,53 +125,58 @@ class OpenAiCompatibleAiClient implements AiClient {
       ],
     };
 
-    if (fastMode) {
-      requestBody['response_format'] = _responseFormatSchema(
-        suggestionsOnly: suggestionsOnly,
+    final http.Response response;
+    try {
+      response = await http
+          .post(uri, headers: _headers(settings), body: jsonEncode(requestBody))
+          .timeout(Duration(seconds: _effectiveTimeoutSeconds(settings)));
+    } on TimeoutException {
+      throw AiTurnException(
+        userMessage: _timeoutError(settings: settings, language: language),
+        recoverable: true,
       );
     }
 
-    final http.Response response = await http
-        .post(uri, headers: _headers(settings), body: jsonEncode(requestBody))
-        .timeout(Duration(seconds: settings.timeoutSeconds));
+    final String rawResponse = _responseText(response);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw AiTurnException(
-        userMessage: _aiEndpointError(language, response.statusCode),
-        rawResponse: response.body,
+        userMessage: _friendlyAiEndpointError(
+          settings: settings,
+          language: language,
+          statusCode: response.statusCode,
+          detail: _extractProviderErrorDetail(rawResponse),
+        ),
+        rawResponse: rawResponse,
         recoverable: true,
       );
     }
 
-    final Object? decoded = _safeJsonDecode(response.body);
-    if (decoded is! Map<String, Object?>) {
+    final Object? decoded = _safeJsonDecode(rawResponse);
+    if (decoded is! Map) {
       throw AiTurnException(
         userMessage: _providerUnexpectedFormat(language),
-        rawResponse: response.body,
+        rawResponse: rawResponse,
         recoverable: true,
       );
     }
 
-    final List<Object?> choices =
-        (decoded['choices'] as List<Object?>?) ?? const <Object?>[];
+    final Map<String, Object?> decodedMap = _jsonMap(decoded);
+    final List<Object?> choices = _jsonList(decodedMap['choices']);
     if (choices.isEmpty) {
       throw AiTurnException(
         userMessage: _providerNoChoices(language),
-        rawResponse: response.body,
+        rawResponse: rawResponse,
         recoverable: true,
       );
     }
 
-    final Map<String, Object?> choice =
-        choices.first as Map<String, Object?>? ?? const <String, Object?>{};
-    final Map<String, Object?> message =
-        choice['message'] as Map<String, Object?>? ?? const <String, Object?>{};
+    final Map<String, Object?> choice = _jsonMap(choices.first);
+    final Map<String, Object?> message = _jsonMap(choice['message']);
     final String content = (message['content'] as String?) ?? '';
-    final String jsonString = fastMode
-        ? content.trim()
-        : _extractJson(content, language);
+    final String jsonString = _extractJson(content, language);
     final Object? turnDecoded = _safeJsonDecode(jsonString);
-    if (turnDecoded is! Map<String, Object?>) {
+    if (turnDecoded is! Map) {
       throw AiTurnException(
         userMessage: _invalidJson(language),
         rawResponse: content,
@@ -149,7 +184,7 @@ class OpenAiCompatibleAiClient implements AiClient {
       );
     }
 
-    return TurnResult.fromJson(turnDecoded);
+    return TurnResult.fromJson(_jsonMap(turnDecoded));
   }
 
   bool _shouldUseFastMode(final AiSettings settings) =>
@@ -161,6 +196,14 @@ class OpenAiCompatibleAiClient implements AiClient {
   ) =>
       _shouldUseFastMode(settings) && error.recoverable;
 
+  int _effectiveTimeoutSeconds(final AiSettings settings) {
+    if (settings.provider == AiProviderType.openRouter &&
+        settings.timeoutSeconds < 120) {
+      return 120;
+    }
+    return settings.timeoutSeconds;
+  }
+
   Map<String, String> _headers(final AiSettings settings) {
     final Map<String, String> headers = <String, String>{
       'Content-Type': 'application/json',
@@ -168,12 +211,104 @@ class OpenAiCompatibleAiClient implements AiClient {
     if (settings.apiKey.trim().isNotEmpty) {
       headers['Authorization'] = 'Bearer ${settings.apiKey.trim()}';
     }
+    if (settings.provider == AiProviderType.openRouter) {
+      headers['HTTP-Referer'] = 'https://ai-prg.local';
+      headers['X-Title'] = 'AI PRG';
+    }
     return headers;
   }
 
   String _normalizedBaseUrl(final String baseUrl) => baseUrl.endsWith('/')
       ? baseUrl.substring(0, baseUrl.length - 1)
       : baseUrl;
+
+  String _responseText(final http.Response response) =>
+      utf8.decode(response.bodyBytes, allowMalformed: true);
+
+  String? _extractProviderErrorDetail(final String rawResponse) {
+    final Object? decoded = _safeJsonDecode(rawResponse);
+    if (decoded is! Map) {
+      return null;
+    }
+
+    final Map<String, Object?> map = _jsonMap(decoded);
+    final Map<String, Object?> error = _jsonMap(map['error']);
+    final String message = (error['message'] as String?)?.trim() ??
+        (map['message'] as String?)?.trim() ??
+        '';
+    final String code = (error['code'] as String?)?.trim() ?? '';
+
+    if (message.isEmpty && code.isEmpty) {
+      return null;
+    }
+    if (message.isNotEmpty && code.isNotEmpty) {
+      return '$message ($code)';
+    }
+    return message.isNotEmpty ? message : code;
+  }
+
+  String _providerLabel(final AiSettings settings, final AppLanguage language) =>
+      switch ((settings.provider, language)) {
+        (AiProviderType.deepSeek, _) => 'DeepSeek',
+        (AiProviderType.openRouter, _) => 'OpenRouter',
+        (AiProviderType.lmStudio, _) => 'LM Studio',
+        (AiProviderType.openAiCompatible, AppLanguage.ru) => 'AI endpoint',
+        (AiProviderType.openAiCompatible, AppLanguage.en) => 'AI endpoint',
+      };
+
+  String _friendlyAiEndpointError({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final int statusCode,
+    required final String? detail,
+  }) {
+    final String provider = _providerLabel(settings, language);
+    final String suffix = switch (language) {
+      AppLanguage.ru => 'Состояние кампании не изменено.',
+      AppLanguage.en => 'The campaign state was not changed.',
+    };
+    final String detailText = detail == null || detail.isEmpty ? '' : ' $detail';
+
+    if (settings.provider == AiProviderType.deepSeek && statusCode == 402) {
+      return switch (language) {
+        AppLanguage.ru =>
+          '$provider вернул 402. Обычно это означает, что на аккаунте нет баланса или не включён биллинг.$detailText $suffix',
+        AppLanguage.en =>
+          '$provider returned 402. This usually means your account has no balance or billing is not enabled.$detailText $suffix',
+      };
+    }
+
+    return switch (language) {
+      AppLanguage.ru =>
+        '$provider вернул ошибку $statusCode.$detailText $suffix',
+      AppLanguage.en =>
+        '$provider returned error $statusCode.$detailText $suffix',
+    };
+  }
+
+  String _timeoutError({
+    required final AiSettings settings,
+    required final AppLanguage language,
+  }) {
+    final String provider = _providerLabel(settings, language);
+    final int seconds = _effectiveTimeoutSeconds(settings);
+
+    if (settings.provider == AiProviderType.openRouter) {
+      return switch (language) {
+        AppLanguage.ru =>
+          '$provider не ответил за $seconds сек. У OpenRouter бесплатные модели часто отвечают медленно или стоят в очереди. Попробуй подождать, увеличить таймаут в настройках или выбрать другую модель.',
+        AppLanguage.en =>
+          '$provider did not respond within $seconds seconds. Free OpenRouter models are often slow or queued. Try waiting longer, increasing the timeout, or choosing another model.',
+      };
+    }
+
+    return switch (language) {
+      AppLanguage.ru =>
+        '$provider не ответил за $seconds сек. Попробуй увеличить таймаут в настройках.',
+      AppLanguage.en =>
+        '$provider did not respond within $seconds seconds. Try increasing the timeout in settings.',
+    };
+  }
 
   String _systemPrompt({
     required final AppLanguage language,
@@ -185,38 +320,38 @@ class OpenAiCompatibleAiClient implements AiClient {
     if (suggestionsOnly) {
       return switch (language) {
         AppLanguage.ru => '''
-${fastPrefix}Ты повествовательный ИИ для детерминированной RPG.
-Отвечай только строгим JSON с ключами: narration, choices, state_changes, memory_entry.
+$fastPrefixТы повествовательный ИИ для детерминированной RPG.
+Отвечай только JSON с ключами: narration, choices, state_changes, memory_entry.
 Все тексты, narration, choices и memory_entry пиши только на русском языке.
 Для режима подсказок:
 - narration должен быть коротким продолжением сцены
-- choices должны содержать ровно 3 конкретных действия игрока
+- choices должны содержать не более 3 конкретных действий игрока
 - state_changes должен содержать нулевые изменения и пустые списки
 - memory_entry должен быть кратким
-Никогда не добавляй markdown и пояснения вне JSON.
+Не добавляй markdown или пояснения вне JSON.
 ''',
         AppLanguage.en => '''
 ${fastPrefix}You are a narrative AI for a deterministic RPG.
-Reply only with strict JSON using the keys: narration, choices, state_changes, memory_entry.
+Reply only with JSON using the keys: narration, choices, state_changes, memory_entry.
 Write all texts, narration, choices, and memory_entry only in English.
 For suggestion mode:
 - narration must be a short continuation of the scene
-- choices must contain exactly 3 concrete player actions
+- choices must contain up to 3 concrete player actions
 - state_changes must contain zero deltas and empty lists
 - memory_entry must be brief
-Never add markdown or explanations outside JSON.
+Do not add markdown or explanations outside JSON.
 ''',
       };
     }
 
     return switch (language) {
       AppLanguage.ru => '''
-${fastPrefix}Ты повествовательный ИИ для детерминированной RPG.
-Отвечай только строгим JSON с ключами: narration, choices, state_changes, memory_entry.
+$fastPrefixТы повествовательный ИИ для детерминированной RPG.
+Отвечай только JSON с ключами: narration, choices, state_changes, memory_entry.
 Все тексты, narration, choices, questNote и memory_entry пиши только на русском языке.
 Правила:
-- narration: 1-3 абзаца
-- choices: 3 коротких варианта действий
+- narration: 1-2 абзаца
+- choices: не более 3 коротких вариантов действий
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string }
 - изменения должны быть умеренными для MVP
 - не ломай целостность мира
@@ -224,11 +359,11 @@ ${fastPrefix}Ты повествовательный ИИ для детерми�
 ''',
       AppLanguage.en => '''
 ${fastPrefix}You are a narrative AI for a deterministic RPG.
-Reply only with strict JSON using the keys: narration, choices, state_changes, memory_entry.
+Reply only with JSON using the keys: narration, choices, state_changes, memory_entry.
 Write all texts, narration, choices, questNote, and memory_entry only in English.
 Rules:
-- narration: 1-3 paragraphs
-- choices: 3 short action options
+- narration: 1-2 paragraphs
+- choices: up to 3 short action options
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string }
 - changes must stay moderate for the MVP
 - do not break world continuity
@@ -243,81 +378,25 @@ Rules:
     required final String playerAction,
     required final bool fastMode,
   }) {
-    final String fastPrefix = fastMode ? '/no_think\n' : '';
-    final Map<String, Object?> contextPayload = _memoryManager.buildAiContext(
-      state,
-    );
+    final Map<String, Object?> contextPayload = fastMode
+        ? _memoryManager.buildFastAiContext(state)
+        : _memoryManager.buildAiContext(state);
 
     return switch (language) {
       AppLanguage.ru => '''
-${fastPrefix}Контекст кампании:
+Контекст кампании:
 ${jsonEncode(contextPayload)}
 
 Действие игрока:
 $playerAction
 ''',
       AppLanguage.en => '''
-${fastPrefix}Campaign context:
+Campaign context:
 ${jsonEncode(contextPayload)}
 
 Player action:
 $playerAction
 ''',
-    };
-  }
-
-  Map<String, Object?> _responseFormatSchema({
-    required final bool suggestionsOnly,
-  }) {
-    return <String, Object?>{
-      'type': 'json_schema',
-      'json_schema': <String, Object?>{
-        'name': suggestionsOnly ? 'rpg_suggestions_turn' : 'rpg_story_turn',
-        'schema': <String, Object?>{
-          'type': 'object',
-          'additionalProperties': false,
-          'required': <String>[
-            'narration',
-            'choices',
-            'state_changes',
-            'memory_entry',
-          ],
-          'properties': <String, Object?>{
-            'narration': <String, Object?>{'type': 'string'},
-            'choices': <String, Object?>{
-              'type': 'array',
-              'minItems': 3,
-              'maxItems': 3,
-              'items': <String, Object?>{'type': 'string'},
-            },
-            'state_changes': <String, Object?>{
-              'type': 'object',
-              'additionalProperties': false,
-              'required': <String>[
-                'hpDelta',
-                'energyDelta',
-                'inventoryAdd',
-                'inventoryRemove',
-                'questNote',
-              ],
-              'properties': <String, Object?>{
-                'hpDelta': <String, Object?>{'type': 'integer'},
-                'energyDelta': <String, Object?>{'type': 'integer'},
-                'inventoryAdd': <String, Object?>{
-                  'type': 'array',
-                  'items': <String, Object?>{'type': 'string'},
-                },
-                'inventoryRemove': <String, Object?>{
-                  'type': 'array',
-                  'items': <String, Object?>{'type': 'string'},
-                },
-                'questNote': <String, Object?>{'type': 'string'},
-              },
-            },
-            'memory_entry': <String, Object?>{'type': 'string'},
-          },
-        },
-      },
     };
   }
 
@@ -348,6 +427,7 @@ $playerAction
     return trimmed.substring(start, end + 1);
   }
 
+  // ignore: unused_element
   String _aiEndpointError(final AppLanguage language, final int statusCode) =>
       switch (language) {
         AppLanguage.ru =>

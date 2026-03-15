@@ -30,11 +30,9 @@ class AppScope extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(final AppScope oldWidget) {
-    return settingsRepository != oldWidget.settingsRepository ||
+  bool updateShouldNotify(final AppScope oldWidget) => settingsRepository != oldWidget.settingsRepository ||
         campaignRepository != oldWidget.campaignRepository ||
         aiServiceFactory != oldWidget.aiServiceFactory ||
         gameEngine != oldWidget.gameEngine ||
         appLanguageListenable != oldWidget.appLanguageListenable;
-  }
 }

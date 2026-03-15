@@ -1,7 +1,9 @@
+import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -12,92 +14,185 @@ class HomeScreen extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
 
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              Color(0xFFF5E7CC),
-              Color(0xFFE7C9A1),
-              Color(0xFF2F4A3C),
-            ],
-          ),
-        ),
-        child: Center(
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.appTitle)),
+        body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 880),
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Wrap(
-                spacing: 24,
-                runSpacing: 24,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  SizedBox(
-                    width: 420,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          'AI RPG MVP',
-                          style: theme.textTheme.displayMedium?.copyWith(
-                            color: const Color(0xFF1B1B18),
-                            fontWeight: FontWeight.w800,
-                          ),
+                  Text(
+                    'AETHERIS',
+                    style: theme.textTheme.displayLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.homeDescription,
+                    style: theme.textTheme.bodyLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const NewGameScreen(),
+                      ),
+                    ),
+                    child: Text(l10n.newCampaign),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const SavesScreen(),
+                      ),
+                    ),
+                    child: Text(l10n.saves),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    ),
+                    child: Text(l10n.aiSettings),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: AetherBackdrop(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+              child: AetherPageReveal(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                    Text(
+                      'AETHERIS',
+                      style: theme.textTheme.displayLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.appTitle,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: AetherPalette.textMuted,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      width: 88,
+                      height: 1,
+                      color: AetherPalette.accent.withValues(alpha: 0.45),
+                    ),
+                    const SizedBox(height: 32),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: Text(
+                        l10n.homeDescription,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AetherPalette.textMuted,
+                          fontStyle: FontStyle.italic,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.homeDescription,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFF2E2A23),
-                            height: 1.45,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        FilledButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: Column(
+                        children: <Widget>[
+                          _MenuButton(
+                            icon: Icons.auto_stories_outlined,
+                            label: l10n.newCampaign,
+                            emphasized: true,
+                            onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (context) => const NewGameScreen(),
                               ),
-                            );
-                          },
-                          child: Text(l10n.newCampaign),
-                        ),
-                        const SizedBox(height: 12),
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _MenuButton(
+                            icon: Icons.save_outlined,
+                            label: l10n.saves,
+                            onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (context) => const SavesScreen(),
                               ),
-                            );
-                          },
-                          child: Text(l10n.saves),
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _MenuButton(
+                            icon: Icons.tune_rounded,
+                            label: l10n.aiSettings,
+                            onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (context) => const SettingsScreen(),
                               ),
-                            );
-                          },
-                          child: Text(l10n.aiSettings),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: l10n.homeFeatureLines
+                              .take(4)
+                              .map(
+                                (line) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AetherPalette.panelSoft.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AetherPalette.panelBorder.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    line,
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  _InfoCard(
-                    width: 360,
-                    title: l10n.whatsIncluded,
-                    lines: l10n.homeFeatureLines,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -107,59 +202,48 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.width,
-    required this.title,
-    required this.lines,
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.emphasized = false,
   });
 
-  final double width;
-  final String title;
-  final List<String> lines;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool emphasized;
 
   @override
-  Widget build(final BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final AppLocalizations l10n = context.l10n;
-    final String resolvedTitle = title.isEmpty ? l10n.whatsIncluded : title;
-    final List<String> resolvedLines = lines.isEmpty ? l10n.homeFeatureLines : lines;
-
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            resolvedTitle,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+  Widget build(final BuildContext context) => AetherCard(
+      highlight: emphasized,
+      child: SizedBox(
+        width: double.infinity,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  icon,
+                  color: emphasized
+                      ? AetherPalette.accent
+                      : AetherPalette.textMuted,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          for (final String line in resolvedLines)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.adjust_rounded, size: 12),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(line, style: theme.textTheme.bodyLarge)),
-                ],
-              ),
-            ),
-        ],
+        ),
       ),
     );
-  }
 }

@@ -8,9 +8,7 @@ class AppLocalizations {
 
   final AppLanguage language;
 
-  static AppLocalizations of(final BuildContext context) {
-    return AppLocalizations(AppScope.of(context).appLanguageListenable.value);
-  }
+  static AppLocalizations of(final BuildContext context) => AppLocalizations(AppScope.of(context).appLanguageListenable.value);
 
   String get appTitle => switch (language) {
     AppLanguage.ru => 'ИИ RPG',
@@ -136,6 +134,16 @@ class AppLocalizations {
       'Пока нет сохранений. Создай новую кампанию на главном экране.',
     AppLanguage.en =>
       'There are no saves yet. Create a new campaign from the home screen.',
+  };
+
+  String get savesOpenFailed => switch (language) {
+    AppLanguage.ru => 'Не удалось открыть сохранения.',
+    AppLanguage.en => 'Failed to open saves.',
+  };
+
+  String get loadCampaignAction => switch (language) {
+    AppLanguage.ru => 'Загрузить',
+    AppLanguage.en => 'Load',
   };
 
   String saveSubtitle(final CampaignState campaign) => switch (language) {
@@ -277,6 +285,16 @@ class AppLocalizations {
   String get openAiCompatible => switch (language) {
     AppLanguage.ru => 'Совместимый с OpenAI',
     AppLanguage.en => 'OpenAI Compatible',
+  };
+
+  String get openRouter => switch (language) {
+    AppLanguage.ru => 'OpenRouter',
+    AppLanguage.en => 'OpenRouter',
+  };
+
+  String get deepSeek => switch (language) {
+    AppLanguage.ru => 'DeepSeek',
+    AppLanguage.en => 'DeepSeek',
   };
 
   String get baseUrl => switch (language) {

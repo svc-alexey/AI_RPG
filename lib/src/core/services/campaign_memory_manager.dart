@@ -10,8 +10,7 @@ class CampaignMemoryManager {
     required final AppLanguage language,
     required final String objective,
     required final String introText,
-  }) {
-    return CampaignMemory(
+  }) => CampaignMemory(
       rollingSummary: switch (language) {
         AppLanguage.ru => 'Кампания только началась.',
         AppLanguage.en => 'The campaign has only just begun.',
@@ -20,7 +19,6 @@ class CampaignMemoryManager {
       activeSituation: introText,
       recentTurns: const <RecentTurnSummary>[],
     );
-  }
 
   CampaignMemory updateMemory({
     required final AppLanguage language,
@@ -54,8 +52,7 @@ class CampaignMemoryManager {
     );
   }
 
-  Map<String, Object?> buildAiContext(final CampaignState state) {
-    return <String, Object?>{
+  Map<String, Object?> buildAiContext(final CampaignState state) => <String, Object?>{
       'core_state': <String, Object?>{
         'title': state.title,
         'location': state.location,
@@ -71,10 +68,31 @@ class CampaignMemoryManager {
       },
       'rolling_summary': state.memory.rollingSummary,
       'recent_turns': state.memory.recentTurns
-          .map((final RecentTurnSummary item) => item.toJson())
+          .map((final item) => item.toJson())
           .toList(),
     };
-  }
+
+  Map<String, Object?> buildFastAiContext(final CampaignState state) => <String, Object?>{
+      'title': state.title,
+      'location': state.location,
+      'objective': state.objective,
+      'turnNumber': state.turnNumber,
+      'character': <String, Object?>{
+        'name': state.character.name,
+        'hp': state.character.hp,
+        'energy': state.character.energy,
+      },
+      'activeGoal': state.memory.activeGoal,
+      'activeSituation': state.memory.activeSituation,
+      'rollingSummary': state.memory.rollingSummary,
+      'recentTurns': state.memory.recentTurns
+          .take(2)
+          .map((item) => <String, Object?>{
+                'playerAction': item.playerAction,
+                'outcome': item.outcome,
+              })
+          .toList(),
+    };
 
   String _buildStateHint(
     final AppLanguage language,
