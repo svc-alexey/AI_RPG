@@ -1,8 +1,18 @@
-# Implementation: No Think Fast Mode
+# Implementation: no-think-fast-mode
 
-- [ ] Архитектурный этап завершен
-- [ ] PRD/feature-spec завершен
+## Статус
+
+- [x] Архитектура заполнена
+- [x] PRD заполнен
 - [x] Реализация начата
 - [x] Реализация завершена
-- [x] Проверки выполнены
+- [x] Проверки пройдены
 - [ ] QA-этап завершен
+
+## Ключевые задачи
+
+- [x] Добавить fast mode в настройки
+- [x] Добавить `/no_think` в AI prompt layer
+- [x] Поддержать strict JSON response format
+- [x] Добавить fallback на обычный режим
+- [x] Проверить работу на локальной модели
