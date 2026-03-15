@@ -37,3 +37,10 @@
 - папка: [docs/features/docs-encoding-sync](D:/AI_PRG/docs/features/docs-encoding-sync)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: очистка кодировки документов и синхронизация project docs с текущим состоянием проекта
+
+### `quality-pass-stabilization`
+
+- статус: analysis-ready
+- папка: [docs/features/quality-pass-stabilization](D:/AI_PRG/docs/features/quality-pass-stabilization)
+- источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
+- цель: снизить lint-шум, укрепить ключевые user flow и подготовить проект к следующему product layer
