@@ -134,6 +134,24 @@ class GameEngine {
     );
   }
 
+  CampaignState appendSystemMessage({
+    required final CampaignState state,
+    required final String text,
+  }) {
+    final DateTime now = DateTime.now();
+    final List<ChatMessage> messages = List<ChatMessage>.from(state.messages)
+      ..add(
+        ChatMessage(
+          id: '${state.id}_${now.microsecondsSinceEpoch}_system',
+          role: ChatRole.system,
+          text: text,
+          createdAt: now,
+        ),
+      );
+
+    return state.copyWith(messages: messages, updatedAt: now);
+  }
+
   int _clamp({
     required final int value,
     required final int min,

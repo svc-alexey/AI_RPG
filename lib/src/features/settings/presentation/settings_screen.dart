@@ -19,9 +19,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _timeoutController = TextEditingController();
 
   AiProviderType _provider = AiProviderType.lmStudio;
+  bool _fastResponses = true;
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isChecking = false;
+  bool _isDetectingModel = false;
   bool _didLoad = false;
   String? _status;
 
@@ -57,12 +59,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(24),
                   children: <Widget>[
                     Text(
-                      'LM Studio / endpoint, совместимый с OpenAI',
+                      'LM Studio и OpenAI-compatible endpoint',
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Для LM Studio по умолчанию используется http://127.0.0.1:1234/v1. Укажи id модели так, как он называется в локальном сервере.',
+                      'Для LM Studio по умолчанию используется http://127.0.0.1:1234/v1. Если локальный сервер LM Studio запущен, приложение само подберет подходящую загруженную модель.',
                     ),
                     const SizedBox(height: 24),
                     SegmentedButton<AiProviderType>(
@@ -77,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                       selected: <AiProviderType>{_provider},
-                      onSelectionChanged: (selection) {
+                      onSelectionChanged: (final Set<AiProviderType> selection) {
                         _handleProviderChanged(selection.first);
                       },
                     ),
@@ -108,6 +110,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Таймаут в секундах',
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Быстрый режим LM Studio'),
+                      subtitle: const Text(
+                        'Добавляет /no_think и строгий JSON-формат для более быстрых ответов.',
+                      ),
+                      value: _fastResponses,
+                      onChanged: (final bool value) {
+                        setState(() => _fastResponses = value);
+                      },
                     ),
                     const SizedBox(height: 20),
                     if (_status != null)
@@ -146,6 +160,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 )
                               : const Text('Проверить подключение'),
                         ),
+                        TextButton(
+                          onPressed: _isDetectingModel
+                              ? null
+                              : _detectAndApplyLmStudioModel,
+                          child: _isDetectingModel
+                              ? const Text('Подбираю модель...')
+                              : const Text('Подобрать модель автоматически'),
+                        ),
                       ],
                     ),
                   ],
@@ -160,6 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final AiSettings settings = await scope.settingsRepository.loadAiSettings();
 
     _provider = settings.provider;
+    _fastResponses = settings.fastResponses;
     _baseUrlController.text =
         settings.baseUrl.trim().isEmpty &&
             settings.provider == AiProviderType.lmStudio
@@ -172,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = false);
 
     if (_provider == AiProviderType.lmStudio) {
-      await _autofillLmStudioModelIfNeeded();
+      await _detectAndApplyLmStudioModel(silentWhenUnavailable: true);
     }
   }
 
@@ -203,9 +226,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       final AppScope scope = AppScope.of(context);
-      final AiSettings settings = _buildSettings();
-      final client = scope.aiServiceFactory.create(settings);
-      await client.checkConnection(settings: settings);
+      final client = scope.aiServiceFactory.create(_buildSettings());
+      await client.checkConnection(settings: _buildSettings());
       if (!mounted) {
         return;
       }
@@ -229,6 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       model: _modelController.text.trim(),
       apiKey: _apiKeyController.text.trim(),
       timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
+      fastResponses: _fastResponses,
     );
   }
 
@@ -240,68 +263,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _baseUrlController.text.trim().isEmpty) {
         _baseUrlController.text = const AiSettings.defaults().baseUrl;
       }
+      if (provider != AiProviderType.lmStudio) {
+        _fastResponses = false;
+      } else if (!_fastResponses) {
+        _fastResponses = true;
+      }
     });
 
     if (provider == AiProviderType.lmStudio) {
-      await _autofillLmStudioModelIfNeeded();
+      await _detectAndApplyLmStudioModel(silentWhenUnavailable: true);
     }
   }
 
-  Future<void> _autofillLmStudioModelIfNeeded() async {
-    if (_modelController.text.trim().isNotEmpty) {
+  Future<void> _detectAndApplyLmStudioModel({
+    final bool silentWhenUnavailable = false,
+  }) async {
+    if (_provider != AiProviderType.lmStudio) {
       return;
     }
+
+    setState(() {
+      _isDetectingModel = true;
+      if (!silentWhenUnavailable) {
+        _status = null;
+      }
+    });
 
     final String baseUrl = _baseUrlController.text.trim().isEmpty
         ? const AiSettings.defaults().baseUrl
         : _baseUrlController.text.trim();
 
     try {
-      final Uri uri = Uri.parse('${_normalizeBaseUrl(baseUrl)}/models');
-      final http.Response response = await http
-          .get(
-            uri,
-            headers: const <String, String>{'Content-Type': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
+      final List<String> modelIds = await _fetchModelIds(baseUrl);
+      final String modelId = _selectPreferredModel(modelIds);
+      if (modelId.isEmpty) {
+        if (!silentWhenUnavailable && mounted) {
+          setState(() {
+            _status =
+                'LM Studio ответил, но подходящая модель не найдена.';
+          });
+        }
         return;
       }
 
-      final Object? decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, Object?>) {
-        return;
-      }
+      _baseUrlController.text = baseUrl;
+      _modelController.text = modelId;
 
-      final List<Object?> items =
-          (decoded['data'] as List<Object?>?) ?? const <Object?>[];
-      if (items.isEmpty) {
-        return;
-      }
+      final AppScope scope = AppScope.of(context);
+      await scope.settingsRepository.saveAiSettings(_buildSettings());
 
-      final Map<String, Object?>? firstItem =
-          items.first as Map<String, Object?>?;
-      final String modelId = (firstItem?['id'] as String?)?.trim() ?? '';
-      if (modelId.isEmpty || !mounted) {
-        return;
-      }
-
-      setState(() {
-        _baseUrlController.text = baseUrl;
-        _modelController.text = modelId;
-        _status = 'Модель LM Studio загружена автоматически: $modelId';
-      });
-    } catch (_) {
       if (!mounted) {
         return;
       }
+
       setState(() {
-        _baseUrlController.text = baseUrl;
-        _status =
-            'Localhost для LM Studio установлен. Запусти локальный сервер, чтобы модель подставилась автоматически.';
+        _status = 'Автоматически выбрана модель LM Studio: $modelId';
       });
+    } catch (error) {
+      if (!mounted || silentWhenUnavailable) {
+        return;
+      }
+      setState(() {
+        _status =
+            'Не удалось автоматически определить модель LM Studio. Убедись, что локальный сервер запущен: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isDetectingModel = false);
+      }
     }
+  }
+
+  Future<List<String>> _fetchModelIds(final String baseUrl) async {
+    final Uri uri = Uri.parse('${_normalizeBaseUrl(baseUrl)}/models');
+    final http.Response response = await http
+        .get(
+          uri,
+          headers: const <String, String>{'Content-Type': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 5));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('сервер вернул ${response.statusCode}');
+    }
+
+    final Object? decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, Object?>) {
+      throw Exception('неожиданный формат ответа');
+    }
+
+    final List<Object?> items =
+        (decoded['data'] as List<Object?>?) ?? const <Object?>[];
+
+    return items
+        .map((final Object? item) => item as Map<String, Object?>?)
+        .whereType<Map<String, Object?>>()
+        .map((final Map<String, Object?> item) => (item['id'] as String?) ?? '')
+        .map((final String item) => item.trim())
+        .where((final String item) => item.isNotEmpty)
+        .toList();
+  }
+
+  String _selectPreferredModel(final List<String> modelIds) {
+    if (modelIds.isEmpty) {
+      return '';
+    }
+
+    final Iterable<String> chatModels = modelIds.where((final String modelId) {
+      final String normalized = modelId.toLowerCase();
+      return !normalized.contains('embedding') &&
+          !normalized.contains('embed') &&
+          !normalized.contains('rerank');
+    });
+
+    if (chatModels.isNotEmpty) {
+      return chatModels.first;
+    }
+
+    return modelIds.first;
   }
 
   String _normalizeBaseUrl(final String baseUrl) => baseUrl.endsWith('/')

@@ -11,3 +11,18 @@ abstract class AiClient {
     required bool suggestionsOnly,
   });
 }
+
+class AiTurnException implements Exception {
+  const AiTurnException({
+    required this.userMessage,
+    this.rawResponse,
+    this.recoverable = false,
+  });
+
+  final String userMessage;
+  final String? rawResponse;
+  final bool recoverable;
+
+  @override
+  String toString() => userMessage;
+}

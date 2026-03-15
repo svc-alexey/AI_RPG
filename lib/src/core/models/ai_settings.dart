@@ -7,6 +7,7 @@ class AiSettings {
     required this.model,
     required this.apiKey,
     required this.timeoutSeconds,
+    required this.fastResponses,
   });
 
   const AiSettings.defaults()
@@ -14,13 +15,15 @@ class AiSettings {
       baseUrl = 'http://127.0.0.1:1234/v1',
       model = '',
       apiKey = '',
-      timeoutSeconds = 60;
+      timeoutSeconds = 60,
+      fastResponses = true;
 
   final AiProviderType provider;
   final String baseUrl;
   final String model;
   final String apiKey;
   final int timeoutSeconds;
+  final bool fastResponses;
 
   bool get isConfigured => baseUrl.trim().isNotEmpty && model.trim().isNotEmpty;
 
@@ -30,6 +33,7 @@ class AiSettings {
     final String? model,
     final String? apiKey,
     final int? timeoutSeconds,
+    final bool? fastResponses,
   }) {
     return AiSettings(
       provider: provider ?? this.provider,
@@ -37,6 +41,7 @@ class AiSettings {
       model: model ?? this.model,
       apiKey: apiKey ?? this.apiKey,
       timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
+      fastResponses: fastResponses ?? this.fastResponses,
     );
   }
 
@@ -47,6 +52,7 @@ class AiSettings {
       'model': model,
       'apiKey': apiKey,
       'timeoutSeconds': timeoutSeconds,
+      'fastResponses': fastResponses,
     };
   }
 
@@ -60,6 +66,7 @@ class AiSettings {
       model: (json['model'] as String?) ?? '',
       apiKey: (json['apiKey'] as String?) ?? '',
       timeoutSeconds: (json['timeoutSeconds'] as int?) ?? 60,
+      fastResponses: (json['fastResponses'] as bool?) ?? true,
     );
   }
 }

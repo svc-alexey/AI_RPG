@@ -64,7 +64,7 @@ class CharacterStats {
 
   factory CharacterStats.fromJson(final Map<String, Object?> json) {
     return CharacterStats(
-      name: (json['name'] as String?) ?? 'Hero',
+      name: (json['name'] as String?) ?? 'Герой',
       hp: (json['hp'] as int?) ?? 12,
       maxHp: (json['maxHp'] as int?) ?? 12,
       energy: (json['energy'] as int?) ?? 8,
@@ -177,7 +177,8 @@ class TurnResult {
 
   factory TurnResult.fromJson(final Map<String, Object?> json) {
     return TurnResult(
-      narration: (json['narration'] as String?) ?? 'The world stays silent.',
+      narration:
+          (json['narration'] as String?) ?? 'Мир ненадолго замирает в тишине.',
       choices: ((json['choices'] as List<Object?>?) ?? const <Object?>[])
           .map((final Object? item) => item.toString())
           .toList(),
@@ -291,7 +292,7 @@ class CampaignState {
     return CampaignState(
       id: (json['id'] as String?) ?? '',
       schemaVersion: (json['schemaVersion'] as int?) ?? 1,
-      title: (json['title'] as String?) ?? 'Campaign',
+      title: (json['title'] as String?) ?? 'Кампания',
       setting: CampaignSetting.values.firstWhere(
         (final CampaignSetting item) => item.name == json['setting'],
         orElse: () => CampaignSetting.fantasy,
@@ -308,8 +309,9 @@ class CampaignState {
         (json['character'] as Map<String, Object?>?) ??
             const <String, Object?>{},
       ),
-      location: (json['location'] as String?) ?? 'Unknown',
-      objective: (json['objective'] as String?) ?? 'Survive the first scene.',
+      location: (json['location'] as String?) ?? 'Неизвестная локация',
+      objective:
+          (json['objective'] as String?) ?? 'Пережить первую сцену кампании.',
       turnNumber: (json['turnNumber'] as int?) ?? 0,
       summary: (json['summary'] as String?) ?? '',
       inventory: ((json['inventory'] as List<Object?>?) ?? const <Object?>[])

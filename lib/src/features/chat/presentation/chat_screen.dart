@@ -1,6 +1,7 @@
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -116,10 +117,12 @@ class _ChatScreenState extends State<ChatScreen> {
         Expanded(
           child: ListView.separated(
             itemCount: campaign.messages.length,
-            separatorBuilder: (_, index) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final ChatMessage message = campaign.messages[index];
               final bool isPlayer = message.role == ChatRole.player;
+              final bool isSystem = message.role == ChatRole.system;
+
               return Align(
                 alignment: isPlayer
                     ? Alignment.centerRight
@@ -130,6 +133,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   decoration: BoxDecoration(
                     color: isPlayer
                         ? const Color(0xFF2F4A3C)
+                        : isSystem
+                        ? const Color(0xFFE7DDD0)
                         : const Color(0xFFF4EAD7),
                     borderRadius: BorderRadius.circular(18),
                   ),
@@ -295,7 +300,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final AppScope scope = AppScope.of(context);
       final AiSettings settings = await scope.settingsRepository
           .loadAiSettings();
-      final client = scope.aiServiceFactory.create(settings);
+      final AiClient client = scope.aiServiceFactory.create(settings);
       final TurnResult result = await client.generateTurn(
         settings: settings,
         state: campaign,
@@ -334,6 +339,8 @@ class _ChatScreenState extends State<ChatScreen> {
           _inputController.clear();
         }
       });
+    } on AiTurnException catch (error) {
+      await _handleAiTurnException(error);
     } catch (error) {
       if (!mounted) {
         return;
@@ -343,5 +350,38 @@ class _ChatScreenState extends State<ChatScreen> {
         _status = 'Ошибка хода: $error';
       });
     }
+  }
+
+  Future<void> _handleAiTurnException(final AiTurnException error) async {
+    final CampaignState? campaign = _campaign;
+    if (campaign == null) {
+      return;
+    }
+
+    final AppScope scope = AppScope.of(context);
+    CampaignState nextState = scope.gameEngine.appendSystemMessage(
+      state: campaign,
+      text: error.userMessage,
+    );
+
+    if ((error.rawResponse ?? '').trim().isNotEmpty) {
+      nextState = scope.gameEngine.appendSystemMessage(
+        state: nextState,
+        text:
+            'Техническая заметка: сырой ответ модели сохранен для отладки и не был применен к состоянию игры.',
+      );
+    }
+
+    await scope.campaignRepository.saveCampaign(nextState);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _campaign = nextState;
+      _isSending = false;
+      _status = error.userMessage;
+    });
   }
 }
