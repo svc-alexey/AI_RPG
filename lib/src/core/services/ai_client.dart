@@ -12,6 +12,15 @@ abstract class AiClient {
     required String playerAction,
     required bool suggestionsOnly,
   });
+
+  /// Generates story and character prompts from user's story wish.
+  /// Returns empty prompts if AI is not configured or on error.
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required AiSettings settings,
+    required AppLanguage language,
+    required String storyWish,
+    required CampaignSetting setting,
+  });
 }
 
 class AiTurnException implements Exception {

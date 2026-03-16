@@ -57,6 +57,116 @@ class OpenAiCompatibleAiClient implements AiClient {
     }
   }
 
+  static const int _maxCustomPromptLength = 1000;
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+  }) async {
+    if (storyWish.trim().isEmpty) {
+      return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+    }
+
+    final String metaPrompt = switch (language) {
+      AppLanguage.ru => '''
+Пользователь описывает желаемую историю для narrative RPG: "$storyWish"
+Сеттинг: ${setting.name}.
+
+Сгенерируй JSON с двумя ключами:
+- storyPrompt: инструкции для narrative AI, как вести именно эту историю (тон, жанр, атмосфера). Максимум 300 слов.
+- characterPrompt: краткое описание типа персонажа, подходящего для этой истории. Максимум 100 слов.
+
+Ответь только JSON, без markdown.
+''',
+      AppLanguage.en => '''
+User describes desired story for narrative RPG: "$storyWish"
+Setting: ${setting.name}.
+
+Generate JSON with two keys:
+- storyPrompt: instructions for narrative AI on how to run this story (tone, genre, atmosphere). Max 300 words.
+- characterPrompt: brief description of character type suited for this story. Max 100 words.
+
+Reply only with JSON, no markdown.
+''',
+    };
+
+    final Uri uri = Uri.parse(
+      '${_normalizedBaseUrl(settings.baseUrl)}/chat/completions',
+    );
+    final Map<String, Object?> requestBody = <String, Object?>{
+      'model': settings.model,
+      'temperature': 0.5,
+      'messages': <Map<String, String>>[
+        <String, String>{
+          'role': 'system',
+          'content': switch (language) {
+            AppLanguage.ru => 'Ты помощник. Отвечай только валидным JSON.',
+            AppLanguage.en => 'You are a helper. Reply only with valid JSON.',
+          },
+        },
+        <String, String>{'role': 'user', 'content': metaPrompt},
+      ],
+    };
+
+    try {
+      final http.Response response = await http
+          .post(uri, headers: _headers(settings), body: jsonEncode(requestBody))
+          .timeout(Duration(seconds: _effectiveTimeoutSeconds(settings)));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+      }
+
+      final String rawResponse = _responseText(response);
+      final Object? decoded = _safeJsonDecode(rawResponse);
+      if (decoded is! Map) {
+        return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+      }
+
+      final Map<String, Object?> map = _jsonMap(decoded);
+      final List<Object?> choices = _jsonList(map['choices']);
+      if (choices.isEmpty) {
+        return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+      }
+
+      final Map<String, Object?> choice = _jsonMap(choices.first);
+      final Map<String, Object?> message = _jsonMap(choice['message']);
+      final String content = (message['content'] as String?) ?? '';
+      final String jsonStr = content.trim();
+      final int start = jsonStr.indexOf('{');
+      final int end = jsonStr.lastIndexOf('}');
+      if (start == -1 || end == -1 || end <= start) {
+        return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+      }
+
+      final Object? parsed = _safeJsonDecode(jsonStr.substring(start, end + 1));
+      if (parsed is! Map) {
+        return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+      }
+
+      final Map<String, Object?> parsedMap = _jsonMap(parsed);
+      String storyPrompt = ((parsedMap['storyPrompt'] as String?) ?? '').trim();
+      if (storyPrompt.length > _maxCustomPromptLength) {
+        storyPrompt = storyPrompt.substring(0, _maxCustomPromptLength);
+      }
+      String characterPrompt = ((parsedMap['characterPrompt'] as String?) ?? '').trim();
+      if (characterPrompt.length > _maxCustomPromptLength) {
+        characterPrompt = characterPrompt.substring(0, _maxCustomPromptLength);
+      }
+
+      return GeneratedPrompts(
+        storyPrompt: storyPrompt,
+        characterPrompt: characterPrompt,
+      );
+    } catch (e) {
+      debugPrint('generatePromptsFromStoryWish failed: $e');
+      return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+    }
+  }
+
   @override
   Future<TurnResult> generateTurn({
     required final AiSettings settings,
@@ -109,6 +219,7 @@ class OpenAiCompatibleAiClient implements AiClient {
           'role': 'system',
           'content': _systemPrompt(
             language: language,
+            state: state,
             suggestionsOnly: suggestionsOnly,
             fastMode: fastMode,
           ),
@@ -312,13 +423,15 @@ class OpenAiCompatibleAiClient implements AiClient {
 
   String _systemPrompt({
     required final AppLanguage language,
+    required final CampaignState state,
     required final bool suggestionsOnly,
     required final bool fastMode,
   }) {
     final String fastPrefix = fastMode ? '/no_think\n' : '';
 
+    String base = '';
     if (suggestionsOnly) {
-      return switch (language) {
+      base = switch (language) {
         AppLanguage.ru => '''
 $fastPrefixТы повествовательный ИИ для детерминированной RPG.
 Отвечай только JSON с ключами: narration, choices, state_changes, memory_entry.
@@ -342,34 +455,43 @@ For suggestion mode:
 Do not add markdown or explanations outside JSON.
 ''',
       };
-    }
-
-    return switch (language) {
-      AppLanguage.ru => '''
+    } else {
+      base = switch (language) {
+        AppLanguage.ru => '''
 $fastPrefixТы повествовательный ИИ для детерминированной RPG.
 Отвечай только JSON с ключами: narration, choices, state_changes, memory_entry.
 Все тексты, narration, choices, questNote и memory_entry пиши только на русском языке.
 Правила:
-- narration: 1-2 абзаца
+- narration: 1-2 абзаца. Включай атмосферу сцены, эмоции персонажей, короткие диалоги в потоке, сенсорные детали (звук, свет, запах) в меру.
 - choices: не более 3 коротких вариантов действий
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string }
 - изменения должны быть умеренными для MVP
 - не ломай целостность мира
 - не добавляй markdown fences
 ''',
-      AppLanguage.en => '''
+        AppLanguage.en => '''
 ${fastPrefix}You are a narrative AI for a deterministic RPG.
 Reply only with JSON using the keys: narration, choices, state_changes, memory_entry.
 Write all texts, narration, choices, questNote, and memory_entry only in English.
 Rules:
-- narration: 1-2 paragraphs
+- narration: 1-2 paragraphs. Include scene atmosphere, character emotions, short in-flow dialogues, sensory details (sound, light, smell) in moderation.
 - choices: up to 3 short action options
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string }
 - changes must stay moderate for the MVP
 - do not break world continuity
 - do not add markdown fences
 ''',
-    };
+      };
+    }
+
+    final List<String> parts = <String>[base];
+    if (state.customStoryPrompt.trim().isNotEmpty) {
+      parts.add('\n\n--- Story context ---\n${state.customStoryPrompt.trim()}\n');
+    }
+    if (state.characterPrompt.trim().isNotEmpty) {
+      parts.add('\n\n--- Character ---\n${state.characterPrompt.trim()}\n');
+    }
+    return parts.join('');
   }
 
   String _userPrompt({

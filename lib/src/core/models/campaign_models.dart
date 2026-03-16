@@ -6,6 +6,22 @@ enum DifficultyLevel { easy, medium, hardcore }
 
 enum ChatRole { narrator, player, system }
 
+enum CharacterGender { male, female, other }
+
+/// Character classes per setting: fantasy (warrior, mage, rogue),
+/// detective (detective, journalist, smuggler), sciFi (engineer, pilot, medic).
+enum CharacterClass {
+  warrior,
+  mage,
+  rogue,
+  detective,
+  journalist,
+  smuggler,
+  engineer,
+  pilot,
+  medic,
+}
+
 Map<String, Object?> _jsonMap(final Object? value) {
   if (value is Map) {
     return value.map((key, item) => MapEntry(key.toString(), item));
@@ -90,6 +106,80 @@ class CharacterStats {
         'might': might,
         'wit': wit,
         'spirit': spirit,
+      };
+}
+
+class CharacterProfile {
+  factory CharacterProfile.fromJson(final Map<String, Object?> json) =>
+      CharacterProfile(
+        name: _jsonString(json['name'], fallback: 'Герой'),
+        gender: CharacterGender.values.firstWhere(
+          (final item) => item.name == json['gender'],
+          orElse: () => CharacterGender.other,
+        ),
+        race: _jsonString(json['race'], fallback: ''),
+        characterClass: CharacterClass.values.firstWhere(
+          (final item) => item.name == json['characterClass'],
+          orElse: () => CharacterClass.warrior,
+        ),
+        skills: _jsonList(json['skills'])
+            .map((final item) => item.toString())
+            .toList(),
+        personality: _jsonString(json['personality']),
+        perks: _jsonList(json['perks']).map((final item) => item.toString()).toList(),
+        promptFragment: _jsonString(json['promptFragment']),
+      );
+
+  const CharacterProfile({
+    required this.name,
+    required this.gender,
+    required this.race,
+    required this.characterClass,
+    required this.skills,
+    required this.personality,
+    required this.perks,
+    required this.promptFragment,
+  });
+
+  final String name;
+  final CharacterGender gender;
+  final String race;
+  final CharacterClass characterClass;
+  final List<String> skills;
+  final String personality;
+  final List<String> perks;
+  final String promptFragment;
+
+  CharacterProfile copyWith({
+    final String? name,
+    final CharacterGender? gender,
+    final String? race,
+    final CharacterClass? characterClass,
+    final List<String>? skills,
+    final String? personality,
+    final List<String>? perks,
+    final String? promptFragment,
+  }) =>
+      CharacterProfile(
+        name: name ?? this.name,
+        gender: gender ?? this.gender,
+        race: race ?? this.race,
+        characterClass: characterClass ?? this.characterClass,
+        skills: skills ?? this.skills,
+        personality: personality ?? this.personality,
+        perks: perks ?? this.perks,
+        promptFragment: promptFragment ?? this.promptFragment,
+      );
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'name': name,
+        'gender': gender.name,
+        'race': race,
+        'characterClass': characterClass.name,
+        'skills': skills,
+        'personality': personality,
+        'perks': perks,
+        'promptFragment': promptFragment,
       };
 }
 
@@ -317,6 +407,8 @@ class CampaignState {
           _jsonList(json['choices']).map((final item) => item.toString()).toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
+      customStoryPrompt: _jsonString(json['customStoryPrompt']),
+      characterPrompt: _jsonString(json['characterPrompt']),
     );
   }
 
@@ -337,6 +429,8 @@ class CampaignState {
     required this.messages,
     required this.choices,
     required this.updatedAt,
+    this.customStoryPrompt = '',
+    this.characterPrompt = '',
   });
 
   final String id;
@@ -355,6 +449,8 @@ class CampaignState {
   final List<ChatMessage> messages;
   final List<String> choices;
   final DateTime updatedAt;
+  final String customStoryPrompt;
+  final String characterPrompt;
 
   String get summary => memory.rollingSummary;
   String get activeGoal => memory.activeGoal;
@@ -373,6 +469,8 @@ class CampaignState {
     final List<ChatMessage>? messages,
     final List<String>? choices,
     final DateTime? updatedAt,
+    final String? customStoryPrompt,
+    final String? characterPrompt,
   }) =>
       CampaignState(
         id: id,
@@ -391,6 +489,8 @@ class CampaignState {
         messages: messages ?? this.messages,
         choices: choices ?? this.choices,
         updatedAt: updatedAt ?? this.updatedAt,
+        customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
+        characterPrompt: characterPrompt ?? this.characterPrompt,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -411,6 +511,8 @@ class CampaignState {
         'messages': messages.map((final item) => item.toJson()).toList(),
         'choices': choices,
         'updatedAt': updatedAt.toIso8601String(),
+        'customStoryPrompt': customStoryPrompt,
+        'characterPrompt': characterPrompt,
       };
 }
 
@@ -420,10 +522,27 @@ class CampaignDraft {
     required this.mode,
     required this.difficulty,
     required this.heroName,
+    this.storyWish = '',
+    this.customStoryPrompt = '',
+    this.characterProfile,
   });
 
   final CampaignSetting setting;
   final StoryMode mode;
   final DifficultyLevel difficulty;
   final String heroName;
+  final String storyWish;
+  final String customStoryPrompt;
+  final CharacterProfile? characterProfile;
+}
+
+/// Result of AI-generated prompts from story wish.
+class GeneratedPrompts {
+  const GeneratedPrompts({
+    required this.storyPrompt,
+    required this.characterPrompt,
+  });
+
+  final String storyPrompt;
+  final String characterPrompt;
 }

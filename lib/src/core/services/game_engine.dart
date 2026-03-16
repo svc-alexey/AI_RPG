@@ -1,11 +1,13 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
+import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
 
 class GameEngine {
   const GameEngine();
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
+  static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
 
   CampaignState createCampaign({
     required final CampaignDraft draft,
@@ -13,13 +15,18 @@ class GameEngine {
   }) {
     final DateTime now = DateTime.now();
     final String id = now.microsecondsSinceEpoch.toString();
+
+    final String characterName = draft.characterProfile != null
+        ? draft.characterProfile!.name
+        : (draft.heroName.trim().isEmpty
+            ? switch (language) {
+                AppLanguage.ru => 'Странник',
+                AppLanguage.en => 'Wayfarer',
+              }
+            : draft.heroName.trim());
+
     final CharacterStats character = CharacterStats(
-      name: draft.heroName.trim().isEmpty
-          ? switch (language) {
-              AppLanguage.ru => 'Странник',
-              AppLanguage.en => 'Wayfarer',
-            }
-          : draft.heroName.trim(),
+      name: characterName,
       hp: 12,
       maxHp: 12,
       energy: 8,
@@ -28,6 +35,22 @@ class GameEngine {
       wit: 3,
       spirit: draft.mode == StoryMode.longCampaign ? 3 : 2,
     );
+
+    final String characterPrompt = draft.characterProfile != null
+        ? _charBuilder.buildPrompt(
+            profile: draft.characterProfile!,
+            setting: draft.setting,
+            language: language,
+          )
+        : '';
+
+    final List<String> baseInventory = switch (language) {
+      AppLanguage.ru => const <String>['Полевые записи', 'Дорожный набор'],
+      AppLanguage.en => const <String>['Field Notes', 'Travel Kit'],
+    };
+    final List<String> inventory = draft.characterProfile != null
+        ? <String>[...baseInventory, ...draft.characterProfile!.perks]
+        : baseInventory;
 
     final String location = switch (draft.setting) {
       CampaignSetting.fantasy => switch (language) {
@@ -105,10 +128,7 @@ class GameEngine {
         objective: objective,
         introText: introText,
       ),
-      inventory: switch (language) {
-        AppLanguage.ru => const <String>['Полевые записи', 'Дорожный набор'],
-        AppLanguage.en => const <String>['Field Notes', 'Travel Kit'],
-      },
+      inventory: inventory,
       questLog: <String>[objective],
       messages: <ChatMessage>[intro],
       choices: switch (language) {
@@ -124,6 +144,8 @@ class GameEngine {
           ],
       },
       updatedAt: now,
+      customStoryPrompt: draft.customStoryPrompt,
+      characterPrompt: characterPrompt,
     );
   }
 

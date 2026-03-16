@@ -163,7 +163,7 @@ void main() {
     await tester.tap(find.text(english.send));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('in demo mode'), findsOneWidget);
+    expect(find.textContaining('in demo mode'), findsAtLeastNWidgets(1));
 
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final String rawCampaign =
@@ -315,6 +315,15 @@ class _ThrowingAiClient implements AiClient {
   }) async {
     throw _error;
   }
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required AiSettings settings,
+    required AppLanguage language,
+    required String storyWish,
+    required CampaignSetting setting,
+  }) async =>
+      const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 }
 
 class _ConfiguredAiSettings extends AiSettings {

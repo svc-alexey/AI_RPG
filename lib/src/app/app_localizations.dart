@@ -99,6 +99,150 @@ class AppLocalizations {
     AppLanguage.en => 'Create Campaign',
   };
 
+  String get storyWishTitle => switch (language) {
+    AppLanguage.ru => 'Опиши, какую историю хочешь',
+    AppLanguage.en => 'Describe the story you want',
+  };
+
+  String get storyWishHint => switch (language) {
+    AppLanguage.ru => 'Например: мрачный детектив в стиле нуар, эпическое фэнтези с драконами...',
+    AppLanguage.en => 'E.g.: dark detective noir, epic fantasy with dragons...',
+  };
+
+  String get insertTextPrompt => switch (language) {
+    AppLanguage.ru => 'Подставить текст',
+    AppLanguage.en => 'Insert text',
+  };
+
+  String get generatePrompts => switch (language) {
+    AppLanguage.ru => 'Сгенерировать промпты',
+    AppLanguage.en => 'Generate prompts',
+  };
+
+  String get generatingPrompts => switch (language) {
+    AppLanguage.ru => 'Генерация...',
+    AppLanguage.en => 'Generating...',
+  };
+
+  String get customStoryPromptTitle => switch (language) {
+    AppLanguage.ru => 'Промпт истории (редактируемый)',
+    AppLanguage.en => 'Story prompt (editable)',
+  };
+
+  String get characterSectionTitle => switch (language) {
+    AppLanguage.ru => 'Персонаж',
+    AppLanguage.en => 'Character',
+  };
+
+  String get characterClassTitle => switch (language) {
+    AppLanguage.ru => 'Класс',
+    AppLanguage.en => 'Class',
+  };
+
+  String get characterRaceTitle => switch (language) {
+    AppLanguage.ru => 'Раса',
+    AppLanguage.en => 'Race',
+  };
+
+  String get characterGenderTitle => switch (language) {
+    AppLanguage.ru => 'Пол',
+    AppLanguage.en => 'Gender',
+  };
+
+  String get characterPersonalityTitle => switch (language) {
+    AppLanguage.ru => 'Характер',
+    AppLanguage.en => 'Personality',
+  };
+
+  String get characterSkillsTitle => switch (language) {
+    AppLanguage.ru => 'Навыки',
+    AppLanguage.en => 'Skills',
+  };
+
+  String get characterPerksTitle => switch (language) {
+    AppLanguage.ru => 'Плюшки',
+    AppLanguage.en => 'Perks',
+  };
+
+  String get addPerk => switch (language) {
+    AppLanguage.ru => 'Добавить плюшку',
+    AppLanguage.en => 'Add perk',
+  };
+
+  String get addSkill => switch (language) {
+    AppLanguage.ru => 'Добавить навык',
+    AppLanguage.en => 'Add skill',
+  };
+
+  String get randomCharacter => switch (language) {
+    AppLanguage.ru => 'Случайный персонаж',
+    AppLanguage.en => 'Random character',
+  };
+
+  String get editCharacterPrompt => switch (language) {
+    AppLanguage.ru => 'Редактировать промпт персонажа',
+    AppLanguage.en => 'Edit character prompt',
+  };
+
+  String get configureAiFirst => switch (language) {
+    AppLanguage.ru => 'Настройки ИИ не настроены. Сгенерировать промпты нельзя.',
+    AppLanguage.en => 'AI settings are not configured. Cannot generate prompts.',
+  };
+
+  String characterClassLabel(final CharacterClass value) => switch ((language, value)) {
+    (AppLanguage.ru, CharacterClass.warrior) => 'Воин',
+    (AppLanguage.ru, CharacterClass.mage) => 'Маг',
+    (AppLanguage.ru, CharacterClass.rogue) => 'Плут',
+    (AppLanguage.ru, CharacterClass.detective) => 'Детектив',
+    (AppLanguage.ru, CharacterClass.journalist) => 'Журналист',
+    (AppLanguage.ru, CharacterClass.smuggler) => 'Контрабандист',
+    (AppLanguage.ru, CharacterClass.engineer) => 'Инженер',
+    (AppLanguage.ru, CharacterClass.pilot) => 'Пилот',
+    (AppLanguage.ru, CharacterClass.medic) => 'Медик',
+    (AppLanguage.en, CharacterClass.warrior) => 'Warrior',
+    (AppLanguage.en, CharacterClass.mage) => 'Mage',
+    (AppLanguage.en, CharacterClass.rogue) => 'Rogue',
+    (AppLanguage.en, CharacterClass.detective) => 'Detective',
+    (AppLanguage.en, CharacterClass.journalist) => 'Journalist',
+    (AppLanguage.en, CharacterClass.smuggler) => 'Smuggler',
+    (AppLanguage.en, CharacterClass.engineer) => 'Engineer',
+    (AppLanguage.en, CharacterClass.pilot) => 'Pilot',
+    (AppLanguage.en, CharacterClass.medic) => 'Medic',
+    _ => value.name,
+  };
+
+  String characterGenderLabel(final CharacterGender value) => switch ((language, value)) {
+    (AppLanguage.ru, CharacterGender.male) => 'Мужской',
+    (AppLanguage.ru, CharacterGender.female) => 'Женский',
+    (AppLanguage.ru, CharacterGender.other) => 'Другой',
+    (AppLanguage.en, CharacterGender.male) => 'Male',
+    (AppLanguage.en, CharacterGender.female) => 'Female',
+    (AppLanguage.en, CharacterGender.other) => 'Other',
+    _ => value.name,
+  };
+
+  String raceLabel(final String raceId, final CampaignSetting setting) => switch ((language, raceId, setting)) {
+    (AppLanguage.ru, 'human', _) => 'Человек',
+    (AppLanguage.ru, 'elf', _) => 'Эльф',
+    (AppLanguage.ru, 'dwarf', _) => 'Дварф',
+    (AppLanguage.ru, 'orc', _) => 'Орк',
+    (AppLanguage.ru, 'outsider', _) => 'Приезжий',
+    (AppLanguage.ru, 'local', _) => 'Местный',
+    (AppLanguage.ru, 'android', _) => 'Андроид',
+    (AppLanguage.ru, 'alien', _) => 'Инопланетянин',
+    (AppLanguage.ru, 'augmented', _) => 'Аугментированный',
+    (AppLanguage.en, 'human', _) => 'Human',
+    (AppLanguage.en, 'elf', _) => 'Elf',
+    (AppLanguage.en, 'dwarf', _) => 'Dwarf',
+    (AppLanguage.en, 'orc', _) => 'Orc',
+    (AppLanguage.en, 'outsider', _) => 'Outsider',
+    (AppLanguage.en, 'local', _) => 'Local',
+    (AppLanguage.en, 'android', _) => 'Android',
+    (AppLanguage.en, 'alien', _) => 'Alien',
+    (AppLanguage.en, 'augmented', _) => 'Augmented',
+    _ => raceId,
+  };
+
   String settingLabel(final CampaignSetting value) => switch ((language, value)) {
     (AppLanguage.ru, CampaignSetting.fantasy) => 'Фэнтези',
     (AppLanguage.ru, CampaignSetting.detective) => 'Детектив',
