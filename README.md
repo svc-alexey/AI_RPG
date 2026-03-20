@@ -15,7 +15,9 @@ The project has already moved beyond the original MVP baseline. The current code
 - module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
 - rule-based entity extraction and reconciliation before persistence for active modules only;
 - adaptive sidebar panels and transient overlays for state changes and module unlocks;
-- demo-mode AI fallback when no model is configured.
+- demo-mode AI fallback when no model is configured;
+- a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
+- soft page/backdrop animations that now also run on desktop outside test mode.
 
 ## Current architecture
 
@@ -25,11 +27,18 @@ The project has already moved beyond the original MVP baseline. The current code
 - AI integration: provider-agnostic client/factory layer
 - Primary target: Desktop-first, with mobile-friendly layout work already underway
 
+## Recent milestone
+
+`Stage 7: visual redesign by references` is complete.
+
+The app now matches the `pressets/` direction more closely on all key screens, including Windows/desktop parity for the redesigned `Home` and `Saves` screens.
+
 ## What is next
 
-The next planned implementation step is `Stage 7: deterministic checks`.
+The remaining planned work is split into two tracks:
 
-`Stage 6` is already in place at the structured state and adaptive UI level. The next step is to add a local `DiceEngine` on top of the active `Checks` module so the client resolves rolls deterministically and the model narrates known outcomes instead of inventing them.
+- `Stage 8: promo campaign launch`, which is still fully open in the main implementation plan;
+- deterministic checks backlog work, especially a local `DiceEngine` on top of the active `Checks` module so the client resolves rolls itself and the model narrates known outcomes.
 
 ## Key documents
 

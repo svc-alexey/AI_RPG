@@ -70,9 +70,16 @@ The project has already completed several post-MVP layers:
 - runtime token and context controls
 - real streaming with fallback for OpenAI-compatible responses
 - hybrid context with `static header`, `dynamic summary`, `recent buffer`, and cadence-based summary refresh
+- modular campaign systems with adaptive UI panels and extraction/reconciliation
+- visual redesign of the key screens based on `pressets/`, including desktop parity for `Home` and `Saves`
 
 ## Next step
 
-The next planned step is `Stage 6: world state expansion`.
+The next fully open stage in the implementation plan is `Stage 8: promo campaign launch`.
 
-That stage will build on the new compact context pipeline by expanding structured gameplay state beyond the current MVP layer.
+In parallel, one important gameplay backlog item is still open: deterministic checks via a local `DiceEngine` for the active `Checks` module.
+
+At this point the project is past the original MVP and has already completed the major world-state, adaptive UI, and visual redesign layers. The remaining plan items are mostly:
+
+1. Promo-launch preparation and execution tasks from `Stage 8`.
+2. Deterministic gameplay checks and related expected-result items in the engine/module backlogs.

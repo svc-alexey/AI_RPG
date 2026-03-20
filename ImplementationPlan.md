@@ -230,6 +230,14 @@
 - [x] Ключевые экраны приведены к единому целевому визуальному стилю
 - [ ] Есть минимально работающий промо-процесс для набора первых тестеров и сбора раннего фидбека
 
+## Status Update (2026-03-20)
+
+- [x] `Stage 7` is implemented in code and visually completed for all key screens.
+- [x] Desktop parity is now in place for the redesigned `Home` and `Saves` screens.
+- [x] Soft `Aether` animations now run on desktop runtime and stay disabled in widget-test bindings for stability.
+- [ ] `Stage 8: promo campaign launch` remains the main open stage in this plan.
+- [ ] Deterministic checks remain open in the engine-related backlogs: local `DiceEngine`, client-resolved gameplay outcomes, and the linked expected-result items.
+
 ## Backlog: Provider-scoped AI Settings
 
 Goal: store `apiKey`, `model`, `baseUrl`, and timeout separately for each provider so switching between `LM Studio`, `OpenAI Compatible`, `OpenRouter`, and `DeepSeek` does not overwrite other provider profiles.

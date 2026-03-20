@@ -4,7 +4,6 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,58 +33,6 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
-
-    if (defaultTargetPlatform == TargetPlatform.windows) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.savedCampaigns)),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? Center(child: Text(_error!))
-            : _campaigns.isEmpty
-            ? Center(child: Text(l10n.noSavesYet))
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: _campaigns.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final CampaignState campaign = _campaigns[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text(campaign.title),
-                      subtitle: Text(l10n.saveSubtitle(campaign)),
-                      trailing: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 180),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            TextButton(
-                              onPressed: () => _delete(campaign.id),
-                              child: const Text('Delete'),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (context) =>
-                                          ChatScreen(campaignId: campaign.id),
-                                    ),
-                                  );
-                                },
-                                child: Text(l10n.loadCampaignAction),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(
