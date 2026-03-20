@@ -9,8 +9,8 @@ class CampaignRepository {
   CampaignRepository({
     final AppDatabase? database,
     final CampaignLocalDataSource? localDataSource,
-  })  : _database = database ?? AppDatabase.instance,
-        _localDataSource = localDataSource ?? const CampaignLocalDataSource();
+  }) : _database = database ?? AppDatabase.instance,
+       _localDataSource = localDataSource ?? const CampaignLocalDataSource();
 
   final AppDatabase _database;
   final CampaignLocalDataSource _localDataSource;
@@ -82,7 +82,9 @@ class CampaignRepository {
       }
 
       return CampaignState.fromJson(
-        decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+        decoded.map(
+          (final key, final value) => MapEntry(key.toString(), value),
+        ),
       );
     } catch (_) {
       return null;
@@ -106,9 +108,9 @@ class CampaignRepository {
 
   Future<void> _deleteCampaignLegacy(final String id) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
-    final List<String> ids =
-        preferences.getStringList(_campaignIdsKey) ?? <String>[];
-    ids.remove(id);
+    final List<String> ids = <String>[
+      ...(preferences.getStringList(_campaignIdsKey) ?? <String>[]),
+    ]..remove(id);
     await preferences.setStringList(_campaignIdsKey, ids);
     await preferences.remove(_campaignKey(id));
   }

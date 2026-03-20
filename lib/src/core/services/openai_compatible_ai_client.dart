@@ -798,6 +798,7 @@ Reply only with JSON, no markdown.
     };
   }
 
+  // ignore: unused_element
   String _systemPrompt({
     required final AppLanguage language,
     required final CampaignState state,
@@ -899,6 +900,7 @@ Rules:
     return parts.join();
   }
 
+  // ignore: unused_element
   String _userPrompt({
     required final AppLanguage language,
     required final CampaignState state,

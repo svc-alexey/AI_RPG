@@ -13,6 +13,7 @@
 - [x] Added automated coverage for deterministic resolution and narrative gating
 - [x] Re-validated settings runtime UX for preset switching, custom token controls, save persistence, and provider switching
 - [x] Extracted `TurnPromptBuilder` so the next product layer can extend prompt/context policy without reworking HTTP transport and parsing
+- [x] Cleared analyzer issues that were still blocking the next implementation layer
 
 ## Files touched
 
@@ -33,4 +34,3 @@
 ## Remaining Stage 8 work outside this slice
 
 - [ ] long-session validation beyond current automated coverage
-- [ ] analyzer cleanup that still blocks the next implementation layer

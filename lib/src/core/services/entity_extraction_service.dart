@@ -592,13 +592,12 @@ class EntityExtractionService {
     return allowed.contains(module);
   }
 
-  bool _isNarrativeOnlyCampaign(final CampaignState state) => state.modules.any((
-    final CampaignModuleState item,
-  ) {
-    final String reason = item.activationReason.toLowerCase();
-    return reason.contains('narrative_only') ||
-        reason.contains('narrative-only');
-  });
+  bool _isNarrativeOnlyCampaign(final CampaignState state) =>
+      state.modules.any((item) {
+        final String reason = item.activationReason.toLowerCase();
+        return reason.contains('narrative_only') ||
+            reason.contains('narrative-only');
+      });
 
   bool _isGameplayChromeModule(final CampaignModule module) =>
       module == CampaignModule.inventory ||

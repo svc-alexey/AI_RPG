@@ -37,8 +37,8 @@ void main() {
         language: AppLanguage.en,
         state: _sampleCampaign(),
         playerAction: 'Inspect the sealed lock carefully',
-        deterministicContext: DeterministicTurnContext(
-          resolvedCheck: const CampaignCheck(
+        deterministicContext: const DeterministicTurnContext(
+          resolvedCheck: CampaignCheck(
             id: 'check_1_wit_14',
             label: 'Wit check',
             summary: 'Wit check succeeded with 16 vs DC 13.',
@@ -113,7 +113,6 @@ CampaignState _sampleCampaign() => CampaignState(
   notes: const <String>['The broker leaves coded notes in old train ledgers.'],
   resources: const <CampaignResource>[],
   progression: null,
-  checks: const <CampaignCheck>[],
   messages: const <ChatMessage>[],
   choices: const <String>['Scout ahead', 'Light the lantern'],
   updatedAt: DateTime(2026, 3, 20, 12),

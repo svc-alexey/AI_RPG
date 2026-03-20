@@ -175,7 +175,7 @@ Tasks:
 - [x] Verify that pure narrative and detective campaigns keep non-relevant RPG chrome hidden even after long play
 - [x] Re-validate settings UX for speed, quality, and token controls so the remaining expected-result items are explicitly covered
 - [x] Prepare the architecture for the next product layer without returning to baseline infrastructure work
-- [ ] Review remaining analyzer warnings and close the ones that now block the next implementation layer
+- [x] Review remaining analyzer warnings and close the ones that now block the next implementation layer
 
 Expected result:
 
@@ -213,7 +213,7 @@ Expected result:
 - [x] Desktop parity is now in place for the redesigned `Home` and `Saves` screens.
 - [x] Soft `Aether` animations now run on desktop runtime and stay disabled in widget-test bindings for stability.
 - [ ] `Stage 8: deterministic systems and implementation finish` is now the main open stage in this plan.
-- [ ] Remaining open work is concentrated in final engine validation, settings/runtime UX coverage, and next-layer technical readiness.
+- [ ] Remaining open work is concentrated in final long-session engine validation.
 
 ## Backlog: Provider-scoped AI Settings
 

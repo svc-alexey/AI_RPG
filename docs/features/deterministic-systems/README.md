@@ -13,7 +13,7 @@ The implemented slice introduces:
 
 ## Current status
 
-Status: implemented, with only long-session validation and analyzer cleanup still open in the main Stage 8 checklist.
+Status: implemented, with only long-session validation still open as a follow-up in the main Stage 8 checklist.
 
 Implemented:
 
@@ -26,7 +26,6 @@ Implemented:
 Still pending at the plan level:
 
 - broader long-session validation
-- analyzer debt reduction
 
 ## Documents
 
