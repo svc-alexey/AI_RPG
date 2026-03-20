@@ -324,6 +324,193 @@ void main() {
     expect(find.byType(OutlinedButton), findsWidgets);
   });
 
+  testWidgets('Settings runtime presets update token controls', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+
+    await tester.pumpWidget(
+      _buildScopedApp(
+        const SettingsScreen(),
+        storage: storage,
+        language: AppLanguage.en,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      _textFieldByLabel(english.maxResponseTokens),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(_textFieldValue(tester, english.maxResponseTokens), '256');
+    expect(_textFieldValue(tester, english.contextWindowSize), '1536');
+
+    await tester.tap(
+      find.widgetWithText(ChoiceChip, english.runtimeProfileCheap),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_textFieldValue(tester, english.maxResponseTokens), '160');
+    expect(_textFieldValue(tester, english.contextWindowSize), '1024');
+
+    await tester.tap(
+      find.widgetWithText(ChoiceChip, english.runtimeProfileSmart),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_textFieldValue(tester, english.maxResponseTokens), '512');
+    expect(_textFieldValue(tester, english.contextWindowSize), '3072');
+  });
+
+  testWidgets('Settings runtime edits become custom and persist after save', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+
+    await tester.pumpWidget(
+      _buildScopedApp(
+        const SettingsScreen(),
+        storage: storage,
+        language: AppLanguage.en,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      _textFieldByLabel(english.maxResponseTokens),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    await tester.enterText(_textFieldByLabel(english.maxResponseTokens), '777');
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      _textFieldByLabel(english.contextWindowSize),
+      '2048',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(english.runtimeProfileCustom), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text(english.saveSettings),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text(english.saveSettings));
+    await tester.pumpAndSettle();
+
+    final ProviderScopedSettings saved = await storage.settingsRepository
+        .loadProviderScopedSettings();
+    final ProviderProfile lmStudioProfile = saved.profileFor(
+      AiProviderType.lmStudio,
+    );
+
+    expect(saved.activeProvider, AiProviderType.lmStudio);
+    expect(lmStudioProfile.runtimeSettings.maxResponseTokens, 777);
+    expect(lmStudioProfile.runtimeSettings.contextWindowSize, 2048);
+    expect(lmStudioProfile.runtimeSettings.profile, ModelRuntimeProfile.custom);
+    expect(find.text(english.settingsSaved), findsOneWidget);
+  });
+
+  testWidgets(
+    'Settings restore provider-specific runtime controls when switching providers',
+    (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+
+      final Map<AiProviderType, ProviderProfile> profiles =
+          <AiProviderType, ProviderProfile>{
+            for (final AiProviderType provider in AiProviderType.values)
+              provider: ProviderProfile.defaultsFor(provider),
+          };
+      profiles[AiProviderType.lmStudio] = const ProviderProfile(
+        baseUrl: 'http://127.0.0.1:1234/v1',
+        model: 'local-model',
+        apiKey: '',
+        timeoutSeconds: 60,
+        runtimeSettings: ModelRuntimeSettings.fastPreset,
+      );
+      profiles[AiProviderType.openRouter] = const ProviderProfile(
+        baseUrl: 'https://openrouter.ai/api/v1',
+        model: 'anthropic/claude-3',
+        apiKey: 'openrouter-key',
+        timeoutSeconds: 120,
+        runtimeSettings: ModelRuntimeSettings(
+          maxResponseTokens: 320,
+          contextWindowSize: 2048,
+          profile: ModelRuntimeProfile.custom,
+        ),
+      );
+      await storage.settingsRepository.saveProviderScopedSettings(
+        ProviderScopedSettings(
+          activeProvider: AiProviderType.lmStudio,
+          profiles: profiles,
+          fastResponses: true,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          const SettingsScreen(),
+          storage: storage,
+          language: AppLanguage.en,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        _textFieldByLabel(english.maxResponseTokens),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(_textFieldValue(tester, english.maxResponseTokens), '256');
+      expect(_textFieldValue(tester, english.contextWindowSize), '1536');
+
+      await tester.drag(
+        find.byType(Scrollable).first,
+        const Offset(0, 1200),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(english.openRouter));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        _textFieldByLabel(english.maxResponseTokens),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(_textFieldValue(tester, english.maxResponseTokens), '320');
+      expect(_textFieldValue(tester, english.contextWindowSize), '2048');
+      expect(find.text(english.runtimeProfileCustom), findsOneWidget);
+
+      await tester.drag(
+        find.byType(Scrollable).first,
+        const Offset(0, 1200),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('LM Studio'));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        _textFieldByLabel(english.maxResponseTokens),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(_textFieldValue(tester, english.maxResponseTokens), '256');
+      expect(_textFieldValue(tester, english.contextWindowSize), '1536');
+      expect(find.text(english.runtimeProfileCustom), findsNothing);
+    },
+  );
+
   testWidgets('Narrow gameplay layout keeps drawer and focused chat area', (
     tester,
   ) async {
@@ -385,6 +572,16 @@ Widget _buildScopedApp(
       child: MaterialApp(home: home),
     ),
   );
+}
+
+Finder _textFieldByLabel(final String label) => find.byWidgetPredicate(
+  (final widget) =>
+      widget is TextField && widget.decoration?.labelText == label,
+);
+
+String _textFieldValue(final WidgetTester tester, final String label) {
+  final TextField field = tester.widget<TextField>(_textFieldByLabel(label));
+  return field.controller?.text ?? '';
 }
 
 class _FakeSettingsRepository extends SettingsRepository {

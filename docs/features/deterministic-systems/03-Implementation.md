@@ -11,6 +11,7 @@
 - [x] Stored deterministic outcomes in campaign memory and existing save payloads
 - [x] Surfaced resolved checks in sidebar history and transient notifications
 - [x] Added automated coverage for deterministic resolution and narrative gating
+- [x] Re-validated settings runtime UX for preset switching, custom token controls, save persistence, and provider switching
 
 ## Files touched
 
@@ -24,10 +25,10 @@
 - `lib/src/features/chat/application/chat_controller.dart`
 - `test/runtime_model_controls_test.dart`
 - `test/campaign_modules_test.dart`
+- `test/widget_test.dart`
 
 ## Remaining Stage 8 work outside this slice
 
 - [ ] long-session validation beyond current automated coverage
-- [ ] final settings UX re-validation for speed, quality, and token controls
 - [ ] analyzer cleanup that still blocks the next implementation layer
 - [ ] broader next-layer architecture readiness tasks

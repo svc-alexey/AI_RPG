@@ -211,6 +211,7 @@ class SettingsController extends StateNotifier<SettingsViewState> {
       runtimeProfile: profile,
       maxResponseTokensText: preset.maxResponseTokens.toString(),
       contextWindowSizeText: preset.contextWindowSize.toString(),
+      formRevision: state.formRevision + 1,
     );
   }
 
