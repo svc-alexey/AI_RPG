@@ -68,7 +68,7 @@
 
 ### `deterministic-systems`
 
-- статус: implemented-with-follow-up
+- статус: implemented
 - папка: [docs/features/deterministic-systems](D:/AI_PRG/docs/features/deterministic-systems)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: сделать client-resolved deterministic checks через локальный `DiceEngine`, передавать результат модели как known state и сохранять outcome в memory/UI/save слое

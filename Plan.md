@@ -75,11 +75,15 @@ The project has already completed several post-MVP layers:
 
 ## Next step
 
-The next fully open stage in the implementation plan is `Stage 8: deterministic systems and implementation finish`.
+`Stage 8: deterministic systems and implementation finish` is now complete.
 
-That stage consolidates the remaining implementation work into one place: deterministic checks via a local `DiceEngine`, long-session stability, final settings/runtime UX validation, and readiness for the next product layer.
+At this point the project is past the original MVP and has already completed the major world-state, adaptive UI, visual redesign, deterministic gameplay, and implementation-validation layers.
 
-At this point the project is past the original MVP and has already completed the major world-state, adaptive UI, and visual redesign layers. The remaining plan items are mostly:
+The next fully open stage in the implementation plan is `Stage 6: next product layer`.
 
-1. Deterministic gameplay checks and client-resolved outcomes.
-2. Final implementation validation for long campaigns, adaptive chrome, settings UX, and cross-platform readiness.
+That stage is already scoped as `Narrative depth`: expanding prompt quality and storytelling depth on top of the now-stable deterministic, memory, and runtime foundation.
+
+The remaining plan focus is now mostly:
+
+1. Implement the `Narrative depth` layer on top of the extracted prompt architecture.
+2. Preserve the current deterministic and memory contracts while deepening narration quality.

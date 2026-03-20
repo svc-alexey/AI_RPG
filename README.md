@@ -29,17 +29,17 @@ The project has already moved beyond the original MVP baseline. The current code
 
 ## Recent milestone
 
-`Stage 7: visual redesign by references` is complete.
+`Stage 8: deterministic systems and implementation finish` is complete.
 
-The app now matches the `pressets/` direction more closely on all key screens, including Windows/desktop parity for the redesigned `Home` and `Saves` screens.
+The app now has client-resolved deterministic checks, stable long-session memory/context behavior, validated settings/runtime UX flows, and a prompt architecture prepared for the next product layer.
 
 ## What is next
 
-The next planned implementation step is now technical only:
+The next planned implementation step is the product-facing layer:
 
-- `Stage 8: deterministic systems and implementation finish`;
-- local `DiceEngine` support for the active `Checks` module;
-- final validation of long-session stability, hidden non-relevant RPG chrome, settings/runtime UX, and next-layer architecture readiness.
+- `Stage 6: next product layer`;
+- chosen direction: `Narrative depth`;
+- expand storytelling quality on top of the deterministic, modular, and memory-aware runtime foundation.
 
 ## Key documents
 
