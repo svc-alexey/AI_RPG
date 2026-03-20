@@ -19,11 +19,11 @@ class GameEngine {
     final String characterName = draft.characterProfile != null
         ? draft.characterProfile!.name
         : (draft.heroName.trim().isEmpty
-            ? switch (language) {
-                AppLanguage.ru => 'Странник',
-                AppLanguage.en => 'Wayfarer',
-              }
-            : draft.heroName.trim());
+              ? switch (language) {
+                  AppLanguage.ru => 'Странник',
+                  AppLanguage.en => 'Wayfarer',
+                }
+              : draft.heroName.trim());
 
     final CharacterStats character = CharacterStats(
       name: characterName,
@@ -121,6 +121,7 @@ class GameEngine {
     required final CampaignState state,
     required final String playerAction,
     required final TurnResult result,
+    required final int contextWindowSize,
   }) {
     final DateTime now = DateTime.now();
     final CharacterStats character = state.character.copyWith(
@@ -139,8 +140,7 @@ class GameEngine {
     final List<String> inventory = List<String>.from(state.inventory)
       ..addAll(result.stateChanges.inventoryAdd)
       ..removeWhere(
-        (final item) =>
-            result.stateChanges.inventoryRemove.contains(item),
+        (final item) => result.stateChanges.inventoryRemove.contains(item),
       );
 
     final List<String> questLog = List<String>.from(state.questLog);
@@ -185,6 +185,7 @@ class GameEngine {
         previousState: state,
         result: result,
         playerAction: playerAction,
+        contextWindowSize: contextWindowSize,
       ),
       updatedAt: now,
     );

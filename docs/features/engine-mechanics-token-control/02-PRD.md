@@ -40,7 +40,7 @@
 - `Hybrid Context` memory pipeline
 - `Entity Extraction`
 - `Dice Engine`
-- расширенный `World State` (`Gold`, `Exp`, `Level`, `Companions`)
+- модульный `World State` (`Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`)
 - `Isolates` для тяжёлого background processing
 
 ## 4. Users & Core Scenarios
@@ -96,11 +96,12 @@
 
 Целевая модель должна включать:
 
-- базовые боевые и прогресс-поля: `HP`, `Gold`, `Exp`, `Level`;
-- коллекции `Inventory` и `Companions`;
-- расширяемые world notes / derived state.
+- always-on core state: `location`, `objective`, `summary`, `recent state hints`;
+- опциональные модули кампании: `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`;
+- возможность подключать и отключать модули по сеттингу, initial prompt и развитию истории;
+- расширяемые derived state и module-specific collections без жёсткой привязки всех кампаний к RPG-экономике.
 
-Статус: частично реализовано. `Inventory` уже есть, расширенный world state ещё не завершён.
+Статус: частично реализовано. `Inventory` уже есть, базовый sidebar уже показывает часть состояния, но модульная схема и динамическая активация ещё не завершены.
 
 ### 5.4 Model Sandbox Controls
 
@@ -130,17 +131,20 @@
 
 - добавлять и удалять предметы;
 - фиксировать companions/NPC;
-- обновлять world notes только при достаточной уверенности.
+- обновлять world notes только при достаточной уверенности;
+- предлагать или автоматически включать новый модуль кампании, если narration явно ввела новую системную сущность;
+- выполнять reconciliation только для модулей, активных в кампании.
 
 Статус: не реализовано.
 
-### 5.7 Deterministic Dice / Checks
+### 5.7 Deterministic Checks / Combat Modules
 
 Проверки навыков и боевые roll-механики должны:
 
 - рассчитываться локально;
 - передавать модели только outcome и scene context;
-- не отдавать LLM контроль над итогом проверки.
+- не отдавать LLM контроль над итогом проверки;
+- включаться только для кампаний, где активен соответствующий gameplay module.
 
 Статус: не реализовано.
 
@@ -195,9 +199,9 @@ Narration должна отображаться через реальный resp
 ### Stage 4: Gameplay Systems
 
 - hybrid memory
-- extraction pipeline
-- dice engine
-- expanded world state
+- modular world state
+- extraction and module activation pipeline
+- dice/check systems as optional modules
 
 Статус: в backlog.
 

@@ -11,6 +11,7 @@ The project has already moved beyond the original MVP baseline. The current code
 - campaign creation, saves, chat, and settings flows managed through controllers/providers;
 - provider-scoped AI settings and runtime controls for `max response tokens`, `context window`, and quick profiles;
 - real response streaming in chat for OpenAI-compatible endpoints, with automatic fallback to standard completions;
+- hybrid context assembly with `static header`, `dynamic summary`, `recent buffer`, and runtime-aware prompt trimming;
 - demo-mode AI fallback when no model is configured.
 
 ## Current architecture
@@ -23,16 +24,9 @@ The project has already moved beyond the original MVP baseline. The current code
 
 ## What is next
 
-The next planned implementation step is `Stage 5: hybrid context`.
+The next planned implementation step is `Stage 6: world state expansion`.
 
-That stage will formalize:
-
-- `static header`
-- `dynamic summary`
-- `recent buffer`
-- context trimming based on `contextWindowSize`
-
-The goal is to keep long campaigns coherent without sending the full chat history on every turn.
+That stage will build on the compact context pipeline and start promoting richer gameplay state into first-class structured data.
 
 ## Key documents
 

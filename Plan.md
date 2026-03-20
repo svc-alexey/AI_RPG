@@ -69,15 +69,10 @@ The project has already completed several post-MVP layers:
 - `Riverpod` app shell and controller orchestration
 - runtime token and context controls
 - real streaming with fallback for OpenAI-compatible responses
+- hybrid context with `static header`, `dynamic summary`, `recent buffer`, and cadence-based summary refresh
 
 ## Next step
 
-The next planned step is `Stage 5: hybrid context`.
+The next planned step is `Stage 6: world state expansion`.
 
-This means building a formal context pipeline:
-
-- `static header`
-- `dynamic summary`
-- `recent buffer`
-
-The goal is to reduce prompt bloat and improve long-campaign coherence.
+That stage will build on the new compact context pipeline by expanding structured gameplay state beyond the current MVP layer.

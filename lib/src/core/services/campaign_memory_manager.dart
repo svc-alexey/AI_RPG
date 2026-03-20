@@ -1,12 +1,13 @@
-import 'dart:convert';
-
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/context_assembly_service.dart';
 
 class CampaignMemoryManager {
   const CampaignMemoryManager();
 
   static const int _maxRecentTurns = 5;
+  static const ContextAssemblyService _contextAssemblyService =
+      ContextAssemblyService();
 
   CampaignMemory createInitialMemory({
     required final AppLanguage language,
@@ -27,6 +28,7 @@ class CampaignMemoryManager {
     required final CampaignState previousState,
     required final TurnResult result,
     required final String playerAction,
+    required final int contextWindowSize,
   }) {
     final String action = playerAction.trim().isEmpty
         ? switch (language) {
@@ -48,12 +50,32 @@ class CampaignMemoryManager {
       recentTurns.removeRange(0, recentTurns.length - _maxRecentTurns);
     }
 
+    final String stateHint = _buildStateHint(language, result);
+    final int nextTurnNumber = previousState.turnNumber + 1;
+    final int summaryCadenceTurns = summaryCadenceForContextWindow(
+      mode: previousState.mode,
+      contextWindowSize: contextWindowSize,
+    );
+    final bool shouldRefreshSummary = _shouldRefreshRollingSummary(
+      previousState: previousState,
+      result: result,
+      nextTurnNumber: nextTurnNumber,
+      summaryCadenceTurns: summaryCadenceTurns,
+    );
+
     return previousState.memory.copyWith(
-      rollingSummary: result.memoryEntry.trim().isEmpty
-          ? previousState.memory.rollingSummary
-          : result.memoryEntry.trim(),
+      rollingSummary: shouldRefreshSummary
+          ? _buildRollingSummary(
+              previousState: previousState,
+              result: result,
+              recentTurns: recentTurns,
+              stateHint: stateHint,
+              contextWindowSize: contextWindowSize,
+              summaryCadenceTurns: summaryCadenceTurns,
+            )
+          : previousState.memory.rollingSummary,
       activeGoal: result.stateChanges.questNote.trim().isEmpty
-          ? previousState.objective
+          ? previousState.memory.activeGoal
           : result.stateChanges.questNote.trim(),
       activeSituation: _compact(result.narration, 220),
       recentTurns: recentTurns,
@@ -63,127 +85,28 @@ class CampaignMemoryManager {
   Map<String, Object?> buildAiContext(
     final CampaignState state, {
     required final int contextWindowSize,
-  }) {
-    final int recentTurnLimit = _recentTurnLimit(
-      contextWindowSize: contextWindowSize,
-      fastMode: false,
-    );
-    final List<RecentTurnSummary> recentTurns = _takeRecentTurns(
-      state.memory.recentTurns,
-      recentTurnLimit,
-    );
-    final Map<String, Object?> payload = <String, Object?>{
-      'core_state': <String, Object?>{
-        'title': _trimForContext(state.title, 120),
-        'location': _trimForContext(state.location, 120),
-        'objective': _trimForContext(
-          state.objective,
-          _textBudget(
-            contextWindowSize: contextWindowSize,
-            base: 180,
-            max: 320,
-          ),
-        ),
-        'turnNumber': state.turnNumber,
-        'character': state.character.toJson(),
-        'inventory': _takeTail(
-          state.inventory,
-          _listLimit(
-            contextWindowSize: contextWindowSize,
-            min: 3,
-            max: 10,
-            divider: 320,
-          ),
-        ),
-        'questLog': _takeTail(
-          state.questLog,
-          _listLimit(
-            contextWindowSize: contextWindowSize,
-            min: 2,
-            max: 8,
-            divider: 380,
-          ),
-        ),
-      },
-      'active_context': <String, Object?>{
-        'activeGoal': _trimForContext(
-          state.memory.activeGoal,
-          _textBudget(
-            contextWindowSize: contextWindowSize,
-            base: 140,
-            max: 260,
-          ),
-        ),
-        'activeSituation': _trimForContext(
-          state.memory.activeSituation,
-          _textBudget(
-            contextWindowSize: contextWindowSize,
-            base: 180,
-            max: 360,
-          ),
-        ),
-      },
-      'rolling_summary': _trimForContext(
-        state.memory.rollingSummary,
-        _textBudget(contextWindowSize: contextWindowSize, base: 220, max: 520),
-      ),
-      'recent_turns': recentTurns.map((final item) => item.toJson()).toList(),
-    };
-    return _shrinkIfNeeded(
-      payload,
-      targetChars: contextWindowSize * 4,
-      recentTurnsKey: 'recent_turns',
-    );
-  }
+  }) => _contextAssemblyService
+      .build(
+        state: state,
+        contextWindowSize: contextWindowSize,
+        fastMode: false,
+      )
+      .toJson();
 
   Map<String, Object?> buildFastAiContext(
     final CampaignState state, {
     required final int contextWindowSize,
-  }) {
-    final int recentTurnLimit = _recentTurnLimit(
-      contextWindowSize: contextWindowSize,
-      fastMode: true,
-    );
-    final Map<String, Object?> payload = <String, Object?>{
-      'title': _trimForContext(state.title, 96),
-      'location': _trimForContext(state.location, 96),
-      'objective': _trimForContext(
-        state.objective,
-        _textBudget(contextWindowSize: contextWindowSize, base: 96, max: 180),
-      ),
-      'turnNumber': state.turnNumber,
-      'character': <String, Object?>{
-        'name': state.character.name,
-        'hp': state.character.hp,
-        'energy': state.character.energy,
-      },
-      'activeGoal': _trimForContext(
-        state.memory.activeGoal,
-        _textBudget(contextWindowSize: contextWindowSize, base: 96, max: 160),
-      ),
-      'activeSituation': _trimForContext(
-        state.memory.activeSituation,
-        _textBudget(contextWindowSize: contextWindowSize, base: 120, max: 220),
-      ),
-      'rollingSummary': _trimForContext(
-        state.memory.rollingSummary,
-        _textBudget(contextWindowSize: contextWindowSize, base: 140, max: 260),
-      ),
-      'recentTurns': _takeRecentTurns(state.memory.recentTurns, recentTurnLimit)
-          .map(
-            (final item) => <String, Object?>{
-              'playerAction': _trimForContext(item.playerAction, 80),
-              'outcome': _trimForContext(item.outcome, 110),
-            },
-          )
-          .toList(),
-    };
-    return _shrinkIfNeeded(
-      payload,
-      targetChars: contextWindowSize * 4,
-      recentTurnsKey: 'recentTurns',
-    );
-  }
+  }) => _contextAssemblyService
+      .build(state: state, contextWindowSize: contextWindowSize, fastMode: true)
+      .toJson();
+
+  static int summaryCadenceForContextWindow({
+    required final StoryMode mode,
+    required final int contextWindowSize,
+  }) => ContextAssemblyService.summaryCadenceForContextWindow(
+    mode: mode,
+    contextWindowSize: contextWindowSize,
+  );
 
   String _buildStateHint(final AppLanguage language, final TurnResult result) {
     final List<String> hints = <String>[];
@@ -224,46 +147,66 @@ class CampaignMemoryManager {
         : hints.join('; ');
   }
 
+  bool _shouldRefreshRollingSummary({
+    required final CampaignState previousState,
+    required final TurnResult result,
+    required final int nextTurnNumber,
+    required final int summaryCadenceTurns,
+  }) {
+    if (previousState.memory.rollingSummary.trim().isEmpty) {
+      return true;
+    }
+    if (_isMajorTurn(result: result)) {
+      return true;
+    }
+    return summaryCadenceTurns <= 1 ||
+        nextTurnNumber % summaryCadenceTurns == 0;
+  }
+
+  bool _isMajorTurn({required final TurnResult result}) {
+    if (result.stateChanges.questNote.trim().isNotEmpty ||
+        result.stateChanges.location.trim().isNotEmpty) {
+      return true;
+    }
+    if (result.stateChanges.inventoryAdd.isNotEmpty ||
+        result.stateChanges.inventoryRemove.isNotEmpty) {
+      return true;
+    }
+    return result.stateChanges.hpDelta.abs() >= 2 ||
+        result.stateChanges.energyDelta.abs() >= 2;
+  }
+
+  String _buildRollingSummary({
+    required final CampaignState previousState,
+    required final TurnResult result,
+    required final List<RecentTurnSummary> recentTurns,
+    required final String stateHint,
+    required final int contextWindowSize,
+    required final int summaryCadenceTurns,
+  }) {
+    final List<String> summarySegments = <String>[
+      previousState.memory.rollingSummary,
+      ..._takeTail(recentTurns, summaryCadenceTurns).map(
+        (final item) =>
+            '${item.playerAction}: ${item.outcome} (${item.stateHint})',
+      ),
+      if (result.memoryEntry.trim().isNotEmpty) result.memoryEntry.trim(),
+      if (result.memoryEntry.trim().isEmpty)
+        '${_compact(result.narration, 180)} ($stateHint)',
+    ];
+
+    return _mergeSummarySegments(
+      summarySegments,
+      maxLength: _summaryBudget(contextWindowSize),
+    );
+  }
+
   String _compact(final String raw, final int maxLength) {
     final String normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (normalized.length <= maxLength) {
       return normalized;
     }
     return '${normalized.substring(0, maxLength - 3)}...';
-  }
-
-  int _recentTurnLimit({
-    required final int contextWindowSize,
-    required final bool fastMode,
-  }) {
-    final int min = fastMode ? 1 : 2;
-    final int max = fastMode ? 3 : _maxRecentTurns;
-    final int divider = fastMode ? 700 : 540;
-    return _listLimit(
-      contextWindowSize: contextWindowSize,
-      min: min,
-      max: max,
-      divider: divider,
-    );
-  }
-
-  int _listLimit({
-    required final int contextWindowSize,
-    required final int min,
-    required final int max,
-    required final int divider,
-  }) {
-    final int derived = (contextWindowSize / divider).floor();
-    return derived.clamp(min, max);
-  }
-
-  int _textBudget({
-    required final int contextWindowSize,
-    required final int base,
-    required final int max,
-  }) {
-    final int derived = base + (contextWindowSize / 8).floor();
-    return derived.clamp(base, max);
   }
 
   List<T> _takeTail<T>(final List<T> items, final int limit) {
@@ -273,35 +216,36 @@ class CampaignMemoryManager {
     return List<T>.from(items.sublist(items.length - limit));
   }
 
-  List<RecentTurnSummary> _takeRecentTurns(
-    final List<RecentTurnSummary> turns,
-    final int limit,
-  ) => _takeTail(turns, limit);
-
-  String _trimForContext(final String raw, final int maxLength) {
-    if (maxLength <= 3) {
-      return raw.trim();
+  int _summaryBudget(final int contextWindowSize) {
+    if (contextWindowSize <= 1536) {
+      return 280;
     }
-    return _compact(raw, maxLength);
+    if (contextWindowSize <= 4096) {
+      return 420;
+    }
+    return 560;
   }
 
-  Map<String, Object?> _shrinkIfNeeded(
-    final Map<String, Object?> payload, {
-    required final int targetChars,
-    required final String recentTurnsKey,
+  String _mergeSummarySegments(
+    final List<String> segments, {
+    required final int maxLength,
   }) {
-    if (jsonEncode(payload).length <= targetChars) {
-      return payload;
+    final List<String> normalized = segments
+        .map((final segment) => segment.replaceAll(RegExp(r'\s+'), ' ').trim())
+        .where((final segment) => segment.isNotEmpty)
+        .toList();
+    if (normalized.isEmpty) {
+      return '';
     }
 
-    final List<Object?> recentTurns =
-        (payload[recentTurnsKey] as List<Object?>?) ?? const <Object?>[];
-    if (recentTurns.length <= 1) {
-      return payload;
+    final String joined = normalized.join(' ');
+    if (joined.length <= maxLength) {
+      return joined;
     }
 
-    final Map<String, Object?> copy = Map<String, Object?>.from(payload);
-    copy[recentTurnsKey] = recentTurns.sublist(recentTurns.length - 1);
-    return copy;
+    final int headLength = (maxLength * 0.4).floor().clamp(32, maxLength - 4);
+    final int tailLength = (maxLength - headLength - 3).clamp(16, maxLength);
+    return '${joined.substring(0, headLength).trim()}...'
+        '${joined.substring(joined.length - tailLength).trim()}';
   }
 }

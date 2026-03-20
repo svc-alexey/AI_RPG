@@ -2,40 +2,79 @@ import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
+import 'package:ai_prg/src/core/services/context_assembly_service.dart';
 import 'package:ai_prg/src/core/services/openai_compatible_ai_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('CampaignMemoryManager trims context for smaller windows', () {
-    const CampaignMemoryManager manager = CampaignMemoryManager();
+  test('ContextAssemblyService trims hybrid context for smaller windows', () {
+    const ContextAssemblyService service = ContextAssemblyService();
     final CampaignState campaign = _sampleCampaign();
 
-    final Map<String, Object?> compact = manager.buildAiContext(
-      campaign,
-      contextWindowSize: 1024,
-    );
-    final Map<String, Object?> roomy = manager.buildAiContext(
-      campaign,
-      contextWindowSize: 4096,
-    );
+    final Map<String, Object?> compact = service
+        .build(state: campaign, contextWindowSize: 1024, fastMode: false)
+        .toJson();
+    final Map<String, Object?> roomy = service
+        .build(state: campaign, contextWindowSize: 4096, fastMode: false)
+        .toJson();
 
     final List<Object?> compactRecent =
-        compact['recent_turns'] as List<Object?>? ?? const <Object?>[];
+        compact['recent_buffer'] as List<Object?>? ?? const <Object?>[];
     final List<Object?> roomyRecent =
-        roomy['recent_turns'] as List<Object?>? ?? const <Object?>[];
+        roomy['recent_buffer'] as List<Object?>? ?? const <Object?>[];
 
-    final Map<String, Object?> compactCore =
-        compact['core_state'] as Map<String, Object?>? ??
+    final Map<String, Object?> compactWorld =
+        compact['world_state'] as Map<String, Object?>? ??
         const <String, Object?>{};
-    final Map<String, Object?> roomyCore =
-        roomy['core_state'] as Map<String, Object?>? ??
+    final Map<String, Object?> roomyWorld =
+        roomy['world_state'] as Map<String, Object?>? ??
         const <String, Object?>{};
 
+    expect(
+      compact.keys,
+      containsAll(<String>[
+        'static_header',
+        'dynamic_summary',
+        'recent_buffer',
+        'world_state',
+      ]),
+    );
     expect(compactRecent.length, lessThan(roomyRecent.length));
     expect(
-      (compactCore['inventory'] as List<Object?>).length,
-      lessThan((roomyCore['inventory'] as List<Object?>).length),
+      (compactWorld['inventory'] as List<Object?>).length,
+      lessThan((roomyWorld['inventory'] as List<Object?>).length),
     );
+  });
+
+  test('CampaignMemoryManager refreshes rolling summary on cadence turns', () {
+    const CampaignMemoryManager manager = CampaignMemoryManager();
+    final CampaignState campaign = _sampleCampaign().copyWith(turnNumber: 1);
+
+    final CampaignMemory updated = manager.updateMemory(
+      language: AppLanguage.en,
+      previousState: campaign,
+      result: const TurnResult(
+        narration:
+            'Alex corners the broker on the upper platform and forces a confession.',
+        choices: <String>['Arrest', 'Interrogate'],
+        stateChanges: StateChanges(
+          hpDelta: 0,
+          energyDelta: -1,
+          inventoryAdd: <String>[],
+          inventoryRemove: <String>[],
+          questNote: '',
+          location: '',
+        ),
+        memoryEntry:
+            'Alex forced the broker into the open on the upper platform and finally secured proof.',
+      ),
+      playerAction: 'Cut off the broker near the stairs',
+      contextWindowSize: 1024,
+    );
+
+    expect(updated.rollingSummary, isNot(campaign.memory.rollingSummary));
+    expect(updated.rollingSummary, contains('upper platform'));
+    expect(updated.activeGoal, campaign.memory.activeGoal);
   });
 
   test('OpenAI-compatible request body uses runtime token controls', () {
@@ -74,6 +113,8 @@ void main() {
     final String content = userMessage['content'] as String? ?? '';
 
     expect(content, contains('Campaign context:'));
+    expect(content, contains('"static_header"'));
+    expect(content, contains('"dynamic_summary"'));
     expect(content, contains('Inspect the shrine'));
   });
 

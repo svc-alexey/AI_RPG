@@ -230,6 +230,7 @@ class ChatController extends StateNotifier<ChatViewState> {
               state: campaign,
               playerAction: trimmedAction,
               result: result,
+              contextWindowSize: settings.contextWindowSize,
             );
 
       await _campaignRepository.saveCampaign(nextState);

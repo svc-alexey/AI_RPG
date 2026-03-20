@@ -44,14 +44,14 @@
   - `inventoryProvider`
   - `modelSettingsProvider`
   - `streamingTurnProvider`
-- Использовать `.select()` для локальных обновлений HP, Gold, token limits и т.д.
+- Использовать `.select()` для локальных обновлений active module state, HP, token limits и т.д.
 
 ### 2.3 Игровая модель
 
 Сейчас:
 
 - Есть `CharacterStats`, `inventory`, `questLog`, `memory`, `messages`.
-- Отсутствуют явные `gold`, `exp`, `level`, `companions`.
+- Отсутствует модульная схема для `resources`, `progression`, `companions` и других optional systems.
 - Нет отдельного `WorldState` как агрегата источника истины.
 
 Нужно:
@@ -158,7 +158,7 @@ flowchart LR
 - `CampaignEntity`
   - id, title, setting, mode, difficulty, createdAt, updatedAt
 - `WorldStateEntity`
-  - campaignId, hp, maxHp, gold, exp, level, location, objective, summary
+  - campaignId, location, objective, summary, activeModules, moduleStateVersion
 - `CharacterSheetEntity`
   - campaignId, name, classId, stats, perks
 - `MessageEntity`

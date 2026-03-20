@@ -58,3 +58,10 @@
 - папка: [docs/features/engine-mechanics-token-control](D:/AI_PRG/docs/features/engine-mechanics-token-control)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: перевести MVP в local-first RPG engine с `Isar`, `Riverpod`, hybrid context, token controls, streaming и deterministic gameplay foundation
+
+### `campaign-modules`
+
+- статус: analysis-ready
+- папка: [docs/features/campaign-modules](D:/AI_PRG/docs/features/campaign-modules)
+- источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
+- цель: сделать состояние кампании модульным, чтобы `Inventory`, `Companions`, `Resources`, `Progression`, `Vitality`, `Notes` и deterministic systems подключались по сеттингу, prompt и развитию истории, а UI адаптировался через ненавязчивые уведомления и динамический sidebar
