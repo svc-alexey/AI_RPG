@@ -172,7 +172,7 @@ Tasks:
 - [x] Resolve check outcomes on the client before AI narration and pass the result to the model as known state
 - [x] Connect deterministic resolution to overlays, side panels, save payloads, and campaign memory updates
 - [x] Add widget/unit coverage for deterministic checks, module-aware narrative campaigns, and long-session state stability
-- [ ] Verify that pure narrative and detective campaigns keep non-relevant RPG chrome hidden even after long play
+- [x] Verify that pure narrative and detective campaigns keep non-relevant RPG chrome hidden even after long play
 - [ ] Re-validate settings UX for speed, quality, and token controls so the remaining expected-result items are explicitly covered
 - [ ] Prepare the architecture for the next product layer without returning to baseline infrastructure work
 - [ ] Review remaining analyzer warnings and close the ones that now block the next implementation layer
@@ -181,7 +181,7 @@ Expected result:
 
 - [x] The client, not the model, is the source of truth for gameplay checks and their outcomes
 - [ ] Long campaigns stay coherent without requiring full chat history on every turn
-- [ ] Detective and pure narrative stories stay free of irrelevant RPG systems throughout the campaign
+- [x] Detective and pure narrative stories stay free of irrelevant RPG systems throughout the campaign
 - [ ] Users can tune speed, quality, and token usage confidently from the settings UI
 - [ ] The architecture is ready for the next product layer across Desktop, Android, iOS, and Web
 

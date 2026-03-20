@@ -413,6 +413,168 @@ void main() {
     );
   });
 
+  test('Detective campaigns keep RPG chrome hidden over long play', () {
+    const GameEngine engine = GameEngine();
+    CampaignState state = CampaignState(
+      id: 'detective-long-play',
+      schemaVersion: 3,
+      title: 'Ash Ledger',
+      setting: CampaignSetting.detective,
+      mode: StoryMode.longCampaign,
+      difficulty: DifficultyLevel.medium,
+      character: const CharacterStats(
+        name: 'Iris',
+        hp: 12,
+        maxHp: 12,
+        energy: 8,
+        maxEnergy: 8,
+        might: 2,
+        wit: 4,
+        spirit: 3,
+      ),
+      location: 'Records room',
+      objective: 'Find the forged ledger',
+      turnNumber: 0,
+      memory: const CampaignMemory(
+        rollingSummary: 'Iris starts the investigation in the records room.',
+        activeGoal: 'Find the forged ledger',
+        activeSituation: 'Dust hangs in the air above old cabinets.',
+        recentTurns: <RecentTurnSummary>[],
+      ),
+      modules: const <CampaignModuleState>[
+        CampaignModuleState(
+          module: CampaignModule.notes,
+          isActive: true,
+          activationReason: 'test',
+        ),
+      ],
+      inventory: const <String>[],
+      companions: const <CampaignCompanion>[],
+      notes: const <String>['Start with the night ledger'],
+      resources: const <CampaignResource>[],
+      progression: null,
+      messages: const <ChatMessage>[],
+      choices: const <String>[],
+      updatedAt: DateTime(2026, 3, 20, 12),
+    );
+
+    for (int index = 0; index < 8; index += 1) {
+      final TurnApplicationResult applied = engine.applyTurn(
+        language: AppLanguage.en,
+        state: state,
+        playerAction: 'Review clue $index',
+        result: TurnResult(
+          narration: 'You uncover another clue in the forged entries.',
+          choices: const <String>['Continue'],
+          stateChanges: StateChanges(
+            hpDelta: -2,
+            energyDelta: -1,
+            inventoryAdd: <String>['Suspicious receipt $index'],
+            inventoryRemove: const <String>[],
+            questNote: 'Clue $index points to the same forged account',
+            location: '',
+          ),
+          memoryEntry: 'Clue: forged account $index matches the same signature.',
+        ),
+        contextWindowSize: 1536,
+      );
+      state = applied.state;
+    }
+
+    expect(state.isModuleActive(CampaignModule.notes), isTrue);
+    expect(state.isModuleActive(CampaignModule.inventory), isFalse);
+    expect(state.isModuleActive(CampaignModule.vitality), isFalse);
+    expect(state.isModuleActive(CampaignModule.resources), isFalse);
+    expect(state.isModuleActive(CampaignModule.progression), isFalse);
+    expect(state.isModuleActive(CampaignModule.checks), isFalse);
+    expect(state.inventory, isEmpty);
+    expect(state.character.hp, 12);
+    expect(state.character.energy, 8);
+    expect(state.notes.length, greaterThan(1));
+    expect(state.turnNumber, 8);
+  });
+
+  test('Narrative-only campaigns keep RPG chrome hidden over long play', () {
+    const GameEngine engine = GameEngine();
+    CampaignState state = CampaignState(
+      id: 'narrative-only-long-play',
+      schemaVersion: 3,
+      title: 'Moonlit Letters',
+      setting: CampaignSetting.fantasy,
+      mode: StoryMode.longCampaign,
+      difficulty: DifficultyLevel.medium,
+      character: const CharacterStats(
+        name: 'Mira',
+        hp: 12,
+        maxHp: 12,
+        energy: 8,
+        maxEnergy: 8,
+        might: 3,
+        wit: 3,
+        spirit: 4,
+      ),
+      location: 'Old observatory',
+      objective: 'Understand the final letter',
+      turnNumber: 0,
+      memory: const CampaignMemory(
+        rollingSummary: 'Mira studies a box of letters in the observatory.',
+        activeGoal: 'Understand the final letter',
+        activeSituation: 'Moonlight spills across the dusty floorboards.',
+        recentTurns: <RecentTurnSummary>[],
+      ),
+      modules: const <CampaignModuleState>[
+        CampaignModuleState(
+          module: CampaignModule.notes,
+          isActive: true,
+          activationReason: 'test_narrative_only',
+        ),
+      ],
+      inventory: const <String>[],
+      companions: const <CampaignCompanion>[],
+      notes: const <String>['A missing signature appears on the last page'],
+      resources: const <CampaignResource>[],
+      progression: null,
+      messages: const <ChatMessage>[],
+      choices: const <String>[],
+      updatedAt: DateTime(2026, 3, 20, 12),
+    );
+
+    for (int index = 0; index < 6; index += 1) {
+      final TurnApplicationResult applied = engine.applyTurn(
+        language: AppLanguage.en,
+        state: state,
+        playerAction: 'Interpret the next letter $index',
+        result: TurnResult(
+          narration: 'Another emotional thread appears in the correspondence.',
+          choices: const <String>['Read on'],
+          stateChanges: StateChanges(
+            hpDelta: -3,
+            energyDelta: -2,
+            inventoryAdd: <String>['Keepsake $index'],
+            inventoryRemove: const <String>[],
+            questNote: 'Letter $index reveals a hidden promise',
+            location: '',
+          ),
+          memoryEntry: 'Note: Letter $index reveals a hidden promise.',
+        ),
+        contextWindowSize: 1536,
+      );
+      state = applied.state;
+    }
+
+    expect(state.activeModules, contains(CampaignModule.notes));
+    expect(state.activeModules, isNot(contains(CampaignModule.inventory)));
+    expect(state.activeModules, isNot(contains(CampaignModule.vitality)));
+    expect(state.activeModules, isNot(contains(CampaignModule.resources)));
+    expect(state.activeModules, isNot(contains(CampaignModule.progression)));
+    expect(state.activeModules, isNot(contains(CampaignModule.checks)));
+    expect(state.inventory, isEmpty);
+    expect(state.character.hp, 12);
+    expect(state.character.energy, 8);
+    expect(state.notes.length, greaterThan(1));
+    expect(state.turnNumber, 6);
+  });
+
   testWidgets('Chat sidebar renders only active modules', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final CampaignState campaign = CampaignState(

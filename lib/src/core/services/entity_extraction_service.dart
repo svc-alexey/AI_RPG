@@ -562,6 +562,9 @@ class EntityExtractionService {
     if (state.isModuleActive(module)) {
       return true;
     }
+    if (_isNarrativeOnlyCampaign(state) && _isGameplayChromeModule(module)) {
+      return false;
+    }
 
     final Set<CampaignModule> allowed = switch (state.setting) {
       CampaignSetting.fantasy => <CampaignModule>{
@@ -588,6 +591,21 @@ class EntityExtractionService {
 
     return allowed.contains(module);
   }
+
+  bool _isNarrativeOnlyCampaign(final CampaignState state) => state.modules.any((
+    final CampaignModuleState item,
+  ) {
+    final String reason = item.activationReason.toLowerCase();
+    return reason.contains('narrative_only') ||
+        reason.contains('narrative-only');
+  });
+
+  bool _isGameplayChromeModule(final CampaignModule module) =>
+      module == CampaignModule.inventory ||
+      module == CampaignModule.vitality ||
+      module == CampaignModule.resources ||
+      module == CampaignModule.progression ||
+      module == CampaignModule.checks;
 
   void _activateModule({
     required final List<CampaignModuleState> modules,
