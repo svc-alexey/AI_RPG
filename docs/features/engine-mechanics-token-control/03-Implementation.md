@@ -24,12 +24,12 @@ This keeps the system stable by locking in source-of-truth and orchestration fir
 - Stage 3: runtime controls, provider-scoped settings, presets, token caps, and context-window-aware prompt assembly
 - Stage 4: real response streaming through OpenAI-compatible SSE with fallback to standard completions
 - Stage 5: hybrid context, formal context assembly, and summary cadence
+- Stage 6: module-aware campaign state, extraction, reconciliation, and adaptive gameplay sidebar/overlays
 
 ### Remaining major stages
 
-- Stage 6: modular world state and extraction
 - Stage 7: dice engine and deterministic checks
-- Stage 8: adaptive UI over active campaign modules
+- Stage 8: deeper adaptive UI polish and richer module reducers
 
 ## Stage 1. Storage foundation
 
@@ -128,18 +128,26 @@ Exit criteria:
 
 ## Stage 6. Modular world state and extraction
 
-Status: backlog
+Status: implemented, with follow-up polish still possible
 
 Tasks:
 
-- [ ] Split campaign state into always-on core state and optional campaign modules
-- [ ] Define first-class modules for `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, and `Progression`
-- [ ] Activate modules at campaign creation from `setting`, story prompt, and generated setup hints
-- [ ] Allow runtime module activation when narration clearly introduces a new system
-- [ ] Add `EntityExtractionService`
-- [ ] Start with rule-based extraction for inventory changes
-- [ ] Expand extraction to companions, notes, and module activation hints
-- [ ] Add reconciliation before persistence for active modules only
+- [x] Split campaign state into always-on core state and optional campaign modules
+- [x] Define first-class modules for `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`
+- [x] Activate modules at campaign creation from `setting`, story prompt, and generated setup hints
+- [x] Allow runtime module activation when narration clearly introduces a new system
+- [x] Add `EntityExtractionService`
+- [x] Start with rule-based extraction for inventory changes
+- [x] Expand extraction to companions, notes, vitality, resources, progression, and checks
+- [x] Add reconciliation before persistence for active modules only
+- [x] Persist module activation reasons and module-specific state through structured storage
+- [x] Make sidebar panels and transient notifications reflect active modules only
+
+Exit criteria:
+
+- [x] Campaigns no longer expose irrelevant systems by default
+- [x] Runtime extraction can activate and reconcile new modules safely
+- [x] Adaptive UI surfaces state changes without blocking the main chat flow
 
 ## Stage 7. Dice engine and deterministic checks
 
@@ -172,8 +180,8 @@ Tasks:
 
 The next clean implementation slice is:
 
-1. module registry and initial activation rules
-2. `EntityExtractionService` for `Inventory` and `Companions`
-3. a minimal notification overlay for state changes
+1. add a local `DiceEngine` behind the active `Checks` module
+2. define deterministic `might`, `wit`, and `spirit` roll contracts
+3. pass resolved roll outcomes to the model as narration inputs instead of delegating check resolution
 
-This is the best next step because it gives the project a genre-flexible source of truth before deeper deterministic systems and richer UI land.
+This is the best next step because Stage 6 already established a module-aware source of truth; the remaining high-leverage move is making checks deterministic rather than purely narrative.

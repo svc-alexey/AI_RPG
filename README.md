@@ -12,6 +12,9 @@ The project has already moved beyond the original MVP baseline. The current code
 - provider-scoped AI settings and runtime controls for `max response tokens`, `context window`, and quick profiles;
 - real response streaming in chat for OpenAI-compatible endpoints, with automatic fallback to standard completions;
 - hybrid context assembly with `static header`, `dynamic summary`, `recent buffer`, and runtime-aware prompt trimming;
+- module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
+- rule-based entity extraction and reconciliation before persistence for active modules only;
+- adaptive sidebar panels and transient overlays for state changes and module unlocks;
 - demo-mode AI fallback when no model is configured.
 
 ## Current architecture
@@ -24,9 +27,9 @@ The project has already moved beyond the original MVP baseline. The current code
 
 ## What is next
 
-The next planned implementation step is `Stage 6: world state expansion`.
+The next planned implementation step is `Stage 7: deterministic checks`.
 
-That stage will build on the compact context pipeline and start promoting richer gameplay state into first-class structured data.
+`Stage 6` is already in place at the structured state and adaptive UI level. The next step is to add a local `DiceEngine` on top of the active `Checks` module so the client resolves rolls deterministically and the model narrates known outcomes instead of inventing them.
 
 ## Key documents
 

@@ -76,6 +76,9 @@ class ContextAssemblyService {
         'mode': state.mode.name,
         'difficulty': state.difficulty.name,
         'turnNumber': state.turnNumber,
+        'activeModules': state.activeModules
+            .map((final item) => item.name)
+            .toList(),
       },
       dynamicSummary: <String, Object?>{
         'rollingSummary': _trimForContext(
@@ -143,28 +146,87 @@ class ContextAssemblyService {
         'character': fastMode
             ? <String, Object?>{
                 'name': state.character.name,
-                'hp': state.character.hp,
-                'energy': state.character.energy,
+                if (state.isModuleActive(CampaignModule.vitality))
+                  'hp': state.character.hp,
+                if (state.isModuleActive(CampaignModule.vitality))
+                  'energy': state.character.energy,
               }
-            : state.character.toJson(),
-        'inventory': _takeTail(
-          state.inventory,
-          _listLimit(
-            contextWindowSize: contextWindowSize,
-            min: fastMode ? 2 : 3,
-            max: fastMode ? 5 : 10,
-            divider: fastMode ? 420 : 320,
+            : <String, Object?>{
+                'name': state.character.name,
+                'might': state.character.might,
+                'wit': state.character.wit,
+                'spirit': state.character.spirit,
+                if (state.isModuleActive(CampaignModule.vitality))
+                  'hp': state.character.hp,
+                if (state.isModuleActive(CampaignModule.vitality))
+                  'maxHp': state.character.maxHp,
+                if (state.isModuleActive(CampaignModule.vitality))
+                  'energy': state.character.energy,
+                if (state.isModuleActive(CampaignModule.vitality))
+                  'maxEnergy': state.character.maxEnergy,
+              },
+        if (state.isModuleActive(CampaignModule.inventory))
+          'inventory': _takeTail(
+            state.inventory,
+            _listLimit(
+              contextWindowSize: contextWindowSize,
+              min: fastMode ? 2 : 3,
+              max: fastMode ? 5 : 10,
+              divider: fastMode ? 420 : 320,
+            ),
           ),
-        ),
-        'questLog': _takeTail(
-          state.questLog,
-          _listLimit(
-            contextWindowSize: contextWindowSize,
-            min: fastMode ? 1 : 2,
-            max: fastMode ? 4 : 8,
-            divider: fastMode ? 560 : 380,
+        if (state.isModuleActive(CampaignModule.notes))
+          'notes': _takeTail(
+            state.notes,
+            _listLimit(
+              contextWindowSize: contextWindowSize,
+              min: fastMode ? 1 : 2,
+              max: fastMode ? 4 : 8,
+              divider: fastMode ? 560 : 380,
+            ),
           ),
-        ),
+        if (state.isModuleActive(CampaignModule.companions))
+          'companions': _takeTail(
+            state.companions
+                .map(
+                  (final item) => <String, Object?>{
+                    'name': item.name,
+                    'status': item.status,
+                    if (item.notes.trim().isNotEmpty) 'notes': item.notes,
+                  },
+                )
+                .toList(),
+            fastMode ? 2 : 4,
+          ),
+        if (state.isModuleActive(CampaignModule.resources))
+          'resources': state.resources
+              .map(
+                (final item) => <String, Object?>{
+                  'label': item.label,
+                  'value': item.value,
+                  if (item.maxValue != null) 'maxValue': item.maxValue,
+                },
+              )
+              .toList(),
+        if (state.isModuleActive(CampaignModule.progression) &&
+            state.progression != null)
+          'progression': state.progression!.toJson(),
+        if (state.isModuleActive(CampaignModule.checks))
+          'checks': _takeTail(
+            state.checks
+                .map(
+                  (final item) => <String, Object?>{
+                    'label': item.label,
+                    'outcome': item.outcome.name,
+                    if (item.stat.trim().isNotEmpty) 'stat': item.stat,
+                    if (item.total != null) 'total': item.total,
+                    if (item.difficulty != null) 'difficulty': item.difficulty,
+                    'summary': item.summary,
+                  },
+                )
+                .toList(),
+            fastMode ? 2 : 4,
+          ),
       },
     );
 

@@ -15,18 +15,20 @@ class AppDatabase {
   AppDatabase({
     final String? directoryPath,
     final String name = 'ai_prg_storage',
-  })  : _directoryPath = directoryPath,
-        _name = name;
+  }) : _directoryPath = directoryPath,
+       _name = name;
 
   static final AppDatabase instance = AppDatabase();
 
   static const String _schemaVersionKey = 'storage.schema_version';
-  static const int _currentSchemaVersion = 3;
+  static const int _currentSchemaVersion = 5;
   static const String _legacyCampaignIdsKey = 'campaign.ids';
   static const String _legacyAiSettingsKey = 'settings.ai';
   static const String _legacyAppLanguageKey = 'settings.app_language';
-  static const CampaignLocalDataSource _campaignLocal = CampaignLocalDataSource();
-  static const SettingsLocalDataSource _settingsLocal = SettingsLocalDataSource();
+  static const CampaignLocalDataSource _campaignLocal =
+      CampaignLocalDataSource();
+  static const SettingsLocalDataSource _settingsLocal =
+      SettingsLocalDataSource();
 
   final String? _directoryPath;
   final String _name;
@@ -99,16 +101,17 @@ class AppDatabase {
 
     _openFuture = () async {
       final String directory = await _resolveDirectory();
-      final List<CollectionSchema<dynamic>> schemas = <CollectionSchema<dynamic>>[
-        CampaignRecordSchema,
-        WorldStateRecordSchema,
-        MessageRecordSchema,
-        InventoryItemRecordSchema,
-        CompanionRecordSchema,
-        ProviderProfileRecordSchema,
-        ModelControlRecordSchema,
-        AppSettingRecordSchema,
-      ];
+      final List<CollectionSchema<dynamic>> schemas =
+          <CollectionSchema<dynamic>>[
+            CampaignRecordSchema,
+            WorldStateRecordSchema,
+            MessageRecordSchema,
+            InventoryItemRecordSchema,
+            CompanionRecordSchema,
+            ProviderProfileRecordSchema,
+            ModelControlRecordSchema,
+            AppSettingRecordSchema,
+          ];
       final Isar opened = await Isar.open(
         schemas,
         name: _name,
@@ -183,8 +186,8 @@ class AppDatabase {
   }
 
   Future<void> _migrateStructuredStorage(final Isar isar) async {
-    final ProviderScopedSettings? typedSettings =
-        await _settingsLocal.loadProviderScopedSettings(isar);
+    final ProviderScopedSettings? typedSettings = await _settingsLocal
+        .loadProviderScopedSettings(isar);
     if (typedSettings == null) {
       final AppSettingRecord? legacySettings = await isar.appSettingRecords
           .filter()
@@ -203,7 +206,8 @@ class AppDatabase {
 
     final AppLanguage? language = await _settingsLocal.loadAppLanguage(isar);
     if (language == null) {
-      final SharedPreferences preferences = await SharedPreferences.getInstance();
+      final SharedPreferences preferences =
+          await SharedPreferences.getInstance();
       final String rawLanguage =
           preferences.getString(_legacyAppLanguageKey) ?? AppLanguage.ru.code;
       await _settingsLocal.saveAppLanguage(
@@ -213,6 +217,21 @@ class AppDatabase {
           orElse: () => AppLanguage.ru,
         ),
       );
+    }
+
+    if ((await isar.campaignRecords.where().count()) > 0) {
+      final List<CampaignState> campaigns = await _campaignLocal
+          .loadAllCampaigns(isar);
+      for (final CampaignState campaign in campaigns) {
+        await _campaignLocal.saveCampaign(
+          isar,
+          campaign.copyWith(
+            schemaVersion: campaign.schemaVersion < 3
+                ? 3
+                : campaign.schemaVersion,
+          ),
+        );
+      }
     }
 
     await isar.writeTxn(() async {
@@ -237,7 +256,9 @@ class AppDatabase {
         return null;
       }
       return CampaignState.fromJson(
-        decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+        decoded.map(
+          (final key, final value) => MapEntry(key.toString(), value),
+        ),
       );
     } catch (_) {
       return null;

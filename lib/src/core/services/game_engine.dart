@@ -1,13 +1,19 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
+import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
+import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 
 class GameEngine {
   const GameEngine();
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
+  static const CampaignModuleResolver _moduleResolver =
+      CampaignModuleResolver();
   static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
+  static const EntityExtractionService _entityExtractionService =
+      EntityExtractionService();
 
   CampaignState createCampaign({
     required final CampaignDraft draft,
@@ -15,6 +21,13 @@ class GameEngine {
   }) {
     final DateTime now = DateTime.now();
     final String id = now.microsecondsSinceEpoch.toString();
+    final List<CampaignModuleState> modules = _moduleResolver
+        .resolveInitialModules(draft: draft);
+    final bool inventoryActive = _isModuleActive(
+      modules,
+      CampaignModule.inventory,
+    );
+    final bool notesActive = _isModuleActive(modules, CampaignModule.notes);
 
     final String characterName = draft.characterProfile != null
         ? draft.characterProfile!.name
@@ -48,9 +61,11 @@ class GameEngine {
       AppLanguage.ru => const <String>['Полевые записи', 'Дорожный набор'],
       AppLanguage.en => const <String>['Field Notes', 'Travel Kit'],
     };
-    final List<String> inventory = draft.characterProfile != null
-        ? <String>[...baseInventory, ...draft.characterProfile!.perks]
-        : baseInventory;
+    final List<String> inventory = inventoryActive
+        ? draft.characterProfile != null
+              ? <String>[...baseInventory, ...draft.characterProfile!.perks]
+              : baseInventory
+        : const <String>[];
 
     // Стартовая локация будет определена ИИ на основе промпта
     final String location = switch (language) {
@@ -83,16 +98,9 @@ class GameEngine {
         '${character.name} begins their journey. The next step will determine their fate.',
     };
 
-    final ChatMessage intro = ChatMessage(
-      id: '${id}_intro',
-      role: ChatRole.narrator,
-      text: introText,
-      createdAt: now,
-    );
-
     return CampaignState(
       id: id,
-      schemaVersion: 1,
+      schemaVersion: 3,
       title: '${character.name} - $settingLabel',
       setting: draft.setting,
       mode: draft.mode,
@@ -106,8 +114,12 @@ class GameEngine {
         objective: objective,
         introText: introText,
       ),
+      modules: modules,
       inventory: inventory,
-      questLog: <String>[objective],
+      companions: const <CampaignCompanion>[],
+      notes: notesActive ? <String>[objective] : const <String>[],
+      resources: const <CampaignResource>[],
+      progression: null,
       messages: const <ChatMessage>[],
       choices: const <String>[],
       updatedAt: now,
@@ -116,7 +128,7 @@ class GameEngine {
     );
   }
 
-  CampaignState applyTurn({
+  TurnApplicationResult applyTurn({
     required final AppLanguage language,
     required final CampaignState state,
     required final String playerAction,
@@ -124,29 +136,8 @@ class GameEngine {
     required final int contextWindowSize,
   }) {
     final DateTime now = DateTime.now();
-    final CharacterStats character = state.character.copyWith(
-      hp: _clamp(
-        value: state.character.hp + result.stateChanges.hpDelta,
-        min: 0,
-        max: state.character.maxHp,
-      ),
-      energy: _clamp(
-        value: state.character.energy + result.stateChanges.energyDelta,
-        min: 0,
-        max: state.character.maxEnergy,
-      ),
-    );
-
-    final List<String> inventory = List<String>.from(state.inventory)
-      ..addAll(result.stateChanges.inventoryAdd)
-      ..removeWhere(
-        (final item) => result.stateChanges.inventoryRemove.contains(item),
-      );
-
-    final List<String> questLog = List<String>.from(state.questLog);
-    if (result.stateChanges.questNote.trim().isNotEmpty) {
-      questLog.add(result.stateChanges.questNote.trim());
-    }
+    final ReconciliationResult reconciliation = _entityExtractionService
+        .reconcile(state: state, result: result, language: language);
 
     final String location = result.stateChanges.location.trim().isNotEmpty
         ? result.stateChanges.location.trim()
@@ -172,22 +163,43 @@ class GameEngine {
       ),
     );
 
-    return state.copyWith(
-      character: character,
+    final CampaignState nextState = state.copyWith(
+      schemaVersion: 3,
+      character: reconciliation.character,
       location: location,
       turnNumber: state.turnNumber + 1,
-      inventory: inventory,
-      questLog: questLog,
+      modules: reconciliation.modules,
+      inventory: reconciliation.inventory,
+      companions: reconciliation.companions,
+      notes: reconciliation.notes,
+      resources: reconciliation.resources,
+      progression: reconciliation.progression,
+      checks: reconciliation.checks,
       messages: messages,
       choices: result.choices,
       memory: _memoryManager.updateMemory(
         language: language,
-        previousState: state,
+        previousState: state.copyWith(
+          character: reconciliation.character,
+          location: location,
+          modules: reconciliation.modules,
+          inventory: reconciliation.inventory,
+          companions: reconciliation.companions,
+          notes: reconciliation.notes,
+          resources: reconciliation.resources,
+          progression: reconciliation.progression,
+          checks: reconciliation.checks,
+        ),
         result: result,
         playerAction: playerAction,
         contextWindowSize: contextWindowSize,
       ),
       updatedAt: now,
+    );
+
+    return TurnApplicationResult(
+      state: nextState,
+      notifications: reconciliation.notifications,
     );
   }
 
@@ -209,33 +221,8 @@ class GameEngine {
     return state.copyWith(messages: messages, updatedAt: now);
   }
 
-  static String _truncateForObjective(final String text, final int maxLength) {
-    final String normalized = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (normalized.length <= maxLength) {
-      return normalized;
-    }
-    final int cut = normalized.lastIndexOf(RegExp(r'[.!?]\s'), maxLength);
-    if (cut > maxLength ~/ 2) {
-      return normalized.substring(0, cut + 1).trim();
-    }
-    final int space = normalized.lastIndexOf(' ', maxLength);
-    if (space > maxLength ~/ 2) {
-      return '${normalized.substring(0, space).trim()}...';
-    }
-    return '${normalized.substring(0, maxLength - 3).trim()}...';
-  }
-
-  int _clamp({
-    required final int value,
-    required final int min,
-    required final int max,
-  }) {
-    if (value < min) {
-      return min;
-    }
-    if (value > max) {
-      return max;
-    }
-    return value;
-  }
+  static bool _isModuleActive(
+    final List<CampaignModuleState> modules,
+    final CampaignModule module,
+  ) => modules.any((final item) => item.module == module && item.isActive);
 }

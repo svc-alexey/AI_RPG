@@ -1,51 +1,57 @@
 # Implementation: Campaign Modules
 
-## Статус
+## Status
 
-- [x] Архитектура заполнена
-- [x] PRD заполнен
-- [ ] Реализация начата
-- [ ] Реализация завершена
-- [ ] Проверки пройдены
+- [x] Architecture documented
+- [x] PRD documented
+- [x] Stage 6 implementation started
+- [x] Stage 6 core slices implemented
+- [x] Automated verification added
+- [ ] Feature family fully complete
 
-## Задачи
+## Delivery slices
 
-### Фаза 1. Domain и storage
+### Phase 1. Domain and storage
 
-- [ ] Ввести `CampaignModule` / `CampaignCapability` model
-- [ ] Определить always-on `Core State`
-- [ ] Разделить module-specific state slices и сущности хранения
-- [ ] Добавить миграцию старых кампаний в module-aware схему
+- [x] Introduce `CampaignModule` and module-aware campaign state
+- [x] Separate always-on core state from module-specific slices
+- [x] Persist modules, activation reasons, and module payloads in structured storage
+- [x] Add compatibility for legacy campaigns and structured migration backfill
 
-### Фаза 2. Initial activation
+### Phase 2. Initial activation
 
-- [ ] Добавить module presets для `fantasy`, `detective`, `sciFi`
-- [ ] Добавить prompt-based resolver для начального набора модулей
-- [ ] Показать активные модули на review step создания кампании
+- [x] Add default presets for `fantasy`, `detective`, and `sciFi`
+- [x] Infer extra modules from story prompt and character setup hints
+- [x] Show active systems during new-campaign review
 
-### Фаза 3. Runtime activation и extraction
+### Phase 3. Runtime activation and extraction
 
-- [ ] Добавить `CampaignModuleResolver`
-- [ ] Добавить `EntityExtractionService`
-- [ ] Начать с rule-based extraction для `Inventory`
-- [ ] Расширить extraction на `Companions`, `Notes`, `Vitality`, `Resources`
-- [ ] Добавить reconciliation перед persistence
+- [x] Add `CampaignModuleResolver`
+- [x] Add `EntityExtractionService`
+- [x] Reconcile `Inventory`
+- [x] Reconcile `Companions`
+- [x] Reconcile `Notes`
+- [x] Reconcile `Vitality`
+- [x] Reconcile `Resources`
+- [x] Reconcile `Progression`
+- [x] Reconcile extracted recent `Checks`
+- [x] Reconcile active modules before persistence
 
-### Фаза 4. UI и уведомления
+### Phase 4. Adaptive UI and feedback
 
-- [ ] Сделать module-aware sidebar
-- [ ] Добавить transient overlay notifications
-- [ ] Подсвечивать newly unlocked modules
-- [ ] Сохранить mobile-first поведение drawer/panels
+- [x] Make the sidebar module-aware
+- [x] Add transient overlay notifications
+- [x] Highlight newly unlocked modules
+- [x] Highlight modules changed on the latest turn
+- [x] Preserve drawer/sidebar behavior on narrow layouts
 
-### Фаза 5. Deterministic systems
+### Phase 5. Deterministic systems
 
-- [ ] Привязать `DiceEngine` к `Checks` module
-- [ ] Ограничить combat/check reducers активными модулями
-- [ ] Обновить prompt contract: AI narrates resolved outcomes
+- [ ] Attach a local `DiceEngine` to the `Checks` module
+- [ ] Restrict roll/combat reducers to active deterministic modules
+- [ ] Update the prompt contract so AI narrates resolved outcomes
 
-## Примечания
+## Notes
 
-- Первый срез может быть read-only для части модулей, если это ускорит доставку.
-- Самый безопасный старт: `Inventory` -> `Companions` -> `Notes` -> `Vitality` -> `Resources` -> `Progression`.
-- High-impact auto-activation стоит вводить позже, чем low-risk модули.
+- The current `Checks` implementation stores extracted recent check history and unlocks the module safely, but it does not yet resolve rolls deterministically.
+- That makes `Stage 7` the next primary implementation target.

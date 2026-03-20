@@ -7,8 +7,9 @@ class CampaignLocalDataSource {
   const CampaignLocalDataSource();
 
   Future<List<CampaignState>> loadAllCampaigns(final Isar isar) async {
-    final List<CampaignRecord> campaigns =
-        await isar.campaignRecords.where().findAll();
+    final List<CampaignRecord> campaigns = await isar.campaignRecords
+        .where()
+        .findAll();
     final List<CampaignState> result = <CampaignState>[];
 
     for (final CampaignRecord campaign in campaigns) {
@@ -47,18 +48,28 @@ class CampaignLocalDataSource {
         .filter()
         .campaignIdEqualTo(campaign.campaignId)
         .findAll();
+    final List<CompanionRecord> companions = await isar.companionRecords
+        .filter()
+        .campaignIdEqualTo(campaign.campaignId)
+        .findAll();
 
     return CampaignStorageMapper.fromRecords(
       campaign: campaign,
       worldState: worldState,
       messages: messages,
       inventoryItems: inventoryItems,
+      companions: companions,
     );
   }
 
-  Future<void> saveCampaign(final Isar isar, final CampaignState campaign) async {
+  Future<void> saveCampaign(
+    final Isar isar,
+    final CampaignState campaign,
+  ) async {
     await isar.writeTxn(() async {
-      await isar.campaignRecords.put(CampaignStorageMapper.toCampaignRecord(campaign));
+      await isar.campaignRecords.put(
+        CampaignStorageMapper.toCampaignRecord(campaign),
+      );
       await isar.worldStateRecords.put(
         CampaignStorageMapper.toWorldStateRecord(campaign),
       );
@@ -94,6 +105,23 @@ class CampaignLocalDataSource {
           CampaignStorageMapper.toInventoryRecords(campaign);
       if (nextInventory.isNotEmpty) {
         await isar.inventoryItemRecords.putAll(nextInventory);
+      }
+
+      final List<CompanionRecord> existingCompanions = await isar
+          .companionRecords
+          .filter()
+          .campaignIdEqualTo(campaign.id)
+          .findAll();
+      if (existingCompanions.isNotEmpty) {
+        await isar.companionRecords.deleteAll(
+          existingCompanions.map((final item) => item.id).toList(),
+        );
+      }
+
+      final List<CompanionRecord> nextCompanions =
+          CampaignStorageMapper.toCompanionRecords(campaign);
+      if (nextCompanions.isNotEmpty) {
+        await isar.companionRecords.putAll(nextCompanions);
       }
     });
   }
@@ -134,6 +162,16 @@ class CampaignLocalDataSource {
       if (inventoryItems.isNotEmpty) {
         await isar.inventoryItemRecords.deleteAll(
           inventoryItems.map((final item) => item.id).toList(),
+        );
+      }
+
+      final List<CompanionRecord> companions = await isar.companionRecords
+          .filter()
+          .campaignIdEqualTo(id)
+          .findAll();
+      if (companions.isNotEmpty) {
+        await isar.companionRecords.deleteAll(
+          companions.map((final item) => item.id).toList(),
         );
       }
     });

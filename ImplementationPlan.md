@@ -284,22 +284,22 @@ Tasks:
 - [x] Remove `AppScope` and move major flows to controller/notifier orchestration
 - [x] Add model runtime controls for `max response tokens`, `context window`, and quick model profiles
 - [x] Replace fake narration animation with real response streaming plus fallback
-- [ ] Formalize hybrid context as `static header + dynamic summary + recent buffer`
-- [ ] Refactor world state into optional campaign modules instead of mandatory RPG-only fields
-- [ ] Define first module set: `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, and `Progression`
-- [ ] Activate modules at campaign creation from `setting`, story prompt, and generated setup hints
-- [ ] Allow safe dynamic module activation during a campaign when the story introduces new systems
-- [ ] Add entity extraction and reconciliation for active modules before persistence
+- [x] Formalize hybrid context as `static header + dynamic summary + recent buffer`
+- [x] Refactor world state into optional campaign modules instead of mandatory RPG-only fields
+- [x] Define first module set: `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`
+- [x] Activate modules at campaign creation from `setting`, story prompt, and generated setup hints
+- [x] Allow safe dynamic module activation during a campaign when the story introduces new systems
+- [x] Add entity extraction and reconciliation for active modules before persistence
 - [ ] Add local `DiceEngine` for deterministic checks only when the corresponding gameplay module is active
-- [ ] Adapt gameplay UI with module-aware side panels and lightweight state-change notifications
+- [x] Adapt gameplay UI with module-aware side panels and lightweight state-change notifications
 
 Expected result:
 
 - [ ] Long campaigns remain coherent without sending full chat history every turn
 - [ ] Users can tune speed, quality, and token usage from the settings UI
 - [ ] The client, not the model, becomes the source of truth for core gameplay outcomes
-- [ ] Campaigns no longer show irrelevant systems like `Gold` or `Level` when the story does not need them
-- [ ] The UI reveals newly active systems and state changes without interrupting play
+- [x] Campaigns no longer show irrelevant systems like `Gold` or `Level` when the story does not need them
+- [x] The UI reveals newly active systems and state changes without interrupting play
 - [ ] The architecture is ready for Android, iOS, Desktop, and Web persistence/runtime scaling
 
 Current status:
@@ -308,6 +308,8 @@ Current status:
 - [x] Stage 2 completed: Riverpod-first app shell and screen orchestration
 - [x] Stage 3 completed: runtime token/context controls
 - [x] Stage 4 completed: real streaming
+- [x] Stage 5 completed: hybrid context assembly
+- [x] Stage 6 core slices completed: module-aware state, extraction, reconciliation, and adaptive gameplay UI
 
 ## Backlog: Campaign Modules and Adaptive UI
 
@@ -315,17 +317,18 @@ Goal: make campaign state modular so each story only enables the systems it need
 
 Tasks:
 
-- [ ] Introduce a campaign capability model that separates always-on core state from optional gameplay modules
-- [ ] Define default module presets for `fantasy`, `detective`, and `sciFi`
-- [ ] Infer additional modules from the initial story prompt and character setup
-- [ ] Add runtime module activation when the narration clearly introduces a new system
-- [ ] Persist module activation reasons and module-specific state in structured storage
-- [ ] Add module-aware extraction and reconciliation before saving a turn
-- [ ] Show lightweight translucent notifications for item gains/losses, HP changes, companion joins, and module unlocks
-- [ ] Make the gameplay sidebar render only the modules that are active in the current campaign
+- [x] Introduce a campaign capability model that separates always-on core state from optional gameplay modules
+- [x] Define default module presets for `fantasy`, `detective`, and `sciFi`
+- [x] Infer additional modules from the initial story prompt and character setup
+- [x] Add runtime module activation when the narration clearly introduces a new system
+- [x] Persist module activation reasons and module-specific state in structured storage
+- [x] Add module-aware extraction and reconciliation before saving a turn
+- [x] Show lightweight translucent notifications for item gains/losses, HP changes, companion joins, module unlocks, and check resolutions
+- [x] Make the gameplay sidebar render only the modules that are active in the current campaign
+- [ ] Add deterministic resolution on top of the active `Checks` module
 
 Expected result:
 
 - [ ] Detective and pure narrative stories stay free of irrelevant RPG chrome
 - [ ] Fantasy and system-heavy stories can progressively unlock richer mechanics
-- [ ] Users understand state changes immediately without blocking popups or modal interruptions
+- [x] Users understand state changes immediately without blocking popups or modal interruptions

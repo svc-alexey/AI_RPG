@@ -387,6 +387,115 @@ class AppLocalizations {
     AppLanguage.en => 'Summary',
   };
 
+  String get activeSystemsTitle => switch (language) {
+    AppLanguage.ru => 'Активные системы',
+    AppLanguage.en => 'Active Systems',
+  };
+
+  String campaignModuleLabel(final CampaignModule value) =>
+      switch ((language, value)) {
+        (AppLanguage.ru, CampaignModule.inventory) => 'Инвентарь',
+        (AppLanguage.ru, CampaignModule.companions) => 'Спутники',
+        (AppLanguage.ru, CampaignModule.notes) => 'Заметки',
+        (AppLanguage.ru, CampaignModule.vitality) => 'Живучесть',
+        (AppLanguage.ru, CampaignModule.resources) => 'Ресурсы',
+        (AppLanguage.ru, CampaignModule.progression) => 'Прогресс',
+        (AppLanguage.ru, CampaignModule.checks) => 'Проверки',
+        (AppLanguage.en, CampaignModule.inventory) => 'Inventory',
+        (AppLanguage.en, CampaignModule.companions) => 'Companions',
+        (AppLanguage.en, CampaignModule.notes) => 'Notes',
+        (AppLanguage.en, CampaignModule.vitality) => 'Vitality',
+        (AppLanguage.en, CampaignModule.resources) => 'Resources',
+        (AppLanguage.en, CampaignModule.progression) => 'Progression',
+        (AppLanguage.en, CampaignModule.checks) => 'Checks',
+      };
+
+  String campaignModuleReasonLabel(final String reason) {
+    if (reason.startsWith('preset:')) {
+      return switch (language) {
+        AppLanguage.ru => 'Активно по сеттингу',
+        AppLanguage.en => 'Enabled by setting',
+      };
+    }
+    if (reason.startsWith('prompt:')) {
+      return switch (language) {
+        AppLanguage.ru => 'Активно по prompt',
+        AppLanguage.en => 'Enabled by prompt',
+      };
+    }
+    if (reason.startsWith('story_unlocked:')) {
+      return switch (language) {
+        AppLanguage.ru => 'Открыто по ходу истории',
+        AppLanguage.en => 'Unlocked by story',
+      };
+    }
+    if (reason.startsWith('legacy_')) {
+      return switch (language) {
+        AppLanguage.ru => 'Активировано из старого сохранения',
+        AppLanguage.en => 'Activated from legacy save',
+      };
+    }
+    return switch (language) {
+      AppLanguage.ru => 'Активная система',
+      AppLanguage.en => 'Active system',
+    };
+  }
+
+  String get newlyUnlockedLabel => switch (language) {
+    AppLanguage.ru => 'Новое',
+    AppLanguage.en => 'New',
+  };
+
+  String get updatedLabel => switch (language) {
+    AppLanguage.ru => 'Обновлено',
+    AppLanguage.en => 'Updated',
+  };
+
+  String get nothingTrackedYet => switch (language) {
+    AppLanguage.ru => 'Пока пусто',
+    AppLanguage.en => 'Nothing tracked yet',
+  };
+
+  String progressionLabel(
+    final CampaignProgression progression,
+  ) => switch (language) {
+    AppLanguage.ru =>
+      'Уровень ${progression.level} • Опыт ${progression.experience}${progression.rank.trim().isEmpty ? '' : ' • ${progression.rank}'}',
+    AppLanguage.en =>
+      'Level ${progression.level} • XP ${progression.experience}${progression.rank.trim().isEmpty ? '' : ' • ${progression.rank}'}',
+  };
+
+  String campaignCheckLabel(final CampaignCheck check) {
+    if (check.summary.trim().isNotEmpty) {
+      return check.summary;
+    }
+
+    final String outcome = switch ((language, check.outcome)) {
+      (AppLanguage.ru, CampaignCheckOutcome.success) => 'успех',
+      (AppLanguage.ru, CampaignCheckOutcome.failure) => 'провал',
+      (AppLanguage.ru, CampaignCheckOutcome.mixed) => 'частичный успех',
+      (AppLanguage.ru, CampaignCheckOutcome.unknown) => 'результат',
+      (AppLanguage.en, CampaignCheckOutcome.success) => 'success',
+      (AppLanguage.en, CampaignCheckOutcome.failure) => 'failure',
+      (AppLanguage.en, CampaignCheckOutcome.mixed) => 'partial success',
+      (AppLanguage.en, CampaignCheckOutcome.unknown) => 'result',
+    };
+
+    final List<String> details = <String>[
+      if (check.total != null && check.difficulty != null)
+        '${check.total} vs DC ${check.difficulty}',
+      if (check.total != null && check.difficulty == null)
+        language == AppLanguage.ru
+            ? 'итог ${check.total}'
+            : 'total ${check.total}',
+    ];
+
+    if (details.isEmpty) {
+      return '${check.label}: $outcome';
+    }
+    return '${check.label}: $outcome (${details.join(', ')})';
+  }
+
   String get campaignSaved => switch (language) {
     AppLanguage.ru => 'Кампания сохранена.',
     AppLanguage.en => 'Campaign saved.',

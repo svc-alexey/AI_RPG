@@ -1,36 +1,41 @@
 # Feature: Campaign Modules
 
-## Краткая сводка
+## Summary
 
-Этот feature-пакет описывает переход от жёсткого RPG-only `world state` к модульной кампании, где каждая история включает только нужные ей системы.
+This feature package tracks the move from a hard-wired RPG-only world state to a modular campaign model where each story enables only the systems it actually needs.
 
-Ключевая идея:
+Core idea:
 
-- у кампании есть always-on core state;
-- поверх него подключаются модули `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, `Checks`;
-- модули могут активироваться при создании кампании по `setting` и prompt;
-- при необходимости модуль может подключиться уже по ходу истории;
-- UI не показывает лишние панели и ненавязчиво сообщает о новых сущностях и изменениях состояния.
+- campaigns keep an always-on core state;
+- optional modules layer on top of that core state: `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
+- modules can be enabled at campaign creation from `setting`, story prompt, and character setup;
+- modules can also unlock later when narration clearly introduces a new structured system;
+- the UI shows only active systems and surfaces changes through lightweight overlays instead of intrusive blockers.
 
-## Почему это нужно
+## Current implementation status
 
-Сейчас проект умеет хранить часть RPG-состояния, но истории могут быть сильно разными:
+The Stage 6 groundwork is now in place:
 
-- детектив без золота и уровня;
-- sci-fi история с кредитами и репутацией вместо золота;
-- narrative-heavy история почти без систем, но с важными уликами и спутниками;
-- fantasy-кампания, где прогрессия и здоровье действительно нужны.
+- module-aware campaign state and persistence are implemented;
+- initial activation works for `fantasy`, `detective`, and `sciFi`;
+- runtime extraction and reconciliation work for inventory, companions, notes, vitality, resources, progression, and recent checks;
+- the chat sidebar renders only active modules;
+- transient overlays show item, companion, resource, vitality, progression, check, and module-unlock feedback.
 
-Модульная модель снимает это противоречие и делает архитектуру дружелюбной к разным жанрам.
+What is still ahead:
 
-## Состав пакета
+- deterministic roll resolution through a local `DiceEngine`;
+- stricter contracts around when `Checks` moves from extracted history to fully deterministic gameplay;
+- any optional polish around manual module controls or richer adaptive panels.
 
-- `01-Architecture.md` - архитектурное решение
-- `02-PRD.md` - детальный продуктовый документ
-- `03-Implementation.md` - план реализации
-- `04-QA.md` - проверки, риски и критерии приёмки
+## Package contents
 
-## Ссылки
+- `01-Architecture.md` - architecture decisions
+- `02-PRD.md` - product requirements
+- `03-Implementation.md` - implementation status and next steps
+- `04-QA.md` - QA coverage, risks, and acceptance notes
 
-- [ImplementationPlan.md](../../ImplementationPlan.md)
-- [docs/features/engine-mechanics-token-control](../engine-mechanics-token-control)
+## Related documents
+
+- [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
+- [Engine Mechanics Implementation](D:/AI_PRG/docs/features/engine-mechanics-token-control/03-Implementation.md)

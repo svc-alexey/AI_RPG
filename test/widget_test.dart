@@ -492,7 +492,7 @@ class _ConfiguredAiSettings extends AiSettings {
 
 CampaignState _sampleCampaign() => CampaignState(
   id: 'campaign-1',
-  schemaVersion: 2,
+  schemaVersion: 3,
   title: 'The Amber Road',
   setting: CampaignSetting.fantasy,
   mode: StoryMode.longCampaign,
@@ -522,8 +522,28 @@ CampaignState _sampleCampaign() => CampaignState(
       ),
     ],
   ),
+  modules: const <CampaignModuleState>[
+    CampaignModuleState(
+      module: CampaignModule.inventory,
+      isActive: true,
+      activationReason: 'test',
+    ),
+    CampaignModuleState(
+      module: CampaignModule.notes,
+      isActive: true,
+      activationReason: 'test',
+    ),
+    CampaignModuleState(
+      module: CampaignModule.vitality,
+      isActive: true,
+      activationReason: 'test',
+    ),
+  ],
   inventory: const <String>['Lantern', 'Map'],
-  questLog: const <String>['Follow the caravan trail'],
+  companions: const <CampaignCompanion>[],
+  notes: const <String>['Follow the caravan trail'],
+  resources: const <CampaignResource>[],
+  progression: null,
   messages: <ChatMessage>[
     ChatMessage(
       id: 'm1',

@@ -8,6 +8,16 @@ enum ChatRole { narrator, player, system }
 
 enum CharacterGender { male, female, other }
 
+enum CampaignModule {
+  inventory,
+  companions,
+  notes,
+  vitality,
+  resources,
+  progression,
+  checks,
+}
+
 /// Character classes per setting: fantasy (warrior, mage, rogue),
 /// detective (detective, journalist, smuggler), sciFi (engineer, pilot, medic).
 enum CharacterClass {
@@ -42,6 +52,9 @@ String _jsonString(final Object? value, {final String fallback = ''}) {
   }
   return value.toString();
 }
+
+int _jsonInt(final Object? value, {final int fallback = 0}) =>
+    (value as num?)?.toInt() ?? fallback;
 
 class CharacterStats {
   factory CharacterStats.fromJson(final Map<String, Object?> json) =>
@@ -85,28 +98,204 @@ class CharacterStats {
     final int? might,
     final int? wit,
     final int? spirit,
-  }) =>
-      CharacterStats(
-        name: name ?? this.name,
-        hp: hp ?? this.hp,
-        maxHp: maxHp ?? this.maxHp,
-        energy: energy ?? this.energy,
-        maxEnergy: maxEnergy ?? this.maxEnergy,
-        might: might ?? this.might,
-        wit: wit ?? this.wit,
-        spirit: spirit ?? this.spirit,
-      );
+  }) => CharacterStats(
+    name: name ?? this.name,
+    hp: hp ?? this.hp,
+    maxHp: maxHp ?? this.maxHp,
+    energy: energy ?? this.energy,
+    maxEnergy: maxEnergy ?? this.maxEnergy,
+    might: might ?? this.might,
+    wit: wit ?? this.wit,
+    spirit: spirit ?? this.spirit,
+  );
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'name': name,
-        'hp': hp,
-        'maxHp': maxHp,
-        'energy': energy,
-        'maxEnergy': maxEnergy,
-        'might': might,
-        'wit': wit,
-        'spirit': spirit,
-      };
+    'name': name,
+    'hp': hp,
+    'maxHp': maxHp,
+    'energy': energy,
+    'maxEnergy': maxEnergy,
+    'might': might,
+    'wit': wit,
+    'spirit': spirit,
+  };
+}
+
+class CampaignModuleState {
+  factory CampaignModuleState.fromJson(final Map<String, Object?> json) =>
+      CampaignModuleState(
+        module: CampaignModule.values.firstWhere(
+          (final item) => item.name == json['module'],
+          orElse: () => CampaignModule.notes,
+        ),
+        isActive: json['isActive'] as bool? ?? true,
+        activationReason: _jsonString(json['activationReason']),
+        activatedAt: DateTime.tryParse(_jsonString(json['activatedAt'])),
+      );
+
+  const CampaignModuleState({
+    required this.module,
+    required this.isActive,
+    required this.activationReason,
+    this.activatedAt,
+  });
+
+  final CampaignModule module;
+  final bool isActive;
+  final String activationReason;
+  final DateTime? activatedAt;
+
+  CampaignModuleState copyWith({
+    final CampaignModule? module,
+    final bool? isActive,
+    final String? activationReason,
+    final DateTime? activatedAt,
+  }) => CampaignModuleState(
+    module: module ?? this.module,
+    isActive: isActive ?? this.isActive,
+    activationReason: activationReason ?? this.activationReason,
+    activatedAt: activatedAt ?? this.activatedAt,
+  );
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'module': module.name,
+    'isActive': isActive,
+    'activationReason': activationReason,
+    'activatedAt': activatedAt?.toIso8601String(),
+  };
+}
+
+class CampaignCompanion {
+  factory CampaignCompanion.fromJson(final Map<String, Object?> json) =>
+      CampaignCompanion(
+        id: _jsonString(json['id']),
+        name: _jsonString(json['name']),
+        status: _jsonString(json['status']),
+        notes: _jsonString(json['notes']),
+      );
+
+  const CampaignCompanion({
+    required this.id,
+    required this.name,
+    required this.status,
+    this.notes = '',
+  });
+
+  final String id;
+  final String name;
+  final String status;
+  final String notes;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'name': name,
+    'status': status,
+    'notes': notes,
+  };
+}
+
+class CampaignResource {
+  factory CampaignResource.fromJson(final Map<String, Object?> json) =>
+      CampaignResource(
+        id: _jsonString(json['id']),
+        label: _jsonString(json['label']),
+        value: _jsonInt(json['value']),
+        maxValue: (json['maxValue'] as num?)?.toInt(),
+      );
+
+  const CampaignResource({
+    required this.id,
+    required this.label,
+    required this.value,
+    this.maxValue,
+  });
+
+  final String id;
+  final String label;
+  final int value;
+  final int? maxValue;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'label': label,
+    'value': value,
+    'maxValue': maxValue,
+  };
+}
+
+class CampaignProgression {
+  factory CampaignProgression.fromJson(final Map<String, Object?> json) =>
+      CampaignProgression(
+        level: _jsonInt(json['level'], fallback: 1),
+        experience: _jsonInt(json['experience']),
+        rank: _jsonString(json['rank']),
+      );
+
+  const CampaignProgression({
+    required this.level,
+    required this.experience,
+    required this.rank,
+  });
+
+  final int level;
+  final int experience;
+  final String rank;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'level': level,
+    'experience': experience,
+    'rank': rank,
+  };
+}
+
+enum CampaignCheckOutcome { success, failure, mixed, unknown }
+
+class CampaignCheck {
+  factory CampaignCheck.fromJson(final Map<String, Object?> json) =>
+      CampaignCheck(
+        id: _jsonString(json['id']),
+        label: _jsonString(json['label']),
+        summary: _jsonString(json['summary']),
+        outcome: CampaignCheckOutcome.values.firstWhere(
+          (final item) => item.name == json['outcome'],
+          orElse: () => CampaignCheckOutcome.unknown,
+        ),
+        stat: _jsonString(json['stat']),
+        difficulty: (json['difficulty'] as num?)?.toInt(),
+        roll: (json['roll'] as num?)?.toInt(),
+        total: (json['total'] as num?)?.toInt(),
+      );
+
+  const CampaignCheck({
+    required this.id,
+    required this.label,
+    required this.summary,
+    required this.outcome,
+    this.stat = '',
+    this.difficulty,
+    this.roll,
+    this.total,
+  });
+
+  final String id;
+  final String label;
+  final String summary;
+  final CampaignCheckOutcome outcome;
+  final String stat;
+  final int? difficulty;
+  final int? roll;
+  final int? total;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'label': label,
+    'summary': summary,
+    'outcome': outcome.name,
+    'stat': stat,
+    'difficulty': difficulty,
+    'roll': roll,
+    'total': total,
+  };
 }
 
 class CharacterProfile {
@@ -117,16 +306,18 @@ class CharacterProfile {
           (final item) => item.name == json['gender'],
           orElse: () => CharacterGender.other,
         ),
-        race: _jsonString(json['race'], fallback: ''),
+        race: _jsonString(json['race']),
         characterClass: CharacterClass.values.firstWhere(
           (final item) => item.name == json['characterClass'],
           orElse: () => CharacterClass.warrior,
         ),
-        skills: _jsonList(json['skills'])
-            .map((final item) => item.toString())
-            .toList(),
+        skills: _jsonList(
+          json['skills'],
+        ).map((final item) => item.toString()).toList(),
         personality: _jsonString(json['personality']),
-        perks: _jsonList(json['perks']).map((final item) => item.toString()).toList(),
+        perks: _jsonList(
+          json['perks'],
+        ).map((final item) => item.toString()).toList(),
         promptFragment: _jsonString(json['promptFragment']),
       );
 
@@ -159,41 +350,40 @@ class CharacterProfile {
     final String? personality,
     final List<String>? perks,
     final String? promptFragment,
-  }) =>
-      CharacterProfile(
-        name: name ?? this.name,
-        gender: gender ?? this.gender,
-        race: race ?? this.race,
-        characterClass: characterClass ?? this.characterClass,
-        skills: skills ?? this.skills,
-        personality: personality ?? this.personality,
-        perks: perks ?? this.perks,
-        promptFragment: promptFragment ?? this.promptFragment,
-      );
+  }) => CharacterProfile(
+    name: name ?? this.name,
+    gender: gender ?? this.gender,
+    race: race ?? this.race,
+    characterClass: characterClass ?? this.characterClass,
+    skills: skills ?? this.skills,
+    personality: personality ?? this.personality,
+    perks: perks ?? this.perks,
+    promptFragment: promptFragment ?? this.promptFragment,
+  );
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'name': name,
-        'gender': gender.name,
-        'race': race,
-        'characterClass': characterClass.name,
-        'skills': skills,
-        'personality': personality,
-        'perks': perks,
-        'promptFragment': promptFragment,
-      };
+    'name': name,
+    'gender': gender.name,
+    'race': race,
+    'characterClass': characterClass.name,
+    'skills': skills,
+    'personality': personality,
+    'perks': perks,
+    'promptFragment': promptFragment,
+  };
 }
 
 class ChatMessage {
   factory ChatMessage.fromJson(final Map<String, Object?> json) => ChatMessage(
-        id: _jsonString(json['id']),
-        role: ChatRole.values.firstWhere(
-          (final item) => item.name == json['role'],
-          orElse: () => ChatRole.system,
-        ),
-        text: _jsonString(json['text']),
-        createdAt:
-            DateTime.tryParse(_jsonString(json['createdAt'])) ?? DateTime.now(),
-      );
+    id: _jsonString(json['id']),
+    role: ChatRole.values.firstWhere(
+      (final item) => item.name == json['role'],
+      orElse: () => ChatRole.system,
+    ),
+    text: _jsonString(json['text']),
+    createdAt:
+        DateTime.tryParse(_jsonString(json['createdAt'])) ?? DateTime.now(),
+  );
 
   const ChatMessage({
     required this.id,
@@ -208,11 +398,11 @@ class ChatMessage {
   final DateTime createdAt;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'id': id,
-        'role': role.name,
-        'text': text,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'role': role.name,
+    'text': text,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 class RecentTurnSummary {
@@ -234,10 +424,10 @@ class RecentTurnSummary {
   final String stateHint;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'playerAction': playerAction,
-        'outcome': outcome,
-        'stateHint': stateHint,
-      };
+    'playerAction': playerAction,
+    'outcome': outcome,
+    'stateHint': stateHint,
+  };
 }
 
 class CampaignMemory {
@@ -268,32 +458,32 @@ class CampaignMemory {
     final String? activeGoal,
     final String? activeSituation,
     final List<RecentTurnSummary>? recentTurns,
-  }) =>
-      CampaignMemory(
-        rollingSummary: rollingSummary ?? this.rollingSummary,
-        activeGoal: activeGoal ?? this.activeGoal,
-        activeSituation: activeSituation ?? this.activeSituation,
-        recentTurns: recentTurns ?? this.recentTurns,
-      );
+  }) => CampaignMemory(
+    rollingSummary: rollingSummary ?? this.rollingSummary,
+    activeGoal: activeGoal ?? this.activeGoal,
+    activeSituation: activeSituation ?? this.activeSituation,
+    recentTurns: recentTurns ?? this.recentTurns,
+  );
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'rollingSummary': rollingSummary,
-        'activeGoal': activeGoal,
-        'activeSituation': activeSituation,
-        'recentTurns': recentTurns.map((final item) => item.toJson()).toList(),
-      };
+    'rollingSummary': rollingSummary,
+    'activeGoal': activeGoal,
+    'activeSituation': activeSituation,
+    'recentTurns': recentTurns.map((final item) => item.toJson()).toList(),
+  };
 }
 
 class StateChanges {
-  factory StateChanges.fromJson(final Map<String, Object?> json) => StateChanges(
+  factory StateChanges.fromJson(final Map<String, Object?> json) =>
+      StateChanges(
         hpDelta: (json['hpDelta'] as num?)?.toInt() ?? 0,
         energyDelta: (json['energyDelta'] as num?)?.toInt() ?? 0,
-        inventoryAdd: _jsonList(json['inventoryAdd'])
-            .map((final item) => item.toString())
-            .toList(),
-        inventoryRemove: _jsonList(json['inventoryRemove'])
-            .map((final item) => item.toString())
-            .toList(),
+        inventoryAdd: _jsonList(
+          json['inventoryAdd'],
+        ).map((final item) => item.toString()).toList(),
+        inventoryRemove: _jsonList(
+          json['inventoryRemove'],
+        ).map((final item) => item.toString()).toList(),
         questNote: _jsonString(json['questNote']),
         location: _jsonString(json['location']),
       );
@@ -308,12 +498,12 @@ class StateChanges {
   });
 
   const StateChanges.empty()
-      : hpDelta = 0,
-        energyDelta = 0,
-        inventoryAdd = const <String>[],
-        inventoryRemove = const <String>[],
-        questNote = '',
-        location = '';
+    : hpDelta = 0,
+      energyDelta = 0,
+      inventoryAdd = const <String>[],
+      inventoryRemove = const <String>[],
+      questNote = '',
+      location = '';
 
   final int hpDelta;
   final int energyDelta;
@@ -323,28 +513,29 @@ class StateChanges {
   final String location;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'hpDelta': hpDelta,
-        'energyDelta': energyDelta,
-        'inventoryAdd': inventoryAdd,
-        'inventoryRemove': inventoryRemove,
-        'questNote': questNote,
-        'location': location,
-      };
+    'hpDelta': hpDelta,
+    'energyDelta': energyDelta,
+    'inventoryAdd': inventoryAdd,
+    'inventoryRemove': inventoryRemove,
+    'questNote': questNote,
+    'location': location,
+  };
 }
 
 class TurnResult {
   factory TurnResult.fromJson(final Map<String, Object?> json) => TurnResult(
-        narration: _jsonString(
-          json['narration'],
-          fallback: 'Мир ненадолго замирает в тишине.',
-        ),
-        choices:
-            _jsonList(json['choices']).map((final item) => item.toString()).toList(),
-        stateChanges: StateChanges.fromJson(
-          _jsonMap(json['state_changes'] ?? json['stateChanges']),
-        ),
-        memoryEntry: _jsonString(json['memory_entry'] ?? json['memoryEntry']),
-      );
+    narration: _jsonString(
+      json['narration'],
+      fallback: 'Мир ненадолго замирает в тишине.',
+    ),
+    choices: _jsonList(
+      json['choices'],
+    ).map((final item) => item.toString()).toList(),
+    stateChanges: StateChanges.fromJson(
+      _jsonMap(json['state_changes'] ?? json['stateChanges']),
+    ),
+    memoryEntry: _jsonString(json['memory_entry'] ?? json['memoryEntry']),
+  );
 
   const TurnResult({
     required this.narration,
@@ -359,10 +550,66 @@ class TurnResult {
   final String memoryEntry;
 }
 
+enum StateChangeNotificationKind {
+  itemAdded,
+  itemRemoved,
+  companionJoined,
+  noteAdded,
+  resourceChanged,
+  progressionChanged,
+  vitalityChanged,
+  checkResolved,
+  moduleUnlocked,
+}
+
+class StateChangeNotification {
+  const StateChangeNotification({
+    required this.id,
+    required this.kind,
+    required this.message,
+  });
+
+  final String id;
+  final StateChangeNotificationKind kind;
+  final String message;
+}
+
+class TurnApplicationResult {
+  const TurnApplicationResult({
+    required this.state,
+    required this.notifications,
+  });
+
+  final CampaignState state;
+  final List<StateChangeNotification> notifications;
+}
+
 class CampaignState {
   factory CampaignState.fromJson(final Map<String, Object?> json) {
     final Map<String, Object?> memoryJson = _jsonMap(json['memory']);
     final List<Object?> messagesJson = _jsonList(json['messages']);
+    final List<String> inventory = _jsonList(
+      json['inventory'],
+    ).map((final item) => item.toString()).toList();
+    final List<String> notes = _jsonList(
+      json['notes'] ?? json['questLog'],
+    ).map((final item) => item.toString()).toList();
+    final List<CampaignCompanion> companions = _jsonList(
+      json['companions'],
+    ).map((final item) => CampaignCompanion.fromJson(_jsonMap(item))).toList();
+    final List<CampaignResource> resources = _jsonList(
+      json['resources'],
+    ).map((final item) => CampaignResource.fromJson(_jsonMap(item))).toList();
+    final List<CampaignCheck> checks = _jsonList(
+      json['checks'],
+    ).map((final item) => CampaignCheck.fromJson(_jsonMap(item))).toList();
+    final CampaignProgression? progression =
+        _jsonMap(json['progression']).isEmpty
+        ? null
+        : CampaignProgression.fromJson(_jsonMap(json['progression']));
+    final CharacterStats character = CharacterStats.fromJson(
+      _jsonMap(json['character']),
+    );
     final CampaignMemory memory = memoryJson.isNotEmpty
         ? CampaignMemory.fromJson(memoryJson)
         : CampaignMemory(
@@ -375,6 +622,20 @@ class CampaignState {
                 ? _jsonString(_jsonMap(messagesJson.last)['text'])
                 : '',
             recentTurns: const <RecentTurnSummary>[],
+          );
+    final List<CampaignModuleState> modules = _jsonList(json['modules'])
+        .map((final item) => CampaignModuleState.fromJson(_jsonMap(item)))
+        .toList();
+    final List<CampaignModuleState> resolvedModules = modules.isNotEmpty
+        ? modules
+        : inferLegacyModules(
+            inventory: inventory,
+            notes: notes,
+            character: character,
+            companions: companions,
+            resources: resources,
+            progression: progression,
+            checks: checks,
           );
 
     return CampaignState(
@@ -393,7 +654,7 @@ class CampaignState {
         (final item) => item.name == json['difficulty'],
         orElse: () => DifficultyLevel.easy,
       ),
-      character: CharacterStats.fromJson(_jsonMap(json['character'])),
+      character: character,
       location: _jsonString(json['location'], fallback: 'Неизвестная локация'),
       objective: _jsonString(
         json['objective'],
@@ -401,15 +662,19 @@ class CampaignState {
       ),
       turnNumber: (json['turnNumber'] as num?)?.toInt() ?? 0,
       memory: memory,
-      inventory:
-          _jsonList(json['inventory']).map((final item) => item.toString()).toList(),
-      questLog:
-          _jsonList(json['questLog']).map((final item) => item.toString()).toList(),
+      modules: resolvedModules,
+      inventory: inventory,
+      companions: companions,
+      notes: notes,
+      resources: resources,
+      progression: progression,
+      checks: checks,
       messages: messagesJson
           .map((final item) => ChatMessage.fromJson(_jsonMap(item)))
           .toList(),
-      choices:
-          _jsonList(json['choices']).map((final item) => item.toString()).toList(),
+      choices: _jsonList(
+        json['choices'],
+      ).map((final item) => item.toString()).toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
       customStoryPrompt: _jsonString(json['customStoryPrompt']),
@@ -429,11 +694,16 @@ class CampaignState {
     required this.objective,
     required this.turnNumber,
     required this.memory,
+    required this.modules,
     required this.inventory,
-    required this.questLog,
+    required this.companions,
+    required this.notes,
+    required this.resources,
+    required this.progression,
     required this.messages,
     required this.choices,
     required this.updatedAt,
+    this.checks = const <CampaignCheck>[],
     this.customStoryPrompt = '',
     this.characterPrompt = '',
   });
@@ -449,8 +719,13 @@ class CampaignState {
   final String objective;
   final int turnNumber;
   final CampaignMemory memory;
+  final List<CampaignModuleState> modules;
   final List<String> inventory;
-  final List<String> questLog;
+  final List<CampaignCompanion> companions;
+  final List<String> notes;
+  final List<CampaignResource> resources;
+  final CampaignProgression? progression;
+  final List<CampaignCheck> checks;
   final List<ChatMessage> messages;
   final List<String> choices;
   final DateTime updatedAt;
@@ -461,64 +736,148 @@ class CampaignState {
   String get activeGoal => memory.activeGoal;
   String get activeSituation => memory.activeSituation;
   List<RecentTurnSummary> get recentTurns => memory.recentTurns;
+  List<String> get questLog => notes;
+  List<CampaignModule> get activeModules => modules
+      .where((final item) => item.isActive)
+      .map((final item) => item.module)
+      .toList();
+
+  bool isModuleActive(final CampaignModule module) =>
+      modules.any((final item) => item.module == module && item.isActive);
+
+  CampaignModuleState? moduleState(final CampaignModule module) {
+    for (final CampaignModuleState item in modules) {
+      if (item.module == module) {
+        return item;
+      }
+    }
+    return null;
+  }
 
   CampaignState copyWith({
+    final int? schemaVersion,
     final String? title,
     final CharacterStats? character,
     final String? location,
     final String? objective,
     final int? turnNumber,
     final CampaignMemory? memory,
+    final List<CampaignModuleState>? modules,
     final List<String>? inventory,
-    final List<String>? questLog,
+    final List<CampaignCompanion>? companions,
+    final List<String>? notes,
+    final List<CampaignResource>? resources,
+    final CampaignProgression? progression,
+    final List<CampaignCheck>? checks,
     final List<ChatMessage>? messages,
     final List<String>? choices,
     final DateTime? updatedAt,
     final String? customStoryPrompt,
     final String? characterPrompt,
-  }) =>
-      CampaignState(
-        id: id,
-        schemaVersion: schemaVersion,
-        title: title ?? this.title,
-        setting: setting,
-        mode: mode,
-        difficulty: difficulty,
-        character: character ?? this.character,
-        location: location ?? this.location,
-        objective: objective ?? this.objective,
-        turnNumber: turnNumber ?? this.turnNumber,
-        memory: memory ?? this.memory,
-        inventory: inventory ?? this.inventory,
-        questLog: questLog ?? this.questLog,
-        messages: messages ?? this.messages,
-        choices: choices ?? this.choices,
-        updatedAt: updatedAt ?? this.updatedAt,
-        customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
-        characterPrompt: characterPrompt ?? this.characterPrompt,
-      );
+  }) => CampaignState(
+    id: id,
+    schemaVersion: schemaVersion ?? this.schemaVersion,
+    title: title ?? this.title,
+    setting: setting,
+    mode: mode,
+    difficulty: difficulty,
+    character: character ?? this.character,
+    location: location ?? this.location,
+    objective: objective ?? this.objective,
+    turnNumber: turnNumber ?? this.turnNumber,
+    memory: memory ?? this.memory,
+    modules: modules ?? this.modules,
+    inventory: inventory ?? this.inventory,
+    companions: companions ?? this.companions,
+    notes: notes ?? this.notes,
+    resources: resources ?? this.resources,
+    progression: progression ?? this.progression,
+    checks: checks ?? this.checks,
+    messages: messages ?? this.messages,
+    choices: choices ?? this.choices,
+    updatedAt: updatedAt ?? this.updatedAt,
+    customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
+    characterPrompt: characterPrompt ?? this.characterPrompt,
+  );
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'id': id,
-        'schemaVersion': schemaVersion,
-        'title': title,
-        'setting': setting.name,
-        'mode': mode.name,
-        'difficulty': difficulty.name,
-        'character': character.toJson(),
-        'location': location,
-        'objective': objective,
-        'turnNumber': turnNumber,
-        'memory': memory.toJson(),
-        'summary': memory.rollingSummary,
-        'inventory': inventory,
-        'questLog': questLog,
-        'messages': messages.map((final item) => item.toJson()).toList(),
-        'choices': choices,
-        'updatedAt': updatedAt.toIso8601String(),
-        'customStoryPrompt': customStoryPrompt,
-        'characterPrompt': characterPrompt,
-      };
+    'id': id,
+    'schemaVersion': schemaVersion,
+    'title': title,
+    'setting': setting.name,
+    'mode': mode.name,
+    'difficulty': difficulty.name,
+    'character': character.toJson(),
+    'location': location,
+    'objective': objective,
+    'turnNumber': turnNumber,
+    'memory': memory.toJson(),
+    'modules': modules.map((final item) => item.toJson()).toList(),
+    'summary': memory.rollingSummary,
+    'inventory': inventory,
+    'companions': companions.map((final item) => item.toJson()).toList(),
+    'notes': notes,
+    'questLog': notes,
+    'resources': resources.map((final item) => item.toJson()).toList(),
+    'progression': progression?.toJson(),
+    'checks': checks.map((final item) => item.toJson()).toList(),
+    'messages': messages.map((final item) => item.toJson()).toList(),
+    'choices': choices,
+    'updatedAt': updatedAt.toIso8601String(),
+    'customStoryPrompt': customStoryPrompt,
+    'characterPrompt': characterPrompt,
+  };
+
+  static List<CampaignModuleState> inferLegacyModules({
+    required final List<String> inventory,
+    required final List<String> notes,
+    required final CharacterStats character,
+    required final List<CampaignCompanion> companions,
+    required final List<CampaignResource> resources,
+    required final CampaignProgression? progression,
+    final List<CampaignCheck> checks = const <CampaignCheck>[],
+  }) {
+    final DateTime now = DateTime.now();
+    final List<CampaignModuleState> inferred = <CampaignModuleState>[];
+
+    void add(final CampaignModule module, final String reason) {
+      if (inferred.any((final item) => item.module == module)) {
+        return;
+      }
+      inferred.add(
+        CampaignModuleState(
+          module: module,
+          isActive: true,
+          activationReason: reason,
+          activatedAt: now,
+        ),
+      );
+    }
+
+    if (inventory.isNotEmpty) {
+      add(CampaignModule.inventory, 'legacy_inventory');
+    }
+    if (notes.isNotEmpty) {
+      add(CampaignModule.notes, 'legacy_notes');
+    }
+    if (companions.isNotEmpty) {
+      add(CampaignModule.companions, 'legacy_companions');
+    }
+    if (resources.isNotEmpty) {
+      add(CampaignModule.resources, 'legacy_resources');
+    }
+    if (progression != null) {
+      add(CampaignModule.progression, 'legacy_progression');
+    }
+    if (checks.isNotEmpty) {
+      add(CampaignModule.checks, 'legacy_checks');
+    }
+    if (character.maxHp > 0 || character.maxEnergy > 0) {
+      add(CampaignModule.vitality, 'legacy_vitality');
+    }
+
+    return inferred;
+  }
 }
 
 class CampaignDraft {

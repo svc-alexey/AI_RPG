@@ -77,43 +77,48 @@ const CampaignRecordSchema = CollectionSchema(
       name: r'mode',
       type: IsarType.string,
     ),
-    r'objective': PropertySchema(
+    r'modulesJson': PropertySchema(
       id: 12,
+      name: r'modulesJson',
+      type: IsarType.string,
+    ),
+    r'objective': PropertySchema(
+      id: 13,
       name: r'objective',
       type: IsarType.string,
     ),
     r'questLogJson': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'questLogJson',
       type: IsarType.string,
     ),
     r'schemaVersion': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'schemaVersion',
       type: IsarType.long,
     ),
     r'setting': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'setting',
       type: IsarType.string,
     ),
     r'summary': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'summary',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'title',
       type: IsarType.string,
     ),
     r'turnNumber': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'turnNumber',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -164,6 +169,7 @@ int _campaignRecordEstimateSize(
   bytesCount += 3 + object.location.length * 3;
   bytesCount += 3 + object.memoryJson.length * 3;
   bytesCount += 3 + object.mode.length * 3;
+  bytesCount += 3 + object.modulesJson.length * 3;
   bytesCount += 3 + object.objective.length * 3;
   bytesCount += 3 + object.questLogJson.length * 3;
   bytesCount += 3 + object.setting.length * 3;
@@ -190,14 +196,15 @@ void _campaignRecordSerialize(
   writer.writeString(offsets[9], object.location);
   writer.writeString(offsets[10], object.memoryJson);
   writer.writeString(offsets[11], object.mode);
-  writer.writeString(offsets[12], object.objective);
-  writer.writeString(offsets[13], object.questLogJson);
-  writer.writeLong(offsets[14], object.schemaVersion);
-  writer.writeString(offsets[15], object.setting);
-  writer.writeString(offsets[16], object.summary);
-  writer.writeString(offsets[17], object.title);
-  writer.writeLong(offsets[18], object.turnNumber);
-  writer.writeDateTime(offsets[19], object.updatedAt);
+  writer.writeString(offsets[12], object.modulesJson);
+  writer.writeString(offsets[13], object.objective);
+  writer.writeString(offsets[14], object.questLogJson);
+  writer.writeLong(offsets[15], object.schemaVersion);
+  writer.writeString(offsets[16], object.setting);
+  writer.writeString(offsets[17], object.summary);
+  writer.writeString(offsets[18], object.title);
+  writer.writeLong(offsets[19], object.turnNumber);
+  writer.writeDateTime(offsets[20], object.updatedAt);
 }
 
 CampaignRecord _campaignRecordDeserialize(
@@ -220,14 +227,15 @@ CampaignRecord _campaignRecordDeserialize(
   object.location = reader.readString(offsets[9]);
   object.memoryJson = reader.readString(offsets[10]);
   object.mode = reader.readString(offsets[11]);
-  object.objective = reader.readString(offsets[12]);
-  object.questLogJson = reader.readString(offsets[13]);
-  object.schemaVersion = reader.readLong(offsets[14]);
-  object.setting = reader.readString(offsets[15]);
-  object.summary = reader.readString(offsets[16]);
-  object.title = reader.readString(offsets[17]);
-  object.turnNumber = reader.readLong(offsets[18]);
-  object.updatedAt = reader.readDateTime(offsets[19]);
+  object.modulesJson = reader.readString(offsets[12]);
+  object.objective = reader.readString(offsets[13]);
+  object.questLogJson = reader.readString(offsets[14]);
+  object.schemaVersion = reader.readLong(offsets[15]);
+  object.setting = reader.readString(offsets[16]);
+  object.summary = reader.readString(offsets[17]);
+  object.title = reader.readString(offsets[18]);
+  object.turnNumber = reader.readLong(offsets[19]);
+  object.updatedAt = reader.readDateTime(offsets[20]);
   return object;
 }
 
@@ -267,16 +275,18 @@ P _campaignRecordDeserializeProp<P>(
     case 13:
       return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readLong(offset)) as P;
-    case 15:
       return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readLong(offset)) as P;
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
       return (reader.readString(offset)) as P;
     case 18:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 19:
+      return (reader.readLong(offset)) as P;
+    case 20:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2168,6 +2178,142 @@ extension CampaignRecordQueryFilter
   }
 
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'modulesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'modulesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'modulesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'modulesJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'modulesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'modulesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'modulesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'modulesJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'modulesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      modulesJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'modulesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
       objectiveEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -3189,6 +3335,20 @@ extension CampaignRecordQuerySortBy
     });
   }
 
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByModulesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'modulesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByModulesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'modulesJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy> sortByObjective() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'objective', Sort.asc);
@@ -3475,6 +3635,20 @@ extension CampaignRecordQuerySortThenBy
     });
   }
 
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByModulesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'modulesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByModulesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'modulesJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy> thenByObjective() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'objective', Sort.asc);
@@ -3673,6 +3847,13 @@ extension CampaignRecordQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CampaignRecord, CampaignRecord, QDistinct> distinctByModulesJson(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'modulesJson', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CampaignRecord, CampaignRecord, QDistinct> distinctByObjective(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3815,6 +3996,12 @@ extension CampaignRecordQueryProperty
     });
   }
 
+  QueryBuilder<CampaignRecord, String, QQueryOperations> modulesJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'modulesJson');
+    });
+  }
+
   QueryBuilder<CampaignRecord, String, QQueryOperations> objectiveProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'objective');
@@ -3896,43 +4083,63 @@ const WorldStateRecordSchema = CollectionSchema(
       name: r'characterJson',
       type: IsarType.string,
     ),
-    r'choicesJson': PropertySchema(
+    r'checksJson': PropertySchema(
       id: 4,
+      name: r'checksJson',
+      type: IsarType.string,
+    ),
+    r'choicesJson': PropertySchema(
+      id: 5,
       name: r'choicesJson',
       type: IsarType.string,
     ),
     r'location': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'location',
       type: IsarType.string,
     ),
     r'memoryJson': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'memoryJson',
       type: IsarType.string,
     ),
+    r'notesJson': PropertySchema(
+      id: 8,
+      name: r'notesJson',
+      type: IsarType.string,
+    ),
     r'objective': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'objective',
       type: IsarType.string,
     ),
+    r'progressionJson': PropertySchema(
+      id: 10,
+      name: r'progressionJson',
+      type: IsarType.string,
+    ),
     r'questLogJson': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'questLogJson',
       type: IsarType.string,
     ),
+    r'resourcesJson': PropertySchema(
+      id: 12,
+      name: r'resourcesJson',
+      type: IsarType.string,
+    ),
     r'summary': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'summary',
       type: IsarType.string,
     ),
     r'turnNumber': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'turnNumber',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -3975,11 +4182,15 @@ int _worldStateRecordEstimateSize(
   bytesCount += 3 + object.activeSituation.length * 3;
   bytesCount += 3 + object.campaignId.length * 3;
   bytesCount += 3 + object.characterJson.length * 3;
+  bytesCount += 3 + object.checksJson.length * 3;
   bytesCount += 3 + object.choicesJson.length * 3;
   bytesCount += 3 + object.location.length * 3;
   bytesCount += 3 + object.memoryJson.length * 3;
+  bytesCount += 3 + object.notesJson.length * 3;
   bytesCount += 3 + object.objective.length * 3;
+  bytesCount += 3 + object.progressionJson.length * 3;
   bytesCount += 3 + object.questLogJson.length * 3;
+  bytesCount += 3 + object.resourcesJson.length * 3;
   bytesCount += 3 + object.summary.length * 3;
   return bytesCount;
 }
@@ -3994,14 +4205,18 @@ void _worldStateRecordSerialize(
   writer.writeString(offsets[1], object.activeSituation);
   writer.writeString(offsets[2], object.campaignId);
   writer.writeString(offsets[3], object.characterJson);
-  writer.writeString(offsets[4], object.choicesJson);
-  writer.writeString(offsets[5], object.location);
-  writer.writeString(offsets[6], object.memoryJson);
-  writer.writeString(offsets[7], object.objective);
-  writer.writeString(offsets[8], object.questLogJson);
-  writer.writeString(offsets[9], object.summary);
-  writer.writeLong(offsets[10], object.turnNumber);
-  writer.writeDateTime(offsets[11], object.updatedAt);
+  writer.writeString(offsets[4], object.checksJson);
+  writer.writeString(offsets[5], object.choicesJson);
+  writer.writeString(offsets[6], object.location);
+  writer.writeString(offsets[7], object.memoryJson);
+  writer.writeString(offsets[8], object.notesJson);
+  writer.writeString(offsets[9], object.objective);
+  writer.writeString(offsets[10], object.progressionJson);
+  writer.writeString(offsets[11], object.questLogJson);
+  writer.writeString(offsets[12], object.resourcesJson);
+  writer.writeString(offsets[13], object.summary);
+  writer.writeLong(offsets[14], object.turnNumber);
+  writer.writeDateTime(offsets[15], object.updatedAt);
 }
 
 WorldStateRecord _worldStateRecordDeserialize(
@@ -4015,15 +4230,19 @@ WorldStateRecord _worldStateRecordDeserialize(
   object.activeSituation = reader.readString(offsets[1]);
   object.campaignId = reader.readString(offsets[2]);
   object.characterJson = reader.readString(offsets[3]);
-  object.choicesJson = reader.readString(offsets[4]);
+  object.checksJson = reader.readString(offsets[4]);
+  object.choicesJson = reader.readString(offsets[5]);
   object.id = id;
-  object.location = reader.readString(offsets[5]);
-  object.memoryJson = reader.readString(offsets[6]);
-  object.objective = reader.readString(offsets[7]);
-  object.questLogJson = reader.readString(offsets[8]);
-  object.summary = reader.readString(offsets[9]);
-  object.turnNumber = reader.readLong(offsets[10]);
-  object.updatedAt = reader.readDateTime(offsets[11]);
+  object.location = reader.readString(offsets[6]);
+  object.memoryJson = reader.readString(offsets[7]);
+  object.notesJson = reader.readString(offsets[8]);
+  object.objective = reader.readString(offsets[9]);
+  object.progressionJson = reader.readString(offsets[10]);
+  object.questLogJson = reader.readString(offsets[11]);
+  object.resourcesJson = reader.readString(offsets[12]);
+  object.summary = reader.readString(offsets[13]);
+  object.turnNumber = reader.readLong(offsets[14]);
+  object.updatedAt = reader.readDateTime(offsets[15]);
   return object;
 }
 
@@ -4055,8 +4274,16 @@ P _worldStateRecordDeserializeProp<P>(
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 11:
+      return (reader.readString(offset)) as P;
+    case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
+      return (reader.readLong(offset)) as P;
+    case 15:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4804,6 +5031,142 @@ extension WorldStateRecordQueryFilter
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'checksJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'checksJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'checksJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'checksJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'checksJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'checksJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'checksJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'checksJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'checksJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      checksJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'checksJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
       choicesJsonEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -5268,6 +5631,142 @@ extension WorldStateRecordQueryFilter
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'notesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'notesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'notesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'notesJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'notesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'notesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'notesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'notesJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'notesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      notesJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'notesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
       objectiveEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -5404,6 +5903,142 @@ extension WorldStateRecordQueryFilter
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'progressionJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'progressionJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'progressionJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'progressionJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'progressionJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'progressionJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'progressionJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'progressionJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'progressionJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      progressionJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'progressionJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
       questLogJsonEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -5534,6 +6169,142 @@ extension WorldStateRecordQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'questLogJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resourcesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resourcesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resourcesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resourcesJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resourcesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resourcesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resourcesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resourcesJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resourcesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterFilterCondition>
+      resourcesJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resourcesJson',
         value: '',
       ));
     });
@@ -5853,6 +6624,20 @@ extension WorldStateRecordQuerySortBy
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByChecksJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checksJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByChecksJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checksJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
       sortByChoicesJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'choicesJson', Sort.asc);
@@ -5895,6 +6680,20 @@ extension WorldStateRecordQuerySortBy
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByNotesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'notesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByNotesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'notesJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
       sortByObjective() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'objective', Sort.asc);
@@ -5909,6 +6708,20 @@ extension WorldStateRecordQuerySortBy
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByProgressionJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'progressionJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByProgressionJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'progressionJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
       sortByQuestLogJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'questLogJson', Sort.asc);
@@ -5919,6 +6732,20 @@ extension WorldStateRecordQuerySortBy
       sortByQuestLogJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'questLogJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByResourcesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resourcesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      sortByResourcesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resourcesJson', Sort.desc);
     });
   }
 
@@ -6024,6 +6851,20 @@ extension WorldStateRecordQuerySortThenBy
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByChecksJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checksJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByChecksJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checksJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
       thenByChoicesJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'choicesJson', Sort.asc);
@@ -6079,6 +6920,20 @@ extension WorldStateRecordQuerySortThenBy
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByNotesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'notesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByNotesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'notesJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
       thenByObjective() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'objective', Sort.asc);
@@ -6093,6 +6948,20 @@ extension WorldStateRecordQuerySortThenBy
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByProgressionJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'progressionJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByProgressionJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'progressionJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
       thenByQuestLogJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'questLogJson', Sort.asc);
@@ -6103,6 +6972,20 @@ extension WorldStateRecordQuerySortThenBy
       thenByQuestLogJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'questLogJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByResourcesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resourcesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QAfterSortBy>
+      thenByResourcesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resourcesJson', Sort.desc);
     });
   }
 
@@ -6182,6 +7065,13 @@ extension WorldStateRecordQueryWhereDistinct
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
+      distinctByChecksJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'checksJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
       distinctByChoicesJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'choicesJson', caseSensitive: caseSensitive);
@@ -6203,6 +7093,13 @@ extension WorldStateRecordQueryWhereDistinct
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
+      distinctByNotesJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'notesJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
       distinctByObjective({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'objective', caseSensitive: caseSensitive);
@@ -6210,9 +7107,25 @@ extension WorldStateRecordQueryWhereDistinct
   }
 
   QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
+      distinctByProgressionJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'progressionJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
       distinctByQuestLogJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'questLogJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, WorldStateRecord, QDistinct>
+      distinctByResourcesJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resourcesJson',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -6275,6 +7188,13 @@ extension WorldStateRecordQueryProperty
   }
 
   QueryBuilder<WorldStateRecord, String, QQueryOperations>
+      checksJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'checksJson');
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, String, QQueryOperations>
       choicesJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'choicesJson');
@@ -6294,6 +7214,12 @@ extension WorldStateRecordQueryProperty
     });
   }
 
+  QueryBuilder<WorldStateRecord, String, QQueryOperations> notesJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'notesJson');
+    });
+  }
+
   QueryBuilder<WorldStateRecord, String, QQueryOperations> objectiveProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'objective');
@@ -6301,9 +7227,23 @@ extension WorldStateRecordQueryProperty
   }
 
   QueryBuilder<WorldStateRecord, String, QQueryOperations>
+      progressionJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'progressionJson');
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, String, QQueryOperations>
       questLogJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'questLogJson');
+    });
+  }
+
+  QueryBuilder<WorldStateRecord, String, QQueryOperations>
+      resourcesJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resourcesJson');
     });
   }
 

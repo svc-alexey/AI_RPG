@@ -20,6 +20,7 @@ class CampaignRecord {
   late DateTime updatedAt;
   late String characterJson;
   late String memoryJson;
+  late String modulesJson;
   late String inventoryJson;
   late String questLogJson;
   late String choicesJson;
@@ -47,6 +48,10 @@ class WorldStateRecord {
   late String activeGoal;
   late String activeSituation;
   late String memoryJson;
+  late String notesJson;
+  late String resourcesJson;
+  late String progressionJson;
+  late String checksJson;
   late DateTime updatedAt;
 }
 

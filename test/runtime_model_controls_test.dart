@@ -139,7 +139,7 @@ void main() {
 
 CampaignState _sampleCampaign() => CampaignState(
   id: 'runtime-campaign',
-  schemaVersion: 2,
+  schemaVersion: 3,
   title: 'Whispers Under Glass',
   setting: CampaignSetting.detective,
   mode: StoryMode.longCampaign,
@@ -173,6 +173,23 @@ CampaignState _sampleCampaign() => CampaignState(
       ),
     ),
   ),
+  modules: const <CampaignModuleState>[
+    CampaignModuleState(
+      module: CampaignModule.inventory,
+      isActive: true,
+      activationReason: 'test',
+    ),
+    CampaignModuleState(
+      module: CampaignModule.notes,
+      isActive: true,
+      activationReason: 'test',
+    ),
+    CampaignModuleState(
+      module: CampaignModule.vitality,
+      isActive: true,
+      activationReason: 'test',
+    ),
+  ],
   inventory: const <String>[
     'Badge',
     'Recorder',
@@ -181,12 +198,15 @@ CampaignState _sampleCampaign() => CampaignState(
     'Map shard',
     'Signal jammer',
   ],
-  questLog: const <String>[
+  companions: const <CampaignCompanion>[],
+  notes: const <String>[
     'Reach the station',
     'Decode the note',
     'Avoid the patrols',
     'Find the broker',
   ],
+  resources: const <CampaignResource>[],
+  progression: null,
   messages: const <ChatMessage>[],
   choices: const <String>['Ask around', 'Hide', 'Run'],
   updatedAt: DateTime(2026, 3, 20, 12),

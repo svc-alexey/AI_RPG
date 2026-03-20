@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
@@ -25,6 +27,9 @@ class ChatViewState {
     required this.status,
     required this.pendingPlayerMessage,
     required this.pendingNarratorMessage,
+    required this.transientNotifications,
+    required this.highlightedModules,
+    required this.newlyUnlockedModules,
     required this.clearInputRevision,
   });
 
@@ -36,6 +41,9 @@ class ChatViewState {
       status = null,
       pendingPlayerMessage = null,
       pendingNarratorMessage = null,
+      transientNotifications = const <StateChangeNotification>[],
+      highlightedModules = const <CampaignModule>[],
+      newlyUnlockedModules = const <CampaignModule>[],
       clearInputRevision = 0;
 
   static const Object _unset = Object();
@@ -47,6 +55,9 @@ class ChatViewState {
   final String? status;
   final ChatMessage? pendingPlayerMessage;
   final ChatMessage? pendingNarratorMessage;
+  final List<StateChangeNotification> transientNotifications;
+  final List<CampaignModule> highlightedModules;
+  final List<CampaignModule> newlyUnlockedModules;
   final int clearInputRevision;
 
   List<ChatMessage> get visibleMessages {
@@ -68,6 +79,9 @@ class ChatViewState {
     final Object? status = _unset,
     final Object? pendingPlayerMessage = _unset,
     final Object? pendingNarratorMessage = _unset,
+    final List<StateChangeNotification>? transientNotifications,
+    final List<CampaignModule>? highlightedModules,
+    final List<CampaignModule>? newlyUnlockedModules,
     final int? clearInputRevision,
   }) => ChatViewState(
     isLoading: isLoading ?? this.isLoading,
@@ -83,6 +97,10 @@ class ChatViewState {
     pendingNarratorMessage: identical(pendingNarratorMessage, _unset)
         ? this.pendingNarratorMessage
         : pendingNarratorMessage as ChatMessage?,
+    transientNotifications:
+        transientNotifications ?? this.transientNotifications,
+    highlightedModules: highlightedModules ?? this.highlightedModules,
+    newlyUnlockedModules: newlyUnlockedModules ?? this.newlyUnlockedModules,
     clearInputRevision: clearInputRevision ?? this.clearInputRevision,
   );
 }
@@ -95,6 +113,7 @@ class ChatController extends StateNotifier<ChatViewState> {
   final String _campaignId;
 
   CancelToken? _cancelToken;
+  Timer? _notificationTimer;
   bool _didLoad = false;
   bool _disposed = false;
 
@@ -115,6 +134,7 @@ class ChatController extends StateNotifier<ChatViewState> {
   void dispose() {
     _disposed = true;
     _cancelToken?.cancel();
+    _notificationTimer?.cancel();
     super.dispose();
   }
 
@@ -217,30 +237,40 @@ class ChatController extends StateNotifier<ChatViewState> {
         cancelToken: cancelToken,
       );
 
-      final CampaignState nextState = suggestionsOnly
-          ? campaign.copyWith(
-              choices: result.choices,
-              memory: campaign.memory.copyWith(
-                activeSituation: result.narration,
-              ),
-              updatedAt: DateTime.now(),
-            )
-          : _gameEngine.applyTurn(
-              language: language,
-              state: campaign,
-              playerAction: trimmedAction,
-              result: result,
-              contextWindowSize: settings.contextWindowSize,
-            );
+      final TurnApplicationResult turnApplication;
+      if (suggestionsOnly) {
+        final CampaignState nextState = campaign.copyWith(
+          choices: result.choices,
+          memory: campaign.memory.copyWith(activeSituation: result.narration),
+          updatedAt: DateTime.now(),
+        );
+        turnApplication = TurnApplicationResult(
+          state: nextState,
+          notifications: const <StateChangeNotification>[],
+        );
+      } else {
+        turnApplication = _gameEngine.applyTurn(
+          language: language,
+          state: campaign,
+          playerAction: trimmedAction,
+          result: result,
+          contextWindowSize: settings.contextWindowSize,
+        );
+      }
 
-      await _campaignRepository.saveCampaign(nextState);
+      await _campaignRepository.saveCampaign(turnApplication.state);
 
       if (_disposed) {
         return;
       }
 
+      _showTransientNotifications(
+        notifications: turnApplication.notifications,
+        previousCampaign: campaign,
+        nextCampaign: turnApplication.state,
+      );
       state = state.copyWith(
-        campaign: nextState,
+        campaign: turnApplication.state,
         settings: settings,
         isSending: false,
         pendingPlayerMessage: null,
@@ -344,5 +374,202 @@ class ChatController extends StateNotifier<ChatViewState> {
       pendingPlayerMessage: null,
       pendingNarratorMessage: null,
     );
+  }
+
+  void _showTransientNotifications({
+    required final List<StateChangeNotification> notifications,
+    required final CampaignState previousCampaign,
+    required final CampaignState nextCampaign,
+  }) {
+    _notificationTimer?.cancel();
+    final List<CampaignModule> highlightedModules = _deriveHighlightedModules(
+      previousCampaign: previousCampaign,
+      nextCampaign: nextCampaign,
+    );
+    final List<CampaignModule> newlyUnlockedModules =
+        _deriveNewlyUnlockedModules(
+          previousCampaign: previousCampaign,
+          nextCampaign: nextCampaign,
+        );
+    final bool hasVisualFeedback =
+        notifications.isNotEmpty || highlightedModules.isNotEmpty;
+    if (_disposed || !hasVisualFeedback) {
+      if (!_disposed) {
+        state = state.copyWith(
+          transientNotifications: const <StateChangeNotification>[],
+          highlightedModules: const <CampaignModule>[],
+          newlyUnlockedModules: const <CampaignModule>[],
+        );
+      }
+      return;
+    }
+
+    state = state.copyWith(
+      transientNotifications: notifications.take(2).toList(),
+      highlightedModules: highlightedModules,
+      newlyUnlockedModules: newlyUnlockedModules,
+    );
+    _notificationTimer = Timer(const Duration(seconds: 3), () {
+      if (_disposed) {
+        return;
+      }
+      state = state.copyWith(
+        transientNotifications: const <StateChangeNotification>[],
+        highlightedModules: const <CampaignModule>[],
+        newlyUnlockedModules: const <CampaignModule>[],
+      );
+    });
+  }
+
+  List<CampaignModule> _deriveHighlightedModules({
+    required final CampaignState previousCampaign,
+    required final CampaignState nextCampaign,
+  }) {
+    final List<CampaignModule> highlighted = <CampaignModule>[];
+
+    void addIfChanged(final CampaignModule module, final bool changed) {
+      if (changed && !highlighted.contains(module)) {
+        highlighted.add(module);
+      }
+    }
+
+    addIfChanged(
+      CampaignModule.vitality,
+      previousCampaign.character.hp != nextCampaign.character.hp ||
+          previousCampaign.character.energy != nextCampaign.character.energy,
+    );
+    addIfChanged(
+      CampaignModule.inventory,
+      !_sameStringList(previousCampaign.inventory, nextCampaign.inventory),
+    );
+    addIfChanged(
+      CampaignModule.notes,
+      !_sameStringList(previousCampaign.notes, nextCampaign.notes),
+    );
+    addIfChanged(
+      CampaignModule.companions,
+      !_sameCompanionList(previousCampaign.companions, nextCampaign.companions),
+    );
+    addIfChanged(
+      CampaignModule.resources,
+      !_sameResourceList(previousCampaign.resources, nextCampaign.resources),
+    );
+    addIfChanged(
+      CampaignModule.progression,
+      !_sameProgression(previousCampaign.progression, nextCampaign.progression),
+    );
+    addIfChanged(
+      CampaignModule.checks,
+      !_sameCheckList(previousCampaign.checks, nextCampaign.checks),
+    );
+
+    return highlighted;
+  }
+
+  List<CampaignModule> _deriveNewlyUnlockedModules({
+    required final CampaignState previousCampaign,
+    required final CampaignState nextCampaign,
+  }) {
+    final List<CampaignModule> unlocked = <CampaignModule>[];
+    for (final CampaignModule module in nextCampaign.activeModules) {
+      if (!previousCampaign.isModuleActive(module)) {
+        unlocked.add(module);
+      }
+    }
+    return unlocked;
+  }
+
+  bool _sameStringList(final List<String> left, final List<String> right) {
+    if (identical(left, right)) {
+      return true;
+    }
+    if (left.length != right.length) {
+      return false;
+    }
+    for (int index = 0; index < left.length; index += 1) {
+      if (left[index] != right[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _sameCompanionList(
+    final List<CampaignCompanion> left,
+    final List<CampaignCompanion> right,
+  ) {
+    if (identical(left, right)) {
+      return true;
+    }
+    if (left.length != right.length) {
+      return false;
+    }
+    for (int index = 0; index < left.length; index += 1) {
+      if (left[index].id != right[index].id ||
+          left[index].name != right[index].name ||
+          left[index].status != right[index].status ||
+          left[index].notes != right[index].notes) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _sameResourceList(
+    final List<CampaignResource> left,
+    final List<CampaignResource> right,
+  ) {
+    if (identical(left, right)) {
+      return true;
+    }
+    if (left.length != right.length) {
+      return false;
+    }
+    for (int index = 0; index < left.length; index += 1) {
+      if (left[index].id != right[index].id ||
+          left[index].label != right[index].label ||
+          left[index].value != right[index].value ||
+          left[index].maxValue != right[index].maxValue) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _sameProgression(
+    final CampaignProgression? left,
+    final CampaignProgression? right,
+  ) {
+    if (left == null || right == null) {
+      return left == right;
+    }
+    return left.level == right.level &&
+        left.experience == right.experience &&
+        left.rank == right.rank;
+  }
+
+  bool _sameCheckList(
+    final List<CampaignCheck> left,
+    final List<CampaignCheck> right,
+  ) {
+    if (identical(left, right)) {
+      return true;
+    }
+    if (left.length != right.length) {
+      return false;
+    }
+    for (int index = 0; index < left.length; index += 1) {
+      if (left[index].id != right[index].id ||
+          left[index].label != right[index].label ||
+          left[index].summary != right[index].summary ||
+          left[index].outcome != right[index].outcome ||
+          left[index].stat != right[index].stat ||
+          left[index].difficulty != right[index].difficulty ||
+          left[index].roll != right[index].roll ||
+          left[index].total != right[index].total) {
+        return false;
+      }
+    }
+    return true;
   }
 }

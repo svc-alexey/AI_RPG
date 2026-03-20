@@ -8,6 +8,7 @@ import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart'
     show AiClient, CancelToken;
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/random_story_prompt_generator.dart';
@@ -39,6 +40,7 @@ class NewGameViewState {
     required this.isGenerating,
     required this.aiConfigured,
     required this.characterProfile,
+    required this.plannedModules,
     required this.formRevision,
   });
 
@@ -58,6 +60,7 @@ class NewGameViewState {
       isGenerating = false,
       aiConfigured = false,
       characterProfile = null,
+      plannedModules = const <CampaignModuleState>[],
       formRevision = 0;
 
   final String heroName;
@@ -75,6 +78,7 @@ class NewGameViewState {
   final bool isGenerating;
   final bool aiConfigured;
   final CharacterProfile? characterProfile;
+  final List<CampaignModuleState> plannedModules;
   final int formRevision;
 
   NewGameViewState copyWith({
@@ -93,6 +97,7 @@ class NewGameViewState {
     final bool? isGenerating,
     final bool? aiConfigured,
     final CharacterProfile? characterProfile,
+    final List<CampaignModuleState>? plannedModules,
     final int? formRevision,
   }) => NewGameViewState(
     heroName: heroName ?? this.heroName,
@@ -110,16 +115,21 @@ class NewGameViewState {
     isGenerating: isGenerating ?? this.isGenerating,
     aiConfigured: aiConfigured ?? this.aiConfigured,
     characterProfile: characterProfile ?? this.characterProfile,
+    plannedModules: plannedModules ?? this.plannedModules,
     formRevision: formRevision ?? this.formRevision,
   );
 }
 
 class NewGameController extends StateNotifier<NewGameViewState> {
-  NewGameController(this._ref) : super(const NewGameViewState.initial());
+  NewGameController(this._ref) : super(const NewGameViewState.initial()) {
+    _refreshPlannedModules();
+  }
 
   final Ref _ref;
 
   static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
+  static const CampaignModuleResolver _moduleResolver =
+      CampaignModuleResolver();
   static const RandomStoryPromptGenerator _storyPromptGenerator =
       RandomStoryPromptGenerator();
 
@@ -134,6 +144,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
     final AiSettings settings = await _settingsRepository.loadAiSettings();
     state = state.copyWith(aiConfigured: settings.isConfigured);
+    _refreshPlannedModules();
   }
 
   AppLanguage get language => _ref.read(appLanguageListenableProvider).value;
@@ -180,10 +191,12 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   void setStoryWish(final String value) {
     state = state.copyWith(storyWish: value);
+    _refreshPlannedModules();
   }
 
   void setCustomStoryPrompt(final String value) {
     state = state.copyWith(customStoryPrompt: value);
+    _refreshPlannedModules();
   }
 
   void setCharacterPrompt(final String value) {
@@ -193,6 +206,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         promptFragment: value,
       ),
     );
+    _refreshPlannedModules();
   }
 
   void setPersonality(final String value) {
@@ -202,6 +216,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         personality: value,
       ),
     );
+    _refreshPlannedModules();
   }
 
   void setSetting(final CampaignSetting newSetting) {
@@ -221,6 +236,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     }
 
     state = state.copyWith(setting: newSetting, characterProfile: profile);
+    _refreshPlannedModules();
   }
 
   void setStoryMode(final StoryMode value) {
@@ -266,6 +282,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       gender: random.gender,
       formRevision: state.formRevision + 1,
     );
+    _refreshPlannedModules();
   }
 
   Future<void> generatePrompts() async {
@@ -292,6 +309,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
             : state.characterPrompt,
         formRevision: state.formRevision + 1,
       );
+      _refreshPlannedModules();
     } catch (_) {
       // Intentionally keep the screen quiet on generation errors for now.
     } finally {
@@ -394,6 +412,30 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       state.heroName.trim().isEmpty
       ? (language == AppLanguage.ru ? 'РЎС‚СЂР°РЅРЅРёРє' : 'Wayfarer')
       : state.heroName.trim();
+
+  void _refreshPlannedModules() {
+    final CharacterProfile profile =
+        state.characterProfile ?? _defaultCharacterProfile();
+    final String storyPrompt = state.customStoryPrompt.trim().isEmpty
+        ? state.storyWish.trim()
+        : state.customStoryPrompt.trim();
+    final List<CampaignModuleState> planned = _moduleResolver
+        .resolveInitialModules(
+          draft: CampaignDraft(
+            setting: state.setting,
+            mode: state.storyMode,
+            difficulty: state.difficulty,
+            heroName: state.heroName.trim(),
+            storyWish: state.storyWish.trim(),
+            customStoryPrompt: storyPrompt,
+            characterProfile: profile.copyWith(
+              promptFragment: state.characterPrompt.trim(),
+              personality: state.personality.trim(),
+            ),
+          ),
+        );
+    state = state.copyWith(plannedModules: planned);
+  }
 
   SettingsRepository get _settingsRepository =>
       _ref.read(settingsRepositoryProvider);

@@ -552,6 +552,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     required final NewGameViewState state,
   }) {
     final CharacterProfile? profile = state.characterProfile;
+    final List<CampaignModuleState> plannedModules = state.plannedModules;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,9 +607,56 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                   icon: Icons.badge_outlined,
                 ),
               ],
+              if (plannedModules.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 12),
+                _ReviewItem(
+                  label: l10n.activeSystemsTitle,
+                  value: plannedModules
+                      .map(
+                        (final item) => l10n.campaignModuleLabel(item.module),
+                      )
+                      .join(' • '),
+                  icon: Icons.widgets_outlined,
+                ),
+              ],
             ],
           ),
         ),
+        if (plannedModules.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: plannedModules
+                .map(
+                  (final item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Chip(
+                          label: Text(l10n.campaignModuleLabel(item.module)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              l10n.campaignModuleReasonLabel(
+                                item.activationReason,
+                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AetherPalette.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
         const SizedBox(height: 24),
         Text(
           l10n.readyToStart,
