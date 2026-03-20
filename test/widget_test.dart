@@ -12,6 +12,7 @@ import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
@@ -419,6 +420,7 @@ class _ThrowingAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -448,6 +450,7 @@ class _StreamingAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {

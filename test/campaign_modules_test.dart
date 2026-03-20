@@ -8,6 +8,7 @@ import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
@@ -320,8 +321,8 @@ void main() {
     },
   );
 
-  test('EntityExtractionService unlocks checks from story', () {
-    const EntityExtractionService service = EntityExtractionService();
+  test('GameEngine resolves deterministic checks on the client', () {
+    const GameEngine engine = GameEngine();
     final CampaignState state = CampaignState(
       id: 'camp-checks',
       schemaVersion: 3,
@@ -350,7 +351,7 @@ void main() {
       ),
       modules: const <CampaignModuleState>[
         CampaignModuleState(
-          module: CampaignModule.notes,
+          module: CampaignModule.checks,
           isActive: true,
           activationReason: 'test',
         ),
@@ -365,30 +366,50 @@ void main() {
       updatedAt: DateTime(2026, 3, 20, 12),
     );
 
-    final ReconciliationResult result = service.reconcile(
+    final DeterministicTurnContext firstContext = engine
+        .resolveDeterministicTurn(
+          language: AppLanguage.en,
+          state: state,
+          playerAction: 'Pick the ancient lock carefully',
+        );
+    final DeterministicTurnContext secondContext = engine
+        .resolveDeterministicTurn(
+          language: AppLanguage.en,
+          state: state,
+          playerAction: 'Pick the ancient lock carefully',
+        );
+
+    expect(firstContext.resolvedCheck, isNotNull);
+    expect(firstContext.resolvedCheck?.roll, secondContext.resolvedCheck?.roll);
+
+    final TurnApplicationResult applied = engine.applyTurn(
+      language: AppLanguage.en,
       state: state,
+      playerAction: 'Pick the ancient lock carefully',
       result: const TurnResult(
-        narration: 'You make a Wit check: 14 vs DC 12 and succeed.',
+        narration: 'The lock answers your touch with a reluctant click.',
         choices: <String>['Open the vault'],
         stateChanges: StateChanges.empty(),
-        memoryEntry: 'Wit check passed at 14 vs DC 12.',
+        memoryEntry: 'The vault lock gives way.',
       ),
-      language: AppLanguage.en,
+      contextWindowSize: 1536,
+      deterministicContext: firstContext,
     );
 
+    expect(applied.state.checks, hasLength(1));
     expect(
-      result.modules.any((final item) => item.module == CampaignModule.checks),
-      isTrue,
+      applied.state.checks.single.summary,
+      firstContext.resolvedCheck!.summary,
     );
-    expect(result.checks, hasLength(1));
-    expect(result.checks.single.outcome, CampaignCheckOutcome.success);
-    expect(result.checks.single.total, 14);
-    expect(result.checks.single.difficulty, 12);
     expect(
-      result.notifications.any(
+      applied.notifications.any(
         (final item) => item.kind == StateChangeNotificationKind.checkResolved,
       ),
       isTrue,
+    );
+    expect(
+      applied.state.memory.recentTurns.last.stateHint,
+      contains('Wit check'),
     );
   });
 
@@ -465,6 +486,93 @@ void main() {
     expect(find.text('Active system'), findsWidgets);
     expect(find.text('Inventory'), findsNothing);
     expect(find.text('Vitality'), findsNothing);
+  });
+
+  testWidgets('Detective campaigns keep irrelevant RPG chrome hidden', (
+    tester,
+  ) async {
+    final CampaignState campaign = CampaignState(
+      id: 'detective-gating',
+      schemaVersion: 3,
+      title: 'Paper Trail',
+      setting: CampaignSetting.detective,
+      mode: StoryMode.longCampaign,
+      difficulty: DifficultyLevel.medium,
+      character: const CharacterStats(
+        name: 'Iris',
+        hp: 12,
+        maxHp: 12,
+        energy: 8,
+        maxEnergy: 8,
+        might: 2,
+        wit: 4,
+        spirit: 3,
+      ),
+      location: 'Archive block',
+      objective: 'Find the forged ledger',
+      turnNumber: 4,
+      memory: const CampaignMemory(
+        rollingSummary: 'Iris followed the forger into the archive block.',
+        activeGoal: 'Find the forged ledger',
+        activeSituation: 'Dust and whispers cling to the old records room.',
+        recentTurns: <RecentTurnSummary>[],
+      ),
+      modules: const <CampaignModuleState>[
+        CampaignModuleState(
+          module: CampaignModule.notes,
+          isActive: true,
+          activationReason: 'test',
+        ),
+      ],
+      inventory: const <String>[],
+      companions: const <CampaignCompanion>[],
+      notes: const <String>['The forger used archive access'],
+      resources: const <CampaignResource>[],
+      progression: null,
+      messages: <ChatMessage>[
+        ChatMessage(
+          id: 'n1',
+          role: ChatRole.narrator,
+          text: 'Rows of ledgers disappear into the shadows.',
+          createdAt: DateTime(2026, 3, 20, 10),
+        ),
+      ],
+      choices: const <String>[],
+      updatedAt: DateTime(2026, 3, 20, 10, 5),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: buildAppProviderOverrides(
+          settingsRepository: _FakeConfiguredSettingsRepository(),
+          campaignRepository: _MutableCampaignRepository(campaign),
+          aiServiceFactory: _FakeAiServiceFactory(
+            const _DetectiveChromeAiClient(),
+          ),
+          gameEngine: const GameEngine(),
+          appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+        ),
+        child: const AppLocalizationsScope(
+          localizations: AppLocalizations(AppLanguage.en),
+          child: MaterialApp(home: ChatScreen(campaignId: 'detective-gating')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Search the forged ledger');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Notes'), findsWidgets);
+    expect(
+      find.textContaining('Note: Ledger confirms the forged entries'),
+      findsOneWidget,
+    );
+    expect(find.text('Inventory'), findsNothing);
+    expect(find.text('Vitality'), findsNothing);
+    expect(find.text('Resources'), findsNothing);
   });
 
   testWidgets('Chat shows transient state-change overlays after a turn', (
@@ -631,7 +739,7 @@ void main() {
     expect(find.text('Updated'), findsNothing);
   });
 
-  testWidgets('Chat shows extracted checks in sidebar after a turn', (
+  testWidgets('Chat shows client-resolved checks in sidebar after a turn', (
     tester,
   ) async {
     final CampaignState campaign = CampaignState(
@@ -662,7 +770,7 @@ void main() {
       ),
       modules: const <CampaignModuleState>[
         CampaignModuleState(
-          module: CampaignModule.notes,
+          module: CampaignModule.checks,
           isActive: true,
           activationReason: 'test',
         ),
@@ -707,7 +815,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Checks'), findsWidgets);
-    expect(find.textContaining('Wit check succeeded'), findsWidgets);
+    expect(find.textContaining('Wit check'), findsWidgets);
   });
 }
 
@@ -776,6 +884,7 @@ class _OverlayAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -819,6 +928,7 @@ class _NotesOnlyAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -862,14 +972,61 @@ class _ChecksAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
     const TurnResult result = TurnResult(
-      narration: 'You make a Wit check: 14 vs DC 12 and succeed.',
+      narration:
+          'You test the lock and the mechanism answers with a harsh click.',
       choices: <String>['Open the vault'],
       stateChanges: StateChanges.empty(),
-      memoryEntry: 'Wit check passed at 14 vs DC 12.',
+      memoryEntry: 'The vault lock reacts to your attempt.',
+    );
+    onNarrationDelta?.call(result.narration);
+    return result;
+  }
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+    final CancelToken? cancelToken,
+  }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+}
+
+class _DetectiveChromeAiClient implements AiClient {
+  const _DetectiveChromeAiClient();
+
+  @override
+  Future<void> checkConnection({required final AiSettings settings}) async {}
+
+  @override
+  Future<TurnResult> generateTurn({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final NarrationDeltaCallback? onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) async {
+    const TurnResult result = TurnResult(
+      narration:
+          'You find the forged ledger tucked behind the municipal tax books.',
+      choices: <String>['Read the ledger'],
+      stateChanges: StateChanges(
+        hpDelta: -2,
+        energyDelta: -1,
+        inventoryAdd: <String>['Forged ledger'],
+        inventoryRemove: <String>[],
+        questNote: 'Ledger confirms the forged entries',
+        location: '',
+      ),
+      memoryEntry: 'Clue: Ledger confirms the forged entries.',
     );
     onNarrationDelta?.call(result.narration);
     return result;

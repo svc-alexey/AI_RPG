@@ -75,11 +75,11 @@ The project has already completed several post-MVP layers:
 
 ## Next step
 
-The next fully open stage in the implementation plan is `Stage 8: promo campaign launch`.
+The next fully open stage in the implementation plan is `Stage 8: deterministic systems and implementation finish`.
 
-In parallel, one important gameplay backlog item is still open: deterministic checks via a local `DiceEngine` for the active `Checks` module.
+That stage consolidates the remaining implementation work into one place: deterministic checks via a local `DiceEngine`, long-session stability, final settings/runtime UX validation, and readiness for the next product layer.
 
 At this point the project is past the original MVP and has already completed the major world-state, adaptive UI, and visual redesign layers. The remaining plan items are mostly:
 
-1. Promo-launch preparation and execution tasks from `Stage 8`.
-2. Deterministic gameplay checks and related expected-result items in the engine/module backlogs.
+1. Deterministic gameplay checks and client-resolved outcomes.
+2. Final implementation validation for long campaigns, adaptive chrome, settings UX, and cross-platform readiness.

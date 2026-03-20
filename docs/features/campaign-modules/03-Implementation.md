@@ -47,11 +47,11 @@
 
 ### Phase 5. Deterministic systems
 
-- [ ] Attach a local `DiceEngine` to the `Checks` module
-- [ ] Restrict roll/combat reducers to active deterministic modules
-- [ ] Update the prompt contract so AI narrates resolved outcomes
+- [x] Attach a local `DiceEngine` to the `Checks` module
+- [x] Restrict roll reducers to active deterministic modules
+- [x] Update the prompt contract so AI narrates resolved outcomes
 
 ## Notes
 
-- The current `Checks` implementation stores extracted recent check history and unlocks the module safely, but it does not yet resolve rolls deterministically.
-- That makes `Stage 7` the next primary implementation target.
+- The `Checks` implementation now resolves deterministic outcomes on the client and passes them to the model as fixed context.
+- Deeper authored combat rules still remain future work, but the Stage 7 deterministic foundation is now in place.

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 
 /// Token for cancelling an in-flight AI request.
 class CancelToken {
@@ -40,6 +41,7 @@ abstract class AiClient {
     required CampaignState state,
     required String playerAction,
     required bool suggestionsOnly,
+    required DeterministicTurnContext deterministicContext,
     NarrationDeltaCallback? onNarrationDelta,
     CancelToken? cancelToken,
   });

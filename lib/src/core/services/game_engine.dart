@@ -3,6 +3,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 
 class GameEngine {
@@ -12,6 +13,8 @@ class GameEngine {
   static const CampaignModuleResolver _moduleResolver =
       CampaignModuleResolver();
   static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
+  static const DeterministicCheckService _deterministicCheckService =
+      DeterministicCheckService();
   static const EntityExtractionService _entityExtractionService =
       EntityExtractionService();
 
@@ -134,10 +137,17 @@ class GameEngine {
     required final String playerAction,
     required final TurnResult result,
     required final int contextWindowSize,
+    final DeterministicTurnContext deterministicContext =
+        const DeterministicTurnContext.none(),
   }) {
     final DateTime now = DateTime.now();
     final ReconciliationResult reconciliation = _entityExtractionService
-        .reconcile(state: state, result: result, language: language);
+        .reconcile(
+          state: state,
+          result: result,
+          language: language,
+          resolvedCheck: deterministicContext.resolvedCheck,
+        );
 
     final String location = result.stateChanges.location.trim().isNotEmpty
         ? result.stateChanges.location.trim()
@@ -193,6 +203,7 @@ class GameEngine {
         result: result,
         playerAction: playerAction,
         contextWindowSize: contextWindowSize,
+        resolvedCheck: deterministicContext.resolvedCheck,
       ),
       updatedAt: now,
     );
@@ -220,6 +231,16 @@ class GameEngine {
 
     return state.copyWith(messages: messages, updatedAt: now);
   }
+
+  DeterministicTurnContext resolveDeterministicTurn({
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+  }) => _deterministicCheckService.resolve(
+    state: state,
+    playerAction: playerAction,
+    language: language,
+  );
 
   static bool _isModuleActive(
     final List<CampaignModuleState> modules,

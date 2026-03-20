@@ -10,6 +10,7 @@ import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart'
     show AiCancelException, AiClient, AiTurnException, CancelToken;
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -195,6 +196,16 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
+    final AppLanguage language = _appLanguage;
+    final DeterministicTurnContext deterministicContext =
+        suggestionsOnly || isIntro
+        ? const DeterministicTurnContext.none()
+        : _gameEngine.resolveDeterministicTurn(
+            language: language,
+            state: campaign,
+            playerAction: trimmedAction,
+          );
+
     final CancelToken cancelToken = CancelToken();
     final DateTime now = DateTime.now();
     _cancelToken = cancelToken;
@@ -221,7 +232,6 @@ class ChatController extends StateNotifier<ChatViewState> {
     );
 
     try {
-      final AppLanguage language = _appLanguage;
       final AiSettings settings = await _settingsRepository.loadAiSettings();
       final AiClient client = _aiServiceFactory.create(settings);
       final TurnResult result = await client.generateTurn(
@@ -230,6 +240,7 @@ class ChatController extends StateNotifier<ChatViewState> {
         state: campaign,
         playerAction: trimmedAction,
         suggestionsOnly: suggestionsOnly,
+        deterministicContext: deterministicContext,
         onNarrationDelta: suggestionsOnly
             ? null
             : (final narration) =>
@@ -255,6 +266,7 @@ class ChatController extends StateNotifier<ChatViewState> {
           playerAction: trimmedAction,
           result: result,
           contextWindowSize: settings.contextWindowSize,
+          deterministicContext: deterministicContext,
         );
       }
 

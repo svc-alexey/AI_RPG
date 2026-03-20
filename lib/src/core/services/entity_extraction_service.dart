@@ -8,6 +8,7 @@ class EntityExtractionService {
     required final CampaignState state,
     required final TurnResult result,
     required final AppLanguage language,
+    final CampaignCheck? resolvedCheck,
   }) {
     final DateTime now = DateTime.now();
     final List<CampaignModuleState> modules = List<CampaignModuleState>.from(
@@ -45,8 +46,7 @@ class EntityExtractionService {
     );
     final List<CampaignCheck> checks = _applyChecks(
       state: state,
-      result: result,
-      language: language,
+      resolvedCheck: resolvedCheck,
       modules: modules,
       now: now,
     );
@@ -61,6 +61,7 @@ class EntityExtractionService {
       previousState: state,
       result: result,
       language: language,
+      character: character,
       modules: modules,
       inventory: inventory,
       notes: notes,
@@ -91,6 +92,9 @@ class EntityExtractionService {
   }) {
     if (result.stateChanges.hpDelta == 0 &&
         result.stateChanges.energyDelta == 0) {
+      return state.character;
+    }
+    if (!_canTrackModule(state: state, module: CampaignModule.vitality)) {
       return state.character;
     }
 
@@ -124,6 +128,10 @@ class EntityExtractionService {
     final bool hasInventoryChange =
         result.stateChanges.inventoryAdd.isNotEmpty ||
         result.stateChanges.inventoryRemove.isNotEmpty;
+    if (hasInventoryChange &&
+        !_canTrackModule(state: state, module: CampaignModule.inventory)) {
+      return state.inventory;
+    }
     if (!hasInventoryChange &&
         !state.isModuleActive(CampaignModule.inventory)) {
       return state.inventory;
@@ -166,6 +174,9 @@ class EntityExtractionService {
     }
 
     if (candidates.isNotEmpty) {
+      if (!_canTrackModule(state: state, module: CampaignModule.notes)) {
+        return state.notes;
+      }
       _activateModule(
         modules: modules,
         module: CampaignModule.notes,
@@ -202,6 +213,9 @@ class EntityExtractionService {
     if (exists) {
       return companions;
     }
+    if (!_canTrackModule(state: state, module: CampaignModule.companions)) {
+      return companions;
+    }
 
     _activateModule(
       modules: modules,
@@ -226,6 +240,10 @@ class EntityExtractionService {
     required final DateTime now,
   }) {
     final List<_ResourceDelta> deltas = _extractResourceDeltas(result);
+    if (deltas.isNotEmpty &&
+        !_canTrackModule(state: state, module: CampaignModule.resources)) {
+      return state.resources;
+    }
     if (deltas.isEmpty && !state.isModuleActive(CampaignModule.resources)) {
       return state.resources;
     }
@@ -271,6 +289,10 @@ class EntityExtractionService {
     required final DateTime now,
   }) {
     final _ProgressionUpdate? update = _extractProgressionUpdate(result);
+    if (update != null &&
+        !_canTrackModule(state: state, module: CampaignModule.progression)) {
+      return state.progression;
+    }
     if (update == null && !state.isModuleActive(CampaignModule.progression)) {
       return state.progression;
     }
@@ -300,41 +322,33 @@ class EntityExtractionService {
 
   List<CampaignCheck> _applyChecks({
     required final CampaignState state,
-    required final TurnResult result,
-    required final AppLanguage language,
+    required final CampaignCheck? resolvedCheck,
     required final List<CampaignModuleState> modules,
     required final DateTime now,
   }) {
-    final CampaignCheck? extracted = _extractCheck(
-      result: result,
-      language: language,
-      now: now,
-    );
-    if (extracted == null && !state.isModuleActive(CampaignModule.checks)) {
-      return state.checks;
-    }
-    if (extracted == null) {
+    if (resolvedCheck == null ||
+        !_canTrackModule(state: state, module: CampaignModule.checks)) {
       return state.checks;
     }
 
     _activateModule(
       modules: modules,
       module: CampaignModule.checks,
-      reason: 'story_unlocked:checks',
+      reason: 'story_unlocked:checks_client',
       now: now,
     );
 
     final List<CampaignCheck> checks = List<CampaignCheck>.from(state.checks);
     final CampaignCheck? latest = checks.isEmpty ? null : checks.last;
     if (latest != null &&
-        latest.summary == extracted.summary &&
-        latest.outcome == extracted.outcome &&
-        latest.total == extracted.total &&
-        latest.difficulty == extracted.difficulty) {
+        latest.summary == resolvedCheck.summary &&
+        latest.outcome == resolvedCheck.outcome &&
+        latest.total == resolvedCheck.total &&
+        latest.difficulty == resolvedCheck.difficulty) {
       return checks;
     }
 
-    checks.add(extracted);
+    checks.add(resolvedCheck);
     if (checks.length > 6) {
       return checks.sublist(checks.length - 6);
     }
@@ -345,6 +359,7 @@ class EntityExtractionService {
     required final CampaignState previousState,
     required final TurnResult result,
     required final AppLanguage language,
+    required final CharacterStats character,
     required final List<CampaignModuleState> modules,
     required final List<String> inventory,
     required final List<String> notes,
@@ -379,7 +394,9 @@ class EntityExtractionService {
       }
     }
 
-    for (final String item in result.stateChanges.inventoryAdd) {
+    for (final String item in inventory.where(
+      (final candidate) => !previousState.inventory.contains(candidate),
+    )) {
       notifications.add(
         StateChangeNotification(
           id: 'item_add_${item}_$now',
@@ -391,7 +408,9 @@ class EntityExtractionService {
         ),
       );
     }
-    for (final String item in result.stateChanges.inventoryRemove) {
+    for (final String item in previousState.inventory.where(
+      (final candidate) => !inventory.contains(candidate),
+    )) {
       notifications.add(
         StateChangeNotification(
           id: 'item_remove_${item}_$now',
@@ -404,17 +423,15 @@ class EntityExtractionService {
       );
     }
 
-    if (result.stateChanges.hpDelta != 0 ||
-        result.stateChanges.energyDelta != 0) {
+    final int hpDelta = character.hp - previousState.character.hp;
+    final int energyDelta = character.energy - previousState.character.energy;
+    if (hpDelta != 0 || energyDelta != 0) {
       final List<String> parts = <String>[
-        if (result.stateChanges.hpDelta != 0)
-          'HP ${_signed(result.stateChanges.hpDelta)}',
-        if (result.stateChanges.energyDelta != 0)
+        if (hpDelta != 0) 'HP ${_signed(hpDelta)}',
+        if (energyDelta != 0)
           switch (language) {
-            AppLanguage.ru =>
-              'Энергия ${_signed(result.stateChanges.energyDelta)}',
-            AppLanguage.en =>
-              'Energy ${_signed(result.stateChanges.energyDelta)}',
+            AppLanguage.ru => 'Энергия ${_signed(energyDelta)}',
+            AppLanguage.en => 'Energy ${_signed(energyDelta)}',
           },
       ];
       notifications.add(
@@ -536,6 +553,40 @@ class EntityExtractionService {
 
     notifications.addAll(moduleNotifications);
     return notifications.take(4).toList();
+  }
+
+  bool _canTrackModule({
+    required final CampaignState state,
+    required final CampaignModule module,
+  }) {
+    if (state.isModuleActive(module)) {
+      return true;
+    }
+
+    final Set<CampaignModule> allowed = switch (state.setting) {
+      CampaignSetting.fantasy => <CampaignModule>{
+        CampaignModule.inventory,
+        CampaignModule.companions,
+        CampaignModule.notes,
+        CampaignModule.vitality,
+        CampaignModule.resources,
+        CampaignModule.progression,
+      },
+      CampaignSetting.detective => <CampaignModule>{
+        CampaignModule.notes,
+        CampaignModule.companions,
+      },
+      CampaignSetting.sciFi => <CampaignModule>{
+        CampaignModule.inventory,
+        CampaignModule.companions,
+        CampaignModule.notes,
+        CampaignModule.vitality,
+        CampaignModule.resources,
+        CampaignModule.progression,
+      },
+    };
+
+    return allowed.contains(module);
   }
 
   void _activateModule({
@@ -811,6 +862,9 @@ class EntityExtractionService {
     );
   }
 
+  // Kept temporarily for narrative-only reconciliation heuristics while
+  // deterministic checks become the primary source of truth.
+  // ignore: unused_element
   CampaignCheck? _extractCheck({
     required final TurnResult result,
     required final AppLanguage language,

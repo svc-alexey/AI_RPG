@@ -35,10 +35,11 @@ The app now matches the `pressets/` direction more closely on all key screens, i
 
 ## What is next
 
-The remaining planned work is split into two tracks:
+The next planned implementation step is now technical only:
 
-- `Stage 8: promo campaign launch`, which is still fully open in the main implementation plan;
-- deterministic checks backlog work, especially a local `DiceEngine` on top of the active `Checks` module so the client resolves rolls itself and the model narrates known outcomes.
+- `Stage 8: deterministic systems and implementation finish`;
+- local `DiceEngine` support for the active `Checks` module;
+- final validation of long-session stability, hidden non-relevant RPG chrome, settings/runtime UX, and next-layer architecture readiness.
 
 ## Key documents
 

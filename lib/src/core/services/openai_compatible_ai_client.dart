@@ -7,6 +7,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -189,6 +190,7 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -215,6 +217,7 @@ Reply only with JSON, no markdown.
           state: state,
           playerAction: playerAction,
           suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
           fastMode: _shouldUseFastMode(settings),
           onNarrationDelta: onNarrationDelta,
         );
@@ -227,6 +230,7 @@ Reply only with JSON, no markdown.
               state: state,
               playerAction: playerAction,
               suggestionsOnly: suggestionsOnly,
+              deterministicContext: deterministicContext,
               fastMode: _shouldUseFastMode(settings),
               onNarrationDelta: onNarrationDelta,
               cancelToken: cancelToken,
@@ -276,6 +280,7 @@ Reply only with JSON, no markdown.
             state: state,
             playerAction: playerAction,
             suggestionsOnly: suggestionsOnly,
+            deterministicContext: deterministicContext,
             fastMode: false,
             onNarrationDelta: onNarrationDelta,
           );
@@ -316,6 +321,7 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     final NarrationDeltaCallback? onNarrationDelta,
   }) async {
@@ -328,6 +334,7 @@ Reply only with JSON, no markdown.
       state: state,
       playerAction: playerAction,
       suggestionsOnly: suggestionsOnly,
+      deterministicContext: deterministicContext,
       fastMode: fastMode,
     );
 
@@ -409,6 +416,7 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     required final NarrationDeltaCallback onNarrationDelta,
     final CancelToken? cancelToken,
@@ -422,6 +430,7 @@ Reply only with JSON, no markdown.
       state: state,
       playerAction: playerAction,
       suggestionsOnly: suggestionsOnly,
+      deterministicContext: deterministicContext,
       fastMode: fastMode,
       stream: true,
     );
@@ -487,7 +496,7 @@ Reply only with JSON, no markdown.
     final StringBuffer eventBuffer = StringBuffer();
     bool cancelled = false;
     String? lastPreview;
-    cancelToken?.whenCancelled.then((_) => cancelled = true);
+    unawaited(cancelToken?.whenCancelled.then((_) => cancelled = true));
 
     Future<void> processEvent() async {
       if (eventBuffer.isEmpty) {
@@ -634,6 +643,7 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     final bool stream = false,
   }) => <String, Object?>{
@@ -648,6 +658,7 @@ Reply only with JSON, no markdown.
           language: language,
           state: state,
           suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
           fastMode: fastMode,
           confirmed18Plus: settings.confirmed18Plus,
         ),
@@ -658,6 +669,7 @@ Reply only with JSON, no markdown.
           language: language,
           state: state,
           playerAction: playerAction,
+          deterministicContext: deterministicContext,
           fastMode: fastMode,
           contextWindowSize: settings.contextWindowSize,
         ),
@@ -788,6 +800,7 @@ Reply only with JSON, no markdown.
     required final AppLanguage language,
     required final CampaignState state,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     required final bool confirmed18Plus,
   }) {
@@ -800,6 +813,15 @@ Reply only with JSON, no markdown.
             AppLanguage.en =>
               '\nImportant: avoid sexual or explicit adult content. Keep narration suitable for general audiences.\n',
           };
+    final String deterministicRule =
+        !suggestionsOnly && deterministicContext.hasResolvedCheck
+        ? switch (language) {
+            AppLanguage.ru =>
+              '\nВ контексте может прийти deterministic_resolution. Это уже разрешённый на клиенте исход проверки. Не перебрасывай кубик, не меняй и не оспаривай этот результат.\n',
+            AppLanguage.en =>
+              '\nIf deterministic_resolution appears in the campaign context, it was already resolved on the client. Do not reroll it, change it, or contradict it.\n',
+          }
+        : '';
 
     String base = '';
     if (suggestionsOnly) {
@@ -857,12 +879,13 @@ Rules:
 - location in state_changes: specify current location (especially important on first turn). If location doesn't change, leave empty "".
 - changes must stay moderate for the MVP
 - do not break world continuity
+- if deterministic_resolution is present in the campaign context, it is already resolved on the client; do not reroll it or contradict it
 - do not add markdown fences
 ''',
       };
     }
 
-    final List<String> parts = <String>[base, contentRule];
+    final List<String> parts = <String>[base, contentRule, deterministicRule];
     if (state.customStoryPrompt.trim().isNotEmpty) {
       parts.add(
         '\n\n--- Story context ---\n${state.customStoryPrompt.trim()}\n',
@@ -878,6 +901,7 @@ Rules:
     required final AppLanguage language,
     required final CampaignState state,
     required final String playerAction,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     required final int contextWindowSize,
   }) {
@@ -890,6 +914,10 @@ Rules:
             state,
             contextWindowSize: contextWindowSize,
           );
+    if (deterministicContext.hasResolvedCheck) {
+      contextPayload['deterministic_resolution'] = deterministicContext
+          .toJson();
+    }
 
     final String actionText = playerAction.trim().isEmpty
         ? switch (language) {
