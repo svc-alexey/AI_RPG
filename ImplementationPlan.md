@@ -283,7 +283,7 @@ Tasks:
 - [x] Introduce `Riverpod` providers/notifiers for campaign, messages, world state, and settings
 - [x] Remove `AppScope` and move major flows to controller/notifier orchestration
 - [x] Add model runtime controls for `max response tokens`, `context window`, and quick model profiles
-- [ ] Replace fake narration animation with real response streaming plus fallback
+- [x] Replace fake narration animation with real response streaming plus fallback
 - [ ] Formalize hybrid context as `static header + dynamic summary + recent buffer`
 - [ ] Extend world state with `Gold`, `Exp`, `Level`, `Inventory`, and `Companions`
 - [ ] Add entity extraction pipeline for inventory and companion updates from narration
@@ -302,4 +302,4 @@ Current status:
 - [x] Stage 1 completed: storage foundation and migration
 - [x] Stage 2 completed: Riverpod-first app shell and screen orchestration
 - [x] Stage 3 completed: runtime token/context controls
-- [ ] Stage 4 next: real streaming
+- [x] Stage 4 completed: real streaming

@@ -255,6 +255,43 @@ void main() {
     expect(allTexts, contains('Technical note: the raw model response'));
   });
 
+  testWidgets(
+    'Gameplay chat renders streamed narration before turn completes',
+    (tester) async {
+      final CampaignState campaign = _sampleCampaign();
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'campaign.ids': <String>[campaign.id],
+        'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+      });
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          ChatScreen(campaignId: campaign.id),
+          storage: storage,
+          language: AppLanguage.en,
+          settingsRepository: _FakeSettingsRepository(
+            const _ConfiguredAiSettings(),
+          ),
+          aiServiceFactory: const _FakeAiServiceFactory(_StreamingAiClient()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Open the ancient gate');
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(find.textContaining('The gate groans'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('cold dust spills out'), findsOneWidget);
+    },
+  );
+
   testWidgets('Settings screen opens and shows core controls', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final _TestStorageBundle storage = _TestStorageBundle.create();
@@ -382,9 +419,52 @@ class _ThrowingAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
     throw _error;
+  }
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+    final CancelToken? cancelToken,
+  }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+}
+
+class _StreamingAiClient implements AiClient {
+  const _StreamingAiClient();
+
+  @override
+  Future<void> checkConnection({required final AiSettings settings}) async {}
+
+  @override
+  Future<TurnResult> generateTurn({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    final NarrationDeltaCallback? onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) async {
+    onNarrationDelta?.call('The gate groans open');
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    onNarrationDelta?.call(
+      'The gate groans open and cold dust spills out across the floor.',
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+
+    return const TurnResult(
+      narration:
+          'The gate groans open and cold dust spills out across the floor.',
+      choices: <String>['Step inside', 'Wait', 'Call out'],
+      stateChanges: StateChanges.empty(),
+      memoryEntry: 'The sealed gate was opened.',
+    );
   }
 
   @override

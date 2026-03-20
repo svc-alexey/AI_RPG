@@ -1,40 +1,36 @@
-# План MVP: AI RPG Desktop
+# MVP Plan: AI RPG Desktop
 
-## Цель первой итерации
+## Original MVP goal
 
-Собрать минимально рабочий desktop MVP на Flutter, в котором игрок может:
+Build a minimal desktop-first Flutter MVP where the player can:
 
-1. Создать новую короткую кампанию.
-2. Выбрать базовые параметры игры.
-3. Играть через простой чат.
-4. Получать AI-ответ в structured виде.
-5. Сохранять и загружать локальный прогресс.
-6. Подключать локальную модель через LM Studio.
+1. Create a new short campaign.
+2. Choose basic game parameters.
+3. Play through a simple chat flow.
+4. Receive AI output in a structured format.
+5. Save and load local progress.
+6. Connect a local model through LM Studio.
 
-Это не полная RPG, а вертикальный срез цикла:
+The MVP slice was:
 
-`настройка кампании -> старт сцены -> сообщение игрока -> ответ AI -> обновление состояния -> сохранение`
+`campaign setup -> opening scene -> player action -> AI response -> state update -> save`
 
-## Что входит в базовый MVP
+## MVP scope
 
-### Пользовательский сценарий
+### Core user flow
 
-1. Пользователь открывает приложение.
-2. Создает новую игру с минимальными настройками:
-   - сеттинг
-   - режим истории
-   - сложность
-   - имя героя
-3. Попадает на экран чата.
-4. Видит стартовое вступление.
-5. Отправляет действие текстом.
-6. Получает:
+1. The player opens the app.
+2. The player creates a new game.
+3. The player enters the gameplay chat.
+4. The player receives scene narration.
+5. The player sends an action.
+6. The app receives:
    - narration
    - choices
-   - изменения состояния
-7. Может сохранить игру и позже продолжить.
+   - state changes
+7. The player can save and continue later.
 
-### Минимальные экраны
+### Minimal screens
 
 1. `Home`
 2. `New Game`
@@ -42,33 +38,46 @@
 4. `Settings`
 5. `Saves`
 
-### Минимальные игровые данные
+### Minimal game data
 
-1. Текущая сцена и локация.
-2. Базовый персонаж.
-3. Простой инвентарь.
-4. Простая цель и короткая сводка состояния кампании.
+1. Current scene and location
+2. Base character
+3. Simple inventory
+4. Objective and compact campaign memory
 
-## Что сознательно не входит
+## What was intentionally out of MVP
 
-1. Мультиплеер.
-2. Генерация картинок и карт как обязательная часть.
-3. Сложная система фракций.
-4. Полный RAG-слой.
-5. Облачные сохранения.
-6. Встроенный backend.
+1. Multiplayer
+2. Required image or map generation
+3. Deep faction systems
+4. Full RAG layer
+5. Cloud saves
+6. Built-in backend
 
-## Технический фокус MVP
+## MVP success criteria
 
-1. Flutter desktop-first клиент.
-2. OpenAI-compatible AI слой.
-3. LM Studio интеграция.
-4. Structured JSON contract для AI-ответа.
-5. Безопасная обработка невалидного ответа модели.
+1. A player can create a campaign and complete at least one turn.
+2. Campaigns save and load correctly.
+3. AI settings work for LM Studio.
+4. AI failures do not break the game flow.
 
-## Критерии готовности MVP
+## Post-MVP progress
 
-1. Пользователь может создать кампанию и сделать хотя бы один полный ход.
-2. Кампания сохраняется и загружается.
-3. Настройки AI работают для LM Studio.
-4. Ошибка AI не ломает игру.
+The project has already completed several post-MVP layers:
+
+- `Isar` storage foundation and migration
+- `Riverpod` app shell and controller orchestration
+- runtime token and context controls
+- real streaming with fallback for OpenAI-compatible responses
+
+## Next step
+
+The next planned step is `Stage 5: hybrid context`.
+
+This means building a formal context pipeline:
+
+- `static header`
+- `dynamic summary`
+- `recent buffer`
+
+The goal is to reduce prompt bloat and improve long-campaign coherence.

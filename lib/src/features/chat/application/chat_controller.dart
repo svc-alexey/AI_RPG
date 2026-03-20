@@ -210,12 +210,12 @@ class ChatController extends StateNotifier<ChatViewState> {
         state: campaign,
         playerAction: trimmedAction,
         suggestionsOnly: suggestionsOnly,
+        onNarrationDelta: suggestionsOnly
+            ? null
+            : (final narration) =>
+                  _updatePendingNarration(narration: narration, createdAt: now),
         cancelToken: cancelToken,
       );
-
-      if (!suggestionsOnly) {
-        await _animatePendingNarration(result.narration);
-      }
 
       final CampaignState nextState = suggestionsOnly
           ? campaign.copyWith(
@@ -316,35 +316,22 @@ class ChatController extends StateNotifier<ChatViewState> {
     );
   }
 
-  Future<void> _animatePendingNarration(final String narration) async {
-    final List<String> words = narration
-        .split(RegExp(r'\s+'))
-        .where((final word) => word.isNotEmpty)
-        .toList();
-    if (words.isEmpty || _disposed) {
+  void _updatePendingNarration({
+    required final String narration,
+    required final DateTime createdAt,
+  }) {
+    if (_disposed || narration.trim().isEmpty) {
       return;
     }
 
-    String buffer = '';
-    for (int i = 0; i < words.length; i += 2) {
-      final int end = (i + 2 < words.length) ? i + 2 : words.length;
-      final String chunk = words.sublist(i, end).join(' ');
-      buffer = buffer.isEmpty ? chunk : '$buffer $chunk';
-      if (_disposed) {
-        return;
-      }
-
-      state = state.copyWith(
-        pendingNarratorMessage: ChatMessage(
-          id: 'pending_narrator',
-          role: ChatRole.narrator,
-          text: buffer,
-          createdAt: state.pendingNarratorMessage?.createdAt ?? DateTime.now(),
-        ),
-      );
-
-      await Future<void>.delayed(const Duration(milliseconds: 40));
-    }
+    state = state.copyWith(
+      pendingNarratorMessage: ChatMessage(
+        id: 'pending_narrator',
+        role: ChatRole.narrator,
+        text: narration,
+        createdAt: state.pendingNarratorMessage?.createdAt ?? createdAt,
+      ),
+    );
   }
 
   void _clearPendingMessages() {

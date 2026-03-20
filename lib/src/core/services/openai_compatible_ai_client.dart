@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class OpenAiCompatibleAiClient implements AiClient {
-  const OpenAiCompatibleAiClient();
+  OpenAiCompatibleAiClient();
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
 
@@ -189,6 +189,7 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
     const int maxAttempts = 3;
@@ -215,7 +216,44 @@ Reply only with JSON, no markdown.
           playerAction: playerAction,
           suggestionsOnly: suggestionsOnly,
           fastMode: _shouldUseFastMode(settings),
+          onNarrationDelta: onNarrationDelta,
         );
+
+        if (!suggestionsOnly && onNarrationDelta != null) {
+          try {
+            final Future<TurnResult> streamFuture = _requestTurnStreaming(
+              settings: settings,
+              language: language,
+              state: state,
+              playerAction: playerAction,
+              suggestionsOnly: suggestionsOnly,
+              fastMode: _shouldUseFastMode(settings),
+              onNarrationDelta: onNarrationDelta,
+              cancelToken: cancelToken,
+            );
+
+            if (cancelToken != null) {
+              return await Future.any(<Future<TurnResult>>[
+                streamFuture,
+                cancelToken.whenCancelled.then(
+                  (_) => throw const AiCancelException(),
+                ),
+              ]);
+            }
+
+            return await streamFuture;
+          } on AiCancelException {
+            rethrow;
+          } on AiTurnException catch (error) {
+            AppLogger.instance.w(
+              'Streaming failed, falling back to standard response: ${error.userMessage}',
+            );
+          } catch (error) {
+            AppLogger.instance.w(
+              'Streaming failed, falling back to standard response: $error',
+            );
+          }
+        }
 
         if (cancelToken != null) {
           return await Future.any(<Future<TurnResult>>[
@@ -239,6 +277,7 @@ Reply only with JSON, no markdown.
             playerAction: playerAction,
             suggestionsOnly: suggestionsOnly,
             fastMode: false,
+            onNarrationDelta: onNarrationDelta,
           );
           if (cancelToken != null) {
             return await Future.any(<Future<TurnResult>>[
@@ -278,6 +317,7 @@ Reply only with JSON, no markdown.
     required final String playerAction,
     required final bool suggestionsOnly,
     required final bool fastMode,
+    final NarrationDeltaCallback? onNarrationDelta,
   }) async {
     final Uri uri = Uri.parse(
       '${_normalizedBaseUrl(settings.baseUrl)}/chat/completions',
@@ -354,40 +394,208 @@ Reply only with JSON, no markdown.
       throw exception;
     }
 
-    final Map<String, Object?> decodedMap = _jsonMap(decoded);
-    final List<Object?> choices = _jsonList(decodedMap['choices']);
-    if (choices.isEmpty) {
+    final TurnResult result = _parseTurnResponse(
+      rawResponse: rawResponse,
+      responseMap: _jsonMap(decoded),
+      language: language,
+    );
+    onNarrationDelta?.call(result.narration);
+    return result;
+  }
+
+  Future<TurnResult> _requestTurnStreaming({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final bool fastMode,
+    required final NarrationDeltaCallback onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) async {
+    final Uri uri = Uri.parse(
+      '${_normalizedBaseUrl(settings.baseUrl)}/chat/completions',
+    );
+    final Map<String, Object?> requestBody = buildTurnRequestBody(
+      settings: settings,
+      language: language,
+      state: state,
+      playerAction: playerAction,
+      suggestionsOnly: suggestionsOnly,
+      fastMode: fastMode,
+      stream: true,
+    );
+
+    AppLogger.logAiRequest(
+      endpoint: uri.toString(),
+      requestBody: requestBody,
+      settings: settings,
+    );
+
+    final http.Request request = http.Request('POST', uri)
+      ..headers.addAll(_headers(settings))
+      ..body = jsonEncode(requestBody);
+
+    final http.Client client = http.Client();
+    final http.StreamedResponse response;
+    try {
+      response = await client
+          .send(request)
+          .timeout(Duration(seconds: _effectiveTimeoutSeconds(settings)));
+    } on TimeoutException {
+      client.close();
       final AiTurnException exception = AiTurnException(
-        userMessage: _providerNoChoices(language),
+        userMessage: _timeoutError(settings: settings, language: language),
+        recoverable: true,
+      );
+      AppLogger.logAiError(
+        message:
+            'Streaming timeout after ${_effectiveTimeoutSeconds(settings)}s',
+        exception: exception,
+      );
+      throw exception;
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final String rawResponse = await utf8.decoder
+          .bind(response.stream)
+          .join();
+      AppLogger.logAiResponse(
+        endpoint: uri.toString(),
+        statusCode: response.statusCode,
+        rawResponse: rawResponse,
+      );
+      final AiTurnException exception = AiTurnException(
+        userMessage: _friendlyAiEndpointError(
+          settings: settings,
+          language: language,
+          statusCode: response.statusCode,
+          detail: _extractProviderErrorDetail(rawResponse),
+        ),
         rawResponse: rawResponse,
         recoverable: true,
       );
       AppLogger.logAiError(
-        message: 'Provider returned empty choices array',
+        message: 'Streaming HTTP ${response.statusCode} error',
         exception: exception,
       );
+      client.close();
       throw exception;
     }
 
-    final Map<String, Object?> choice = _jsonMap(choices.first);
-    final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String content = (message['content'] as String?) ?? '';
-    final String jsonString = _extractJson(content, language);
+    final StringBuffer rawContent = StringBuffer();
+    final StringBuffer eventBuffer = StringBuffer();
+    bool cancelled = false;
+    String? lastPreview;
+    cancelToken?.whenCancelled.then((_) => cancelled = true);
+
+    Future<void> processEvent() async {
+      if (eventBuffer.isEmpty) {
+        return;
+      }
+
+      final String payload = eventBuffer.toString().trim();
+      eventBuffer.clear();
+      if (payload.isEmpty || payload == '[DONE]') {
+        return;
+      }
+
+      final Object? decoded = _safeJsonDecode(payload);
+      if (decoded is! Map) {
+        throw AiTurnException(
+          userMessage: _providerUnexpectedFormat(language),
+          rawResponse: payload,
+          recoverable: true,
+        );
+      }
+
+      final String chunk = _extractStreamChunk(_jsonMap(decoded));
+      if (chunk.isEmpty) {
+        return;
+      }
+
+      rawContent.write(chunk);
+      final String? preview = extractNarrationPreview(
+        rawContent.toString(),
+      )?.trimRight();
+      if (preview != null && preview.isNotEmpty && preview != lastPreview) {
+        lastPreview = preview;
+        onNarrationDelta(preview);
+      }
+    }
+
+    try {
+      await for (final String line
+          in response.stream
+              .transform(utf8.decoder)
+              .transform(const LineSplitter())) {
+        if (cancelled) {
+          throw const AiCancelException();
+        }
+        if (line.isEmpty) {
+          await processEvent();
+          continue;
+        }
+        if (line.startsWith('data:')) {
+          final String data = line.substring(5).trimLeft();
+          if (eventBuffer.isNotEmpty) {
+            eventBuffer.writeln();
+          }
+          eventBuffer.write(data);
+        }
+      }
+      await processEvent();
+    } on AiCancelException {
+      client.close();
+      rethrow;
+    } catch (error) {
+      client.close();
+      if (error is AiTurnException) {
+        rethrow;
+      }
+      throw AiTurnException(
+        userMessage: _providerUnexpectedFormat(language),
+        rawResponse: rawContent.toString(),
+        recoverable: true,
+      );
+    }
+    client.close();
+
+    final String rawResponse = rawContent.toString().trim();
+    if (rawResponse.isEmpty) {
+      throw AiTurnException(
+        userMessage: _providerNoChoices(language),
+        rawResponse: rawResponse,
+        recoverable: true,
+      );
+    }
+
+    AppLogger.logAiResponse(
+      endpoint: uri.toString(),
+      statusCode: response.statusCode,
+      rawResponse: rawResponse,
+    );
+
+    final String jsonString = _extractJson(rawResponse, language);
     final Object? turnDecoded = _safeJsonDecode(jsonString);
     if (turnDecoded is! Map) {
       final AiTurnException exception = AiTurnException(
         userMessage: _invalidJson(language),
-        rawResponse: content,
+        rawResponse: rawResponse,
         recoverable: true,
       );
       AppLogger.logAiError(
-        message: 'Model returned invalid JSON structure',
+        message: 'Streamed model output was not valid JSON',
         exception: exception,
       );
       throw exception;
     }
 
-    return TurnResult.fromJson(_jsonMap(turnDecoded));
+    final TurnResult result = TurnResult.fromJson(_jsonMap(turnDecoded));
+    if (result.narration.trim().isNotEmpty && result.narration != lastPreview) {
+      onNarrationDelta(result.narration);
+    }
+    return result;
   }
 
   bool _shouldUseFastMode(final AiSettings settings) =>
@@ -427,10 +635,12 @@ Reply only with JSON, no markdown.
     required final String playerAction,
     required final bool suggestionsOnly,
     required final bool fastMode,
+    final bool stream = false,
   }) => <String, Object?>{
     'model': settings.model,
     'temperature': fastMode ? 0.2 : 0.7,
     'max_tokens': settings.maxResponseTokens,
+    if (stream) 'stream': true,
     'messages': <Map<String, String>>[
       <String, String>{
         'role': 'system',
@@ -736,6 +946,157 @@ $actionText
     }
     return trimmed.substring(start, end + 1);
   }
+
+  TurnResult _parseTurnResponse({
+    required final String rawResponse,
+    required final Map<String, Object?> responseMap,
+    required final AppLanguage language,
+  }) {
+    final List<Object?> choices = _jsonList(responseMap['choices']);
+    if (choices.isEmpty) {
+      final AiTurnException exception = AiTurnException(
+        userMessage: _providerNoChoices(language),
+        rawResponse: rawResponse,
+        recoverable: true,
+      );
+      AppLogger.logAiError(
+        message: 'Provider returned empty choices array',
+        exception: exception,
+      );
+      throw exception;
+    }
+
+    final Map<String, Object?> choice = _jsonMap(choices.first);
+    final Map<String, Object?> message = _jsonMap(choice['message']);
+    final String content = (message['content'] as String?) ?? '';
+    final String jsonString = _extractJson(content, language);
+    final Object? turnDecoded = _safeJsonDecode(jsonString);
+    if (turnDecoded is! Map) {
+      final AiTurnException exception = AiTurnException(
+        userMessage: _invalidJson(language),
+        rawResponse: content,
+        recoverable: true,
+      );
+      AppLogger.logAiError(
+        message: 'Model returned invalid JSON structure',
+        exception: exception,
+      );
+      throw exception;
+    }
+
+    return TurnResult.fromJson(_jsonMap(turnDecoded));
+  }
+
+  String _extractStreamChunk(final Map<String, Object?> event) {
+    final List<Object?> choices = _jsonList(event['choices']);
+    if (choices.isEmpty) {
+      return '';
+    }
+
+    final Map<String, Object?> choice = _jsonMap(choices.first);
+    final Map<String, Object?> delta = _jsonMap(choice['delta']);
+    final String deltaContent = (delta['content'] as String?) ?? '';
+    if (deltaContent.isNotEmpty) {
+      return deltaContent;
+    }
+
+    final Map<String, Object?> message = _jsonMap(choice['message']);
+    final String messageContent = (message['content'] as String?) ?? '';
+    if (messageContent.isNotEmpty) {
+      return messageContent;
+    }
+
+    return (choice['text'] as String?) ?? '';
+  }
+
+  @visibleForTesting
+  String? extractNarrationPreview(final String rawContent) {
+    final int fieldStart = rawContent.indexOf('"narration"');
+    if (fieldStart == -1) {
+      return null;
+    }
+
+    int index = fieldStart + '"narration"'.length;
+    while (index < rawContent.length &&
+        _isWhitespace(rawContent.codeUnitAt(index))) {
+      index++;
+    }
+    if (index >= rawContent.length || rawContent[index] != ':') {
+      return null;
+    }
+    index++;
+    while (index < rawContent.length &&
+        _isWhitespace(rawContent.codeUnitAt(index))) {
+      index++;
+    }
+    if (index >= rawContent.length || rawContent[index] != '"') {
+      return null;
+    }
+    index++;
+
+    final StringBuffer buffer = StringBuffer();
+    while (index < rawContent.length) {
+      final String char = rawContent[index];
+      if (char == '"') {
+        return buffer.toString();
+      }
+      if (char == r'\') {
+        if (index + 1 >= rawContent.length) {
+          return buffer.toString();
+        }
+        final String escape = rawContent[index + 1];
+        switch (escape) {
+          case '"':
+          case r'\':
+          case '/':
+            buffer.write(escape);
+            break;
+          case 'b':
+            buffer.write('\b');
+            break;
+          case 'f':
+            buffer.write('\f');
+            break;
+          case 'n':
+            buffer.write('\n');
+            break;
+          case 'r':
+            buffer.write('\r');
+            break;
+          case 't':
+            buffer.write('\t');
+            break;
+          case 'u':
+            if (index + 5 >= rawContent.length) {
+              return buffer.toString();
+            }
+            final String hex = rawContent.substring(index + 2, index + 6);
+            final int? codePoint = int.tryParse(hex, radix: 16);
+            if (codePoint == null) {
+              return buffer.toString();
+            }
+            buffer.write(String.fromCharCode(codePoint));
+            index += 4;
+            break;
+          default:
+            buffer.write(escape);
+            break;
+        }
+        index += 2;
+        continue;
+      }
+      buffer.write(char);
+      index++;
+    }
+
+    return buffer.toString();
+  }
+
+  bool _isWhitespace(final int codeUnit) =>
+      codeUnit == 0x20 ||
+      codeUnit == 0x0A ||
+      codeUnit == 0x0D ||
+      codeUnit == 0x09;
 
   // ignore: unused_element
   String _aiEndpointError(

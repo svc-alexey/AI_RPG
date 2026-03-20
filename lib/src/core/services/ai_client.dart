@@ -29,6 +29,8 @@ class AiCancelException implements Exception {
   String toString() => 'AiCancelException';
 }
 
+typedef NarrationDeltaCallback = void Function(String narration);
+
 abstract class AiClient {
   Future<void> checkConnection({required AiSettings settings});
 
@@ -38,6 +40,7 @@ abstract class AiClient {
     required CampaignState state,
     required String playerAction,
     required bool suggestionsOnly,
+    NarrationDeltaCallback? onNarrationDelta,
     CancelToken? cancelToken,
   });
 

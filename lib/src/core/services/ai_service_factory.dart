@@ -11,7 +11,7 @@ class AiServiceFactory {
     if (!settings.isConfigured) {
       return const _DemoAiClient();
     }
-    return const OpenAiCompatibleAiClient();
+    return OpenAiCompatibleAiClient();
   }
 }
 
@@ -30,6 +30,7 @@ class _DemoAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
     final String action = playerAction.trim().isEmpty
@@ -52,19 +53,19 @@ class _DemoAiClient implements AiClient {
               'Without a configured model, the game runs in demo mode. ${state.character.name} decides to: $action. The scene changes just enough to keep the story moving forward.',
           };
 
-    return TurnResult(
+    final TurnResult result = TurnResult(
       narration: narration,
       choices: switch (language) {
         AppLanguage.ru => const <String>[
-            'Осмотреться внимательнее',
-            'Сделать решительный шаг к цели',
-            'Открыть настройки и подключить LM Studio',
-          ],
+          'Осмотреться внимательнее',
+          'Сделать решительный шаг к цели',
+          'Открыть настройки и подключить LM Studio',
+        ],
         AppLanguage.en => const <String>[
-            'Look around more carefully',
-            'Take a decisive step toward the goal',
-            'Open settings and connect LM Studio',
-          ],
+          'Look around more carefully',
+          'Take a decisive step toward the goal',
+          'Open settings and connect LM Studio',
+        ],
       },
       stateChanges: suggestionsOnly
           ? const StateChanges.empty()
@@ -84,6 +85,10 @@ class _DemoAiClient implements AiClient {
         AppLanguage.en => 'A demo answer was used for action: $action',
       },
     );
+    if (!suggestionsOnly) {
+      onNarrationDelta?.call(result.narration);
+    }
+    return result;
   }
 
   @override
@@ -93,6 +98,5 @@ class _DemoAiClient implements AiClient {
     required final String storyWish,
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
-  }) async =>
-      const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+  }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 }

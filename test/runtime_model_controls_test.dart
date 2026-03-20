@@ -39,7 +39,7 @@ void main() {
   });
 
   test('OpenAI-compatible request body uses runtime token controls', () {
-    const OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
     const AiSettings settings = AiSettings(
       provider: AiProviderType.openAiCompatible,
       baseUrl: 'http://127.0.0.1:1234/v1',
@@ -61,9 +61,11 @@ void main() {
       playerAction: 'Inspect the shrine',
       suggestionsOnly: false,
       fastMode: false,
+      stream: true,
     );
 
     expect(requestBody['max_tokens'], 222);
+    expect(requestBody['stream'], isTrue);
 
     final List<Object?> messages =
         requestBody['messages'] as List<Object?>? ?? const <Object?>[];
@@ -73,6 +75,24 @@ void main() {
 
     expect(content, contains('Campaign context:'));
     expect(content, contains('Inspect the shrine'));
+  });
+
+  test('Streaming preview extracts partial narration from streamed JSON', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(
+      client.extractNarrationPreview(
+        '{"narration":"A torch flares in the tunnel',
+      ),
+      'A torch flares in the tunnel',
+    );
+    expect(
+      client.extractNarrationPreview(
+        '{"narration":"Line one\\nLine two","choices":[]}',
+      ),
+      'Line one\nLine two',
+    );
+    expect(client.extractNarrationPreview('{"choices":["Wait"]}'), isNull);
   });
 }
 

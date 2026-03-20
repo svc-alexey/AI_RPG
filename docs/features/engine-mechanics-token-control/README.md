@@ -1,40 +1,45 @@
-# Feature: AI RPG Engine Core, Mechanics & Token Control
+# Feature: AI RPG Engine Core, Mechanics and Token Control
 
 ## Summary
 
-Этот feature-пакет описывает переход проекта от AI-chat MVP к local-first RPG engine с управляемой стоимостью LLM, структурированным world state и предсказуемым orchestration layer.
+This feature package tracks the transition from a basic AI chat MVP to a local-first RPG engine with:
 
-## Актуальный статус
+- structured persistence
+- controllable LLM runtime cost
+- real response streaming
+- deterministic gameplay foundations
 
-Уже реализовано в коде:
+## Implemented so far
 
-- `Isar` storage foundation и миграция с legacy storage;
-- `Riverpod` как основной state-management слой;
-- удаление `AppScope` из app shell;
-- controller/state orchestration для `Chat`, `Settings` и `New Game`;
-- provider-driven `Saves` flow;
-- локализация отвязана от service locator и живёт через отдельный localization scope.
+- `Isar` storage foundation and migration from legacy storage
+- `Riverpod` as the main state orchestration layer
+- removal of `AppScope` from the runtime shell
+- controller/state orchestration for `Chat`, `Settings`, and `New Game`
+- provider-driven saves flow
+- runtime controls for `max response tokens`, `context window`, and quick profiles
+- real streaming for OpenAI-compatible chat completions with fallback to non-streaming requests
 
-Ещё не реализовано:
+## Still pending
 
-- model sandbox controls: `max response tokens`, `context window`, presets;
-- hybrid context memory pipeline;
-- extraction pipeline для inventory / companions / world notes;
-- dice engine и расширенный deterministic gameplay layer;
-- настоящий streaming transport;
-- isolates для тяжёлых background операций.
+- hybrid context memory pipeline
+- world state expansion for richer gameplay state
+- extraction pipeline for inventory, companions, and world notes
+- dice engine and deterministic gameplay checks
+- richer gameplay UI over expanded world state
+- isolates for heavy background processing
 
-## Документы пакета
+## Documents
 
-- `01-Architecture.md` — целевая архитектура и gap-analysis
-- `02-PRD.md` — продуктовые требования и обновлённый scope
-- `03-Implementation.md` — roadmap и sequencing работ
+- `01-Architecture.md` - target architecture and gap analysis
+- `02-PRD.md` - product requirements and scope
+- `03-Implementation.md` - delivery roadmap and stage sequencing
 
-## Текущий architectural decision
+## Next planned slice
 
-Проект теперь движется по модели:
+The next stage for this package is `Stage 5: hybrid context`.
 
-- `Riverpod` управляет состоянием экранов и orchestration;
-- `Isar` остаётся источником локальной истины для campaign/runtime data;
-- UI отвечает за rendering и navigation, а не за side effects;
-- LLM provider слой остаётся заменяемым и не должен протекать в presentation.
+That work will introduce:
+
+- `static header + dynamic summary + recent buffer`
+- context assembly based on runtime limits
+- more compact prompts for long campaigns
