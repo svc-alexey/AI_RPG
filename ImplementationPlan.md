@@ -180,7 +180,7 @@ Tasks:
 Expected result:
 
 - [x] The client, not the model, is the source of truth for gameplay checks and their outcomes
-- [ ] Long campaigns stay coherent without requiring full chat history on every turn
+- [x] Long campaigns stay coherent without requiring full chat history on every turn
 - [x] Detective and pure narrative stories stay free of irrelevant RPG systems throughout the campaign
 - [x] Users can tune speed, quality, and token usage confidently from the settings UI
 - [x] The architecture is ready for the next product layer across Desktop, Android, iOS, and Web
@@ -193,7 +193,7 @@ Expected result:
 - [x] Этап 4: документация и кодировка
 - [x] Этап 5: quality pass и стабилизация
 - [x] Этап 7: визуальный редизайн по референсам
-- [ ] Stage 8: deterministic systems and implementation finish
+- [x] Stage 8: deterministic systems and implementation finish
 - [ ] Этап 6: следующий продуктовый слой (перенесён в конец)
 
 ## Definition of Done для этого плана
@@ -203,17 +203,17 @@ Expected result:
 - [x] Кампания имеет понятную систему summary/memory
 - [x] Документы проекта читаемы и синхронизированы
 - [x] Основные user flow покрыты проверками и стабилизированы
-- [ ] Команда может переходить к следующему product layer без возврата к базовой инфраструктуре
+- [x] Команда может переходить к следующему product layer без возврата к базовой инфраструктуре
 - [x] Ключевые экраны приведены к единому целевому визуальному стилю
-- [ ] Deterministic checks and the remaining implementation-validation layer are completed
+- [x] Deterministic checks and the remaining implementation-validation layer are completed
 
 ## Status Update (2026-03-20)
 
 - [x] `Stage 7` is implemented in code and visually completed for all key screens.
 - [x] Desktop parity is now in place for the redesigned `Home` and `Saves` screens.
 - [x] Soft `Aether` animations now run on desktop runtime and stay disabled in widget-test bindings for stability.
-- [ ] `Stage 8: deterministic systems and implementation finish` is now the main open stage in this plan.
-- [ ] Remaining open work is concentrated in final long-session engine validation.
+- [x] `Stage 8: deterministic systems and implementation finish` is implemented and validated.
+- [ ] `Stage 6: next product layer` is now the main open stage in this plan.
 
 ## Backlog: Provider-scoped AI Settings
 

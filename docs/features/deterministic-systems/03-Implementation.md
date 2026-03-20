@@ -14,6 +14,7 @@
 - [x] Re-validated settings runtime UX for preset switching, custom token controls, save persistence, and provider switching
 - [x] Extracted `TurnPromptBuilder` so the next product layer can extend prompt/context policy without reworking HTTP transport and parsing
 - [x] Cleared analyzer issues that were still blocking the next implementation layer
+- [x] Added long-session fantasy `save -> load -> continue` validation to confirm memory/context stability without full chat history
 
 ## Files touched
 
@@ -28,9 +29,6 @@
 - `lib/src/features/chat/application/chat_controller.dart`
 - `test/runtime_model_controls_test.dart`
 - `test/turn_prompt_builder_test.dart`
+- `test/stage8_long_session_validation_test.dart`
 - `test/campaign_modules_test.dart`
 - `test/widget_test.dart`
-
-## Remaining Stage 8 work outside this slice
-
-- [ ] long-session validation beyond current automated coverage
