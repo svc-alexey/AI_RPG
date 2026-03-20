@@ -6,7 +6,9 @@ Flutter desktop-first AI RPG client with a local-first architecture.
 
 The project has already moved beyond the original MVP baseline. The current codebase includes:
 
-- structured local persistence on `Isar` with fallback for environments where native Isar libraries are unavailable;
+- structured local persistence with platform-aware backends:
+  - `Isar` on desktop/mobile platforms with native support;
+  - `SharedPreferences` on web as the browser-safe local backend;
 - `Riverpod`-driven app orchestration instead of UI-owned service location;
 - campaign creation, saves, chat, and settings flows managed through controllers/providers;
 - provider-scoped AI settings and runtime controls for `max response tokens`, `context window`, and quick profiles;
@@ -23,7 +25,10 @@ The project has already moved beyond the original MVP baseline. The current code
 
 - UI: `Flutter`
 - State management: `flutter_riverpod`
-- Local storage: `Isar`
+- Local storage:
+  - `Isar` as the primary native backend
+  - `SharedPreferences` as the explicit browser backend
+  - adaptive storage layer under repositories for backend selection
 - AI integration: provider-agnostic client/factory layer
 - Primary target: Desktop-first, with mobile-friendly layout work already underway
 
@@ -56,3 +61,13 @@ flutter pub get
 flutter analyze
 flutter test
 ```
+
+## Web build
+
+For browser and mobile-browser deployment, use the project build script instead of raw `flutter build web`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
+```
+
+See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobile-browser notes.

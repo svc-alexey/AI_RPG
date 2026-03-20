@@ -72,6 +72,16 @@
       font-weight: 500;
       letter-spacing: 0.05em;
     }
+    .loader-note {
+      max-width: 20rem;
+      color: rgba(233, 226, 215, 0.72);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .loader-note.is-error {
+      color: #ffb4ab;
+    }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -81,15 +91,75 @@
   <div id="loading-container">
     <div class="loader" aria-hidden="true"></div>
     <span class="loader-label">AI RPG</span>
+    <span id="loading-note" class="loader-note">
+      Loading the app...
+    </span>
   </div>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+    (function () {
+      const loadingContainer = document.getElementById('loading-container');
+      const loadingNote = document.getElementById('loading-note');
+
+      function setLoadingNote(message, isError) {
+        if (!loadingNote) {
+          return;
+        }
+        loadingNote.textContent = message;
+        loadingNote.classList.toggle('is-error', Boolean(isError));
+      }
+
+      function hideLoading() {
+        if (loadingContainer) {
+          loadingContainer.remove();
+        }
+      }
+
+      const slowLoadTimer = window.setTimeout(() => {
+        setLoadingNote(
+          'Loading is taking longer than usual. If this is a phone browser, please wait a few more seconds.',
+          false,
+        );
+      }, 8000);
+
+      const failedLoadTimer = window.setTimeout(() => {
+        setLoadingNote(
+          'The app did not finish starting. Please reload the page. If it keeps happening, open it in Chrome or Safari.',
+          true,
+        );
+      }, 20000);
+
+      window.addEventListener('error', function () {
+        window.clearTimeout(slowLoadTimer);
+        window.clearTimeout(failedLoadTimer);
+        setLoadingNote(
+          'A startup error occurred. Please reload the page.',
+          true,
+        );
+      });
+
+      _flutter.loader.load({
+        onEntrypointLoaded: async function (engineInitializer) {
+          try {
+            const appRunner = await engineInitializer.initializeEngine();
+            hideLoading();
+            window.clearTimeout(slowLoadTimer);
+            window.clearTimeout(failedLoadTimer);
+            await appRunner.runApp();
+          } catch (error) {
+            console.error('Flutter web bootstrap failed', error);
+            window.clearTimeout(slowLoadTimer);
+            window.clearTimeout(failedLoadTimer);
+            setLoadingNote(
+              'The app could not start in this browser. Please reload the page.',
+              true,
+            );
+          }
+        },
+      });
+    })();
+  </script>
 </body>
 </html>
