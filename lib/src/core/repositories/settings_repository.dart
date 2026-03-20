@@ -1,18 +1,40 @@
 import 'dart:convert';
 
+import 'package:ai_prg/src/core/data/isar/app_database.dart';
+import 'package:ai_prg/src/core/data/isar/settings_local_data_source.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsRepository {
+  SettingsRepository({
+    final AppDatabase? database,
+    final SettingsLocalDataSource? localDataSource,
+  }) : _database = database ?? AppDatabase.instance,
+       _localDataSource = localDataSource ?? const SettingsLocalDataSource();
+
   static const String _aiSettingsKey = 'settings.ai';
   static const String _appLanguageKey = 'settings.app_language';
 
+  final AppDatabase _database;
+  final SettingsLocalDataSource _localDataSource;
+
+  Future<void> initialize() => _database.ensureReady();
+
   /// Loads provider-scoped settings (for Settings screen).
   Future<ProviderScopedSettings> loadProviderScopedSettings() async {
+    final isar = await _database.maybeIsar;
+    if (isar != null) {
+      final ProviderScopedSettings? settings = await _localDataSource
+          .loadProviderScopedSettings(isar);
+      if (settings != null) {
+        return settings;
+      }
+    }
+
     final SharedPreferences preferences = await SharedPreferences.getInstance();
-    final String? raw = preferences.getString(_aiSettingsKey);
-    if (raw == null || raw.isEmpty) {
+    final String raw = preferences.getString(_aiSettingsKey) ?? '';
+    if (raw.isEmpty) {
       return ProviderScopedSettings(
         activeProvider: AiProviderType.lmStudio,
         profiles: <AiProviderType, ProviderProfile>{
@@ -48,11 +70,13 @@ class SettingsRepository {
   Future<void> saveProviderScopedSettings(
     final ProviderScopedSettings settings,
   ) async {
+    final isar = await _database.maybeIsar;
+    if (isar != null) {
+      await _localDataSource.saveProviderScopedSettings(isar, settings);
+    }
+
     final SharedPreferences preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _aiSettingsKey,
-      jsonEncode(settings.toJson()),
-    );
+    await preferences.setString(_aiSettingsKey, jsonEncode(settings.toJson()));
   }
 
   /// Saves AI settings by updating the active provider's profile.
@@ -65,6 +89,7 @@ class SettingsRepository {
       model: settings.model,
       apiKey: settings.apiKey,
       timeoutSeconds: settings.timeoutSeconds,
+      runtimeSettings: settings.runtimeSettings,
     );
     final Map<AiProviderType, ProviderProfile> newProfiles =
         Map<AiProviderType, ProviderProfile>.from(scoped.profiles);
@@ -79,6 +104,16 @@ class SettingsRepository {
   }
 
   Future<AppLanguage> loadAppLanguage() async {
+    final isar = await _database.maybeIsar;
+    if (isar != null) {
+      final AppLanguage? language = await _localDataSource.loadAppLanguage(
+        isar,
+      );
+      if (language != null) {
+        return language;
+      }
+    }
+
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final String raw =
         preferences.getString(_appLanguageKey) ?? AppLanguage.ru.code;
@@ -89,6 +124,10 @@ class SettingsRepository {
   }
 
   Future<void> saveAppLanguage(final AppLanguage language) async {
+    final isar = await _database.maybeIsar;
+    if (isar != null) {
+      await _localDataSource.saveAppLanguage(isar, language);
+    }
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     await preferences.setString(_appLanguageKey, language.code);
   }

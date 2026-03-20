@@ -50,4 +50,11 @@
 - статус: analysis-ready
 - папка: [docs/features/next-product-layer](D:/AI_PRG/docs/features/next-product-layer)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
-- цель: Narrative depth — углубление повествования (атмосфера, эмоции, диалоги) через расширение AI-промптов
+- цель: Narrative depth, то есть углубление повествования через расширение AI-промптов
+
+### `engine-mechanics-token-control`
+
+- статус: in-progress
+- папка: [docs/features/engine-mechanics-token-control](D:/AI_PRG/docs/features/engine-mechanics-token-control)
+- источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
+- цель: перевести MVP в local-first RPG engine с `Isar`, `Riverpod`, hybrid context, token controls, streaming и deterministic gameplay foundation

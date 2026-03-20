@@ -3,11 +3,11 @@ import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:flutter/foundation.dart';
 
 /// Централизованный логгер приложения для отладки AI запросов и ответов.
-/// 
+///
 /// ПРИМЕЧАНИЕ: Для полноценного логирования добавьте пакет logger в pubspec.yaml:
 /// dependencies:
 ///   logger: ^2.0.0
-/// 
+///
 /// Текущая версия использует debugPrint для временного логирования.
 class AppLogger {
   AppLogger._();
@@ -20,7 +20,7 @@ class AppLogger {
     }
   }
 
-  static dynamic get instance => _AppLoggerInstance();
+  static AppLoggerInstance get instance => AppLoggerInstance();
 
   /// Логирует AI запрос перед отправкой.
   static void logAiRequest({
@@ -28,11 +28,15 @@ class AppLogger {
     required Map<String, dynamic> requestBody,
     required AiSettings settings,
   }) {
-    _log('DEBUG', 'AI Request to $endpoint', error: {
-      'provider': settings.provider.name,
-      'model': settings.model,
-      'body': requestBody,
-    });
+    _log(
+      'DEBUG',
+      'AI Request to $endpoint',
+      error: {
+        'provider': settings.provider.name,
+        'model': settings.model,
+        'body': requestBody,
+      },
+    );
   }
 
   /// Логирует AI ответ после получения.
@@ -44,9 +48,12 @@ class AppLogger {
     final String truncated = rawResponse.length > 500
         ? '${rawResponse.substring(0, 500)}...[truncated ${rawResponse.length} chars]'
         : rawResponse;
-    
-    _log('DEBUG', 'AI Response from $endpoint (status: $statusCode)', 
-      error: truncated);
+
+    _log(
+      'DEBUG',
+      'AI Response from $endpoint (status: $statusCode)',
+      error: truncated,
+    );
   }
 
   /// Логирует AI ошибку с деталями.
@@ -54,20 +61,24 @@ class AppLogger {
     required String message,
     required AiTurnException exception,
   }) {
-    _log('ERROR', 'AI Error: $message', error: {
-      'userMessage': exception.userMessage,
-      'recoverable': exception.recoverable,
-      'rawResponse': exception.rawResponse != null 
-          ? (exception.rawResponse!.length > 300
-              ? '${exception.rawResponse!.substring(0, 300)}...[truncated]'
-              : exception.rawResponse)
-          : null,
-    });
+    _log(
+      'ERROR',
+      'AI Error: $message',
+      error: {
+        'userMessage': exception.userMessage,
+        'recoverable': exception.recoverable,
+        'rawResponse': exception.rawResponse != null
+            ? (exception.rawResponse!.length > 300
+                  ? '${exception.rawResponse!.substring(0, 300)}...[truncated]'
+                  : exception.rawResponse)
+            : null,
+      },
+    );
   }
 }
 
 /// Простая заглушка для instance методов (i, w, e, d).
-class _AppLoggerInstance {
+class AppLoggerInstance {
   void d(String message, {Object? error, StackTrace? stackTrace}) {
     AppLogger._log('DEBUG', message, error: error);
   }

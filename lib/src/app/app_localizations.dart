@@ -1,4 +1,3 @@
-import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:flutter/widgets.dart';
@@ -8,7 +7,12 @@ class AppLocalizations {
 
   final AppLanguage language;
 
-  static AppLocalizations of(final BuildContext context) => AppLocalizations(AppScope.of(context).appLanguageListenable.value);
+  static AppLocalizations of(final BuildContext context) {
+    final AppLocalizationsScope? scope = context
+        .dependOnInheritedWidgetOfExactType<AppLocalizationsScope>();
+    assert(scope != null, 'AppLocalizationsScope is missing in widget tree.');
+    return scope!.localizations;
+  }
 
   String get appTitle => switch (language) {
     AppLanguage.ru => 'ИИ RPG',
@@ -105,7 +109,8 @@ class AppLocalizations {
   };
 
   String get storyWishHint => switch (language) {
-    AppLanguage.ru => 'Например: мрачный детектив в стиле нуар, эпическое фэнтези с драконами...',
+    AppLanguage.ru =>
+      'Например: мрачный детектив в стиле нуар, эпическое фэнтези с драконами...',
     AppLanguage.en => 'E.g.: dark detective noir, epic fantasy with dragons...',
   };
 
@@ -185,72 +190,76 @@ class AppLocalizations {
   };
 
   String get configureAiFirst => switch (language) {
-    AppLanguage.ru => 'Настройки ИИ не настроены. Сгенерировать промпты нельзя.',
-    AppLanguage.en => 'AI settings are not configured. Cannot generate prompts.',
+    AppLanguage.ru =>
+      'Настройки ИИ не настроены. Сгенерировать промпты нельзя.',
+    AppLanguage.en =>
+      'AI settings are not configured. Cannot generate prompts.',
   };
 
-  String characterClassLabel(final CharacterClass value) => switch ((language, value)) {
-    (AppLanguage.ru, CharacterClass.warrior) => 'Воин',
-    (AppLanguage.ru, CharacterClass.mage) => 'Маг',
-    (AppLanguage.ru, CharacterClass.rogue) => 'Плут',
-    (AppLanguage.ru, CharacterClass.detective) => 'Детектив',
-    (AppLanguage.ru, CharacterClass.journalist) => 'Журналист',
-    (AppLanguage.ru, CharacterClass.smuggler) => 'Контрабандист',
-    (AppLanguage.ru, CharacterClass.engineer) => 'Инженер',
-    (AppLanguage.ru, CharacterClass.pilot) => 'Пилот',
-    (AppLanguage.ru, CharacterClass.medic) => 'Медик',
-    (AppLanguage.en, CharacterClass.warrior) => 'Warrior',
-    (AppLanguage.en, CharacterClass.mage) => 'Mage',
-    (AppLanguage.en, CharacterClass.rogue) => 'Rogue',
-    (AppLanguage.en, CharacterClass.detective) => 'Detective',
-    (AppLanguage.en, CharacterClass.journalist) => 'Journalist',
-    (AppLanguage.en, CharacterClass.smuggler) => 'Smuggler',
-    (AppLanguage.en, CharacterClass.engineer) => 'Engineer',
-    (AppLanguage.en, CharacterClass.pilot) => 'Pilot',
-    (AppLanguage.en, CharacterClass.medic) => 'Medic',
-    _ => value.name,
-  };
+  String characterClassLabel(final CharacterClass value) =>
+      switch ((language, value)) {
+        (AppLanguage.ru, CharacterClass.warrior) => 'Воин',
+        (AppLanguage.ru, CharacterClass.mage) => 'Маг',
+        (AppLanguage.ru, CharacterClass.rogue) => 'Плут',
+        (AppLanguage.ru, CharacterClass.detective) => 'Детектив',
+        (AppLanguage.ru, CharacterClass.journalist) => 'Журналист',
+        (AppLanguage.ru, CharacterClass.smuggler) => 'Контрабандист',
+        (AppLanguage.ru, CharacterClass.engineer) => 'Инженер',
+        (AppLanguage.ru, CharacterClass.pilot) => 'Пилот',
+        (AppLanguage.ru, CharacterClass.medic) => 'Медик',
+        (AppLanguage.en, CharacterClass.warrior) => 'Warrior',
+        (AppLanguage.en, CharacterClass.mage) => 'Mage',
+        (AppLanguage.en, CharacterClass.rogue) => 'Rogue',
+        (AppLanguage.en, CharacterClass.detective) => 'Detective',
+        (AppLanguage.en, CharacterClass.journalist) => 'Journalist',
+        (AppLanguage.en, CharacterClass.smuggler) => 'Smuggler',
+        (AppLanguage.en, CharacterClass.engineer) => 'Engineer',
+        (AppLanguage.en, CharacterClass.pilot) => 'Pilot',
+        (AppLanguage.en, CharacterClass.medic) => 'Medic',
+      };
 
-  String characterGenderLabel(final CharacterGender value) => switch ((language, value)) {
-    (AppLanguage.ru, CharacterGender.male) => 'Мужской',
-    (AppLanguage.ru, CharacterGender.female) => 'Женский',
-    (AppLanguage.ru, CharacterGender.other) => 'Другой',
-    (AppLanguage.en, CharacterGender.male) => 'Male',
-    (AppLanguage.en, CharacterGender.female) => 'Female',
-    (AppLanguage.en, CharacterGender.other) => 'Other',
-    _ => value.name,
-  };
+  String characterGenderLabel(final CharacterGender value) =>
+      switch ((language, value)) {
+        (AppLanguage.ru, CharacterGender.male) => 'Мужской',
+        (AppLanguage.ru, CharacterGender.female) => 'Женский',
+        (AppLanguage.ru, CharacterGender.other) => 'Другой',
+        (AppLanguage.en, CharacterGender.male) => 'Male',
+        (AppLanguage.en, CharacterGender.female) => 'Female',
+        (AppLanguage.en, CharacterGender.other) => 'Other',
+      };
 
-  String raceLabel(final String raceId, final CampaignSetting setting) => switch ((language, raceId, setting)) {
-    (AppLanguage.ru, 'human', _) => 'Человек',
-    (AppLanguage.ru, 'elf', _) => 'Эльф',
-    (AppLanguage.ru, 'dwarf', _) => 'Дварф',
-    (AppLanguage.ru, 'orc', _) => 'Орк',
-    (AppLanguage.ru, 'outsider', _) => 'Приезжий',
-    (AppLanguage.ru, 'local', _) => 'Местный',
-    (AppLanguage.ru, 'android', _) => 'Андроид',
-    (AppLanguage.ru, 'alien', _) => 'Инопланетянин',
-    (AppLanguage.ru, 'augmented', _) => 'Аугментированный',
-    (AppLanguage.en, 'human', _) => 'Human',
-    (AppLanguage.en, 'elf', _) => 'Elf',
-    (AppLanguage.en, 'dwarf', _) => 'Dwarf',
-    (AppLanguage.en, 'orc', _) => 'Orc',
-    (AppLanguage.en, 'outsider', _) => 'Outsider',
-    (AppLanguage.en, 'local', _) => 'Local',
-    (AppLanguage.en, 'android', _) => 'Android',
-    (AppLanguage.en, 'alien', _) => 'Alien',
-    (AppLanguage.en, 'augmented', _) => 'Augmented',
-    _ => raceId,
-  };
+  String raceLabel(final String raceId, final CampaignSetting setting) =>
+      switch ((language, raceId, setting)) {
+        (AppLanguage.ru, 'human', _) => 'Человек',
+        (AppLanguage.ru, 'elf', _) => 'Эльф',
+        (AppLanguage.ru, 'dwarf', _) => 'Дварф',
+        (AppLanguage.ru, 'orc', _) => 'Орк',
+        (AppLanguage.ru, 'outsider', _) => 'Приезжий',
+        (AppLanguage.ru, 'local', _) => 'Местный',
+        (AppLanguage.ru, 'android', _) => 'Андроид',
+        (AppLanguage.ru, 'alien', _) => 'Инопланетянин',
+        (AppLanguage.ru, 'augmented', _) => 'Аугментированный',
+        (AppLanguage.en, 'human', _) => 'Human',
+        (AppLanguage.en, 'elf', _) => 'Elf',
+        (AppLanguage.en, 'dwarf', _) => 'Dwarf',
+        (AppLanguage.en, 'orc', _) => 'Orc',
+        (AppLanguage.en, 'outsider', _) => 'Outsider',
+        (AppLanguage.en, 'local', _) => 'Local',
+        (AppLanguage.en, 'android', _) => 'Android',
+        (AppLanguage.en, 'alien', _) => 'Alien',
+        (AppLanguage.en, 'augmented', _) => 'Augmented',
+        _ => raceId,
+      };
 
-  String settingLabel(final CampaignSetting value) => switch ((language, value)) {
-    (AppLanguage.ru, CampaignSetting.fantasy) => 'Фэнтези',
-    (AppLanguage.ru, CampaignSetting.detective) => 'Детектив',
-    (AppLanguage.ru, CampaignSetting.sciFi) => 'Sci-fi',
-    (AppLanguage.en, CampaignSetting.fantasy) => 'Fantasy',
-    (AppLanguage.en, CampaignSetting.detective) => 'Detective',
-    (AppLanguage.en, CampaignSetting.sciFi) => 'Sci-fi',
-  };
+  String settingLabel(final CampaignSetting value) =>
+      switch ((language, value)) {
+        (AppLanguage.ru, CampaignSetting.fantasy) => 'Фэнтези',
+        (AppLanguage.ru, CampaignSetting.detective) => 'Детектив',
+        (AppLanguage.ru, CampaignSetting.sciFi) => 'Sci-fi',
+        (AppLanguage.en, CampaignSetting.fantasy) => 'Fantasy',
+        (AppLanguage.en, CampaignSetting.detective) => 'Detective',
+        (AppLanguage.en, CampaignSetting.sciFi) => 'Sci-fi',
+      };
 
   String storyModeLabel(final StoryMode value) => switch ((language, value)) {
     (AppLanguage.ru, StoryMode.shortStory) => 'Короткая история',
@@ -259,14 +268,15 @@ class AppLocalizations {
     (AppLanguage.en, StoryMode.longCampaign) => 'Long Campaign',
   };
 
-  String difficultyLabel(final DifficultyLevel value) => switch ((language, value)) {
-    (AppLanguage.ru, DifficultyLevel.easy) => 'Легко',
-    (AppLanguage.ru, DifficultyLevel.medium) => 'Нормально',
-    (AppLanguage.ru, DifficultyLevel.hardcore) => 'Хардкор',
-    (AppLanguage.en, DifficultyLevel.easy) => 'Easy',
-    (AppLanguage.en, DifficultyLevel.medium) => 'Normal',
-    (AppLanguage.en, DifficultyLevel.hardcore) => 'Hardcore',
-  };
+  String difficultyLabel(final DifficultyLevel value) =>
+      switch ((language, value)) {
+        (AppLanguage.ru, DifficultyLevel.easy) => 'Легко',
+        (AppLanguage.ru, DifficultyLevel.medium) => 'Нормально',
+        (AppLanguage.ru, DifficultyLevel.hardcore) => 'Хардкор',
+        (AppLanguage.en, DifficultyLevel.easy) => 'Easy',
+        (AppLanguage.en, DifficultyLevel.medium) => 'Normal',
+        (AppLanguage.en, DifficultyLevel.hardcore) => 'Hardcore',
+      };
 
   String get savedCampaigns => switch (language) {
     AppLanguage.ru => 'Сохраненные кампании',
@@ -435,7 +445,8 @@ class AppLocalizations {
   };
 
   String get aiErrorRetryAdvice => switch (language) {
-    AppLanguage.ru => 'Попробуйте ещё раз. Если проблема повторяется, проверьте настройки ИИ.',
+    AppLanguage.ru =>
+      'Попробуйте ещё раз. Если проблема повторяется, проверьте настройки ИИ.',
     AppLanguage.en => 'Try again. If the problem persists, check AI settings.',
   };
 
@@ -545,6 +556,48 @@ class AppLocalizations {
       'Adds /no_think and strict JSON formatting for faster responses.',
   };
 
+  String get runtimeControlsTitle => switch (language) {
+    AppLanguage.ru => 'Runtime',
+    AppLanguage.en => 'Runtime',
+  };
+
+  String get runtimeControlsDescription => switch (language) {
+    AppLanguage.ru =>
+      'Управляйте длиной ответа и примерным размером контекста, который отправляется модели.',
+    AppLanguage.en =>
+      'Control response length and the approximate amount of context sent to the model.',
+  };
+
+  String get runtimeProfileCheap => switch (language) {
+    AppLanguage.ru => 'Дёшево',
+    AppLanguage.en => 'Cheap',
+  };
+
+  String get runtimeProfileFast => switch (language) {
+    AppLanguage.ru => 'Быстро',
+    AppLanguage.en => 'Fast',
+  };
+
+  String get runtimeProfileSmart => switch (language) {
+    AppLanguage.ru => 'Умно',
+    AppLanguage.en => 'Smart',
+  };
+
+  String get runtimeProfileCustom => switch (language) {
+    AppLanguage.ru => 'Свои',
+    AppLanguage.en => 'Custom',
+  };
+
+  String get maxResponseTokens => switch (language) {
+    AppLanguage.ru => 'Максимум токенов ответа',
+    AppLanguage.en => 'Max Response Tokens',
+  };
+
+  String get contextWindowSize => switch (language) {
+    AppLanguage.ru => 'Размер окна контекста',
+    AppLanguage.en => 'Context Window Size',
+  };
+
   String get saveSettings => switch (language) {
     AppLanguage.ru => 'Сохранить настройки',
     AppLanguage.en => 'Save Settings',
@@ -582,8 +635,7 @@ class AppLocalizations {
 
   String get noLmStudioModel => switch (language) {
     AppLanguage.ru => 'LM Studio ответил, но подходящая модель не найдена.',
-    AppLanguage.en =>
-      'LM Studio responded, but no suitable model was found.',
+    AppLanguage.en => 'LM Studio responded, but no suitable model was found.',
   };
 
   String selectedLmStudioModel(final String modelId) => switch (language) {
@@ -719,7 +771,8 @@ class AppLocalizations {
   };
 
   String get characterOptional => switch (language) {
-    AppLanguage.ru => 'Опционально: настройте персонажа или оставьте по умолчанию',
+    AppLanguage.ru =>
+      'Опционально: настройте персонажа или оставьте по умолчанию',
     AppLanguage.en => 'Optional: customize character or leave defaults',
   };
 
@@ -733,6 +786,20 @@ class AppLocalizations {
     AppLanguage.ru => 'Создать новую кампанию',
     AppLanguage.en => 'Create New Campaign',
   };
+}
+
+class AppLocalizationsScope extends InheritedWidget {
+  const AppLocalizationsScope({
+    required this.localizations,
+    required super.child,
+    super.key,
+  });
+
+  final AppLocalizations localizations;
+
+  @override
+  bool updateShouldNotify(final AppLocalizationsScope oldWidget) =>
+      localizations.language != oldWidget.localizations.language;
 }
 
 extension AppLocalizationsBuildContext on BuildContext {

@@ -271,3 +271,35 @@ Expected result:
 - [x] The main chat area occupies most of the screen on both desktop and mobile
 - [x] The input composer and its actions stay grouped at the bottom
 - [x] Mobile layouts remain usable without cramped or broken controls
+
+## Backlog: AI RPG Engine Core, Mechanics & Token Control
+
+Goal: evolve the current MVP into a scalable local-first RPG engine with structured world state, controllable LLM costs, real streaming, and deterministic gameplay foundations.
+
+Tasks:
+
+- [x] Replace `SharedPreferences` campaign/settings persistence with `Isar`
+- [x] Add migration from legacy JSON campaign blobs to structured collections
+- [x] Introduce `Riverpod` providers/notifiers for campaign, messages, world state, and settings
+- [x] Remove `AppScope` and move major flows to controller/notifier orchestration
+- [x] Add model runtime controls for `max response tokens`, `context window`, and quick model profiles
+- [ ] Replace fake narration animation with real response streaming plus fallback
+- [ ] Formalize hybrid context as `static header + dynamic summary + recent buffer`
+- [ ] Extend world state with `Gold`, `Exp`, `Level`, `Inventory`, and `Companions`
+- [ ] Add entity extraction pipeline for inventory and companion updates from narration
+- [ ] Add local `DiceEngine` for deterministic skill/combat checks
+- [ ] Adapt gameplay UI for mobile-first flow and desktop side panels over the new world state
+
+Expected result:
+
+- [ ] Long campaigns remain coherent without sending full chat history every turn
+- [ ] Users can tune speed, quality, and token usage from the settings UI
+- [ ] The client, not the model, becomes the source of truth for core gameplay outcomes
+- [ ] The architecture is ready for Android, iOS, Desktop, and Web persistence/runtime scaling
+
+Current status:
+
+- [x] Stage 1 completed: storage foundation and migration
+- [x] Stage 2 completed: Riverpod-first app shell and screen orchestration
+- [x] Stage 3 completed: runtime token/context controls
+- [ ] Stage 4 next: real streaming

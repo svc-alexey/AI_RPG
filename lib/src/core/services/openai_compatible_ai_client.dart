@@ -81,7 +81,8 @@ class OpenAiCompatibleAiClient implements AiClient {
               ' Avoid sexual content. Keep content suitable for general audiences.',
           };
     final String metaPrompt = switch (language) {
-      AppLanguage.ru => '''
+      AppLanguage.ru =>
+        '''
 Пользователь описывает желаемую историю для narrative RPG: "$storyWish"
 Сеттинг: ${setting.name}.
 
@@ -93,7 +94,8 @@ class OpenAiCompatibleAiClient implements AiClient {
 
 Ответь только JSON, без markdown.
 ''',
-      AppLanguage.en => '''
+      AppLanguage.en =>
+        '''
 User describes desired story for narrative RPG: "$storyWish"
 Setting: ${setting.name}.
 
@@ -108,20 +110,11 @@ Reply only with JSON, no markdown.
     final Uri uri = Uri.parse(
       '${_normalizedBaseUrl(settings.baseUrl)}/chat/completions',
     );
-    final Map<String, Object?> requestBody = <String, Object?>{
-      'model': settings.model,
-      'temperature': 0.5,
-      'messages': <Map<String, String>>[
-        <String, String>{
-          'role': 'system',
-          'content': switch (language) {
-            AppLanguage.ru => 'Ты помощник. Отвечай только валидным JSON.',
-            AppLanguage.en => 'You are a helper. Reply only with valid JSON.',
-          },
-        },
-        <String, String>{'role': 'user', 'content': metaPrompt},
-      ],
-    };
+    final Map<String, Object?> requestBody = buildPromptRequestBody(
+      settings: settings,
+      language: language,
+      metaPrompt: metaPrompt,
+    );
 
     try {
       final Future<http.Response> requestFuture = http
@@ -131,8 +124,9 @@ Reply only with JSON, no markdown.
       final http.Response response = cancelToken != null
           ? await Future.any(<Future<http.Response>>[
               requestFuture,
-              cancelToken!.whenCancelled
-                  .then((_) => throw const AiCancelException()),
+              cancelToken.whenCancelled.then(
+                (_) => throw const AiCancelException(),
+              ),
             ])
           : await requestFuture;
 
@@ -172,7 +166,8 @@ Reply only with JSON, no markdown.
       if (storyPrompt.length > _maxCustomPromptLength) {
         storyPrompt = storyPrompt.substring(0, _maxCustomPromptLength);
       }
-      String characterPrompt = ((parsedMap['characterPrompt'] as String?) ?? '').trim();
+      String characterPrompt = ((parsedMap['characterPrompt'] as String?) ?? '')
+          .trim();
       if (characterPrompt.length > _maxCustomPromptLength) {
         characterPrompt = characterPrompt.substring(0, _maxCustomPromptLength);
       }
@@ -198,19 +193,21 @@ Reply only with JSON, no markdown.
   }) async {
     const int maxAttempts = 3;
     const List<int> backoffMs = [0, 2000, 5000]; // 0s, 2s, 5s
-    
+
     int attemptCount = 0;
-    
+
     while (attemptCount < maxAttempts) {
       try {
         // Задержка перед retry (не на первой попытке)
         if (attemptCount > 0) {
           AppLogger.instance.i(
-            'Retry attempt $attemptCount/$maxAttempts after ${backoffMs[attemptCount]}ms'
+            'Retry attempt $attemptCount/$maxAttempts after ${backoffMs[attemptCount]}ms',
           );
-          await Future.delayed(Duration(milliseconds: backoffMs[attemptCount]));
+          await Future<void>.delayed(
+            Duration(milliseconds: backoffMs[attemptCount]),
+          );
         }
-        
+
         final Future<TurnResult> turnFuture = _requestTurn(
           settings: settings,
           language: language,
@@ -219,20 +216,20 @@ Reply only with JSON, no markdown.
           suggestionsOnly: suggestionsOnly,
           fastMode: _shouldUseFastMode(settings),
         );
-        
+
         if (cancelToken != null) {
           return await Future.any(<Future<TurnResult>>[
             turnFuture,
-            cancelToken!.whenCancelled
-                .then((_) => throw const AiCancelException()),
+            cancelToken.whenCancelled.then(
+              (_) => throw const AiCancelException(),
+            ),
           ]);
         }
-        
+
         return await turnFuture;
-        
       } on AiTurnException catch (error) {
         attemptCount++;
-        
+
         // Если это fast mode ошибка, пробуем без fast mode
         if (_shouldRetryWithoutFastMode(settings, error)) {
           final Future<TurnResult> retryFuture = _requestTurn(
@@ -246,13 +243,14 @@ Reply only with JSON, no markdown.
           if (cancelToken != null) {
             return await Future.any(<Future<TurnResult>>[
               retryFuture,
-              cancelToken!.whenCancelled
-                  .then((_) => throw const AiCancelException()),
+              cancelToken.whenCancelled.then(
+                (_) => throw const AiCancelException(),
+              ),
             ]);
           }
           return await retryFuture;
         }
-        
+
         // Если ошибка не recoverable или исчерпаны попытки
         if (!error.recoverable || attemptCount >= maxAttempts) {
           AppLogger.logAiError(
@@ -261,16 +259,15 @@ Reply only with JSON, no markdown.
           );
           rethrow;
         }
-        
+
         AppLogger.instance.w(
-          'Recoverable error, will retry: ${error.userMessage}'
+          'Recoverable error, will retry: ${error.userMessage}',
         );
       }
     }
-    
-    throw AiTurnException(
+
+    throw const AiTurnException(
       userMessage: 'Max retry attempts ($maxAttempts) exceeded',
-      recoverable: false,
     );
   }
 
@@ -285,31 +282,14 @@ Reply only with JSON, no markdown.
     final Uri uri = Uri.parse(
       '${_normalizedBaseUrl(settings.baseUrl)}/chat/completions',
     );
-    final Map<String, Object?> requestBody = <String, Object?>{
-      'model': settings.model,
-      'temperature': fastMode ? 0.2 : 0.7,
-      'messages': <Map<String, String>>[
-        <String, String>{
-          'role': 'system',
-          'content': _systemPrompt(
-            language: language,
-            state: state,
-            suggestionsOnly: suggestionsOnly,
-            fastMode: fastMode,
-            confirmed18Plus: settings.confirmed18Plus,
-          ),
-        },
-        <String, String>{
-          'role': 'user',
-          'content': _userPrompt(
-            language: language,
-            state: state,
-            playerAction: playerAction,
-            fastMode: fastMode,
-          ),
-        },
-      ],
-    };
+    final Map<String, Object?> requestBody = buildTurnRequestBody(
+      settings: settings,
+      language: language,
+      state: state,
+      playerAction: playerAction,
+      suggestionsOnly: suggestionsOnly,
+      fastMode: fastMode,
+    );
 
     AppLogger.logAiRequest(
       endpoint: uri.toString(),
@@ -335,7 +315,7 @@ Reply only with JSON, no markdown.
     }
 
     final String rawResponse = _responseText(response);
-    
+
     AppLogger.logAiResponse(
       endpoint: uri.toString(),
       statusCode: response.statusCode,
@@ -416,8 +396,64 @@ Reply only with JSON, no markdown.
   bool _shouldRetryWithoutFastMode(
     final AiSettings settings,
     final AiTurnException error,
-  ) =>
-      _shouldUseFastMode(settings) && error.recoverable;
+  ) => _shouldUseFastMode(settings) && error.recoverable;
+
+  @visibleForTesting
+  Map<String, Object?> buildPromptRequestBody({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String metaPrompt,
+  }) => <String, Object?>{
+    'model': settings.model,
+    'temperature': 0.5,
+    'max_tokens': settings.maxResponseTokens,
+    'messages': <Map<String, String>>[
+      <String, String>{
+        'role': 'system',
+        'content': switch (language) {
+          AppLanguage.ru => 'Ты помощник. Отвечай только валидным JSON.',
+          AppLanguage.en => 'You are a helper. Reply only with valid JSON.',
+        },
+      },
+      <String, String>{'role': 'user', 'content': metaPrompt},
+    ],
+  };
+
+  @visibleForTesting
+  Map<String, Object?> buildTurnRequestBody({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final bool fastMode,
+  }) => <String, Object?>{
+    'model': settings.model,
+    'temperature': fastMode ? 0.2 : 0.7,
+    'max_tokens': settings.maxResponseTokens,
+    'messages': <Map<String, String>>[
+      <String, String>{
+        'role': 'system',
+        'content': _systemPrompt(
+          language: language,
+          state: state,
+          suggestionsOnly: suggestionsOnly,
+          fastMode: fastMode,
+          confirmed18Plus: settings.confirmed18Plus,
+        ),
+      },
+      <String, String>{
+        'role': 'user',
+        'content': _userPrompt(
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          fastMode: fastMode,
+          contextWindowSize: settings.contextWindowSize,
+        ),
+      },
+    ],
+  };
 
   int _effectiveTimeoutSeconds(final AiSettings settings) {
     if (settings.provider == AiProviderType.openRouter &&
@@ -456,7 +492,8 @@ Reply only with JSON, no markdown.
 
     final Map<String, Object?> map = _jsonMap(decoded);
     final Map<String, Object?> error = _jsonMap(map['error']);
-    final String message = (error['message'] as String?)?.trim() ??
+    final String message =
+        (error['message'] as String?)?.trim() ??
         (map['message'] as String?)?.trim() ??
         '';
     final String code = (error['code'] as String?)?.trim() ?? '';
@@ -470,14 +507,16 @@ Reply only with JSON, no markdown.
     return message.isNotEmpty ? message : code;
   }
 
-  String _providerLabel(final AiSettings settings, final AppLanguage language) =>
-      switch ((settings.provider, language)) {
-        (AiProviderType.deepSeek, _) => 'DeepSeek',
-        (AiProviderType.openRouter, _) => 'OpenRouter',
-        (AiProviderType.lmStudio, _) => 'LM Studio',
-        (AiProviderType.openAiCompatible, AppLanguage.ru) => 'AI endpoint',
-        (AiProviderType.openAiCompatible, AppLanguage.en) => 'AI endpoint',
-      };
+  String _providerLabel(
+    final AiSettings settings,
+    final AppLanguage language,
+  ) => switch ((settings.provider, language)) {
+    (AiProviderType.deepSeek, _) => 'DeepSeek',
+    (AiProviderType.openRouter, _) => 'OpenRouter',
+    (AiProviderType.lmStudio, _) => 'LM Studio',
+    (AiProviderType.openAiCompatible, AppLanguage.ru) => 'AI endpoint',
+    (AiProviderType.openAiCompatible, AppLanguage.en) => 'AI endpoint',
+  };
 
   String _friendlyAiEndpointError({
     required final AiSettings settings,
@@ -490,7 +529,9 @@ Reply only with JSON, no markdown.
       AppLanguage.ru => 'Состояние кампании не изменено.',
       AppLanguage.en => 'The campaign state was not changed.',
     };
-    final String detailText = detail == null || detail.isEmpty ? '' : ' $detail';
+    final String detailText = detail == null || detail.isEmpty
+        ? ''
+        : ' $detail';
 
     if (settings.provider == AiProviderType.deepSeek && statusCode == 402) {
       return switch (language) {
@@ -553,7 +594,8 @@ Reply only with JSON, no markdown.
     String base = '';
     if (suggestionsOnly) {
       base = switch (language) {
-        AppLanguage.ru => '''
+        AppLanguage.ru =>
+          '''
 $fastPrefixТы повествовательный ИИ для детерминированной RPG.
 Отвечай только JSON с ключами: narration, choices, state_changes, memory_entry.
 Все тексты, narration, choices и memory_entry пиши только на русском языке.
@@ -564,7 +606,8 @@ $fastPrefixТы повествовательный ИИ для детермин�
 - memory_entry должен быть кратким
 Не добавляй markdown или пояснения вне JSON.
 ''',
-        AppLanguage.en => '''
+        AppLanguage.en =>
+          '''
 ${fastPrefix}You are a narrative AI for a deterministic RPG.
 Reply only with JSON using the keys: narration, choices, state_changes, memory_entry.
 Write all texts, narration, choices, and memory_entry only in English.
@@ -578,7 +621,8 @@ Do not add markdown or explanations outside JSON.
       };
     } else {
       base = switch (language) {
-        AppLanguage.ru => '''
+        AppLanguage.ru =>
+          '''
 $fastPrefixТы повествовательный ИИ для детерминированной RPG.
 Отвечай только JSON с ключами: narration, choices, state_changes, memory_entry.
 Все тексты, narration, choices, questNote, location и memory_entry пиши только на русском языке.
@@ -591,7 +635,8 @@ $fastPrefixТы повествовательный ИИ для детермин�
 - не ломай целостность мира
 - не добавляй markdown fences
 ''',
-        AppLanguage.en => '''
+        AppLanguage.en =>
+          '''
 ${fastPrefix}You are a narrative AI for a deterministic RPG.
 Reply only with JSON using the keys: narration, choices, state_changes, memory_entry.
 Write all texts, narration, choices, questNote, location, and memory_entry only in English.
@@ -609,12 +654,14 @@ Rules:
 
     final List<String> parts = <String>[base, contentRule];
     if (state.customStoryPrompt.trim().isNotEmpty) {
-      parts.add('\n\n--- Story context ---\n${state.customStoryPrompt.trim()}\n');
+      parts.add(
+        '\n\n--- Story context ---\n${state.customStoryPrompt.trim()}\n',
+      );
     }
     if (state.characterPrompt.trim().isNotEmpty) {
       parts.add('\n\n--- Character ---\n${state.characterPrompt.trim()}\n');
     }
-    return parts.join('');
+    return parts.join();
   }
 
   String _userPrompt({
@@ -622,27 +669,38 @@ Rules:
     required final CampaignState state,
     required final String playerAction,
     required final bool fastMode,
+    required final int contextWindowSize,
   }) {
     final Map<String, Object?> contextPayload = fastMode
-        ? _memoryManager.buildFastAiContext(state)
-        : _memoryManager.buildAiContext(state);
+        ? _memoryManager.buildFastAiContext(
+            state,
+            contextWindowSize: contextWindowSize,
+          )
+        : _memoryManager.buildAiContext(
+            state,
+            contextWindowSize: contextWindowSize,
+          );
 
     final String actionText = playerAction.trim().isEmpty
         ? switch (language) {
-            AppLanguage.ru => '(Начало игры. Придумай интересную стартовую локацию, завязку и цель в рамках текущего сеттинга. Начни повествование.)',
-            AppLanguage.en => '(Game start. Invent an interesting starting location, hook, and objective within the current setting. Begin the narration.)',
+            AppLanguage.ru =>
+              '(Начало игры. Придумай интересную стартовую локацию, завязку и цель в рамках текущего сеттинга. Начни повествование.)',
+            AppLanguage.en =>
+              '(Game start. Invent an interesting starting location, hook, and objective within the current setting. Begin the narration.)',
           }
         : playerAction;
 
     return switch (language) {
-      AppLanguage.ru => '''
+      AppLanguage.ru =>
+        '''
 Контекст кампании:
 ${jsonEncode(contextPayload)}
 
 Действие игрока:
 $actionText
 ''',
-      AppLanguage.en => '''
+      AppLanguage.en =>
+        '''
 Campaign context:
 ${jsonEncode(contextPayload)}
 
@@ -680,49 +738,53 @@ $actionText
   }
 
   // ignore: unused_element
-  String _aiEndpointError(final AppLanguage language, final int statusCode) =>
-      switch (language) {
-        AppLanguage.ru =>
-          'AI endpoint вернул ошибку $statusCode. Состояние кампании не изменено.',
-        AppLanguage.en =>
-          'The AI endpoint returned error $statusCode. The campaign state was not changed.',
-      };
+  String _aiEndpointError(
+    final AppLanguage language,
+    final int statusCode,
+  ) => switch (language) {
+    AppLanguage.ru =>
+      'AI endpoint вернул ошибку $statusCode. Состояние кампании не изменено.',
+    AppLanguage.en =>
+      'The AI endpoint returned error $statusCode. The campaign state was not changed.',
+  };
 
-  String _providerUnexpectedFormat(final AppLanguage language) =>
-      switch (language) {
-        AppLanguage.ru =>
-          'Провайдер вернул неожиданный формат ответа.\n\n'
+  String _providerUnexpectedFormat(
+    final AppLanguage language,
+  ) => switch (language) {
+    AppLanguage.ru =>
+      'Провайдер вернул неожиданный формат ответа.\n\n'
           'Попробуйте снова. Если проблема повторяется, проверьте настройки ИИ.',
-        AppLanguage.en =>
-          'The provider returned an unexpected response format.\n\n'
+    AppLanguage.en =>
+      'The provider returned an unexpected response format.\n\n'
           'Try again. If the problem persists, check AI settings.',
-      };
+  };
 
   String _providerNoChoices(final AppLanguage language) => switch (language) {
     AppLanguage.ru =>
       'Провайдер не вернул ни одного варианта ответа.\n\n'
-      'Попробуйте снова или проверьте подключение к AI.',
+          'Попробуйте снова или проверьте подключение к AI.',
     AppLanguage.en =>
       'The provider returned no answer choices.\n\n'
-      'Try again or check your AI connection.',
+          'Try again or check your AI connection.',
   };
 
   String _invalidJson(final AppLanguage language) => switch (language) {
     AppLanguage.ru =>
       'Модель вернула невалидный JSON.\n\n'
-      'Обычно это временная проблема. Попробуйте снова.',
+          'Обычно это временная проблема. Попробуйте снова.',
     AppLanguage.en =>
       'The model returned invalid JSON.\n\n'
-      'This is usually temporary. Try again.',
+          'This is usually temporary. Try again.',
   };
 
-  String _modelDidNotReturnJson(final AppLanguage language) =>
-      switch (language) {
-        AppLanguage.ru =>
-          'Модель не вернула JSON в ожидаемом формате.\n\n'
+  String _modelDidNotReturnJson(
+    final AppLanguage language,
+  ) => switch (language) {
+    AppLanguage.ru =>
+      'Модель не вернула JSON в ожидаемом формате.\n\n'
           'Попробуйте снова. Если проблема не исчезает, возможно модель не поддерживает structured output.',
-        AppLanguage.en =>
-          'The model did not return JSON in the expected format.\n\n'
+    AppLanguage.en =>
+      'The model did not return JSON in the expected format.\n\n'
           'Try again. If the problem persists, the model may not support structured output.',
-      };
+  };
 }

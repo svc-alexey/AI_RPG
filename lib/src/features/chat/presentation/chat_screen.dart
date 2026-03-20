@@ -1,48 +1,28 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
-import 'package:ai_prg/src/app/app_scope.dart';
-import 'package:ai_prg/src/core/models/ai_settings.dart';
-import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:ai_prg/src/core/services/ai_client.dart'
-    show AiCancelException, AiClient, AiTurnException, CancelToken;
+import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({required this.campaignId, super.key});
 
   final String campaignId;
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  bool _isLoading = true;
-  bool _isSending = false;
-  bool _didLoad = false;
-  CampaignState? _campaign;
-  AiSettings _settings = const AiSettings.defaults();
-  String? _status;
-  ChatMessage? _pendingPlayerMessage;
-  ChatMessage? _pendingNarratorMessage;
-  CancelToken? _cancelToken;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_didLoad) {
-      return;
-    }
-    _didLoad = true;
-    _load();
-  }
+  bool _didTriggerIntro = false;
 
   @override
   void dispose() {
@@ -54,8 +34,42 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
-    final CampaignState? campaign = _campaign;
-    if (_isLoading) {
+    final ChatViewState chatState = ref.watch(
+      chatControllerProvider(widget.campaignId),
+    );
+    final ChatController controller = ref.read(
+      chatControllerProvider(widget.campaignId).notifier,
+    );
+
+    ref.listen<ChatViewState>(chatControllerProvider(widget.campaignId), (
+      final previous,
+      final next,
+    ) {
+      if (next.clearInputRevision != (previous?.clearInputRevision ?? 0)) {
+        _inputController.clear();
+      }
+
+      if (_shouldScroll(previous, next)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+
+      if (!_didTriggerIntro &&
+          !next.isLoading &&
+          next.campaign != null &&
+          next.campaign!.messages.isEmpty &&
+          !next.isSending) {
+        _didTriggerIntro = true;
+        controller.runTurn(
+          l10n: l10n,
+          action: '',
+          suggestionsOnly: false,
+          isIntro: true,
+        );
+      }
+    });
+
+    final CampaignState? campaign = chatState.campaign;
+    if (chatState.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -82,7 +96,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
         actions: <Widget>[
           IconButton(
-            onPressed: _save,
+            onPressed: () => controller.save(l10n: l10n),
             icon: const Icon(Icons.save_outlined),
             tooltip: l10n.saveTooltip,
           ),
@@ -90,7 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (context) => const SettingsScreen(),
+                  builder: (final context) => const SettingsScreen(),
                 ),
               );
             },
@@ -108,37 +122,49 @@ class _ChatScreenState extends State<ChatScreen> {
           ? null
           : Drawer(
               child: AetherBackdrop(
-                child: SafeArea(
-                  child: _buildSidebar(campaign),
-                ),
+                child: SafeArea(child: _buildSidebar(campaign)),
               ),
             ),
       body: AetherBackdrop(
-          child: Padding(
+        child: Padding(
           padding: const EdgeInsets.all(16),
           child: wide
               ? Row(
                   children: <Widget>[
                     SizedBox(width: 240, child: _buildSidebar(campaign)),
                     const SizedBox(width: 20),
-                    Expanded(child: _buildChatColumn(campaign)),
+                    Expanded(
+                      child: _buildChatColumn(
+                        campaign: campaign,
+                        chatState: chatState,
+                        controller: controller,
+                      ),
+                    ),
                   ],
                 )
-              : _buildChatColumn(campaign),
+              : _buildChatColumn(
+                  campaign: campaign,
+                  chatState: chatState,
+                  controller: controller,
+                ),
         ),
       ),
     );
   }
 
-  Widget _buildChatColumn(final CampaignState campaign) {
+  Widget _buildChatColumn({
+    required final CampaignState campaign,
+    required final ChatViewState chatState,
+    required final ChatController controller,
+  }) {
     final AppLocalizations l10n = context.l10n;
-    final List<ChatMessage> visibleMessages = _visibleMessages(campaign);
+    final List<ChatMessage> visibleMessages = chatState.visibleMessages;
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isNarrow = screenWidth < 400;
-    
+
     return Column(
       children: <Widget>[
-        if (_status != null)
+        if (chatState.status != null)
           AetherCard(
             padding: EdgeInsets.symmetric(
               horizontal: isNarrow ? 12 : 18,
@@ -147,31 +173,32 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                _status!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: isNarrow ? 13 : 14,
-                ),
+                chatState.status!,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: isNarrow ? 13 : 14),
               ),
             ),
           ),
-        if (_status != null) const SizedBox(height: 12),
+        if (chatState.status != null) const SizedBox(height: 12),
         Expanded(
           child: AetherCard(
             padding: EdgeInsets.all(isNarrow ? 12 : 16),
             child: ListView.builder(
               controller: _scrollController,
-              itemCount: visibleMessages.length + (campaign.choices.isNotEmpty ? 1 : 0),
-              itemBuilder: (context, index) {
-                // Кнопки выбора в конце списка
+              itemCount:
+                  visibleMessages.length +
+                  (campaign.choices.isNotEmpty ? 1 : 0),
+              itemBuilder: (final context, final index) {
                 if (index == visibleMessages.length) {
                   return IgnorePointer(
-                    ignoring: _isSending,
+                    ignoring: chatState.isSending,
                     child: OverlayChoiceStack(
                       choices: campaign.choices.take(3).toList(),
-                      onChoiceSelected: (choice) {
+                      onChoiceSelected: (final choice) {
                         _inputController.text = choice;
                       },
-                      enabled: !_isSending,
+                      enabled: !chatState.isSending,
                     ),
                   );
                 }
@@ -182,7 +209,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 return Padding(
                   padding: EdgeInsets.only(
-                    bottom: index == visibleMessages.length - 1 ? 0 : (isNarrow ? 10 : 14),
+                    bottom: index == visibleMessages.length - 1
+                        ? 0
+                        : (isNarrow ? 10 : 14),
                   ),
                   child: Align(
                     alignment: isPlayer
@@ -201,10 +230,11 @@ class _ChatScreenState extends State<ChatScreen> {
                             : AetherPalette.panel.withValues(alpha: 0.96),
                         borderRadius: BorderRadius.circular(isNarrow ? 16 : 20),
                         border: Border.all(
-                          color: (isPlayer
-                                  ? AetherPalette.accent
-                                  : AetherPalette.panelBorder)
-                              .withValues(alpha: 0.45),
+                          color:
+                              (isPlayer
+                                      ? AetherPalette.accent
+                                      : AetherPalette.panelBorder)
+                                  .withValues(alpha: 0.45),
                         ),
                       ),
                       child: Text(
@@ -235,12 +265,14 @@ class _ChatScreenState extends State<ChatScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_isSending)
-                LinearProgressIndicator(
+            children: <Widget>[
+              if (chatState.isSending)
+                const LinearProgressIndicator(
                   minHeight: 2,
                   backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(AetherPalette.accent),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AetherPalette.accent,
+                  ),
                 ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -263,19 +295,23 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (_isSending)
+                  if (chatState.isSending)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         TextButton(
-                          onPressed: () => _cancelToken?.cancel(),
+                          onPressed: controller.cancelGeneration,
                           child: Text(l10n.cancel),
                         ),
                       ],
                     )
                   else
                     IconButton.filled(
-                      onPressed: () => _runTurn(suggestionsOnly: false),
+                      onPressed: () => controller.runTurn(
+                        l10n: l10n,
+                        action: _inputController.text,
+                        suggestionsOnly: false,
+                      ),
                       icon: const Icon(Icons.send_rounded),
                       tooltip: l10n.send,
                     ),
@@ -350,32 +386,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _load() async {
-    final AppScope scope = AppScope.of(context);
-    final CampaignState? campaign = await scope.campaignRepository.loadCampaign(
-      widget.campaignId,
-    );
-    final AiSettings settings = await scope.settingsRepository.loadAiSettings();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _campaign = campaign;
-      _settings = settings;
-      _isLoading = false;
-    });
-
-    if (campaign != null && campaign.messages.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _runTurn(suggestionsOnly: false, isIntro: true);
-        }
-      });
-    }
-  }
-
   void _exitToMainMenu() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
@@ -383,227 +393,26 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _save() async {
-    final CampaignState? campaign = _campaign;
-    if (campaign == null) {
-      return;
+  bool _shouldScroll(final ChatViewState? previous, final ChatViewState next) {
+    if (previous == null) {
+      return !next.isLoading;
     }
 
-    final AppScope scope = AppScope.of(context);
-    await scope.campaignRepository.saveCampaign(campaign);
-    if (!mounted) {
-      return;
-    }
-    setState(() => _status = context.l10n.campaignSaved);
-  }
+    final bool visibleCountChanged =
+        previous.visibleMessages.length != next.visibleMessages.length;
+    final bool narratorChanged =
+        previous.pendingNarratorMessage?.text !=
+        next.pendingNarratorMessage?.text;
+    final bool finishedSending = previous.isSending && !next.isSending;
 
-  Future<void> _runTurn({required final bool suggestionsOnly, final bool isIntro = false}) async {
-    final CampaignState? campaign = _campaign;
-    if (campaign == null) {
-      return;
-    }
-
-    final String action = isIntro ? '' : _inputController.text.trim();
-    if (!suggestionsOnly && !isIntro && action.isEmpty) {
-      setState(() => _status = context.l10n.actionRequired);
-      return;
-    }
-
-    final CancelToken cancelToken = CancelToken();
-    setState(() {
-      _cancelToken = cancelToken;
-      _isSending = true;
-      _status = null;
-      if (!suggestionsOnly) {
-        final DateTime now = DateTime.now();
-        if (!isIntro) {
-          _pendingPlayerMessage = ChatMessage(
-            id: 'pending_player',
-            role: ChatRole.player,
-            text: action,
-            createdAt: now,
-          );
-        }
-        _pendingNarratorMessage = ChatMessage(
-          id: 'pending_narrator',
-          role: ChatRole.narrator,
-          text: context.l10n.generatingResponse,
-          createdAt: now,
-        );
-      }
-    });
-
-    try {
-      final AppScope scope = AppScope.of(context);
-      final AppLanguage language = scope.appLanguageListenable.value;
-      final AiSettings settings = await scope.settingsRepository
-          .loadAiSettings();
-      final AiClient client = scope.aiServiceFactory.create(settings);
-      final TurnResult result = await client.generateTurn(
-        settings: settings,
-        language: language,
-        state: campaign,
-        playerAction: action,
-        suggestionsOnly: suggestionsOnly,
-        cancelToken: cancelToken,
-      );
-
-      if (!suggestionsOnly) {
-        await _animatePendingNarration(result.narration);
-      }
-
-      final CampaignState nextState = suggestionsOnly
-          ? campaign.copyWith(
-              choices: result.choices,
-              memory: campaign.memory.copyWith(
-                activeSituation: result.narration,
-              ),
-              updatedAt: DateTime.now(),
-            )
-          : scope.gameEngine.applyTurn(
-              language: language,
-              state: campaign,
-              playerAction: action,
-              result: result,
-            );
-
-      await scope.campaignRepository.saveCampaign(nextState);
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _campaign = nextState;
-        _settings = settings;
-        _cancelToken = null;
-        _isSending = false;
-        _pendingPlayerMessage = null;
-        _pendingNarratorMessage = null;
-        _status = suggestionsOnly
-            ? context.l10n.suggestionsUpdated(_settings.isConfigured)
-            : context.l10n.turnCompleted(_settings.isConfigured);
-        if (!suggestionsOnly) {
-          _inputController.clear();
-        }
-      });
-      
-      // Автоскролл вниз после обновления сообщений
-      if (!suggestionsOnly) {
-        _scrollToBottom();
-      }
-    } on AiTurnException catch (error) {
-      _clearPendingMessages();
-      await _handleAiTurnException(error);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      final bool wasCancelled = error is AiCancelException;
-      setState(() {
-        _cancelToken = null;
-        _isSending = false;
-        _pendingPlayerMessage = null;
-        _pendingNarratorMessage = null;
-        _status = wasCancelled
-            ? context.l10n.generationCancelled
-            : context.l10n.turnError(error);
-      });
-      if (wasCancelled) {
-        _clearPendingMessages();
-      }
-    }
-  }
-
-  Future<void> _handleAiTurnException(final AiTurnException error) async {
-    final CampaignState? campaign = _campaign;
-    if (campaign == null) {
-      return;
-    }
-
-    final AppScope scope = AppScope.of(context);
-    CampaignState nextState = scope.gameEngine.appendSystemMessage(
-      state: campaign,
-      text: error.userMessage,
-    );
-
-    if ((error.rawResponse ?? '').trim().isNotEmpty) {
-      nextState = scope.gameEngine.appendSystemMessage(
-        state: nextState,
-        text: context.l10n.rawModelResponseSaved,
-      );
-    }
-
-    await scope.campaignRepository.saveCampaign(nextState);
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _campaign = nextState;
-      _isSending = false;
-      _pendingPlayerMessage = null;
-      _pendingNarratorMessage = null;
-      _status = error.userMessage;
-    });
-  }
-
-  List<ChatMessage> _visibleMessages(final CampaignState campaign) {
-    final List<ChatMessage> messages = List<ChatMessage>.from(campaign.messages);
-    if (_pendingPlayerMessage != null) {
-      messages.add(_pendingPlayerMessage!);
-    }
-    if (_pendingNarratorMessage != null) {
-      messages.add(_pendingNarratorMessage!);
-    }
-    return messages;
-  }
-
-  Future<void> _animatePendingNarration(final String narration) async {
-    final List<String> words = narration
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .toList();
-    if (words.isEmpty || !mounted) {
-      return;
-    }
-
-    String buffer = '';
-    for (int i = 0; i < words.length; i += 2) {
-      final int end = (i + 2 < words.length) ? i + 2 : words.length;
-      final String chunk = words.sublist(i, end).join(' ');
-      buffer = buffer.isEmpty ? chunk : '$buffer $chunk';
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _pendingNarratorMessage = ChatMessage(
-          id: 'pending_narrator',
-          role: ChatRole.narrator,
-          text: buffer,
-          createdAt: _pendingNarratorMessage?.createdAt ?? DateTime.now(),
-        );
-      });
-      await Future<void>.delayed(const Duration(milliseconds: 40));
-    }
-  }
-
-  void _clearPendingMessages() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _pendingPlayerMessage = null;
-      _pendingNarratorMessage = null;
-    });
+    return visibleCountChanged || narratorChanged || finishedSending;
   }
 
   void _scrollToBottom() {
     if (!_scrollController.hasClients) {
       return;
     }
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(

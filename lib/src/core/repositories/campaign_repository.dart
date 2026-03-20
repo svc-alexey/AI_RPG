@@ -1,30 +1,74 @@
 import 'dart:convert';
 
+import 'package:ai_prg/src/core/data/isar/app_database.dart';
+import 'package:ai_prg/src/core/data/isar/campaign_local_data_source.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CampaignRepository {
-  static const String _campaignIdsKey = 'campaign.ids';
+  CampaignRepository({
+    final AppDatabase? database,
+    final CampaignLocalDataSource? localDataSource,
+  })  : _database = database ?? AppDatabase.instance,
+        _localDataSource = localDataSource ?? const CampaignLocalDataSource();
+
+  final AppDatabase _database;
+  final CampaignLocalDataSource _localDataSource;
+
+  Future<void> initialize() => _database.ensureReady();
 
   Future<List<CampaignState>> loadAllCampaigns() async {
+    final isar = await _database.maybeIsar;
+    if (isar == null) {
+      return _loadAllCampaignsLegacy();
+    }
+    return _localDataSource.loadAllCampaigns(isar);
+  }
+
+  Future<CampaignState?> loadCampaign(final String id) async {
+    final isar = await _database.maybeIsar;
+    if (isar == null) {
+      return _loadCampaignLegacy(id);
+    }
+    return _localDataSource.loadCampaign(isar, id);
+  }
+
+  Future<void> saveCampaign(final CampaignState campaign) async {
+    final isar = await _database.maybeIsar;
+    if (isar == null) {
+      await _saveCampaignLegacy(campaign);
+      return;
+    }
+    await _localDataSource.saveCampaign(isar, campaign);
+  }
+
+  Future<void> deleteCampaign(final String id) async {
+    final isar = await _database.maybeIsar;
+    if (isar == null) {
+      await _deleteCampaignLegacy(id);
+      return;
+    }
+    await _localDataSource.deleteCampaign(isar, id);
+  }
+
+  Future<List<CampaignState>> _loadAllCampaignsLegacy() async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final List<String> ids =
         preferences.getStringList(_campaignIdsKey) ?? const <String>[];
 
     final List<CampaignState> campaigns = <CampaignState>[];
     for (final String id in ids) {
-      final CampaignState? state = await loadCampaign(id);
+      final CampaignState? state = await _loadCampaignLegacy(id);
       if (state != null) {
         campaigns.add(state);
       }
     }
 
-    campaigns.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    campaigns.sort((final a, final b) => b.updatedAt.compareTo(a.updatedAt));
     return campaigns;
   }
 
-  Future<CampaignState?> loadCampaign(final String id) async {
+  Future<CampaignState?> _loadCampaignLegacy(final String id) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final String? raw = preferences.getString(_campaignKey(id));
     if (raw == null || raw.isEmpty) {
@@ -38,15 +82,14 @@ class CampaignRepository {
       }
 
       return CampaignState.fromJson(
-        decoded.map((key, value) => MapEntry(key.toString(), value)),
+        decoded.map((final key, final value) => MapEntry(key.toString(), value)),
       );
-    } catch (error) {
-      debugPrint('Failed to load campaign $id: $error');
+    } catch (_) {
       return null;
     }
   }
 
-  Future<void> saveCampaign(final CampaignState campaign) async {
+  Future<void> _saveCampaignLegacy(final CampaignState campaign) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final List<String> ids =
         preferences.getStringList(_campaignIdsKey) ?? <String>[];
@@ -61,15 +104,16 @@ class CampaignRepository {
     );
   }
 
-  Future<void> deleteCampaign(final String id) async {
+  Future<void> _deleteCampaignLegacy(final String id) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final List<String> ids =
         preferences.getStringList(_campaignIdsKey) ?? <String>[];
-    // ignore: cascade_invocations
     ids.remove(id);
     await preferences.setStringList(_campaignIdsKey, ids);
     await preferences.remove(_campaignKey(id));
   }
+
+  static const String _campaignIdsKey = 'campaign.ids';
 
   String _campaignKey(final String id) => 'campaign.$id';
 }

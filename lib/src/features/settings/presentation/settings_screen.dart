@@ -1,49 +1,27 @@
-import 'dart:convert';
-
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
-import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
-import 'package:ai_prg/src/core/services/ai_client.dart';
+import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _timeoutController = TextEditingController();
-
-  AiProviderType _provider = AiProviderType.lmStudio;
-  Map<AiProviderType, ProviderProfile> _profiles =
-      <AiProviderType, ProviderProfile>{};
-  AppLanguage _appLanguage = AppLanguage.ru;
-  bool _fastResponses = true;
-  bool _confirmed18Plus = false;
-  bool _isLoading = true;
-  bool _isSaving = false;
-  bool _isChecking = false;
-  bool _isDetectingModel = false;
-  bool _didLoad = false;
-  String? _status;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_didLoad) {
-      return;
-    }
-    _didLoad = true;
-    _load();
-  }
+  final TextEditingController _maxResponseTokensController =
+      TextEditingController();
+  final TextEditingController _contextWindowSizeController =
+      TextEditingController();
 
   @override
   void dispose() {
@@ -51,17 +29,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _modelController.dispose();
     _apiKeyController.dispose();
     _timeoutController.dispose();
+    _maxResponseTokensController.dispose();
+    _contextWindowSizeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
+    final SettingsViewState settingsState = ref.watch(
+      settingsControllerProvider,
+    );
+    final SettingsController controller = ref.read(
+      settingsControllerProvider.notifier,
+    );
+
+    ref.listen<SettingsViewState>(settingsControllerProvider, (
+      final previous,
+      final next,
+    ) {
+      if (next.formRevision != (previous?.formRevision ?? 0)) {
+        _baseUrlController.text = next.baseUrl;
+        _modelController.text = next.model;
+        _apiKeyController.text = next.apiKey;
+        _timeoutController.text = next.timeoutText;
+        _maxResponseTokensController.text = next.maxResponseTokensText;
+        _contextWindowSizeController.text = next.contextWindowSizeText;
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aiSettings)),
       body: AetherBackdrop(
-        child: _isLoading
+        child: settingsState.isLoading
             ? const Center(child: CircularProgressIndicator())
             : Center(
                 child: ConstrainedBox(
@@ -82,10 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               contentPadding: EdgeInsets.zero,
                               title: Text(l10n.confirm18Plus),
                               subtitle: Text(l10n.contentRatingSubtitle),
-                              value: _confirmed18Plus,
-                              onChanged: (final value) {
-                                setState(() => _confirmed18Plus = value);
-                              },
+                              value: settingsState.confirmed18Plus,
+                              onChanged: controller.setConfirmed18Plus,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -102,10 +100,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   label: Text(l10n.english),
                                 ),
                               ],
-                              selected: <AppLanguage>{_appLanguage},
-                              onSelectionChanged: (final selection) {
-                                setState(() => _appLanguage = selection.first);
+                              selected: <AppLanguage>{
+                                settingsState.appLanguage,
                               },
+                              onSelectionChanged: (final selection) =>
+                                  controller.setAppLanguage(selection.first),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -116,8 +115,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _ProviderTile(
                                   title: 'LM Studio',
                                   subtitle: 'Local server',
-                                  selected: _provider == AiProviderType.lmStudio,
-                                  onTap: () => _handleProviderChanged(
+                                  selected:
+                                      settingsState.provider ==
+                                      AiProviderType.lmStudio,
+                                  onTap: () => controller.changeProvider(
                                     AiProviderType.lmStudio,
                                   ),
                                 ),
@@ -125,9 +126,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _ProviderTile(
                                   title: l10n.openAiCompatible,
                                   subtitle: 'OpenAI-compatible API',
-                                  selected: _provider ==
+                                  selected:
+                                      settingsState.provider ==
                                       AiProviderType.openAiCompatible,
-                                  onTap: () => _handleProviderChanged(
+                                  onTap: () => controller.changeProvider(
                                     AiProviderType.openAiCompatible,
                                   ),
                                 ),
@@ -135,8 +137,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _ProviderTile(
                                   title: l10n.openRouter,
                                   subtitle: 'Unified gateway for many models',
-                                  selected: _provider == AiProviderType.openRouter,
-                                  onTap: () => _handleProviderChanged(
+                                  selected:
+                                      settingsState.provider ==
+                                      AiProviderType.openRouter,
+                                  onTap: () => controller.changeProvider(
                                     AiProviderType.openRouter,
                                   ),
                                 ),
@@ -144,8 +148,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _ProviderTile(
                                   title: l10n.deepSeek,
                                   subtitle: 'Official DeepSeek API',
-                                  selected: _provider == AiProviderType.deepSeek,
-                                  onTap: () => _handleProviderChanged(
+                                  selected:
+                                      settingsState.provider ==
+                                      AiProviderType.deepSeek,
+                                  onTap: () => controller.changeProvider(
                                     AiProviderType.deepSeek,
                                   ),
                                 ),
@@ -159,6 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: <Widget>[
                                 TextField(
                                   controller: _baseUrlController,
+                                  onChanged: controller.setBaseUrl,
                                   decoration: InputDecoration(
                                     labelText: l10n.baseUrl,
                                   ),
@@ -166,6 +173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _modelController,
+                                  onChanged: controller.setModel,
                                   decoration: InputDecoration(
                                     labelText: l10n.model,
                                   ),
@@ -173,6 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _apiKeyController,
+                                  onChanged: controller.setApiKey,
                                   decoration: InputDecoration(
                                     labelText: l10n.apiKey,
                                     hintText: l10n.apiKeyHint,
@@ -181,6 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _timeoutController,
+                                  onChanged: controller.setTimeoutText,
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: l10n.timeoutSeconds,
@@ -191,34 +201,123 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   contentPadding: EdgeInsets.zero,
                                   title: Text(l10n.fastModeTitle),
                                   subtitle: Text(l10n.fastModeSubtitle),
-                                  value: _fastResponses,
-                                  onChanged: _provider.supportsFastResponses
-                                      ? (final value) {
-                                          setState(() => _fastResponses = value);
-                                        }
+                                  value: settingsState.fastResponses,
+                                  onChanged:
+                                      settingsState
+                                          .provider
+                                          .supportsFastResponses
+                                      ? controller.setFastResponses
                                       : null,
                                 ),
                               ],
                             ),
                           ),
-                          if (_status != null) ...<Widget>[
+                          const SizedBox(height: 16),
+                          _SettingsSection(
+                            title: l10n.runtimeControlsTitle,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  l10n.runtimeControlsDescription,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: <Widget>[
+                                    ChoiceChip(
+                                      label: Text(l10n.runtimeProfileCheap),
+                                      selected:
+                                          settingsState.runtimeProfile ==
+                                          ModelRuntimeProfile.cheap,
+                                      onSelected: (_) =>
+                                          controller.applyRuntimeProfile(
+                                            ModelRuntimeProfile.cheap,
+                                          ),
+                                    ),
+                                    ChoiceChip(
+                                      label: Text(l10n.runtimeProfileFast),
+                                      selected:
+                                          settingsState.runtimeProfile ==
+                                          ModelRuntimeProfile.fast,
+                                      onSelected: (_) =>
+                                          controller.applyRuntimeProfile(
+                                            ModelRuntimeProfile.fast,
+                                          ),
+                                    ),
+                                    ChoiceChip(
+                                      label: Text(l10n.runtimeProfileSmart),
+                                      selected:
+                                          settingsState.runtimeProfile ==
+                                          ModelRuntimeProfile.smart,
+                                      onSelected: (_) =>
+                                          controller.applyRuntimeProfile(
+                                            ModelRuntimeProfile.smart,
+                                          ),
+                                    ),
+                                    if (settingsState.runtimeProfile ==
+                                        ModelRuntimeProfile.custom)
+                                      Chip(
+                                        label: Text(l10n.runtimeProfileCustom),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _maxResponseTokensController,
+                                  onChanged:
+                                      controller.setMaxResponseTokensText,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.maxResponseTokens,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _contextWindowSizeController,
+                                  onChanged:
+                                      controller.setContextWindowSizeText,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.contextWindowSize,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (settingsState.status != null) ...<Widget>[
                             const SizedBox(height: 16),
                             Row(
-                              children: [
+                              children: <Widget>[
                                 Icon(
-                                  _status!.contains('успешно') || _status!.contains('successful')
+                                  settingsState.status!.contains(
+                                            'СѓСЃРїРµС€РЅРѕ',
+                                          ) ||
+                                          settingsState.status!.contains(
+                                            'successful',
+                                          )
                                       ? Icons.check_circle_outline_rounded
                                       : Icons.info_outline_rounded,
                                   size: 18,
-                                  color: _status!.contains('успешно') || _status!.contains('successful')
+                                  color:
+                                      settingsState.status!.contains(
+                                            'СѓСЃРїРµС€РЅРѕ',
+                                          ) ||
+                                          settingsState.status!.contains(
+                                            'successful',
+                                          )
                                       ? Colors.green
                                       : AetherPalette.textMuted,
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    _status!,
-                                    style: Theme.of(context).textTheme.bodyMedium,
+                                    settingsState.status!,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 ),
                               ],
@@ -226,8 +325,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                           const SizedBox(height: 24),
                           FilledButton(
-                            onPressed: _isSaving ? null : _save,
-                            child: _isSaving
+                            onPressed: settingsState.isSaving
+                                ? null
+                                : () => controller.save(l10n: l10n),
+                            child: settingsState.isSaving
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
@@ -243,8 +344,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             runSpacing: 10,
                             children: <Widget>[
                               OutlinedButton(
-                                onPressed: _isChecking ? null : _checkConnection,
-                                child: _isChecking
+                                onPressed: settingsState.isChecking
+                                    ? null
+                                    : () => controller.checkConnection(
+                                        l10n: l10n,
+                                      ),
+                                child: settingsState.isChecking
                                     ? const SizedBox(
                                         width: 18,
                                         height: 18,
@@ -255,12 +360,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     : Text(l10n.checkConnection),
                               ),
                               OutlinedButton(
-                                onPressed: !_provider.supportsModelAutoDetect ||
-                                        _isDetectingModel
+                                onPressed:
+                                    !settingsState
+                                            .provider
+                                            .supportsModelAutoDetect ||
+                                        settingsState.isDetectingModel
                                     ? null
-                                    : _detectAndApplyLmStudioModel,
+                                    : controller.detectAndApplyLmStudioModel,
                                 child: Text(
-                                  _isDetectingModel
+                                  settingsState.isDetectingModel
                                       ? l10n.detectingModel
                                       : l10n.detectModel,
                                 ),
@@ -276,290 +384,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  Future<void> _load() async {
-    final AppScope scope = AppScope.of(context);
-    final ProviderScopedSettings scoped =
-        await scope.settingsRepository.loadProviderScopedSettings();
-    final AppLanguage appLanguage =
-        await scope.settingsRepository.loadAppLanguage();
-
-    if (!mounted) {
-      return;
-    }
-
-    _provider = scoped.activeProvider;
-    _profiles = Map<AiProviderType, ProviderProfile>.from(scoped.profiles);
-    _appLanguage = appLanguage;
-    _fastResponses = scoped.fastResponses;
-    _confirmed18Plus = scoped.confirmed18Plus;
-    _applyProfileToForm(scoped.profileFor(_provider));
-
-    setState(() => _isLoading = false);
-
-    if (_provider == AiProviderType.lmStudio) {
-      await _detectAndApplyLmStudioModel(silentWhenUnavailable: true);
-    }
-  }
-
-  void _applyProfileToForm(final ProviderProfile profile) {
-    _baseUrlController.text = profile.baseUrl.trim().isEmpty
-        ? AiSettings.defaultBaseUrlFor(_provider)
-        : profile.baseUrl;
-    _modelController.text = profile.model.trim().isEmpty
-        ? _provider.defaultModel
-        : profile.model;
-    _apiKeyController.text = profile.apiKey;
-    _timeoutController.text = profile.timeoutSeconds.toString();
-  }
-
-  void _saveCurrentFormToProfile() {
-    final ProviderProfile current = _profiles[_provider] ??
-        ProviderProfile.defaultsFor(_provider);
-    _profiles[_provider] = current.copyWith(
-      baseUrl: _baseUrlController.text.trim(),
-      model: _modelController.text.trim(),
-      apiKey: _apiKeyController.text.trim(),
-      timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
-    );
-  }
-
-  Future<void> _save() async {
-    setState(() {
-      _isSaving = true;
-      _status = null;
-    });
-
-    _saveCurrentFormToProfile();
-    final AppScope scope = AppScope.of(context);
-    final ProviderScopedSettings toSave = ProviderScopedSettings(
-      activeProvider: _provider,
-      profiles: Map<AiProviderType, ProviderProfile>.from(_profiles),
-      fastResponses: _fastResponses,
-      confirmed18Plus: _confirmed18Plus,
-    );
-    await scope.settingsRepository.saveProviderScopedSettings(toSave);
-    await scope.settingsRepository.saveAppLanguage(_appLanguage);
-    scope.appLanguageListenable.value = _appLanguage;
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isSaving = false;
-      _status = context.l10n.settingsSaved;
-    });
-  }
-
-  Future<void> _checkConnection() async {
-    setState(() {
-      _isChecking = true;
-      _status = null;
-    });
-
-    try {
-      final AppScope scope = AppScope.of(context);
-      final AiSettings settings = _buildSettings();
-      final AiClient client = scope.aiServiceFactory.create(settings);
-      await client.checkConnection(settings: settings);
-      if (!mounted) {
-        return;
-      }
-      setState(() => _status = context.l10n.connectionOk);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _status = context.l10n.connectionFailed(error));
-    } finally {
-      if (mounted) {
-        setState(() => _isChecking = false);
-      }
-    }
-  }
-
-  AiSettings _buildSettings() => AiSettings(
-        provider: _provider,
-        baseUrl: _baseUrlController.text.trim(),
-        model: _modelController.text.trim(),
-        apiKey: _apiKeyController.text.trim(),
-        timeoutSeconds: int.tryParse(_timeoutController.text.trim()) ?? 60,
-        fastResponses: _fastResponses,
-      );
-
-  Future<void> _handleProviderChanged(final AiProviderType provider) async {
-    _saveCurrentFormToProfile();
-
-    setState(() {
-      _provider = provider;
-      _status = null;
-      final ProviderProfile profile = _profiles[provider] ??
-          ProviderProfile.defaultsFor(provider);
-      _applyProfileToForm(profile);
-      if (provider == AiProviderType.openRouter) {
-        final int? currentTimeout = int.tryParse(_timeoutController.text.trim());
-        if (currentTimeout == null || currentTimeout < 120) {
-          _timeoutController.text = '120';
-        }
-      }
-      if (!provider.supportsFastResponses) {
-        _fastResponses = false;
-      } else if (!_fastResponses) {
-        _fastResponses = true;
-      }
-    });
-
-    if (provider == AiProviderType.lmStudio) {
-      await _detectAndApplyLmStudioModel(silentWhenUnavailable: true);
-    }
-  }
-
-  Future<void> _detectAndApplyLmStudioModel({
-    final bool silentWhenUnavailable = false,
-  }) async {
-    if (_provider != AiProviderType.lmStudio) {
-      return;
-    }
-
-    final AppScope scope = AppScope.of(context);
-    final AppLocalizations l10n = context.l10n;
-    setState(() {
-      _isDetectingModel = true;
-      if (!silentWhenUnavailable) {
-        _status = null;
-      }
-    });
-
-    final String baseUrl = _baseUrlController.text.trim().isEmpty
-        ? const AiSettings.defaults().baseUrl
-        : _baseUrlController.text.trim();
-
-    try {
-      final List<String> modelIds = await _fetchModelIds(baseUrl, l10n);
-      final String modelId = _selectPreferredModel(modelIds);
-      if (modelId.isEmpty) {
-        if (!silentWhenUnavailable && mounted) {
-          setState(() => _status = l10n.noLmStudioModel);
-        }
-        return;
-      }
-
-      _baseUrlController.text = baseUrl;
-      _modelController.text = modelId;
-      _saveCurrentFormToProfile();
-      await scope.settingsRepository.saveProviderScopedSettings(
-        ProviderScopedSettings(
-          activeProvider: _provider,
-          profiles: Map<AiProviderType, ProviderProfile>.from(_profiles),
-          fastResponses: _fastResponses,
-        ),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _status = l10n.selectedLmStudioModel(modelId);
-      });
-    } catch (error) {
-      if (!mounted || silentWhenUnavailable) {
-        return;
-      }
-      setState(() {
-        _status = l10n.detectLmStudioFailed(error);
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _isDetectingModel = false);
-      }
-    }
-  }
-
-  Future<List<String>> _fetchModelIds(
-    final String baseUrl,
-    final AppLocalizations l10n,
-  ) async {
-    final Uri uri = Uri.parse('${_normalizeBaseUrl(baseUrl)}/models');
-    final http.Response response = await http
-        .get(
-          uri,
-          headers: const <String, String>{'Content-Type': 'application/json'},
-        )
-        .timeout(const Duration(seconds: 5));
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(l10n.serverReturned(response.statusCode));
-    }
-
-    final Object? decoded = jsonDecode(response.body);
-    if (decoded is! Map<String, Object?>) {
-      throw Exception(l10n.unexpectedResponseFormat);
-    }
-
-    final List<Object?> items =
-        (decoded['data'] as List<Object?>?) ?? const <Object?>[];
-
-    return items
-        .map((item) => item as Map<String, Object?>?)
-        .whereType<Map<String, Object?>>()
-        .map((item) => (item['id'] as String?) ?? '')
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
-  }
-
-  String _selectPreferredModel(final List<String> modelIds) {
-    if (modelIds.isEmpty) {
-      return '';
-    }
-
-    final Iterable<String> chatModels = modelIds.where((modelId) {
-      final String normalized = modelId.toLowerCase();
-      return !normalized.contains('embedding') &&
-          !normalized.contains('embed') &&
-          !normalized.contains('rerank');
-    });
-
-    if (chatModels.isNotEmpty) {
-      return chatModels.first;
-    }
-
-    return modelIds.first;
-  }
-
-  String _normalizeBaseUrl(final String baseUrl) => baseUrl.endsWith('/')
-      ? baseUrl.substring(0, baseUrl.length - 1)
-      : baseUrl;
 }
 
 class _SettingsSection extends StatelessWidget {
-  const _SettingsSection({
-    required this.title,
-    required this.child,
-  });
+  const _SettingsSection({required this.title, required this.child});
 
   final String title;
   final Widget child;
 
   @override
   Widget build(final BuildContext context) => AetherCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title.toUpperCase(),
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AetherPalette.textMuted,
-              letterSpacing: 3,
-            ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          title.toUpperCase(),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: AetherPalette.textMuted,
+            letterSpacing: 3,
           ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
+        ),
+        const SizedBox(height: 16),
+        child,
+      ],
+    ),
+  );
 }
 
 class _ProviderTile extends StatelessWidget {
@@ -577,43 +426,43 @@ class _ProviderTile extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => AetherCard(
-      highlight: selected,
-      child: SizedBox(
-        width: double.infinity,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 56),
-            child: Row(
-              children: <Widget>[
-                Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                  color: selected
-                      ? AetherPalette.accent
-                      : AetherPalette.textMuted,
+    highlight: selected,
+    child: SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                color: selected
+                    ? AetherPalette.accent
+                    : AetherPalette.textMuted,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(title, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Text(title, style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
-    );
+    ),
+  );
 }
