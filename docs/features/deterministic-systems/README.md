@@ -13,7 +13,7 @@ The implemented slice introduces:
 
 ## Current status
 
-Status: implemented, with follow-up validation still open in the main Stage 8 checklist.
+Status: implemented, with only long-session validation and analyzer cleanup still open in the main Stage 8 checklist.
 
 Implemented:
 
@@ -21,12 +21,12 @@ Implemented:
 - module-aware gating so checks only run when the campaign actually uses `Checks`
 - memory/save/sidebar integration for resolved outcomes
 - unit/widget coverage for deterministic resolution and detective chrome gating
+- extracted `TurnPromptBuilder` so the next product layer can evolve prompt policy without reworking the transport client
 
 Still pending at the plan level:
 
 - broader long-session validation
-- final settings/runtime UX re-validation
-- next-layer architecture cleanup and analyzer debt reduction
+- analyzer debt reduction
 
 ## Documents
 

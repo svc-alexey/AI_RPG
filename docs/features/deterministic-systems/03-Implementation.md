@@ -12,6 +12,7 @@
 - [x] Surfaced resolved checks in sidebar history and transient notifications
 - [x] Added automated coverage for deterministic resolution and narrative gating
 - [x] Re-validated settings runtime UX for preset switching, custom token controls, save persistence, and provider switching
+- [x] Extracted `TurnPromptBuilder` so the next product layer can extend prompt/context policy without reworking HTTP transport and parsing
 
 ## Files touched
 
@@ -19,11 +20,13 @@
 - `lib/src/core/services/deterministic_check_service.dart`
 - `lib/src/core/services/ai_client.dart`
 - `lib/src/core/services/openai_compatible_ai_client.dart`
+- `lib/src/core/services/turn_prompt_builder.dart`
 - `lib/src/core/services/game_engine.dart`
 - `lib/src/core/services/campaign_memory_manager.dart`
 - `lib/src/core/services/entity_extraction_service.dart`
 - `lib/src/features/chat/application/chat_controller.dart`
 - `test/runtime_model_controls_test.dart`
+- `test/turn_prompt_builder_test.dart`
 - `test/campaign_modules_test.dart`
 - `test/widget_test.dart`
 
@@ -31,4 +34,3 @@
 
 - [ ] long-session validation beyond current automated coverage
 - [ ] analyzer cleanup that still blocks the next implementation layer
-- [ ] broader next-layer architecture readiness tasks

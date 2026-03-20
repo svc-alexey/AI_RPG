@@ -8,6 +8,7 @@ import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -15,6 +16,7 @@ class OpenAiCompatibleAiClient implements AiClient {
   OpenAiCompatibleAiClient();
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
+  static const TurnPromptBuilder _turnPromptBuilder = TurnPromptBuilder();
 
   Map<String, Object?> _jsonMap(final Object? value) {
     if (value is Map) {
@@ -654,7 +656,7 @@ Reply only with JSON, no markdown.
     'messages': <Map<String, String>>[
       <String, String>{
         'role': 'system',
-        'content': _systemPrompt(
+        'content': _turnPromptBuilder.buildSystemPrompt(
           language: language,
           state: state,
           suggestionsOnly: suggestionsOnly,
@@ -665,7 +667,7 @@ Reply only with JSON, no markdown.
       },
       <String, String>{
         'role': 'user',
-        'content': _userPrompt(
+        'content': _turnPromptBuilder.buildUserPrompt(
           language: language,
           state: state,
           playerAction: playerAction,
