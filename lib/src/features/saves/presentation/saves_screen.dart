@@ -3,6 +3,7 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
+import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -114,11 +115,48 @@ class _SavesScreenState extends State<SavesScreen> {
                   )
                 : _campaigns.isEmpty
                     ? Center(
-                        child: AetherCard(
-                          child: Text(
-                            l10n.noSavesYet,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.auto_stories_outlined,
+                                  size: 64,
+                                  color: AetherPalette.textMuted.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  l10n.noSavesYet,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AetherPalette.textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  l10n.noSavesCreateNew,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AetherPalette.textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                FilledButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (context) => const NewGameScreen(),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_rounded),
+                                  label: Text(l10n.createNewCampaign),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       )
@@ -203,45 +241,119 @@ class _SaveCard extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(final BuildContext context) => AetherCard(
+  Widget build(final BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isNarrow = screenWidth < 360;
+    final bool isMobile = screenWidth < 600;
+    
+    return AetherCard(
+        padding: EdgeInsets.all(isNarrow ? 12 : (isMobile ? 16 : 20)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
               campaign.title,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 12),
-            Text(
-              campaign.summary.isEmpty ? campaign.objective : campaign.summary,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontStyle: FontStyle.italic,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontSize: isNarrow ? 18 : 24,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 18),
-            Row(
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 2,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
+                Flexible(
+                  child: Text(
+                    l10n.settingLabel(campaign.setting),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AetherPalette.textMuted,
+                      fontSize: isNarrow ? 11 : 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  ' • ',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AetherPalette.textMuted,
+                  ),
+                ),
+                Text(
+                  '${l10n.turn} ${campaign.turnNumber}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AetherPalette.textMuted,
+                    fontSize: isNarrow ? 11 : 12,
+                  ),
+                ),
+                Text(
+                  ' • ',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AetherPalette.textMuted,
+                  ),
+                ),
                 Text(
                   '${campaign.updatedAt.day.toString().padLeft(2, '0')}.${campaign.updatedAt.month.toString().padLeft(2, '0')}.${campaign.updatedAt.year}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const Spacer(),
-                _SavesToolbarButton(
-                  icon: Icons.delete_outline_rounded,
-                  onTap: onDelete,
-                ),
-                const SizedBox(width: 8),
-                _SavesActionButton(
-                  label: context.l10n.loadCampaignAction,
-                  onTap: onOpen,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AetherPalette.textMuted,
+                    fontSize: isNarrow ? 11 : 12,
+                  ),
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Text(
+              campaign.summary.isEmpty ? campaign.objective : campaign.summary,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontStyle: FontStyle.italic,
+                fontSize: isNarrow ? 13 : 14,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: isNarrow ? 12 : 16),
+            isMobile
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: _SavesActionButton(
+                          label: l10n.loadCampaignAction,
+                          onTap: onOpen,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: onDelete,
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                        label: Text(l10n.delete),
+                      ),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      _SavesToolbarButton(
+                        icon: Icons.delete_outline_rounded,
+                        onTap: onDelete,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: _SavesActionButton(
+                          label: l10n.loadCampaignAction,
+                          onTap: onOpen,
+                        ),
+                      ),
+                    ],
+                  ),
           ],
         ),
       );
+  }
 }
 
 class _SavesToolbarButton extends StatelessWidget {

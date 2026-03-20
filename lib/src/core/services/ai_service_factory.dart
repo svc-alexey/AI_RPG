@@ -30,6 +30,7 @@ class _DemoAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    final CancelToken? cancelToken,
   }) async {
     final String action = playerAction.trim().isEmpty
         ? switch (language) {
@@ -76,6 +77,7 @@ class _DemoAiClient implements AiClient {
                 AppLanguage.ru => 'Ход записан в демо-режиме.',
                 AppLanguage.en => 'The turn was recorded in demo mode.',
               },
+              location: '',
             ),
       memoryEntry: switch (language) {
         AppLanguage.ru => 'Использован демо-ответ для действия: $action',
@@ -90,6 +92,7 @@ class _DemoAiClient implements AiClient {
     required final AppLanguage language,
     required final String storyWish,
     required final CampaignSetting setting,
+    final CancelToken? cancelToken,
   }) async =>
       const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 }

@@ -54,6 +54,9 @@ void main() {
   testWidgets('Новая кампания открывает игровой чат', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
 
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       _buildScopedApp(
         const NewGameScreen(),
@@ -62,11 +65,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text(english.createCampaignButton),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
     await tester.tap(find.text(english.createCampaignButton));
     await tester.pumpAndSettle();
 
@@ -160,7 +158,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Step toward the tower');
-    await tester.tap(find.text(english.send));
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('in demo mode'), findsAtLeastNWidgets(1));
@@ -201,7 +199,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Open the sealed gate');
-    await tester.tap(find.text(english.send));
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pumpAndSettle();
 
     expect(find.text('Could not connect to the AI endpoint.'), findsWidgets);
@@ -258,8 +256,7 @@ void main() {
 
     expect(find.byIcon(Icons.menu), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.text(english.send), findsOneWidget);
-    expect(find.text(english.suggest), findsOneWidget);
+    expect(find.byIcon(Icons.send_rounded), findsOneWidget);
   });
 }
 
@@ -312,6 +309,7 @@ class _ThrowingAiClient implements AiClient {
     required CampaignState state,
     required String playerAction,
     required bool suggestionsOnly,
+    CancelToken? cancelToken,
   }) async {
     throw _error;
   }
@@ -322,6 +320,7 @@ class _ThrowingAiClient implements AiClient {
     required AppLanguage language,
     required String storyWish,
     required CampaignSetting setting,
+    CancelToken? cancelToken,
   }) async =>
       const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 }

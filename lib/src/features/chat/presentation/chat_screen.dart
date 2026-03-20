@@ -4,7 +4,10 @@ import 'package:ai_prg/src/app/app_scope.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:ai_prg/src/core/services/ai_client.dart';
+import 'package:ai_prg/src/core/services/ai_client.dart'
+    show AiCancelException, AiClient, AiTurnException, CancelToken;
+import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
+import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -20,6 +23,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   bool _isLoading = true;
   bool _isSending = false;
   bool _didLoad = false;
@@ -28,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _status;
   ChatMessage? _pendingPlayerMessage;
   ChatMessage? _pendingNarratorMessage;
+  CancelToken? _cancelToken;
 
   @override
   void didChangeDependencies() {
@@ -42,6 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _inputController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -91,6 +97,11 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.tune_rounded),
             tooltip: l10n.aiSettings,
           ),
+          IconButton(
+            onPressed: _exitToMainMenu,
+            icon: const Icon(Icons.home_outlined),
+            tooltip: l10n.exitToMainMenu,
+          ),
         ],
       ),
       drawer: wide
@@ -103,12 +114,12 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
       body: AetherBackdrop(
-        child: Padding(
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: wide
               ? Row(
                   children: <Widget>[
-                    SizedBox(width: 260, child: _buildSidebar(campaign)),
+                    SizedBox(width: 240, child: _buildSidebar(campaign)),
                     const SizedBox(width: 20),
                     Expanded(child: _buildChatColumn(campaign)),
                   ],
@@ -122,84 +133,88 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildChatColumn(final CampaignState campaign) {
     final AppLocalizations l10n = context.l10n;
     final List<ChatMessage> visibleMessages = _visibleMessages(campaign);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isNarrow = screenWidth < 400;
+    
     return Column(
       children: <Widget>[
         if (_status != null)
           AetherCard(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: isNarrow ? 12 : 18,
+              vertical: isNarrow ? 10 : 14,
+            ),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 _status!,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: isNarrow ? 13 : 14,
+                ),
               ),
             ),
           ),
         if (_status != null) const SizedBox(height: 12),
         Expanded(
           child: AetherCard(
-            child: ListView.separated(
-              itemCount: visibleMessages.length +
-                  (campaign.choices.isNotEmpty ? 1 : 0),
-              separatorBuilder: (_, _) => const SizedBox(height: 14),
+            padding: EdgeInsets.all(isNarrow ? 12 : 16),
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: visibleMessages.length + (campaign.choices.isNotEmpty ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index >= visibleMessages.length) {
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 720),
-                      padding: const EdgeInsets.all(18),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: campaign.choices
-                            .take(3)
-                            .map(
-                              (choice) => ActionChip(
-                                label: Text(choice),
-                                onPressed: _isSending
-                                    ? null
-                                    : () {
-                                        _inputController.text = choice;
-                                      },
-                              ),
-                            )
-                            .toList(),
-                      ),
+                // Кнопки выбора в конце списка
+                if (index == visibleMessages.length) {
+                  return IgnorePointer(
+                    ignoring: _isSending,
+                    child: OverlayChoiceStack(
+                      choices: campaign.choices.take(3).toList(),
+                      onChoiceSelected: (choice) {
+                        _inputController.text = choice;
+                      },
+                      enabled: !_isSending,
                     ),
                   );
                 }
+
                 final ChatMessage message = visibleMessages[index];
                 final bool isPlayer = message.role == ChatRole.player;
                 final bool isSystem = message.role == ChatRole.system;
 
-                return Align(
-                  alignment: isPlayer
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: isPlayer
-                          ? AetherPalette.accentSoft.withValues(alpha: 0.42)
-                          : isSystem
-                          ? AetherPalette.panelSoft.withValues(alpha: 0.92)
-                          : AetherPalette.panel.withValues(alpha: 0.96),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: (isPlayer
-                                ? AetherPalette.accent
-                                : AetherPalette.panelBorder)
-                            .withValues(alpha: 0.45),
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == visibleMessages.length - 1 ? 0 : (isNarrow ? 10 : 14),
+                  ),
+                  child: Align(
+                    alignment: isPlayer
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: isNarrow ? screenWidth * 0.85 : 640,
                       ),
-                    ),
-                    child: Text(
-                      message.text,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: isSystem
-                            ? AetherPalette.textMuted
-                            : AetherPalette.textPrimary,
+                      padding: EdgeInsets.all(isNarrow ? 12 : 18),
+                      decoration: BoxDecoration(
+                        color: isPlayer
+                            ? AetherPalette.accentSoft.withValues(alpha: 0.42)
+                            : isSystem
+                            ? AetherPalette.panelSoft.withValues(alpha: 0.92)
+                            : AetherPalette.panel.withValues(alpha: 0.96),
+                        borderRadius: BorderRadius.circular(isNarrow ? 16 : 20),
+                        border: Border.all(
+                          color: (isPlayer
+                                  ? AetherPalette.accent
+                                  : AetherPalette.panelBorder)
+                              .withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Text(
+                        message.text,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: isSystem
+                              ? AetherPalette.textMuted
+                              : AetherPalette.textPrimary,
+                          fontSize: isNarrow ? 14 : 16,
+                        ),
                       ),
                     ),
                   ),
@@ -208,125 +223,66 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final bool composerWide = constraints.maxWidth >= 400;
-            return AetherCard(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: composerWide
-                  ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: <Widget>[
-                          Expanded(
-                            child: TextField(
-                              controller: _inputController,
-                              minLines: 1,
-                              maxLines: 4,
-                              decoration: InputDecoration(
-                                hintText: l10n.chatInputHint,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              right: 10,
-                              bottom: 8,
-                              top: 8,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                FilledButton(
-                                  onPressed: _isSending
-                                      ? null
-                                      : () => _runTurn(suggestionsOnly: false),
-                                  child: _isSending
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : Text(l10n.send),
-                                ),
-                                const SizedBox(width: 8),
-                                OutlinedButton(
-                                  onPressed: _isSending
-                                      ? null
-                                      : () => _runTurn(suggestionsOnly: true),
-                                  child: Text(l10n.suggest),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      )
-                  : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          TextField(
-                            controller: _inputController,
-                            minLines: 1,
-                            maxLines: 3,
-                            decoration: InputDecoration(
-                              hintText: l10n.chatInputHint,
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 14,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                            child: Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: FilledButton(
-                                    onPressed: _isSending
-                                        ? null
-                                        : () =>
-                                            _runTurn(suggestionsOnly: false),
-                                    child: _isSending
-                                        ? const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : Text(l10n.send),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: _isSending
-                                        ? null
-                                        : () =>
-                                            _runTurn(suggestionsOnly: true),
-                                    child: Text(l10n.suggest),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: AetherPalette.panel.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AetherPalette.panelBorder.withValues(alpha: 0.68),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isSending)
+                LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(AetherPalette.accent),
+                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: _inputController,
+                      minLines: 1,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: l10n.chatInputHint,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
-            );
-          },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (_isSending)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        TextButton(
+                          onPressed: () => _cancelToken?.cancel(),
+                          child: Text(l10n.cancel),
+                        ),
+                      ],
+                    )
+                  else
+                    IconButton.filled(
+                      onPressed: () => _runTurn(suggestionsOnly: false),
+                      icon: const Icon(Icons.send_rounded),
+                      tooltip: l10n.send,
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -383,6 +339,12 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text('- ${item.playerAction} -> ${item.outcome}'),
             ),
+          const SizedBox(height: 24),
+          ListTile(
+            leading: const Icon(Icons.home_outlined),
+            title: Text(l10n.exitToMainMenu),
+            onTap: _exitToMainMenu,
+          ),
         ],
       ),
     );
@@ -404,6 +366,21 @@ class _ChatScreenState extends State<ChatScreen> {
       _settings = settings;
       _isLoading = false;
     });
+
+    if (campaign != null && campaign.messages.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _runTurn(suggestionsOnly: false, isIntro: true);
+        }
+      });
+    }
+  }
+
+  void _exitToMainMenu() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
+      (_) => false,
+    );
   }
 
   Future<void> _save() async {
@@ -420,33 +397,37 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _status = context.l10n.campaignSaved);
   }
 
-  Future<void> _runTurn({required final bool suggestionsOnly}) async {
+  Future<void> _runTurn({required final bool suggestionsOnly, final bool isIntro = false}) async {
     final CampaignState? campaign = _campaign;
     if (campaign == null) {
       return;
     }
 
-    final String action = _inputController.text.trim();
-    if (!suggestionsOnly && action.isEmpty) {
+    final String action = isIntro ? '' : _inputController.text.trim();
+    if (!suggestionsOnly && !isIntro && action.isEmpty) {
       setState(() => _status = context.l10n.actionRequired);
       return;
     }
 
+    final CancelToken cancelToken = CancelToken();
     setState(() {
+      _cancelToken = cancelToken;
       _isSending = true;
       _status = null;
       if (!suggestionsOnly) {
         final DateTime now = DateTime.now();
-        _pendingPlayerMessage = ChatMessage(
-          id: 'pending_player',
-          role: ChatRole.player,
-          text: action,
-          createdAt: now,
-        );
+        if (!isIntro) {
+          _pendingPlayerMessage = ChatMessage(
+            id: 'pending_player',
+            role: ChatRole.player,
+            text: action,
+            createdAt: now,
+          );
+        }
         _pendingNarratorMessage = ChatMessage(
           id: 'pending_narrator',
           role: ChatRole.narrator,
-          text: '...',
+          text: context.l10n.generatingResponse,
           createdAt: now,
         );
       }
@@ -464,6 +445,7 @@ class _ChatScreenState extends State<ChatScreen> {
         state: campaign,
         playerAction: action,
         suggestionsOnly: suggestionsOnly,
+        cancelToken: cancelToken,
       );
 
       if (!suggestionsOnly) {
@@ -494,6 +476,7 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _campaign = nextState;
         _settings = settings;
+        _cancelToken = null;
         _isSending = false;
         _pendingPlayerMessage = null;
         _pendingNarratorMessage = null;
@@ -504,6 +487,11 @@ class _ChatScreenState extends State<ChatScreen> {
           _inputController.clear();
         }
       });
+      
+      // Автоскролл вниз после обновления сообщений
+      if (!suggestionsOnly) {
+        _scrollToBottom();
+      }
     } on AiTurnException catch (error) {
       _clearPendingMessages();
       await _handleAiTurnException(error);
@@ -511,12 +499,19 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) {
         return;
       }
+      final bool wasCancelled = error is AiCancelException;
       setState(() {
+        _cancelToken = null;
         _isSending = false;
         _pendingPlayerMessage = null;
         _pendingNarratorMessage = null;
-        _status = context.l10n.turnError(error);
+        _status = wasCancelled
+            ? context.l10n.generationCancelled
+            : context.l10n.turnError(error);
       });
+      if (wasCancelled) {
+        _clearPendingMessages();
+      }
     }
   }
 
@@ -601,6 +596,22 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _pendingPlayerMessage = null;
       _pendingNarratorMessage = null;
+    });
+  }
+
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 }

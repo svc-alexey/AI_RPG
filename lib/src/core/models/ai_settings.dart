@@ -67,6 +67,7 @@ class ProviderScopedSettings {
     required this.activeProvider,
     required this.profiles,
     required this.fastResponses,
+    this.confirmed18Plus = false,
   });
 
   factory ProviderScopedSettings.fromJson(final Map<String, Object?> json) {
@@ -99,6 +100,7 @@ class ProviderScopedSettings {
       activeProvider: active,
       profiles: profiles,
       fastResponses: (json['fastResponses'] as bool?) ?? true,
+      confirmed18Plus: (json['confirmed18Plus'] as bool?) ?? false,
     );
   }
 
@@ -121,12 +123,14 @@ class ProviderScopedSettings {
       activeProvider: legacy.provider,
       profiles: profiles,
       fastResponses: legacy.fastResponses,
+      confirmed18Plus: false,
     );
   }
 
   final AiProviderType activeProvider;
   final Map<AiProviderType, ProviderProfile> profiles;
   final bool fastResponses;
+  final bool confirmed18Plus;
 
   ProviderProfile profileFor(final AiProviderType p) =>
       profiles[p] ?? ProviderProfile.defaultsFor(p);
@@ -142,6 +146,7 @@ class ProviderScopedSettings {
       apiKey: p.apiKey,
       timeoutSeconds: p.timeoutSeconds,
       fastResponses: fastResponses,
+      confirmed18Plus: confirmed18Plus,
     );
   }
 
@@ -149,11 +154,13 @@ class ProviderScopedSettings {
     final AiProviderType? activeProvider,
     final Map<AiProviderType, ProviderProfile>? profiles,
     final bool? fastResponses,
+    final bool? confirmed18Plus,
   }) =>
       ProviderScopedSettings(
         activeProvider: activeProvider ?? this.activeProvider,
         profiles: profiles ?? Map<AiProviderType, ProviderProfile>.from(this.profiles),
         fastResponses: fastResponses ?? this.fastResponses,
+        confirmed18Plus: confirmed18Plus ?? this.confirmed18Plus,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -163,6 +170,7 @@ class ProviderScopedSettings {
             p.name: profiles[p]?.toJson() ?? ProviderProfile.defaultsFor(p).toJson(),
         },
         'fastResponses': fastResponses,
+        'confirmed18Plus': confirmed18Plus,
       };
 }
 
@@ -179,6 +187,7 @@ class AiSettings {
         apiKey: (json['apiKey'] as String?) ?? '',
         timeoutSeconds: (json['timeoutSeconds'] as int?) ?? 60,
         fastResponses: (json['fastResponses'] as bool?) ?? true,
+        confirmed18Plus: (json['confirmed18Plus'] as bool?) ?? false,
       );
 
   const AiSettings({
@@ -188,6 +197,7 @@ class AiSettings {
     required this.apiKey,
     required this.timeoutSeconds,
     required this.fastResponses,
+    this.confirmed18Plus = false,
   });
 
   const AiSettings.defaults()
@@ -196,7 +206,8 @@ class AiSettings {
         model = '',
         apiKey = '',
         timeoutSeconds = 60,
-        fastResponses = true;
+        fastResponses = true,
+        confirmed18Plus = false;
 
   final AiProviderType provider;
   final String baseUrl;
@@ -204,6 +215,7 @@ class AiSettings {
   final String apiKey;
   final int timeoutSeconds;
   final bool fastResponses;
+  final bool confirmed18Plus;
 
   static String defaultBaseUrlFor(final AiProviderType provider) =>
       switch (provider) {
@@ -228,6 +240,7 @@ class AiSettings {
     final String? apiKey,
     final int? timeoutSeconds,
     final bool? fastResponses,
+    final bool? confirmed18Plus,
   }) =>
       AiSettings(
         provider: provider ?? this.provider,
@@ -236,6 +249,7 @@ class AiSettings {
         apiKey: apiKey ?? this.apiKey,
         timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
         fastResponses: fastResponses ?? this.fastResponses,
+        confirmed18Plus: confirmed18Plus ?? this.confirmed18Plus,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -245,5 +259,6 @@ class AiSettings {
         'apiKey': apiKey,
         'timeoutSeconds': timeoutSeconds,
         'fastResponses': fastResponses,
+        'confirmed18Plus': confirmed18Plus,
       };
 }

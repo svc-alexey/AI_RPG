@@ -295,6 +295,7 @@ class StateChanges {
             .map((final item) => item.toString())
             .toList(),
         questNote: _jsonString(json['questNote']),
+        location: _jsonString(json['location']),
       );
 
   const StateChanges({
@@ -303,6 +304,7 @@ class StateChanges {
     required this.inventoryAdd,
     required this.inventoryRemove,
     required this.questNote,
+    required this.location,
   });
 
   const StateChanges.empty()
@@ -310,13 +312,15 @@ class StateChanges {
         energyDelta = 0,
         inventoryAdd = const <String>[],
         inventoryRemove = const <String>[],
-        questNote = '';
+        questNote = '',
+        location = '';
 
   final int hpDelta;
   final int energyDelta;
   final List<String> inventoryAdd;
   final List<String> inventoryRemove;
   final String questNote;
+  final String location;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'hpDelta': hpDelta,
@@ -324,6 +328,7 @@ class StateChanges {
         'inventoryAdd': inventoryAdd,
         'inventoryRemove': inventoryRemove,
         'questNote': questNote,
+        'location': location,
       };
 }
 

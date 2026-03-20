@@ -399,9 +399,54 @@ class AppLocalizations {
       'Turn completed ${aiConfigured ? 'through AI' : 'in demo mode'}.',
   };
 
+  String get exitToMainMenu => switch (language) {
+    AppLanguage.ru => 'В главное меню',
+    AppLanguage.en => 'Exit to main menu',
+  };
+
+  String get cancel => switch (language) {
+    AppLanguage.ru => 'Отменить',
+    AppLanguage.en => 'Cancel',
+  };
+
+  String get generationCancelled => switch (language) {
+    AppLanguage.ru => 'Генерация отменена',
+    AppLanguage.en => 'Generation cancelled',
+  };
+
   String turnError(final Object error) => switch (language) {
     AppLanguage.ru => 'Ошибка хода: $error',
     AppLanguage.en => 'Turn error: $error',
+  };
+
+  String get generatingResponse => switch (language) {
+    AppLanguage.ru => 'Генерируется ответ...',
+    AppLanguage.en => 'Generating response...',
+  };
+
+  String get creatingCampaign => switch (language) {
+    AppLanguage.ru => 'Создание кампании...',
+    AppLanguage.en => 'Creating campaign...',
+  };
+
+  String generatingAttempt(int current, int max) => switch (language) {
+    AppLanguage.ru => 'Попытка $current из $max...',
+    AppLanguage.en => 'Attempt $current of $max...',
+  };
+
+  String get aiErrorRetryAdvice => switch (language) {
+    AppLanguage.ru => 'Попробуйте ещё раз. Если проблема повторяется, проверьте настройки ИИ.',
+    AppLanguage.en => 'Try again. If the problem persists, check AI settings.',
+  };
+
+  String get retryButton => switch (language) {
+    AppLanguage.ru => 'Попробовать снова',
+    AppLanguage.en => 'Try Again',
+  };
+
+  String get delete => switch (language) {
+    AppLanguage.ru => 'Удалить',
+    AppLanguage.en => 'Delete',
   };
 
   String get rawModelResponseSaved => switch (language) {
@@ -409,6 +454,23 @@ class AppLocalizations {
       'Техническая заметка: сырой ответ модели сохранен для отладки и не был применен к состоянию игры.',
     AppLanguage.en =>
       'Technical note: the raw model response was kept for debugging and was not applied to the game state.',
+  };
+
+  String get contentRatingTitle => switch (language) {
+    AppLanguage.ru => 'Контент',
+    AppLanguage.en => 'Content',
+  };
+
+  String get confirm18Plus => switch (language) {
+    AppLanguage.ru => 'Подтвердить 18+',
+    AppLanguage.en => 'Confirm 18+',
+  };
+
+  String get contentRatingSubtitle => switch (language) {
+    AppLanguage.ru =>
+      'Без подтверждения ИИ избегает сексуального контента. Подходит для общих аудиторий.',
+    AppLanguage.en =>
+      'Without confirmation, AI avoids sexual content. Suitable for general audiences.',
   };
 
   String get languageTitle => switch (language) {
@@ -593,6 +655,83 @@ class AppLocalizations {
   String get recentEventsTitle => switch (language) {
     AppLanguage.ru => 'Последние события',
     AppLanguage.en => 'Recent Events',
+  };
+
+  // New Campaign Wizard strings
+  String get howToStart => switch (language) {
+    AppLanguage.ru => 'Как хотите начать?',
+    AppLanguage.en => 'How would you like to start?',
+  };
+
+  String get quickStart => switch (language) {
+    AppLanguage.ru => 'Быстрый старт',
+    AppLanguage.en => 'Quick Start',
+  };
+
+  String get quickStartDesc => switch (language) {
+    AppLanguage.ru => 'Начать играть за 30 секунд',
+    AppLanguage.en => 'Start playing in 30 seconds',
+  };
+
+  String get customSetup => switch (language) {
+    AppLanguage.ru => 'Детальная настройка',
+    AppLanguage.en => 'Custom Setup',
+  };
+
+  String get customSetupDesc => switch (language) {
+    AppLanguage.ru => 'Настроить всё под себя',
+    AppLanguage.en => 'Customize everything',
+  };
+
+  String stepXOfY(int current, int total) => switch (language) {
+    AppLanguage.ru => 'Шаг $current из $total',
+    AppLanguage.en => 'Step $current of $total',
+  };
+
+  String get startAdventure => switch (language) {
+    AppLanguage.ru => 'Начать приключение',
+    AppLanguage.en => 'Start Adventure',
+  };
+
+  String get nextButton => switch (language) {
+    AppLanguage.ru => 'Далее',
+    AppLanguage.en => 'Next',
+  };
+
+  String get backButton => switch (language) {
+    AppLanguage.ru => 'Назад',
+    AppLanguage.en => 'Back',
+  };
+
+  String get reviewTitle => switch (language) {
+    AppLanguage.ru => 'Проверьте настройки',
+    AppLanguage.en => 'Review Settings',
+  };
+
+  String get readyToStart => switch (language) {
+    AppLanguage.ru => 'Всё готово! Нажмите "Создать кампанию" для начала.',
+    AppLanguage.en => 'All set! Click "Create Campaign" to begin.',
+  };
+
+  String get storyWishOptional => switch (language) {
+    AppLanguage.ru => 'Опционально: опишите желаемую историю для генерации',
+    AppLanguage.en => 'Optional: describe your desired story for generation',
+  };
+
+  String get characterOptional => switch (language) {
+    AppLanguage.ru => 'Опционально: настройте персонажа или оставьте по умолчанию',
+    AppLanguage.en => 'Optional: customize character or leave defaults',
+  };
+
+  // Empty state strings
+  String get noSavesCreateNew => switch (language) {
+    AppLanguage.ru => 'Создайте новую кампанию, чтобы начать приключение',
+    AppLanguage.en => 'Create a new campaign to start your adventure',
+  };
+
+  String get createNewCampaign => switch (language) {
+    AppLanguage.ru => 'Создать новую кампанию',
+    AppLanguage.en => 'Create New Campaign',
   };
 }
 

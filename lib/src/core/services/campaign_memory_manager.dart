@@ -26,11 +26,18 @@ class CampaignMemoryManager {
     required final TurnResult result,
     required final String playerAction,
   }) {
+    final String action = playerAction.trim().isEmpty
+        ? switch (language) {
+            AppLanguage.ru => '(Начало игры)',
+            AppLanguage.en => '(Game Start)',
+          }
+        : playerAction;
+
     final List<RecentTurnSummary> recentTurns =
         List<RecentTurnSummary>.from(previousState.memory.recentTurns)
           ..add(
             RecentTurnSummary(
-              playerAction: playerAction,
+              playerAction: action,
               outcome: _compact(result.narration, 180),
               stateHint: _buildStateHint(language, result),
             ),

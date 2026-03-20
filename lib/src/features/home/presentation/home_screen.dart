@@ -78,7 +78,7 @@ class HomeScreen extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: AetherPageReveal(
                 child: LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
@@ -92,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                       style: theme.textTheme.displayLarge,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       l10n.appTitle,
                       style: theme.textTheme.labelLarge?.copyWith(
@@ -100,13 +100,13 @@ class HomeScreen extends StatelessWidget {
                         letterSpacing: 4,
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     Container(
                       width: 88,
                       height: 1,
                       color: AetherPalette.accent.withValues(alpha: 0.45),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 520),
                       child: Text(
@@ -118,7 +118,41 @@ class HomeScreen extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 24),
+                    Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: l10n.homeFeatureLines
+                              .take(4)
+                              .map(
+                                (line) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AetherPalette.panelSoft.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: AetherPalette.panelBorder.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    line,
+                                    style: theme.textTheme.bodySmall,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                    const SizedBox(height: 32),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 360),
                       child: Column(
@@ -133,7 +167,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _MenuButton(
                             icon: Icons.save_outlined,
                             label: l10n.saves,
@@ -143,7 +177,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _MenuButton(
                             icon: Icons.tune_rounded,
                             label: l10n.aiSettings,
@@ -156,38 +190,6 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: l10n.homeFeatureLines
-                              .take(4)
-                              .map(
-                                (line) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AetherPalette.panelSoft.withValues(
-                                      alpha: 0.6,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: AetherPalette.panelBorder.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    line,
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
                         ],
                       ),
                     ),

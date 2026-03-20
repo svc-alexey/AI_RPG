@@ -52,38 +52,16 @@ class GameEngine {
         ? <String>[...baseInventory, ...draft.characterProfile!.perks]
         : baseInventory;
 
-    final String location = switch (draft.setting) {
-      CampaignSetting.fantasy => switch (language) {
-        AppLanguage.ru => 'Пепельные врата',
-        AppLanguage.en => 'Ashen Gate',
-      },
-      CampaignSetting.detective => switch (language) {
-        AppLanguage.ru => 'Ночной квартал',
-        AppLanguage.en => 'Night Quarter',
-      },
-      CampaignSetting.sciFi => switch (language) {
-        AppLanguage.ru => 'Кольцо Орфея',
-        AppLanguage.en => 'Orpheus Ring',
-      },
+    // Стартовая локация будет определена ИИ на основе промпта
+    final String location = switch (language) {
+      AppLanguage.ru => '...',
+      AppLanguage.en => '...',
     };
 
-    final String objective = switch (draft.setting) {
-      CampaignSetting.fantasy => switch (language) {
-        AppLanguage.ru =>
-          'Понять, почему древние врата снова пробудились.',
-        AppLanguage.en =>
-          'Understand why the ancient gate has awakened again.',
-      },
-      CampaignSetting.detective => switch (language) {
-        AppLanguage.ru => 'Найти первую зацепку до рассвета.',
-        AppLanguage.en => 'Find the first lead before dawn.',
-      },
-      CampaignSetting.sciFi => switch (language) {
-        AppLanguage.ru =>
-          'Стабилизировать станцию до следующего всплеска.',
-        AppLanguage.en =>
-          'Stabilize the station before the next surge.',
-      },
+    // Цель будет определена ИИ на основе промпта
+    final String objective = switch (language) {
+      AppLanguage.ru => 'Выжить и найти свой путь',
+      AppLanguage.en => 'Survive and find your path',
     };
 
     final String settingLabel = switch (draft.setting) {
@@ -100,9 +78,9 @@ class GameEngine {
 
     final String introText = switch (language) {
       AppLanguage.ru =>
-        '${character.name} прибывает в локацию "$location". Воздух напряжен, цель уже определена, и следующий выбор задаст тон всей кампании.',
+        '${character.name} начинает свой путь. Следующий шаг определит судьбу.',
       AppLanguage.en =>
-        '${character.name} arrives at "$location". The air is tense, the objective is already set, and the next choice will define the tone of the whole campaign.',
+        '${character.name} begins their journey. The next step will determine their fate.',
     };
 
     final ChatMessage intro = ChatMessage(
@@ -130,19 +108,8 @@ class GameEngine {
       ),
       inventory: inventory,
       questLog: <String>[objective],
-      messages: <ChatMessage>[intro],
-      choices: switch (language) {
-        AppLanguage.ru => const <String>[
-            'Осмотреться вокруг',
-            'Двинуться к цели',
-            'Попросить больше деталей',
-          ],
-        AppLanguage.en => const <String>[
-            'Look around',
-            'Move toward the objective',
-            'Ask for more detail',
-          ],
-      },
+      messages: const <ChatMessage>[],
+      choices: const <String>[],
       updatedAt: now,
       customStoryPrompt: draft.customStoryPrompt,
       characterPrompt: characterPrompt,
@@ -181,26 +148,33 @@ class GameEngine {
       questLog.add(result.stateChanges.questNote.trim());
     }
 
-    final List<ChatMessage> messages = List<ChatMessage>.from(state.messages)
-      ..add(
+    final String location = result.stateChanges.location.trim().isNotEmpty
+        ? result.stateChanges.location.trim()
+        : state.location;
+
+    final List<ChatMessage> messages = List<ChatMessage>.from(state.messages);
+    if (playerAction.trim().isNotEmpty) {
+      messages.add(
         ChatMessage(
           id: '${state.id}_${now.microsecondsSinceEpoch}_player',
           role: ChatRole.player,
           text: playerAction,
           createdAt: now,
         ),
-      )
-      ..add(
-        ChatMessage(
-          id: '${state.id}_${now.microsecondsSinceEpoch}_narrator',
-          role: ChatRole.narrator,
-          text: result.narration,
-          createdAt: now,
-        ),
       );
+    }
+    messages.add(
+      ChatMessage(
+        id: '${state.id}_${now.microsecondsSinceEpoch}_narrator',
+        role: ChatRole.narrator,
+        text: result.narration,
+        createdAt: now,
+      ),
+    );
 
     return state.copyWith(
       character: character,
+      location: location,
       turnNumber: state.turnNumber + 1,
       inventory: inventory,
       questLog: questLog,
@@ -232,6 +206,22 @@ class GameEngine {
       );
 
     return state.copyWith(messages: messages, updatedAt: now);
+  }
+
+  static String _truncateForObjective(final String text, final int maxLength) {
+    final String normalized = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    final int cut = normalized.lastIndexOf(RegExp(r'[.!?]\s'), maxLength);
+    if (cut > maxLength ~/ 2) {
+      return normalized.substring(0, cut + 1).trim();
+    }
+    final int space = normalized.lastIndexOf(' ', maxLength);
+    if (space > maxLength ~/ 2) {
+      return '${normalized.substring(0, space).trim()}...';
+    }
+    return '${normalized.substring(0, maxLength - 3).trim()}...';
   }
 
   int _clamp({

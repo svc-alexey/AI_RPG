@@ -27,6 +27,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       <AiProviderType, ProviderProfile>{};
   AppLanguage _appLanguage = AppLanguage.ru;
   bool _fastResponses = true;
+  bool _confirmed18Plus = false;
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isChecking = false;
@@ -64,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 920),
+                  constraints: const BoxConstraints(maxWidth: 640),
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: AetherPageReveal(
@@ -74,7 +75,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             l10n.aiSettings,
                             style: Theme.of(context).textTheme.headlineLarge,
                           ),
-                          const SizedBox(height: 26),
+                          const SizedBox(height: 20),
+                          _SettingsSection(
+                            title: l10n.contentRatingTitle,
+                            child: SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(l10n.confirm18Plus),
+                              subtitle: Text(l10n.contentRatingSubtitle),
+                              value: _confirmed18Plus,
+                              onChanged: (final value) {
+                                setState(() => _confirmed18Plus = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           _SettingsSection(
                             title: l10n.languageTitle,
                             child: SegmentedButton<AppLanguage>(
@@ -94,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               },
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           _SettingsSection(
                             title: 'AI Provider',
                             child: Column(
@@ -107,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     AiProviderType.lmStudio,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                                 _ProviderTile(
                                   title: l10n.openAiCompatible,
                                   subtitle: 'OpenAI-compatible API',
@@ -117,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     AiProviderType.openAiCompatible,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                                 _ProviderTile(
                                   title: l10n.openRouter,
                                   subtitle: 'Unified gateway for many models',
@@ -126,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     AiProviderType.openRouter,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                                 _ProviderTile(
                                   title: l10n.deepSeek,
                                   subtitle: 'Official DeepSeek API',
@@ -138,7 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           _SettingsSection(
                             title: 'Connection',
                             child: Column(
@@ -149,14 +163,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     labelText: l10n.baseUrl,
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 TextField(
                                   controller: _modelController,
                                   decoration: InputDecoration(
                                     labelText: l10n.model,
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 TextField(
                                   controller: _apiKeyController,
                                   decoration: InputDecoration(
@@ -164,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     hintText: l10n.apiKeyHint,
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 TextField(
                                   controller: _timeoutController,
                                   keyboardType: TextInputType.number,
@@ -189,12 +203,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           if (_status != null) ...<Widget>[
                             const SizedBox(height: 16),
-                            Text(
-                              _status!,
-                              style: Theme.of(context).textTheme.bodyMedium,
+                            Row(
+                              children: [
+                                Icon(
+                                  _status!.contains('успешно') || _status!.contains('successful')
+                                      ? Icons.check_circle_outline_rounded
+                                      : Icons.info_outline_rounded,
+                                  size: 18,
+                                  color: _status!.contains('успешно') || _status!.contains('successful')
+                                      ? Colors.green
+                                      : AetherPalette.textMuted,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _status!,
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 24),
                           FilledButton(
                             onPressed: _isSaving ? null : _save,
                             child: _isSaving
@@ -207,10 +237,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   )
                                 : Text(l10n.saveSettings),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
+                            spacing: 10,
+                            runSpacing: 10,
                             children: <Widget>[
                               OutlinedButton(
                                 onPressed: _isChecking ? null : _checkConnection,
@@ -262,6 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _profiles = Map<AiProviderType, ProviderProfile>.from(scoped.profiles);
     _appLanguage = appLanguage;
     _fastResponses = scoped.fastResponses;
+    _confirmed18Plus = scoped.confirmed18Plus;
     _applyProfileToForm(scoped.profileFor(_provider));
 
     setState(() => _isLoading = false);
@@ -305,6 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       activeProvider: _provider,
       profiles: Map<AiProviderType, ProviderProfile>.from(_profiles),
       fastResponses: _fastResponses,
+      confirmed18Plus: _confirmed18Plus,
     );
     await scope.settingsRepository.saveProviderScopedSettings(toSave);
     await scope.settingsRepository.saveAppLanguage(_appLanguage);
@@ -562,14 +594,21 @@ class _ProviderTile extends StatelessWidget {
                       : AetherPalette.textMuted,
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(title, style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
