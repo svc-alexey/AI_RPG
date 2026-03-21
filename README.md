@@ -33,7 +33,7 @@ The project has already moved beyond the original MVP baseline. The current code
 - soft page/backdrop animations that now also run on desktop outside test mode;
 - mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content;
 - a fast web landing shell that opens before Flutter and launches the full app only after the user presses the main CTA;
-- a staged web/mobile-web startup loader with localized progress steps, rotating flavor text, and a safe fallback that removes the landing overlay even if the ready event is delayed on some phones.
+- a staged web/mobile-web startup loader with localized progress steps, rotating flavor text, and a first-frame-aware handoff so the landing overlay stays in place until Flutter has actually painted visible UI.
 - web-safe AI diagnostics for mobile browsers, including structured console events, intro-turn tracing, and retry/fallback visibility in browser console logs.
 
 ## Current architecture
@@ -116,7 +116,7 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 
 - `native / desktop / mobile app`: the app opens directly into the new branded start screen
 - `web`: `web/index.html` first shows a lightweight landing page, and Flutter starts only after the user presses `Play`
-- `web / mobile browser`: after `Play`, the CTA becomes a staged loader with progress, loading phrases, and a guarded handoff that hides the HTML landing only when Flutter is ready
+- `web / mobile browser`: after `Play`, the CTA becomes a staged loader with progress, loading phrases, and a guarded handoff that hides the HTML landing only after Flutter paints its first visible frame
 - `web / mobile browser / first AI turn`: the chat flow emits structured diagnostic events for intro autostart, retries, fallback behavior, request/response flow, and duplicate-turn suppression in browser console logs
 - `localhost / flutter run -d web-server`: the landing still renders by default; add `?autostart=1` to the URL if you explicitly want immediate Flutter startup
 - `custom campaign / story step`: there is now one editable story field; typed text expands into a richer prompt, and an empty submit generates a fresh random hook first
@@ -134,7 +134,7 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - chat streaming no longer races a second standard completion request in the background;
 - pending narrator bubbles now render with a softer, more readable typing experience;
 - the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
-- the web landing now keeps a staged loading UI during deferred startup and has an extra fallback removal path for phones where the ready signal can be delayed;
+- the web landing now keeps a staged loading UI during deferred startup and waits for Flutter's first rendered frame before fading out, which removes the blank-screen gap on slower mobile browsers;
 - mobile-browser intro turn diagnostics now surface directly in web console output, making repeated generation and fallback chains easier to trace on-device;
 - chat turn submission is now single-flight, so duplicate taps or repeated intro triggers no longer start parallel first-turn requests;
 - the mobile chat layout now hides nonessential top chrome while the keyboard is open, preventing bottom overflow on small screens;

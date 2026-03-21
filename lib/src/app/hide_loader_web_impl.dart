@@ -7,6 +7,11 @@ void hideHtmlLoader() {
   html.document.getElementById('loading-container')?.remove();
 }
 
+/// Notifies the landing page that Flutter has painted its first frame.
+void notifyHtmlLoaderFirstFrame() {
+  html.window.dispatchEvent(html.CustomEvent('codex:flutter-first-frame'));
+}
+
 /// Notifies the landing page that Flutter finished rendering the ready UI.
 void completeHtmlLoaderTransition() {
   html.window.dispatchEvent(html.CustomEvent('codex:flutter-ready'));

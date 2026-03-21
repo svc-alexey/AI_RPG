@@ -114,11 +114,13 @@ class _AiRpgAppState extends State<AiRpgApp> {
     }
     _didSignalLaunchUiReady = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      completeHtmlLoaderTransition();
-      widget.onLaunchUiReady?.call();
+      WidgetsBinding.instance.endOfFrame.then((_) {
+        if (!mounted) {
+          return;
+        }
+        completeHtmlLoaderTransition();
+        widget.onLaunchUiReady?.call();
+      });
     });
   }
 
@@ -180,12 +182,11 @@ class _SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<_SplashScreen> {
-  static const List<double> _stageProgress = <double>[0.14, 0.38, 0.66, 0.9];
-
   Timer? _stageTimer;
   Timer? _flavorTimer;
   int _stageIndex = 0;
   int _flavorIndex = 0;
+  bool _didSignalFirstFrame = false;
 
   bool get _animationsEnabled {
     final String bindingName = WidgetsBinding.instance.runtimeType.toString();
@@ -196,9 +197,18 @@ class _SplashScreenState extends State<_SplashScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.endOfFrame.then((_) {
+        if (!mounted || _didSignalFirstFrame) {
+          return;
+        }
+        _didSignalFirstFrame = true;
+        notifyHtmlLoaderFirstFrame();
+      });
+    });
     if (_animationsEnabled) {
       _stageTimer = Timer.periodic(const Duration(milliseconds: 1100), (_) {
-        if (!mounted || _stageIndex >= _stageProgress.length - 1) {
+        if (!mounted || _stageIndex >= 3) {
           return;
         }
         setState(() => _stageIndex += 1);
@@ -276,7 +286,6 @@ class _SplashScreenState extends State<_SplashScreen> {
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
                         minHeight: 10,
-                        value: _stageProgress[stageIndex],
                         backgroundColor: AetherPalette.panelSoft.withValues(
                           alpha: 0.72,
                         ),

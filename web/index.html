@@ -559,13 +559,7 @@
         },
       };
 
-      const stageProgress = [0.12, 0.36, 0.62, 0.88, 1];
-      const stageSchedule = [
-        { delay: 0, stageIndex: 0 },
-        { delay: 900, stageIndex: 1 },
-        { delay: 2300, stageIndex: 2 },
-        { delay: 4300, stageIndex: 3 },
-      ];
+      const stageProgress = [0.12, 0.34, 0.58, 0.8, 1];
 
       const language = (navigator.language || '').toLowerCase().startsWith('ru')
         ? 'ru'
@@ -590,12 +584,11 @@
 
       let launchInFlight = false;
       let launchCompleted = false;
-      let stageTimers = [];
       let flavorTimer = null;
       let slowLoadTimer = null;
-      let readyFallbackTimer = null;
       let currentStageIndex = 0;
       let currentFlavorIndex = 0;
+      let launchStartedAt = 0;
 
       function setText(id, value) {
         const node = document.getElementById(id);
@@ -653,8 +646,6 @@
       }
 
       function clearLaunchTimers() {
-        stageTimers.forEach((timerId) => window.clearTimeout(timerId));
-        stageTimers = [];
         if (flavorTimer !== null) {
           window.clearInterval(flavorTimer);
           flavorTimer = null;
@@ -662,10 +653,6 @@
         if (slowLoadTimer !== null) {
           window.clearTimeout(slowLoadTimer);
           slowLoadTimer = null;
-        }
-        if (readyFallbackTimer !== null) {
-          window.clearTimeout(readyFallbackTimer);
-          readyFallbackTimer = null;
         }
       }
 
@@ -702,6 +689,7 @@
       }
 
       function enterLaunchState() {
+        launchStartedAt = Date.now();
         showLoadingShell();
         launchButton.disabled = true;
         howButton.disabled = true;
@@ -709,15 +697,6 @@
         setLoadingNote('', false);
         setStage(0);
         startFlavorRotation();
-        stageSchedule.forEach((entry) => {
-          const timerId = window.setTimeout(() => {
-            if (!launchInFlight || launchCompleted) {
-              return;
-            }
-            setStage(entry.stageIndex);
-          }, entry.delay);
-          stageTimers.push(timerId);
-        });
         slowLoadTimer = window.setTimeout(() => {
           if (!launchInFlight || launchCompleted) {
             return;
@@ -748,12 +727,16 @@
         setStage(text.loadingStages.length - 1, { longEta: true });
         loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex % text.loadingFlavorLines.length];
         setLoadingNote('', false);
-        if (loadingContainer) {
-          loadingContainer.classList.add('is-exiting');
-          window.setTimeout(() => {
-            loadingContainer.remove();
-          }, 460);
-        }
+        const elapsed = Date.now() - launchStartedAt;
+        const remaining = Math.max(0, 650 - elapsed);
+        window.setTimeout(() => {
+          if (loadingContainer) {
+            loadingContainer.classList.add('is-exiting');
+            window.setTimeout(() => {
+              loadingContainer.remove();
+            }, 460);
+          }
+        }, remaining);
       }
 
       async function launchFlutter() {
@@ -766,14 +749,24 @@
 
         try {
           const start = window.__codexLaunchFlutterApp || (window._flutter && window._flutter.loader
-            ? function () {
-                return window._flutter.loader.load({
-                  onEntrypointLoaded: async function (engineInitializer) {
-                    const appRunner = await engineInitializer.initializeEngine();
-                    return appRunner.runApp();
-                  },
-                });
-              }
+              ? function () {
+                  return window._flutter.loader.load({
+                    onEntrypointLoaded: async function (engineInitializer) {
+                      if (launchInFlight && !launchCompleted) {
+                        setStage(1);
+                      }
+                      const appRunner = await engineInitializer.initializeEngine();
+                      if (launchInFlight && !launchCompleted) {
+                        setStage(2);
+                      }
+                      const runResult = await appRunner.runApp();
+                      if (launchInFlight && !launchCompleted) {
+                        setStage(3, { longEta: true });
+                      }
+                      return runResult;
+                    },
+                  });
+                }
             : null);
 
           if (!start) {
@@ -781,11 +774,6 @@
           }
 
           await start();
-          readyFallbackTimer = window.setTimeout(() => {
-            if (!launchCompleted) {
-              finishLaunchTransition();
-            }
-          }, 1800);
         } catch (error) {
           console.error('Flutter web bootstrap failed', error);
           resetLaunchState(text.loadingRetry);
@@ -805,6 +793,7 @@
         }
       });
 
+      window.addEventListener('codex:flutter-first-frame', finishLaunchTransition);
       window.addEventListener('codex:flutter-ready', finishLaunchTransition);
       window.addEventListener('resize', syncViewportHeight);
       window.addEventListener('orientationchange', refreshViewportMetrics);
