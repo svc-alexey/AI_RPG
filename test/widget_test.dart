@@ -443,6 +443,70 @@ void main() {
     expect(saved?.title, campaign.title);
   });
 
+  testWidgets(
+    'Gameplay chat shows transient save feedback without status card',
+    (tester) async {
+      final CampaignState campaign = _sampleCampaign();
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'campaign.ids': <String>[campaign.id],
+        'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+      });
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          ChatScreen(campaignId: campaign.id),
+          storage: storage,
+          language: AppLanguage.en,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip(english.saveTooltip));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text(english.campaignSaved),
+          matching: find.byType(SnackBar),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('Portrait card shows only character name under image', (
+    tester,
+  ) async {
+    final CampaignState campaign = _sampleCampaign();
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'campaign.ids': <String>[campaign.id],
+      'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+    });
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildScopedApp(
+        ChatScreen(campaignId: campaign.id),
+        storage: storage,
+        language: AppLanguage.en,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(campaign.character.name), findsOneWidget);
+    expect(find.text(english.portraitPlaceholderLabel), findsNothing);
+    expect(find.text(english.portraitAiHint), findsNothing);
+    expect(find.text(english.portraitAiReadyHint), findsNothing);
+  });
+
   testWidgets('Without configured model, turn runs in demo mode', (
     tester,
   ) async {

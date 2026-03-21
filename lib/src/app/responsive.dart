@@ -34,25 +34,25 @@ class AppResponsiveData {
   bool get isWide => isTablet || isDesktop;
 
   double get pagePadding => switch (breakpoint) {
-    AppBreakpoint.phoneSmall => 12,
-    AppBreakpoint.phone => 14,
-    AppBreakpoint.phoneLarge => 16,
+    AppBreakpoint.phoneSmall => 8,
+    AppBreakpoint.phone => 10,
+    AppBreakpoint.phoneLarge => 12,
     AppBreakpoint.tablet => 20,
     AppBreakpoint.desktop => 24,
   };
 
   double get cardPadding => switch (breakpoint) {
-    AppBreakpoint.phoneSmall => 14,
-    AppBreakpoint.phone => 16,
-    AppBreakpoint.phoneLarge => 18,
+    AppBreakpoint.phoneSmall => 10,
+    AppBreakpoint.phone => 12,
+    AppBreakpoint.phoneLarge => 14,
     AppBreakpoint.tablet => 20,
     AppBreakpoint.desktop => 24,
   };
 
   double get sectionSpacing => switch (breakpoint) {
-    AppBreakpoint.phoneSmall => 10,
-    AppBreakpoint.phone => 12,
-    AppBreakpoint.phoneLarge => 14,
+    AppBreakpoint.phoneSmall => 8,
+    AppBreakpoint.phone => 10,
+    AppBreakpoint.phoneLarge => 12,
     AppBreakpoint.tablet => 16,
     AppBreakpoint.desktop => 16,
   };
@@ -66,9 +66,9 @@ class AppResponsiveData {
   };
 
   double get cardRadius => switch (breakpoint) {
-    AppBreakpoint.phoneSmall => 18,
-    AppBreakpoint.phone => 20,
-    AppBreakpoint.phoneLarge => 20,
+    AppBreakpoint.phoneSmall => 14,
+    AppBreakpoint.phone => 16,
+    AppBreakpoint.phoneLarge => 18,
     AppBreakpoint.tablet => 22,
     AppBreakpoint.desktop => 22,
   };
@@ -117,8 +117,8 @@ class AppResponsiveData {
     AppBreakpoint.phoneSmall => width,
     AppBreakpoint.phone => width,
     AppBreakpoint.phoneLarge => width,
-    AppBreakpoint.tablet => 280,
-    AppBreakpoint.desktop => 320,
+    AppBreakpoint.tablet => 248,
+    AppBreakpoint.desktop => 288,
   };
 
   double get overlayMaxWidth => switch (breakpoint) {

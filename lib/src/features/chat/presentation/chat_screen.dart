@@ -90,6 +90,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         );
       }
 
+      final String? nextStatus = next.status;
+      if (nextStatus != null &&
+          nextStatus != previous?.status &&
+          !_isPassiveTurnStatus(nextStatus, l10n)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(nextStatus)));
+        });
+      }
+
       if (!_didTriggerIntro &&
           !_introTriggeredCampaignIds.contains(widget.campaignId) &&
           !next.isLoading &&
@@ -174,7 +188,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       drawer: wide || responsive.isPhoneSmall
           ? null
           : Drawer(
-              width: responsive.isPhoneSmall ? responsive.width * 0.92 : null,
+              width: responsive.width * 0.84,
               child: AetherBackdrop(
                 child: SafeArea(
                   child: _buildSidebar(
@@ -266,29 +280,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     return Column(
       children: <Widget>[
-        if (chatState.status != null && !compactMobileComposer)
-          AetherCard(
-            padding: EdgeInsets.symmetric(
-              horizontal: isNarrow ? 12 : 18,
-              vertical: isNarrow ? 10 : 14,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                chatState.status!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: isNarrow ? 13 : 14),
-              ),
-            ),
-          ),
-        if (chatState.status != null && !compactMobileComposer)
-          SizedBox(height: responsive.sectionSpacing),
         Expanded(
           child: Stack(
             children: <Widget>[
               AetherCard(
-                padding: EdgeInsets.all(isNarrow ? 12 : 16),
+                padding: EdgeInsets.all(isNarrow ? 8 : 14),
                 child: ListView.builder(
                   controller: _scrollController,
                   padding: EdgeInsets.only(
@@ -328,7 +324,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       padding: EdgeInsets.only(
                         bottom: index == visibleMessages.length - 1
                             ? 0
-                            : (isNarrow ? 10 : 14),
+                            : (isNarrow ? 8 : 12),
                       ),
                       child: Align(
                         alignment: isPlayer
@@ -336,9 +332,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             : Alignment.centerLeft,
                         child: Container(
                           constraints: BoxConstraints(
-                            maxWidth: isNarrow ? screenWidth * 0.85 : 640,
+                            maxWidth: isNarrow ? screenWidth * 0.9 : 680,
                           ),
-                          padding: EdgeInsets.all(isNarrow ? 12 : 18),
+                          padding: EdgeInsets.all(isNarrow ? 10 : 16),
                           decoration: BoxDecoration(
                             color: isPlayer
                                 ? AetherPalette.accentSoft.withValues(
@@ -354,7 +350,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   )
                                 : AetherPalette.panel.withValues(alpha: 0.96),
                             borderRadius: BorderRadius.circular(
-                              isNarrow ? 16 : 20,
+                              isNarrow ? 14 : 18,
                             ),
                             border: Border.all(
                               color:
@@ -410,14 +406,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         Container(
           decoration: BoxDecoration(
             color: AetherPalette.panel.withValues(alpha: 0.88),
-            borderRadius: BorderRadius.circular(isNarrow ? 16 : 20),
+            borderRadius: BorderRadius.circular(isNarrow ? 14 : 18),
             border: Border.all(
-              color: AetherPalette.panelBorder.withValues(alpha: 0.68),
+              color: AetherPalette.panelBorder.withValues(alpha: 0.56),
             ),
           ),
           padding: EdgeInsets.symmetric(
-            horizontal: isNarrow ? (compactMobileComposer ? 8 : 10) : 12,
-            vertical: isNarrow ? (compactMobileComposer ? 4 : 6) : 8,
+            horizontal: isNarrow ? (compactMobileComposer ? 6 : 8) : 10,
+            vertical: isNarrow ? (compactMobileComposer ? 3 : 5) : 6,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -448,8 +444,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                          horizontal: 10,
+                          vertical: 6,
                         ),
                       ).copyWith(hintText: l10n.chatInputHint),
                     ),
@@ -491,8 +487,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
-                            horizontal: responsive.isCompact ? 14 : 16,
-                            vertical: responsive.isCompact ? 10 : 12,
+                            horizontal: responsive.isCompact ? 12 : 14,
+                            vertical: responsive.isCompact ? 8 : 10,
                           ),
                         ),
                       ),
@@ -560,21 +556,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
     return AetherCard(
+      padding: EdgeInsets.all(responsive.isCompact ? 8 : 14),
       child: ListView(
-        padding: EdgeInsets.all(responsive.cardPadding),
+        padding: EdgeInsets.all(
+          responsive.isCompact ? 8 : responsive.cardPadding - 2,
+        ),
         children: <Widget>[
-          Text(
-            character.name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: responsive.isCompact ? 22 : null,
-            ),
-            maxLines: responsive.isCompact ? 3 : 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 12),
           _CharacterPortraitCard(campaign: campaign),
-          const SizedBox(height: 12),
+          SizedBox(height: responsive.sectionSpacing),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -729,6 +718,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       suggestionsOnly: false,
     );
   }
+
+  bool _isPassiveTurnStatus(final String status, final AppLocalizations l10n) =>
+      <String>{
+        l10n.turnCompleted(true),
+        l10n.turnCompleted(false),
+        l10n.suggestionsUpdated(true),
+        l10n.suggestionsUpdated(false),
+      }.contains(status);
 
   _ScrollMode _resolveScrollMode(
     final ChatViewState? previous,
@@ -889,56 +886,50 @@ class _CharacterPortraitCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final AppLocalizations l10n = context.l10n;
-    final bool hasGeneratedPortrait = campaign.portraitPath.trim().isNotEmpty;
-    final String imagePath = hasGeneratedPortrait
+    final AppResponsiveData responsive = context.responsive;
+    final String imagePath = campaign.portraitPath.trim().isNotEmpty
         ? campaign.portraitPath.trim()
         : _portraitAssetForCampaign(campaign);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AetherPalette.panelSoft.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(responsive.isCompact ? 16 : 20),
         border: Border.all(
-          color: AetherPalette.panelBorder.withValues(alpha: 0.72),
+          color: AetherPalette.panelBorder.withValues(alpha: 0.58),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(responsive.isCompact ? 16 : 20),
+            ),
             child: buildPortraitImage(
               portraitPath: imagePath,
               fit: BoxFit.cover,
               width: double.infinity,
-              height: context.responsive.isCompact ? 190 : 220,
+              height: responsive.isCompact ? 190 : 220,
               errorBuilder: (context, error, stackTrace) =>
-                  _PortraitFallbackLabel(label: l10n.portraitPlaceholderLabel),
+                  _PortraitFallbackLabel(label: campaign.character.name),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  l10n.portraitPlaceholderLabel,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AetherPalette.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  hasGeneratedPortrait
-                      ? l10n.portraitAiReadyHint
-                      : l10n.portraitAiHint,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AetherPalette.textMuted,
-                    height: 1.5,
-                  ),
-                ),
-              ],
+            padding: EdgeInsets.fromLTRB(
+              responsive.isCompact ? 12 : 14,
+              10,
+              responsive.isCompact ? 12 : 14,
+              responsive.isCompact ? 12 : 14,
+            ),
+            child: Text(
+              campaign.character.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AetherPalette.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

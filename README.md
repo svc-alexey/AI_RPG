@@ -28,6 +28,7 @@ The project has already moved beyond the original MVP baseline. The current code
 - adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
 - tighter mobile chat behavior while the keyboard is open, so the story keeps priority and the composer does not overflow on small screens;
+- a denser in-game campaign layout with reduced mobile padding, slimmer sidebar framing, and more room for readable chat text;
 - demo-mode AI fallback when no model is configured;
 - a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - soft page/backdrop animations that now also run on desktop outside test mode;
@@ -101,6 +102,13 @@ The app expects the proxy at `http://127.0.0.1:8787/v1` by default and uses:
 - `SBER_IMAGE_MODEL` for portrait generation;
 - a spec-based image flow through `chat/completions` with Sber `text2image`, followed by file download from `/files/{id}/content`.
 
+For local-network testing from another device on the same Wi-Fi:
+
+- set `SBER_PROXY_HOST=0.0.0.0` in `.env` before starting the proxy;
+- start Flutter web with `flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080`;
+- on the phone, open `http://<your-pc-lan-ip>:8080/?autostart=1`;
+- in app settings, use `http://<your-pc-lan-ip>:8787/v1` instead of `127.0.0.1`, otherwise the phone will try to call itself.
+
 Current limitations:
 
 - `Sber GigaChat` uses standard completions only; streaming stays enabled for the existing OpenAI-compatible providers.
@@ -130,7 +138,7 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - `custom campaign / step navigation`: moving between steps now uses the top arrows only
 - the in-game campaign sidebar now favors presentation over technical labels:
   - compact module icons with tooltips
-  - portrait card under the hero name
+  - portrait card that now shows only the character name under the image
   - no user-visible `Enabled by prompt` / `Enabled by setting` copy
 - in-game quick choices on the campaign screen now submit immediately on tap instead of only filling the composer first
 - the chat composer now also submits the current action on `Enter`, matching the send button behavior
@@ -148,4 +156,5 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
 - widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.
 - custom prompt generation now has a tested local fallback that prevents silent no-op behavior when AI prompt expansion fails.
-- `Sber GigaChat` now runs through a local proxy, disables streaming for turn generation, and includes fallback parsing for plain text, broken JSON-like output, alternative narration fields, and object-shaped choices.
+- `Sber GigaChat` now runs through a local proxy, disables streaming for turn generation, and includes broader fallback parsing for plain text, broken JSON-like output, alternate narration fields, alternate state containers, alternate location fields, and object-shaped choices.
+- the gameplay screen no longer keeps a persistent `turn completed` status card above the chat; transient feedback now uses snackbars so the story gets more vertical space.

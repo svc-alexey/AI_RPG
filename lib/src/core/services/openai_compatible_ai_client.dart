@@ -1361,8 +1361,14 @@ $actionText
       'response',
       'memory_entry',
     ]);
+    final String location = _firstMatchedValue(cleaned, <String>[
+      'location',
+      'current_location',
+      'place',
+      'scene_location',
+    ]);
     final List<String> choices = _extractStructuredChoices(cleaned);
-    if (narration.isEmpty && choices.isEmpty) {
+    if (narration.isEmpty && choices.isEmpty && location.isEmpty) {
       return null;
     }
 
@@ -1388,17 +1394,17 @@ $actionText
             AppLanguage.en => 'The story continues.',
           };
 
-    return TurnResult(
-      narration: resolvedNarration,
-      choices: fallbackChoices,
-      stateChanges: const StateChanges.empty(),
-      memoryEntry: resolvedNarration,
-    );
+    return TurnResult.fromJson(<String, Object?>{
+      'narration': resolvedNarration,
+      'choices': fallbackChoices,
+      'state_changes': <String, Object?>{'location': location},
+      'memory_entry': resolvedNarration,
+    });
   }
 
   List<String> _extractStructuredChoices(final String rawContent) {
     final RegExp arrayPattern = RegExp(
-      r'"(?:choices|options|actions)"\s*:\s*\[(.*?)\]',
+      r'"(?:choices|options|actions|variants)"\s*:\s*\[(.*?)\]',
       dotAll: true,
     );
     final Match? match = arrayPattern.firstMatch(rawContent);

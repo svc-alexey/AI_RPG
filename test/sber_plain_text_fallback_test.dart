@@ -71,4 +71,27 @@ void main() {
 
     expect(result.choices, <String>['Move forward', 'Wait']);
   });
+
+  test('Structured recovery preserves alternate location field', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    final result = client.parseTurnContentForTesting(
+      rawContent: '''
+{
+  "scene": "The station wakes with a metallic groan.",
+  "variants": [
+    {"title": "Check the console"},
+    {"label": "Open the hatch"}
+  ],
+  "game_state": {
+    "current_location": "Maintenance shaft"
+  }
+''',
+      language: AppLanguage.en,
+    );
+
+    expect(result.narration, 'The station wakes with a metallic groan.');
+    expect(result.choices, <String>['Check the console', 'Open the hatch']);
+    expect(result.stateChanges.location, 'Maintenance shaft');
+  });
 }
