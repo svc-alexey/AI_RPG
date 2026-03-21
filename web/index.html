@@ -397,9 +397,6 @@
       const launchButton = document.getElementById('launch-button');
       const howButton = document.getElementById('how-button');
       const howAnchor = document.getElementById('how-anchor');
-      const isLocalDevHost = ['localhost', '127.0.0.1', '0.0.0.0'].includes(
-        window.location.hostname,
-      );
 
       let launchInFlight = false;
 
@@ -502,12 +499,6 @@
 
       renderLanding();
       syncViewportHeight();
-
-      if (isLocalDevHost) {
-        window.setTimeout(() => {
-          launchFlutter();
-        }, 0);
-      }
 
       launchButton.addEventListener('click', launchFlutter);
       howButton.addEventListener('click', function () {
