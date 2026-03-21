@@ -36,6 +36,12 @@ The shipped web build now has a two-step startup:
 
 This keeps the first paint fast on mobile browsers and avoids showing a raw spinner-only shell while the full Flutter bundle loads.
 
+After the CTA press, the landing now stays visible as a staged loader:
+
+- the CTA is replaced by a progress card with loading steps and rotating flavor lines;
+- the overlay is removed only after Flutter signals that the ready UI rendered;
+- there is also a fallback removal path in case a mobile browser delays or drops that ready signal.
+
 For local development there is one intentional exception:
 
 - on `localhost`, `127.0.0.1`, and `0.0.0.0`, the landing still renders first, but Flutter auto-starts right away;
@@ -44,9 +50,12 @@ For local development there is one intentional exception:
 ## Deploy notes
 
 - Deploy the contents of `build/web`.
+- Deploy the entire freshly built `build/web` bundle together. Do not mix a new `main.dart.js` with an older `index.html` or `flutter_bootstrap.js`.
 - If a phone keeps showing an old endless loader, clear site data/cache for that domain before retrying.
+- If a phone keeps showing the staged loader at `88%` or similar, the most likely cause is stale cached web assets from before the latest landing/ready-signal fix.
 - For local network testing, you can serve `build/web` over HTTP and open it from the phone on the same Wi-Fi network.
 - The shipped `web/index.html` listens to `visualViewport`, `pageshow`, `focus`, and `visibilitychange` to resync height after app switching on mobile browsers.
 - If a tester reports an empty area where the keyboard used to be after returning to the browser, verify that the latest built `index.html` was deployed together with the rest of `build/web`.
 - If the landing page appears but the app never launches, verify that the deployed `flutter_bootstrap.js` still contains the deferred launch hook and was not replaced by an older eager-start build artifact.
+- If Flutter appears to start but the landing overlay never leaves, verify that both `index.html` and `main.dart.js` come from the same build and then force-refresh the site on the device.
 - If local browser debugging fails after pressing `Play`, confirm you are testing a real deployed build rather than the local debug server path; deferred launch is for deployed web, while localhost intentionally auto-starts.

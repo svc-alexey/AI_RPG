@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -44,6 +45,38 @@ void main() {
 
     expect(find.text(russian.brandName), findsOneWidget);
     expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('Launch UI ready signal waits for bootstrap completion', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+    final Completer<AppLanguage> languageCompleter = Completer<AppLanguage>();
+    final _DelayedSettingsRepository settingsRepository =
+        _DelayedSettingsRepository(storage.database, languageCompleter.future);
+    int readySignals = 0;
+
+    await tester.pumpWidget(
+      AiRpgApp(
+        database: storage.database,
+        settingsRepository: settingsRepository,
+        campaignRepository: storage.campaignRepository,
+        onLaunchUiReady: () => readySignals += 1,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text(russian.appLoadingTitle), findsOneWidget);
+    expect(find.byType(HomeScreen), findsNothing);
+    expect(readySignals, 0);
+
+    languageCompleter.complete(AppLanguage.ru);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(readySignals, 1);
   });
 
   testWidgets('Home screen shows saves entry point', (tester) async {
@@ -753,6 +786,16 @@ class _FakeSettingsRepository extends SettingsRepository {
 
   @override
   Future<AiSettings> loadAiSettings() async => _settings;
+}
+
+class _DelayedSettingsRepository extends SettingsRepository {
+  _DelayedSettingsRepository(final AppDatabase database, this._languageFuture)
+    : super(database: database);
+
+  final Future<AppLanguage> _languageFuture;
+
+  @override
+  Future<AppLanguage> loadAppLanguage() => _languageFuture;
 }
 
 class _FakeAiServiceFactory extends AiServiceFactory {

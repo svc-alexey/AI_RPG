@@ -48,6 +48,60 @@ class AppLocalizations {
     AppLanguage.en => 'Settings',
   };
 
+  String get appLoadingTitle => switch (language) {
+    AppLanguage.ru => 'Приложение загружается, подождите',
+    AppLanguage.en => 'The app is loading, please wait',
+  };
+
+  List<String> get appLoadingStages => switch (language) {
+    AppLanguage.ru => const <String>[
+      'Подготавливаем запуск',
+      'Загружаем движок истории',
+      'Запускаем приложение',
+      'Готовим мир и настройки',
+    ],
+    AppLanguage.en => const <String>[
+      'Preparing the launch',
+      'Loading the story engine',
+      'Starting the application',
+      'Warming up your world and settings',
+    ],
+  };
+
+  String get appLoadingEtaShort => switch (language) {
+    AppLanguage.ru => 'Обычно это занимает несколько секунд',
+    AppLanguage.en => 'This usually takes a few seconds',
+  };
+
+  String get appLoadingSlow => switch (language) {
+    AppLanguage.ru =>
+      'Запуск идет дольше обычного. Еще немного, мы почти на месте.',
+    AppLanguage.en =>
+      'Startup is taking a bit longer than usual. Hang on, we are almost there.',
+  };
+
+  String get appLoadingRetry => switch (language) {
+    AppLanguage.ru => 'Не удалось запустить приложение. Попробуйте еще раз.',
+    AppLanguage.en => 'The app could not start. Please try again.',
+  };
+
+  List<String> get appLoadingFlavorLines => switch (language) {
+    AppLanguage.ru => const <String>[
+      'Загружаем миры',
+      'Собираем ИИ-модели',
+      'Разворачиваем сюжетные узлы',
+      'Настраиваем атмосферу приключения',
+      'Полируем первый ход героя',
+    ],
+    AppLanguage.en => const <String>[
+      'Loading new worlds',
+      'Assembling the AI models',
+      'Threading story branches together',
+      'Tuning the mood of the adventure',
+      'Polishing your first move',
+    ],
+  };
+
   String get newCampaign => switch (language) {
     AppLanguage.ru => 'Новая кампания',
     AppLanguage.en => 'New Campaign',

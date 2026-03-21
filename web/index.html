@@ -95,6 +95,14 @@
       align-items: center;
       justify-content: center;
       padding: 28px 18px 32px;
+      opacity: 1;
+      transition: opacity 420ms ease, transform 420ms ease;
+    }
+
+    #loading-container.is-exiting {
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
     }
 
     .landing-shell {
@@ -180,7 +188,15 @@
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
+      align-items: stretch;
+    }
+
+    .launch-shell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
       align-items: center;
+      width: 100%;
     }
 
     .cta-button,
@@ -212,10 +228,102 @@
       transform: translateY(-1px);
     }
 
-    .cta-button:disabled {
+    .cta-button:disabled,
+    .secondary-button:disabled {
       cursor: progress;
-      opacity: 0.85;
+      opacity: 0.75;
       transform: none;
+    }
+
+    .loading-shell {
+      width: min(420px, 100%);
+      display: none;
+      gap: 14px;
+      padding: 18px 18px 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(107, 84, 136, 0.5);
+      background: rgba(20, 15, 29, 0.84);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .loading-shell.is-visible {
+      display: grid;
+    }
+
+    .loading-shell.is-error {
+      border-color: rgba(255, 180, 171, 0.6);
+    }
+
+    .loading-shell-top {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 2px solid rgba(180, 99, 255, 0.22);
+      border-top-color: var(--accent);
+      animation: spin 900ms linear infinite;
+      flex: 0 0 auto;
+    }
+
+    .loading-copy {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    .loading-title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      color: var(--text);
+    }
+
+    .loading-stage {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .loading-progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(233, 226, 215, 0.08);
+      overflow: hidden;
+    }
+
+    .loading-progress-fill {
+      height: 100%;
+      width: 12%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(224, 179, 91, 0.9), rgba(180, 99, 255, 0.96));
+      box-shadow: 0 0 24px rgba(180, 99, 255, 0.3);
+      transition: width 500ms ease;
+    }
+
+    .loading-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .loading-flavor {
+      margin: 0;
+      min-height: 22px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--gold);
+      letter-spacing: 0.02em;
     }
 
     .launch-note {
@@ -268,9 +376,17 @@
       top: -24px;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     @keyframes drift {
       from { transform: translate3d(0, 0, 0) scale(1); }
       to { transform: translate3d(18px, -16px, 0) scale(1.08); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     @media (max-width: 880px) {
@@ -293,14 +409,20 @@
         border-radius: 22px;
       }
 
-      .hero-actions {
+      .launch-shell {
         flex-direction: column;
         align-items: stretch;
       }
 
       .cta-button,
-      .secondary-button {
+      .secondary-button,
+      .loading-shell {
         width: 100%;
+      }
+
+      .loading-meta {
+        flex-direction: column;
+        align-items: flex-start;
       }
     }
   </style>
@@ -315,8 +437,28 @@
         <p id="landing-subtitle" class="hero-subtitle"></p>
         <div id="landing-pills" class="hero-pills"></div>
         <div class="hero-actions">
-          <button id="launch-button" class="cta-button" type="button"></button>
-          <button id="how-button" class="secondary-button" type="button"></button>
+          <div id="launch-shell" class="launch-shell">
+            <button id="launch-button" class="cta-button" type="button"></button>
+            <button id="how-button" class="secondary-button" type="button"></button>
+          </div>
+
+          <section id="loading-shell" class="loading-shell" aria-live="polite" hidden>
+            <div class="loading-shell-top">
+              <div class="loading-spinner" aria-hidden="true"></div>
+              <div class="loading-copy">
+                <p id="loading-title" class="loading-title"></p>
+                <p id="loading-stage" class="loading-stage"></p>
+              </div>
+            </div>
+            <div class="loading-progress-track" aria-hidden="true">
+              <div id="loading-progress-fill" class="loading-progress-fill"></div>
+            </div>
+            <div class="loading-meta">
+              <span id="loading-progress-label"></span>
+              <span id="loading-eta"></span>
+            </div>
+            <p id="loading-flavor" class="loading-flavor"></p>
+          </section>
         </div>
         <div id="loading-note" class="launch-note" aria-live="polite"></div>
       </section>
@@ -352,12 +494,27 @@
           heroSubtitle: 'Нарративная RPG, где ИИ ведет сцену, а мир помнит последствия.',
           pills: ['Живой рассказчик', 'Выбор с последствиями', 'Миры на грани жанров'],
           launch: 'Играть',
-          launchLoading: 'Запуск...',
           how: 'Как это работает',
-          loading: 'Загружаем игру. Это может занять несколько секунд.',
-          slow: 'Запуск идет дольше обычного. Если вы на телефоне, подождите еще немного.',
-          failed: 'Игра не смогла открыться. Попробуйте еще раз или обновите страницу.',
+          loadingTitle: 'Приложение загружается, подождите',
+          loadingStages: [
+            'Подготавливаем запуск',
+            'Загружаем движок истории',
+            'Запускаем приложение',
+            'Готовим мир и настройки',
+            'Открываем мир приключения',
+          ],
+          loadingEtaShort: 'Обычно это занимает несколько секунд',
+          loadingEtaLong: 'Еще немного, запуск почти готов',
+          loadingSlow: 'Запуск идет дольше обычного. Если вы на телефоне, подождите еще чуть-чуть.',
+          loadingRetry: 'Не удалось запустить приложение. Попробуйте еще раз или обновите страницу.',
           startupError: 'Во время запуска произошла ошибка. Попробуйте еще раз.',
+          loadingFlavorLines: [
+            'Загружаем миры',
+            'Собираем ИИ-модели',
+            'Разворачиваем сюжетные узлы',
+            'Настраиваем атмосферу приключения',
+            'Полируем первый ход героя',
+          ],
           detail1Label: 'Рассказчик',
           detail1Copy: 'ИИ ведет сцену, но сохраняет логику мира и последствия ваших решений.',
           detail2Label: 'Темп',
@@ -372,20 +529,43 @@
           heroSubtitle: 'A narrative RPG where AI guides the scene and the world remembers what you do.',
           pills: ['Living narrator', 'Choices that leave a mark', 'Worlds beyond a single genre'],
           launch: 'Play Now',
-          launchLoading: 'Launching...',
           how: 'How it works',
-          loading: 'Launching the game. This can take a few seconds.',
-          slow: 'Startup is taking a little longer than usual. If you are on a phone, please give it a few more seconds.',
-          failed: 'The game could not start. Please try again or reload the page.',
+          loadingTitle: 'The app is loading, please wait',
+          loadingStages: [
+            'Preparing the launch',
+            'Loading the story engine',
+            'Starting the application',
+            'Warming up your world and settings',
+            'Opening the adventure',
+          ],
+          loadingEtaShort: 'This usually takes a few seconds',
+          loadingEtaLong: 'Almost there, the launch is nearly ready',
+          loadingSlow: 'Startup is taking a little longer than usual. If you are on a phone, give it a few more seconds.',
+          loadingRetry: 'The app could not start. Please try again or reload the page.',
           startupError: 'A startup error occurred. Please try again.',
+          loadingFlavorLines: [
+            'Loading new worlds',
+            'Assembling the AI models',
+            'Threading story branches together',
+            'Tuning the mood of the adventure',
+            'Polishing your first move',
+          ],
           detail1Label: 'Narrator',
           detail1Copy: 'AI drives the scene while the world still keeps track of rules, state, and consequences.',
           detail2Label: 'Pace',
           detail2Copy: 'The landing screen appears first, and the full game loads only when you choose to enter.',
           detail3Label: 'Hero path',
-          detail3Copy: 'Start a new story, return to a save, and step back into the world without technical MVP copy.',
+          detail3Copy: 'Start a new story, return to a save, and step back into the world without technical noise.',
         },
       };
+
+      const stageProgress = [0.12, 0.36, 0.62, 0.88, 1];
+      const stageSchedule = [
+        { delay: 0, stageIndex: 0 },
+        { delay: 900, stageIndex: 1 },
+        { delay: 2300, stageIndex: 2 },
+        { delay: 4300, stageIndex: 3 },
+      ];
 
       const language = (navigator.language || '').toLowerCase().startsWith('ru')
         ? 'ru'
@@ -393,12 +573,27 @@
       const text = copy[language];
 
       const loadingContainer = document.getElementById('loading-container');
+      const launchShell = document.getElementById('launch-shell');
+      const loadingShell = document.getElementById('loading-shell');
+      const loadingTitle = document.getElementById('loading-title');
+      const loadingStage = document.getElementById('loading-stage');
+      const loadingEta = document.getElementById('loading-eta');
+      const loadingFlavor = document.getElementById('loading-flavor');
+      const loadingProgressFill = document.getElementById('loading-progress-fill');
+      const loadingProgressLabel = document.getElementById('loading-progress-label');
       const loadingNote = document.getElementById('loading-note');
       const launchButton = document.getElementById('launch-button');
       const howButton = document.getElementById('how-button');
       const howAnchor = document.getElementById('how-anchor');
 
       let launchInFlight = false;
+      let launchCompleted = false;
+      let stageTimers = [];
+      let flavorTimer = null;
+      let slowLoadTimer = null;
+      let readyFallbackTimer = null;
+      let currentStageIndex = 0;
+      let currentFlavorIndex = 0;
 
       function setText(id, value) {
         const node = document.getElementById(id);
@@ -455,19 +650,117 @@
         window.dispatchEvent(new Event('resize'));
       }
 
+      function clearLaunchTimers() {
+        stageTimers.forEach((timerId) => window.clearTimeout(timerId));
+        stageTimers = [];
+        if (flavorTimer !== null) {
+          window.clearInterval(flavorTimer);
+          flavorTimer = null;
+        }
+        if (slowLoadTimer !== null) {
+          window.clearTimeout(slowLoadTimer);
+          slowLoadTimer = null;
+        }
+        if (readyFallbackTimer !== null) {
+          window.clearTimeout(readyFallbackTimer);
+          readyFallbackTimer = null;
+        }
+      }
+
+      function showLoadingShell() {
+        launchShell.hidden = true;
+        loadingShell.hidden = false;
+        loadingShell.classList.add('is-visible');
+      }
+
+      function showLaunchButtons() {
+        launchShell.hidden = false;
+        loadingShell.hidden = true;
+        loadingShell.classList.remove('is-visible');
+        loadingShell.classList.remove('is-error');
+      }
+
+      function setStage(stageIndex, options) {
+        currentStageIndex = Math.max(0, Math.min(stageIndex, text.loadingStages.length - 1));
+        const progress = stageProgress[Math.min(currentStageIndex, stageProgress.length - 1)];
+        loadingTitle.textContent = text.loadingTitle;
+        loadingStage.textContent = text.loadingStages[currentStageIndex];
+        loadingEta.textContent = options && options.longEta ? text.loadingEtaLong : text.loadingEtaShort;
+        loadingProgressFill.style.width = `${Math.round(progress * 100)}%`;
+        loadingProgressLabel.textContent = `${Math.round(progress * 100)}%`;
+      }
+
+      function startFlavorRotation() {
+        currentFlavorIndex = 0;
+        loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex];
+        flavorTimer = window.setInterval(() => {
+          currentFlavorIndex = (currentFlavorIndex + 1) % text.loadingFlavorLines.length;
+          loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex];
+        }, 2200);
+      }
+
+      function enterLaunchState() {
+        showLoadingShell();
+        launchButton.disabled = true;
+        howButton.disabled = true;
+        loadingShell.classList.remove('is-error');
+        setLoadingNote('', false);
+        setStage(0);
+        startFlavorRotation();
+        stageSchedule.forEach((entry) => {
+          const timerId = window.setTimeout(() => {
+            if (!launchInFlight || launchCompleted) {
+              return;
+            }
+            setStage(entry.stageIndex);
+          }, entry.delay);
+          stageTimers.push(timerId);
+        });
+        slowLoadTimer = window.setTimeout(() => {
+          if (!launchInFlight || launchCompleted) {
+            return;
+          }
+          loadingEta.textContent = text.loadingEtaLong;
+          setLoadingNote(text.loadingSlow, false);
+        }, 8000);
+      }
+
+      function resetLaunchState(message) {
+        clearLaunchTimers();
+        launchInFlight = false;
+        launchCompleted = false;
+        launchButton.disabled = false;
+        howButton.disabled = false;
+        showLaunchButtons();
+        if (message) {
+          setLoadingNote(message, true);
+        }
+      }
+
+      function finishLaunchTransition() {
+        if (launchCompleted) {
+          return;
+        }
+        launchCompleted = true;
+        clearLaunchTimers();
+        setStage(text.loadingStages.length - 1, { longEta: true });
+        loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex % text.loadingFlavorLines.length];
+        setLoadingNote('', false);
+        if (loadingContainer) {
+          loadingContainer.classList.add('is-exiting');
+          window.setTimeout(() => {
+            loadingContainer.remove();
+          }, 460);
+        }
+      }
+
       async function launchFlutter() {
         if (launchInFlight) {
           return;
         }
 
         launchInFlight = true;
-        launchButton.disabled = true;
-        launchButton.textContent = text.launchLoading;
-        setLoadingNote(text.loading, false);
-
-        const slowLoadTimer = window.setTimeout(() => {
-          setLoadingNote(text.slow, false);
-        }, 8000);
+        enterLaunchState();
 
         try {
           const start = window.__codexLaunchFlutterApp || (window._flutter && window._flutter.loader
@@ -486,14 +779,14 @@
           }
 
           await start();
-          window.clearTimeout(slowLoadTimer);
+          readyFallbackTimer = window.setTimeout(() => {
+            if (!launchCompleted) {
+              finishLaunchTransition();
+            }
+          }, 1800);
         } catch (error) {
           console.error('Flutter web bootstrap failed', error);
-          window.clearTimeout(slowLoadTimer);
-          setLoadingNote(text.failed, true);
-          launchInFlight = false;
-          launchButton.disabled = false;
-          launchButton.textContent = text.launch;
+          resetLaunchState(text.loadingRetry);
         }
       }
 
@@ -502,11 +795,15 @@
 
       launchButton.addEventListener('click', launchFlutter);
       howButton.addEventListener('click', function () {
+        if (launchInFlight) {
+          return;
+        }
         if (howAnchor) {
           howAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       });
 
+      window.addEventListener('codex:flutter-ready', finishLaunchTransition);
       window.addEventListener('resize', syncViewportHeight);
       window.addEventListener('orientationchange', refreshViewportMetrics);
       window.addEventListener('focus', refreshViewportMetrics);
@@ -523,8 +820,8 @@
       }
 
       window.addEventListener('error', function () {
-        if (launchInFlight) {
-          setLoadingNote(text.startupError, true);
+        if (launchInFlight && !launchCompleted) {
+          resetLaunchState(text.startupError);
         }
       });
 
