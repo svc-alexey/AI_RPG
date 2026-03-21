@@ -17,62 +17,62 @@ class AppLocalizations {
   String get appTitle => brandName;
 
   String get brandName => switch (language) {
-    AppLanguage.ru => '?????? ?????',
+    AppLanguage.ru => 'Стирая Грань',
     AppLanguage.en => 'Beyond the Verge',
   };
 
   String get homeHeroTitle => switch (language) {
-    AppLanguage.ru => '??????? ???????? ?? ???? ?????',
+    AppLanguage.ru => 'История отвечает на твой выбор',
     AppLanguage.en => 'Where choice reshapes the story',
   };
 
   String get homeDescription => switch (language) {
     AppLanguage.ru =>
-      '??????????? RPG, ??? ?? ????? ?????, ? ??? ?????? ???????????.',
+      'Нарративная RPG, где ИИ ведет сцену, а мир помнит последствия.',
     AppLanguage.en =>
       'A narrative RPG where AI guides the scene and the world remembers what you do.',
   };
 
   String get homePrimaryCta => switch (language) {
-    AppLanguage.ru => '?????? ???????',
+    AppLanguage.ru => 'Начать историю',
     AppLanguage.en => 'Begin Your Story',
   };
 
   String get homeSecondaryCta => switch (language) {
-    AppLanguage.ru => '??????????',
+    AppLanguage.ru => 'Продолжить',
     AppLanguage.en => 'Continue',
   };
 
   String get homeTertiaryCta => switch (language) {
-    AppLanguage.ru => '?????????',
+    AppLanguage.ru => 'Настройки',
     AppLanguage.en => 'Settings',
   };
 
   String get newCampaign => switch (language) {
-    AppLanguage.ru => '????? ????????',
+    AppLanguage.ru => 'Новая кампания',
     AppLanguage.en => 'New Campaign',
   };
 
   String get saves => switch (language) {
-    AppLanguage.ru => '??????????',
+    AppLanguage.ru => 'Сохранения',
     AppLanguage.en => 'Saves',
   };
 
   String get aiSettings => switch (language) {
-    AppLanguage.ru => '????????? ??',
+    AppLanguage.ru => 'Настройки ИИ',
     AppLanguage.en => 'AI Settings',
   };
 
   String get whatsIncluded => switch (language) {
-    AppLanguage.ru => '??? ??? ????',
+    AppLanguage.ru => 'Что уже есть',
     AppLanguage.en => 'What Is Included',
   };
 
   List<String> get homeFeatureLines => switch (language) {
     AppLanguage.ru => const <String>[
-      '????? ??????????',
-      '????? ? ?????????????',
-      '???? ?? ????? ??????',
+      'Живой рассказчик',
+      'Выбор с последствиями',
+      'Миры на грани жанров',
     ],
     AppLanguage.en => const <String>[
       'Living narrator',
@@ -413,12 +413,12 @@ class AppLocalizations {
   };
 
   String get portraitPlaceholderLabel => switch (language) {
-    AppLanguage.ru => '??????? ?????',
+    AppLanguage.ru => 'Портрет героя',
     AppLanguage.en => 'Hero portrait',
   };
 
   String get portraitAiHint => switch (language) {
-    AppLanguage.ru => '? ??????? ????? ???????? ??????????????? ??-???????.',
+    AppLanguage.ru => 'В будущем здесь появится сгенерированный ИИ-портрет.',
     AppLanguage.en =>
       'An AI-generated portrait will appear here in a future update.',
   };
