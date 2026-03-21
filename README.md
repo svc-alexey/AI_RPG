@@ -20,11 +20,13 @@ The project has already moved beyond the original MVP baseline. The current code
 - rule-based entity extraction and reconciliation before persistence for active modules only;
 - adaptive sidebar panels and transient overlays for state changes and module unlocks;
 - a refreshed product-facing home screen with localized hero copy and presentation-focused CTA flows;
+- a streamlined custom campaign wizard with a single story input, AI prompt expansion, and top-bar step navigation instead of bottom action buttons;
 - a cleaner in-game sidebar with compact module icons, a portrait card, and no exposed technical activation reasons;
 - local placeholder portraits prepared for future AI-generated character images;
 - shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
 - adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
+- tighter mobile chat behavior while the keyboard is open, so the story keeps priority and the composer does not overflow on small screens;
 - demo-mode AI fallback when no model is configured;
 - a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - soft page/backdrop animations that now also run on desktop outside test mode;
@@ -91,6 +93,9 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 
 - `native / desktop / mobile app`: the app opens directly into the new branded start screen
 - `web`: `web/index.html` first shows a lightweight landing page, and Flutter starts only after the user presses `Play`
+- `localhost / flutter run -d web-server`: the landing still renders, but Flutter auto-starts immediately so the debug WebSocket flow keeps working
+- `custom campaign / story step`: there is now one editable story field; typed text expands into a richer prompt, and an empty submit generates a fresh random hook first
+- `custom campaign / step navigation`: moving between steps now uses the top arrows only
 - the in-game campaign sidebar now favors presentation over technical labels:
   - compact module icons with tooltips
   - portrait card under the hero name
@@ -101,5 +106,6 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - chat streaming no longer races a second standard completion request in the background;
 - pending narrator bubbles now render with a softer, more readable typing experience;
 - the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
+- the mobile chat layout now hides nonessential top chrome while the keyboard is open, preventing bottom overflow on small screens;
 - the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
 - widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.

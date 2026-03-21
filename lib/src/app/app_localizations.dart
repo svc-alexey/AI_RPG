@@ -124,34 +124,34 @@ class AppLocalizations {
   };
 
   String get storyWishTitle => switch (language) {
-    AppLanguage.ru => 'Опиши, какую историю хочешь',
-    AppLanguage.en => 'Describe the story you want',
+    AppLanguage.ru =>
+      '\u041e\u043f\u0438\u0448\u0438 \u0437\u0430\u0432\u044f\u0437\u043a\u0443 \u0438\u043b\u0438 \u0436\u0435\u043b\u0430\u0435\u043c\u0443\u044e \u0438\u0441\u0442\u043e\u0440\u0438\u044e',
+    AppLanguage.en => 'Describe the story you want to play',
   };
 
   String get storyWishHint => switch (language) {
     AppLanguage.ru =>
-      'Например: мрачный детектив в стиле нуар, эпическое фэнтези с драконами...',
-    AppLanguage.en => 'E.g.: dark detective noir, epic fantasy with dragons...',
-  };
-
-  String get insertTextPrompt => switch (language) {
-    AppLanguage.ru => 'Подставить текст',
-    AppLanguage.en => 'Insert text',
+      '\u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: \u043c\u0440\u0430\u0447\u043d\u044b\u0439 \u0434\u0435\u0442\u0435\u043a\u0442\u0438\u0432 \u0443 \u043c\u043e\u0440\u044f, \u043f\u043e\u0445\u043e\u0434 \u0447\u0435\u0440\u0435\u0437 \u043f\u0440\u043e\u043a\u043b\u044f\u0442\u044b\u0439 \u043b\u0435\u0441 \u0438\u043b\u0438 \u043f\u0435\u0440\u0432\u044b\u0439 \u043a\u043e\u043d\u0442\u0430\u043a\u0442 \u0441 \u0447\u0443\u0436\u043e\u0439 \u0446\u0438\u0432\u0438\u043b\u0438\u0437\u0430\u0446\u0438\u0435\u0439...',
+    AppLanguage.en =>
+      'For example: a grim harbor mystery, a cursed forest expedition, or first contact with an alien civilization...',
   };
 
   String get generatePrompts => switch (language) {
-    AppLanguage.ru => 'Сгенерировать промпты',
-    AppLanguage.en => 'Generate prompts',
+    AppLanguage.ru =>
+      '\u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u043e\u043c\u043f\u0442',
+    AppLanguage.en => 'Generate prompt',
   };
 
   String get generatingPrompts => switch (language) {
-    AppLanguage.ru => 'Генерация...',
+    AppLanguage.ru =>
+      '\u0413\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f...',
     AppLanguage.en => 'Generating...',
   };
 
   String get customStoryPromptTitle => switch (language) {
-    AppLanguage.ru => 'Промпт истории (редактируемый)',
-    AppLanguage.en => 'Story prompt (editable)',
+    AppLanguage.ru =>
+      '\u041f\u0440\u043e\u043c\u043f\u0442 \u0438\u0441\u0442\u043e\u0440\u0438\u0438',
+    AppLanguage.en => 'Story prompt',
   };
 
   String get characterSectionTitle => switch (language) {
@@ -906,8 +906,10 @@ class AppLocalizations {
   };
 
   String get storyWishOptional => switch (language) {
-    AppLanguage.ru => 'Опционально: опишите желаемую историю для генерации',
-    AppLanguage.en => 'Optional: describe your desired story for generation',
+    AppLanguage.ru =>
+      '\u041d\u0430\u043f\u0438\u0448\u0438 \u0441\u0432\u043e\u044e \u0438\u0434\u0435\u044e, \u0430 \u0435\u0441\u043b\u0438 \u043e\u0441\u0442\u0430\u0432\u0438\u0448\u044c \u043f\u043e\u043b\u0435 \u043f\u0443\u0441\u0442\u044b\u043c, \u043c\u044b \u043f\u0440\u0438\u0434\u0443\u043c\u0430\u0435\u043c \u043d\u0435\u043e\u0436\u0438\u0434\u0430\u043d\u043d\u0443\u044e \u0437\u0430\u0432\u044f\u0437\u043a\u0443.',
+    AppLanguage.en =>
+      'Write your idea, or leave it empty and we will come up with a fresh story hook for you.',
   };
 
   String get characterOptional => switch (language) {

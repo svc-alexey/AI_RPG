@@ -36,6 +36,11 @@ The shipped web build now has a two-step startup:
 
 This keeps the first paint fast on mobile browsers and avoids showing a raw spinner-only shell while the full Flutter bundle loads.
 
+For local development there is one intentional exception:
+
+- on `localhost`, `127.0.0.1`, and `0.0.0.0`, the landing still renders first, but Flutter auto-starts right away;
+- this keeps `flutter run -d web-server` compatible with the Dart debug WebSocket flow while preserving deferred launch in real deployments.
+
 ## Deploy notes
 
 - Deploy the contents of `build/web`.
@@ -44,3 +49,4 @@ This keeps the first paint fast on mobile browsers and avoids showing a raw spin
 - The shipped `web/index.html` listens to `visualViewport`, `pageshow`, `focus`, and `visibilitychange` to resync height after app switching on mobile browsers.
 - If a tester reports an empty area where the keyboard used to be after returning to the browser, verify that the latest built `index.html` was deployed together with the rest of `build/web`.
 - If the landing page appears but the app never launches, verify that the deployed `flutter_bootstrap.js` still contains the deferred launch hook and was not replaced by an older eager-start build artifact.
+- If local browser debugging fails after pressing `Play`, confirm you are testing a real deployed build rather than the local debug server path; deferred launch is for deployed web, while localhost intentionally auto-starts.

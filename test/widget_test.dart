@@ -90,6 +90,84 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
   });
 
+  testWidgets('Custom story step uses one field and expands typed idea', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+    final _PromptGeneratingAiClient aiClient = _PromptGeneratingAiClient();
+
+    await tester.pumpWidget(
+      _buildScopedApp(
+        const NewGameScreen(),
+        storage: storage,
+        language: AppLanguage.en,
+        settingsRepository: _FakeSettingsRepository(
+          const _ConfiguredAiSettings(),
+        ),
+        aiServiceFactory: _FakeAiServiceFactory(aiClient),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(english.customSetup));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(english.nextButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsOneWidget);
+
+    await tester.enterText(
+      find.byType(TextField),
+      'A stormbound city mystery with occult undertones',
+    );
+    await tester.tap(find.text(english.generatePrompts));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(
+      aiClient.lastStoryWish,
+      'A stormbound city mystery with occult undertones',
+    );
+    expect(
+      _firstTextFieldValue(tester),
+      'Expanded: A stormbound city mystery with occult undertones',
+    );
+  });
+
+  testWidgets('Custom story generation works from empty input', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+    final _PromptGeneratingAiClient aiClient = _PromptGeneratingAiClient();
+
+    await tester.pumpWidget(
+      _buildScopedApp(
+        const NewGameScreen(),
+        storage: storage,
+        language: AppLanguage.en,
+        settingsRepository: _FakeSettingsRepository(
+          const _ConfiguredAiSettings(),
+        ),
+        aiServiceFactory: _FakeAiServiceFactory(aiClient),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(english.customSetup));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(english.nextButton));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(english.generatePrompts));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(aiClient.lastStoryWish, isNotEmpty);
+    expect(_firstTextFieldValue(tester), startsWith('Expanded: '));
+  });
+
   testWidgets('Saves screen shows empty state', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final _TestStorageBundle storage = _TestStorageBundle.create();
@@ -540,6 +618,34 @@ void main() {
     expect(find.byIcon(Icons.send_rounded), findsOneWidget);
   });
 
+  testWidgets('Mobile chat stays stable when keyboard is open', (tester) async {
+    final CampaignState campaign = _sampleCampaign();
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'campaign.ids': <String>[campaign.id],
+      'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+    });
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: Size(360, 640),
+          viewInsets: EdgeInsets.only(bottom: 280),
+        ),
+        child: _buildScopedApp(
+          ChatScreen(campaignId: campaign.id),
+          storage: storage,
+          language: AppLanguage.en,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
   testWidgets('Responsive layouts stay stable across common screen widths', (
     tester,
   ) async {
@@ -630,6 +736,13 @@ Finder _textFieldByLabel(final String label) => find.byWidgetPredicate(
 
 String _textFieldValue(final WidgetTester tester, final String label) {
   final TextField field = tester.widget<TextField>(_textFieldByLabel(label));
+  return field.controller?.text ?? '';
+}
+
+String _firstTextFieldValue(final WidgetTester tester) {
+  final TextField field = tester.widget<TextField>(
+    find.byType(TextField).first,
+  );
   return field.controller?.text ?? '';
 }
 
@@ -724,6 +837,42 @@ class _StreamingAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+}
+
+class _PromptGeneratingAiClient implements AiClient {
+  String lastStoryWish = '';
+
+  @override
+  Future<void> checkConnection({required final AiSettings settings}) async {}
+
+  @override
+  Future<TurnResult> generateTurn({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final NarrationDeltaCallback? onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+    final CancelToken? cancelToken,
+  }) async {
+    lastStoryWish = storyWish;
+    return GeneratedPrompts(
+      storyPrompt: 'Expanded: $storyWish',
+      characterPrompt: 'Watchful investigator',
+    );
+  }
 }
 
 class _ConfiguredAiSettings extends AiSettings {

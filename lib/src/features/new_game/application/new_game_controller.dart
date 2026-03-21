@@ -194,6 +194,11 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     _refreshPlannedModules();
   }
 
+  void setStoryInput(final String value) {
+    state = state.copyWith(storyWish: value, customStoryPrompt: value);
+    _refreshPlannedModules();
+  }
+
   void setCustomStoryPrompt(final String value) {
     state = state.copyWith(customStoryPrompt: value);
     _refreshPlannedModules();
@@ -286,6 +291,17 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   }
 
   Future<void> generatePrompts() async {
+    final AppLanguage currentLanguage = language;
+    final String currentInput = state.customStoryPrompt.trim().isNotEmpty
+        ? state.customStoryPrompt.trim()
+        : state.storyWish.trim();
+    final String generationSeed = currentInput.isNotEmpty
+        ? currentInput
+        : _storyPromptGenerator.generateForSetting(
+            setting: state.setting,
+            language: currentLanguage,
+          );
+
     final CancelToken cancelToken = CancelToken();
     _cancelToken = cancelToken;
     state = state.copyWith(isGenerating: true);
@@ -295,23 +311,32 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     try {
       final GeneratedPrompts result = await client.generatePromptsFromStoryWish(
         settings: settings,
-        language: language,
-        storyWish: state.storyWish.trim(),
+        language: currentLanguage,
+        storyWish: generationSeed,
         setting: state.setting,
         cancelToken: cancelToken,
       );
 
+      final String generatedStoryPrompt = result.storyPrompt.trim().isEmpty
+          ? generationSeed
+          : result.storyPrompt.trim();
+
       state = state.copyWith(
-        customStoryPrompt: result.storyPrompt,
-        characterPrompt:
-            result.characterPrompt.isNotEmpty && state.characterProfile == null
-            ? result.characterPrompt
+        storyWish: generatedStoryPrompt,
+        customStoryPrompt: generatedStoryPrompt,
+        characterPrompt: result.characterPrompt.trim().isNotEmpty
+            ? result.characterPrompt.trim()
             : state.characterPrompt,
         formRevision: state.formRevision + 1,
       );
       _refreshPlannedModules();
     } catch (_) {
-      // Intentionally keep the screen quiet on generation errors for now.
+      state = state.copyWith(
+        storyWish: generationSeed,
+        customStoryPrompt: generationSeed,
+        formRevision: state.formRevision + 1,
+      );
+      _refreshPlannedModules();
     } finally {
       _cancelToken = null;
       state = state.copyWith(isGenerating: false);

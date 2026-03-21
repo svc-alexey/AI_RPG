@@ -17,8 +17,7 @@ class NewGameScreen extends ConsumerStatefulWidget {
 
 class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   final TextEditingController _heroController = TextEditingController();
-  final TextEditingController _storyWishController = TextEditingController();
-  final TextEditingController _customStoryController = TextEditingController();
+  final TextEditingController _storyPromptController = TextEditingController();
   final TextEditingController _characterPromptController =
       TextEditingController();
   final TextEditingController _personalityController = TextEditingController();
@@ -29,8 +28,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   @override
   void dispose() {
     _heroController.dispose();
-    _storyWishController.dispose();
-    _customStoryController.dispose();
+    _storyPromptController.dispose();
     _characterPromptController.dispose();
     _personalityController.dispose();
     super.dispose();
@@ -52,8 +50,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     ) {
       if (next.formRevision != (previous?.formRevision ?? 0)) {
         _heroController.text = next.heroName;
-        _storyWishController.text = next.storyWish;
-        _customStoryController.text = next.customStoryPrompt;
+        _storyPromptController.text = next.customStoryPrompt.trim().isEmpty
+            ? next.storyWish
+            : next.customStoryPrompt;
         _characterPromptController.text = next.characterPrompt;
         _personalityController.text = next.personality;
       }
@@ -210,68 +209,90 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     required final AppLocalizations l10n,
     required final NewGameViewState state,
     required final NewGameController controller,
-  }) => Column(
-    children: <Widget>[
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            onPressed: state.currentStep == NewGameCustomSetupStep.foundation
-                ? controller.setModeSelection
-                : null,
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          Expanded(
-            child: Text(
-              l10n.customSetup,
-              style: theme.textTheme.headlineMedium,
-            ),
-          ),
-        ],
-      ),
-      SizedBox(height: context.responsive.sectionSpacing),
-      _StepIndicator(currentIndex: state.currentStep.index),
-      const SizedBox(height: 8),
-      Text(
-        l10n.stepXOfY(state.currentStep.index + 1, 4),
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: AetherPalette.textMuted,
-        ),
-      ),
-      SizedBox(height: context.responsive.blockSpacing),
-      Expanded(
-        child: ListView(
+  }) {
+    final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
+    final VoidCallback onBack =
+        state.currentStep == NewGameCustomSetupStep.foundation
+        ? controller.setModeSelection
+        : controller.previousStep;
+
+    return Column(
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            switch (state.currentStep) {
-              NewGameCustomSetupStep.foundation => _buildFoundationStep(
-                l10n: l10n,
-                state: state,
-                controller: controller,
+            IconButton(
+              onPressed: onBack,
+              tooltip: l10n.backButton,
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            Expanded(
+              child: Text(
+                l10n.customSetup,
+                style: theme.textTheme.headlineMedium,
               ),
-              NewGameCustomSetupStep.story => _buildStoryStep(
-                l10n: l10n,
-                theme: theme,
-                state: state,
-                controller: controller,
-              ),
-              NewGameCustomSetupStep.character => _buildCharacterStep(
-                l10n: l10n,
-                state: state,
-                controller: controller,
-              ),
-              NewGameCustomSetupStep.review => _buildReviewStep(
-                l10n: l10n,
-                theme: theme,
-                state: state,
-              ),
-            },
+            ),
+            IconButton(
+              onPressed: state.isSaving || state.isGenerating
+                  ? null
+                  : (isLastStep ? _createCampaign : controller.nextStep),
+              tooltip: isLastStep ? l10n.createCampaignButton : l10n.nextButton,
+              icon: state.isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      isLastStep
+                          ? Icons.check_rounded
+                          : Icons.arrow_forward_rounded,
+                    ),
+            ),
           ],
         ),
-      ),
-      const SizedBox(height: 16),
-      _buildWizardNavigation(l10n: l10n, state: state, controller: controller),
-    ],
-  );
+        SizedBox(height: context.responsive.sectionSpacing),
+        _StepIndicator(currentIndex: state.currentStep.index),
+        const SizedBox(height: 8),
+        Text(
+          l10n.stepXOfY(state.currentStep.index + 1, 4),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+        SizedBox(height: context.responsive.blockSpacing),
+        Expanded(
+          child: ListView(
+            children: <Widget>[
+              switch (state.currentStep) {
+                NewGameCustomSetupStep.foundation => _buildFoundationStep(
+                  l10n: l10n,
+                  state: state,
+                  controller: controller,
+                ),
+                NewGameCustomSetupStep.story => _buildStoryStep(
+                  l10n: l10n,
+                  theme: theme,
+                  state: state,
+                  controller: controller,
+                ),
+                NewGameCustomSetupStep.character => _buildCharacterStep(
+                  l10n: l10n,
+                  state: state,
+                  controller: controller,
+                ),
+                NewGameCustomSetupStep.review => _buildReviewStep(
+                  l10n: l10n,
+                  theme: theme,
+                  state: state,
+                ),
+              },
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildFoundationStep({
     required final AppLocalizations l10n,
@@ -371,31 +392,31 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       ),
       const SizedBox(height: 12),
       TextField(
-        controller: _storyWishController,
-        onChanged: controller.setStoryWish,
-        maxLines: 3,
-        decoration: InputDecoration(hintText: l10n.storyWishHint),
+        controller: _storyPromptController,
+        onChanged: controller.setStoryInput,
+        maxLines: 6,
+        decoration: InputDecoration(
+          hintText: l10n.storyWishHint,
+          alignLabelWithHint: true,
+        ),
       ),
+      const SizedBox(height: 12),
+      if (!state.aiConfigured) ...<Widget>[
+        const SizedBox(height: 12),
+        Text(
+          l10n.configureAiFirst,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+      ],
       const SizedBox(height: 12),
       Wrap(
         spacing: 12,
         runSpacing: 12,
         children: <Widget>[
-          OutlinedButton(
-            onPressed: () {
-              final String text = _storyWishController.text.trim();
-              if (text.isNotEmpty) {
-                _customStoryController.text = text;
-                controller.setCustomStoryPrompt(text);
-              }
-            },
-            child: Text(l10n.insertTextPrompt),
-          ),
           FilledButton(
-            onPressed:
-                state.aiConfigured &&
-                    !state.isGenerating &&
-                    state.storyWish.trim().isNotEmpty
+            onPressed: state.aiConfigured && !state.isGenerating
                 ? _generatePrompts
                 : null,
             child: state.isGenerating
@@ -412,24 +433,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
               child: Text(l10n.cancel),
             ),
         ],
-      ),
-      if (!state.aiConfigured) ...<Widget>[
-        const SizedBox(height: 12),
-        Text(
-          l10n.configureAiFirst,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AetherPalette.textMuted,
-          ),
-        ),
-      ],
-      SizedBox(height: context.responsive.blockSpacing),
-      _SectionLabel(title: l10n.customStoryPromptTitle),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _customStoryController,
-        onChanged: controller.setCustomStoryPrompt,
-        maxLines: 4,
-        decoration: const InputDecoration(hintText: ''),
       ),
     ],
   );
@@ -670,100 +673,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AetherPalette.textMuted,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWizardNavigation({
-    required final AppLocalizations l10n,
-    required final NewGameViewState state,
-    required final NewGameController controller,
-  }) {
-    final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
-    final bool canGoBack =
-        state.currentStep != NewGameCustomSetupStep.foundation;
-    if (MediaQuery.of(context).viewInsets.bottom > 0) {
-      return const SizedBox.shrink();
-    }
-
-    final AppResponsiveData responsive = context.responsive;
-
-    if (responsive.isCompact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (canGoBack)
-            OutlinedButton.icon(
-              onPressed: controller.previousStep,
-              icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: Text(l10n.backButton),
-            ),
-          if (canGoBack) const SizedBox(height: 10),
-          FilledButton(
-            onPressed: state.isSaving
-                ? null
-                : (isLastStep ? _createCampaign : controller.nextStep),
-            child: state.isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Flexible(
-                        child: Text(
-                          isLastStep
-                              ? l10n.createCampaignButton
-                              : l10n.nextButton,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      if (!isLastStep) ...<Widget>[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
-                    ],
-                  ),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: <Widget>[
-        if (canGoBack)
-          OutlinedButton.icon(
-            onPressed: controller.previousStep,
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
-            label: Text(l10n.backButton),
-          ),
-        const Spacer(),
-        FilledButton(
-          onPressed: state.isSaving
-              ? null
-              : (isLastStep ? _createCampaign : controller.nextStep),
-          child: state.isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      isLastStep ? l10n.createCampaignButton : l10n.nextButton,
-                    ),
-                    if (!isLastStep) ...<Widget>[
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded, size: 18),
-                    ],
-                  ],
-                ),
         ),
       ],
     );

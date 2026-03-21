@@ -55,6 +55,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
+    final bool keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final ChatViewState chatState = ref.watch(
       chatControllerProvider(widget.campaignId),
     );
@@ -166,7 +167,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           padding: EdgeInsets.all(responsive.pagePadding),
           child: Column(
             children: <Widget>[
-              if (responsive.isPhoneSmall) ...<Widget>[
+              if (responsive.isPhoneSmall && !keyboardVisible) ...<Widget>[
                 _CompactChatToolbar(
                   title: campaign.title,
                   onMenu: wide
@@ -207,6 +208,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               campaign: campaign,
                               chatState: chatState,
                               controller: controller,
+                              keyboardVisible: keyboardVisible,
                             ),
                           ),
                         ],
@@ -215,6 +217,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         campaign: campaign,
                         chatState: chatState,
                         controller: controller,
+                        keyboardVisible: keyboardVisible,
                       ),
               ),
             ],
@@ -228,18 +231,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     required final CampaignState campaign,
     required final ChatViewState chatState,
     required final ChatController controller,
+    required final bool keyboardVisible,
   }) {
     final AppLocalizations l10n = context.l10n;
     final List<ChatMessage> visibleMessages = chatState.visibleMessages;
     final AppResponsiveData responsive = context.responsive;
     final double screenWidth = responsive.width;
     final bool isNarrow = responsive.isCompact;
+    final bool compactMobileComposer =
+        responsive.isPhoneSmall && keyboardVisible;
 
     return Column(
       children: <Widget>[
-        if (responsive.isMobile) _CampaignSummaryBanner(campaign: campaign),
-        if (responsive.isMobile) SizedBox(height: responsive.sectionSpacing),
-        if (chatState.status != null)
+        if (chatState.status != null && !compactMobileComposer)
           AetherCard(
             padding: EdgeInsets.symmetric(
               horizontal: isNarrow ? 12 : 18,
@@ -255,7 +259,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               ),
             ),
           ),
-        if (chatState.status != null)
+        if (chatState.status != null && !compactMobileComposer)
           SizedBox(height: responsive.sectionSpacing),
         Expanded(
           child: Stack(
@@ -264,6 +268,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 padding: EdgeInsets.all(isNarrow ? 12 : 16),
                 child: ListView.builder(
                   controller: _scrollController,
+                  padding: EdgeInsets.only(
+                    bottom: compactMobileComposer ? 6 : 0,
+                  ),
                   itemCount:
                       visibleMessages.length +
                       (campaign.choices.isNotEmpty && !responsive.isPhoneSmall
@@ -373,7 +380,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ],
           ),
         ),
-        SizedBox(height: responsive.sectionSpacing),
+        SizedBox(height: compactMobileComposer ? 8 : responsive.sectionSpacing),
         Container(
           decoration: BoxDecoration(
             color: AetherPalette.panel.withValues(alpha: 0.88),
@@ -383,8 +390,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
           ),
           padding: EdgeInsets.symmetric(
-            horizontal: isNarrow ? 10 : 12,
-            vertical: isNarrow ? 6 : 8,
+            horizontal: isNarrow ? (compactMobileComposer ? 8 : 10) : 12,
+            vertical: isNarrow ? (compactMobileComposer ? 4 : 6) : 8,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -404,7 +411,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     TextField(
                       controller: _inputController,
                       minLines: 1,
-                      maxLines: 4,
+                      maxLines: compactMobileComposer ? 3 : 4,
                       decoration: const InputDecoration(
                         hintText: '',
                         border: InputBorder.none,
@@ -412,11 +419,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         focusedBorder: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12,
-                          vertical: 10,
+                          vertical: 8,
                         ),
                       ).copyWith(hintText: l10n.chatInputHint),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: compactMobileComposer ? 4 : 8),
                     Align(
                       alignment: Alignment.centerRight,
                       child: chatState.isSending
@@ -732,71 +739,6 @@ class _SidebarSectionTitle extends StatelessWidget {
       Text(title, style: Theme.of(context).textTheme.titleMedium);
 }
 
-class _CampaignSummaryBanner extends StatelessWidget {
-  const _CampaignSummaryBanner({required this.campaign});
-
-  final CampaignState campaign;
-
-  @override
-  Widget build(final BuildContext context) {
-    final AppLocalizations l10n = context.l10n;
-    final AppResponsiveData responsive = context.responsive;
-
-    return AetherCard(
-      padding: EdgeInsets.all(responsive.cardPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _CharacterPortraitThumbnail(campaign: campaign),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      campaign.character.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: responsive.isCompact ? 18 : 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: <Widget>[
-                        _SidebarMetaChip(
-                          label: l10n.settingLabel(campaign.setting),
-                        ),
-                        _SidebarMetaChip(
-                          label: '${l10n.turn}: ${campaign.turnNumber}',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.sectionSpacing),
-          _ModuleIconStrip(
-            campaign: campaign,
-            highlightedModules: const <CampaignModule>[],
-            newlyUnlockedModules: const <CampaignModule>[],
-          ),
-          SizedBox(height: responsive.sectionSpacing),
-          _SidebarInfoLine(label: l10n.location, value: campaign.location),
-        ],
-      ),
-    );
-  }
-}
-
 class _CompactChatToolbar extends StatelessWidget {
   const _CompactChatToolbar({
     required this.title,
@@ -949,34 +891,14 @@ class _CharacterPortraitCard extends StatelessWidget {
   }
 }
 
-class _CharacterPortraitThumbnail extends StatelessWidget {
-  const _CharacterPortraitThumbnail({required this.campaign});
-
-  final CampaignState campaign;
-
-  @override
-  Widget build(final BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(16),
-    child: Image.asset(
-      _portraitAssetForCampaign(campaign),
-      fit: BoxFit.cover,
-      width: 64,
-      height: 64,
-      errorBuilder: (context, error, stackTrace) =>
-          const _PortraitFallbackLabel(label: 'Hero', compact: true),
-    ),
-  );
-}
-
 class _PortraitFallbackLabel extends StatelessWidget {
-  const _PortraitFallbackLabel({required this.label, this.compact = false});
+  const _PortraitFallbackLabel({required this.label});
 
   final String label;
-  final bool compact;
 
   @override
   Widget build(final BuildContext context) => Container(
-    height: compact ? 64 : 180,
+    height: 180,
     color: AetherPalette.panel.withValues(alpha: 0.94),
     alignment: Alignment.center,
     child: Text(
