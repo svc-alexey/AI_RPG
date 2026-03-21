@@ -15,6 +15,24 @@
 - **Spacing**: компактный (12/16/24/32px)
 - **Layout**: одна центральная колонка, вертикальная прокрутка
 
+### Canonical breakpoints
+
+Для новых экранов и рефакторинга адаптивности используем единый responsive layer из `lib/src/app/responsive.dart`, а не локальные `MediaQuery`-проверки с произвольными числами.
+
+- `320-359 px` — `phoneSmall`
+- `360-389 px` — `phone`
+- `390-599 px` — `phoneLarge`
+- `600-1023 px` — `tablet`
+- `1024+ px` — `desktop`
+
+### Responsive rules
+
+- typography должна масштабироваться через общий responsive helper, особенно для `display`, `headline` и декоративного letter spacing;
+- `page padding`, `card padding`, `radius`, `button min height`, `input padding` и `chip spacing` берутся из общих adaptive tokens;
+- на маленьких телефонах приоритет у читаемости и отсутствия overflow, а не у сохранения desktop-композиции один в один;
+- длинные заголовки, campaign metadata, labels и локализованные строки обязаны иметь безопасное поведение через `Wrap`, `Expanded`, `maxLines` и `TextOverflow.ellipsis`;
+- split-layout (`sidebar + content`) включается только на wide/tablet сценариях, а мобильные сценарии используют stacked layout / drawer / compact toolbar.
+
 ### Визуальная согласованность
 
 **Компоненты Aether Design System**:

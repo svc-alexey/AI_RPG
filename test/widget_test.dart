@@ -297,6 +297,8 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final _TestStorageBundle storage = _TestStorageBundle.create();
     addTearDown(storage.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
       _buildScopedApp(
@@ -328,6 +330,8 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final _TestStorageBundle storage = _TestStorageBundle.create();
     addTearDown(storage.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
       _buildScopedApp(
@@ -370,6 +374,8 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final _TestStorageBundle storage = _TestStorageBundle.create();
     addTearDown(storage.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
       _buildScopedApp(
@@ -423,6 +429,8 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final _TestStorageBundle storage = _TestStorageBundle.create();
       addTearDown(storage.dispose);
+      await tester.binding.setSurfaceSize(const Size(1200, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final Map<AiProviderType, ProviderProfile> profiles =
           <AiProviderType, ProviderProfile>{
@@ -473,10 +481,7 @@ void main() {
       expect(_textFieldValue(tester, english.maxResponseTokens), '256');
       expect(_textFieldValue(tester, english.contextWindowSize), '1536');
 
-      await tester.drag(
-        find.byType(Scrollable).first,
-        const Offset(0, 1200),
-      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 1200));
       await tester.pumpAndSettle();
       await tester.tap(find.text(english.openRouter));
       await tester.pumpAndSettle();
@@ -491,10 +496,7 @@ void main() {
       expect(_textFieldValue(tester, english.contextWindowSize), '2048');
       expect(find.text(english.runtimeProfileCustom), findsOneWidget);
 
-      await tester.drag(
-        find.byType(Scrollable).first,
-        const Offset(0, 1200),
-      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 1200));
       await tester.pumpAndSettle();
       await tester.tap(find.text('LM Studio'));
       await tester.pumpAndSettle();
@@ -537,6 +539,54 @@ void main() {
     expect(find.byIcon(Icons.menu), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
     expect(find.byIcon(Icons.send_rounded), findsOneWidget);
+  });
+
+  testWidgets('Responsive layouts stay stable across common screen widths', (
+    tester,
+  ) async {
+    final CampaignState campaign = _sampleCampaign();
+    const List<Size> sizes = <Size>[
+      Size(320, 760),
+      Size(360, 800),
+      Size(390, 844),
+      Size(430, 932),
+      Size(768, 1024),
+      Size(1024, 1366),
+    ];
+
+    for (final Size size in sizes) {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'campaign.ids': <String>[campaign.id],
+        'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+      });
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        _buildScopedApp(
+          const HomeScreen(),
+          storage: storage,
+          language: AppLanguage.en,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'HomeScreen at $size');
+      expect(find.text('AETHERIS'), findsOneWidget);
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          const SettingsScreen(),
+          storage: storage,
+          language: AppLanguage.en,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'SettingsScreen at $size');
+      expect(find.text(english.aiSettings), findsWidgets);
+    }
+
+    await tester.binding.setSurfaceSize(null);
   });
 }
 

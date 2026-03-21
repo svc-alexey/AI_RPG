@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
@@ -37,6 +38,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
     final SettingsViewState settingsState = ref.watch(
       settingsControllerProvider,
     );
@@ -65,17 +67,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.dialogMaxWidth,
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(responsive.pagePadding),
                     child: AetherPageReveal(
                       child: ListView(
                         children: <Widget>[
                           Text(
                             l10n.aiSettings,
                             style: Theme.of(context).textTheme.headlineLarge,
+                            maxLines: 2,
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: responsive.blockSpacing - 4),
                           _SettingsSection(
                             title: l10n.contentRatingTitle,
                             child: SwitchListTile(
@@ -86,7 +91,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               onChanged: controller.setConfirmed18Plus,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: l10n.languageTitle,
                             child: SegmentedButton<AppLanguage>(
@@ -107,7 +112,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   controller.setAppLanguage(selection.first),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: 'AI Provider',
                             child: Column(
@@ -158,7 +163,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: 'Connection',
                             child: Column(
@@ -212,7 +217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: l10n.runtimeControlsTitle,
                             child: Column(
@@ -288,7 +293,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                           if (settingsState.status != null) ...<Widget>[
-                            const SizedBox(height: 16),
+                            SizedBox(height: responsive.sectionSpacing),
                             Row(
                               children: <Widget>[
                                 Icon(
@@ -323,7 +328,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ],
                             ),
                           ],
-                          const SizedBox(height: 24),
+                          SizedBox(height: responsive.blockSpacing),
                           FilledButton(
                             onPressed: settingsState.isSaving
                                 ? null
@@ -394,6 +399,7 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => AetherCard(
+    padding: EdgeInsets.all(context.responsive.cardPadding),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -401,10 +407,10 @@ class _SettingsSection extends StatelessWidget {
           title.toUpperCase(),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: AetherPalette.textMuted,
-            letterSpacing: 3,
+            letterSpacing: context.responsive.scaleLetterSpacing(3),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         child,
       ],
     ),
@@ -426,6 +432,7 @@ class _ProviderTile extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => AetherCard(
+    padding: EdgeInsets.all(context.responsive.cardPadding),
     highlight: selected,
     child: SizedBox(
       width: double.infinity,
@@ -433,7 +440,9 @@ class _ProviderTile extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
+          constraints: BoxConstraints(
+            minHeight: context.responsive.isCompact ? 48 : 56,
+          ),
           child: Row(
             children: <Widget>[
               Icon(
@@ -442,7 +451,7 @@ class _ProviderTile extends StatelessWidget {
                     ? AetherPalette.accent
                     : AetherPalette.textMuted,
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: context.responsive.isCompact ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

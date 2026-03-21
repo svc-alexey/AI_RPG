@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
@@ -12,14 +13,18 @@ class HomeScreen extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
 
     return Scaffold(
       body: AetherBackdrop(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: BoxConstraints(maxWidth: responsive.dialogMaxWidth),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.pagePadding,
+                vertical: responsive.pagePadding,
+              ),
               child: AetherPageReveal(
                 child: LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
@@ -34,24 +39,28 @@ class HomeScreen extends StatelessWidget {
                             'AETHERIS',
                             style: theme.textTheme.displayLarge,
                             textAlign: TextAlign.center,
+                            maxLines: 2,
                           ),
                           const SizedBox(height: 6),
                           Text(
                             l10n.appTitle,
                             style: theme.textTheme.labelLarge?.copyWith(
                               color: AetherPalette.textMuted,
-                              letterSpacing: 4,
+                              letterSpacing: responsive.scaleLetterSpacing(4),
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: responsive.isCompact ? 10 : 14),
                           Container(
                             width: 88,
                             height: 1,
                             color: AetherPalette.accent.withValues(alpha: 0.45),
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: responsive.blockSpacing),
                           ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 520),
+                            constraints: BoxConstraints(
+                              maxWidth: responsive.isMobile ? 360 : 520,
+                            ),
                             child: Text(
                               l10n.homeDescription,
                               style: theme.textTheme.bodyLarge?.copyWith(
@@ -61,7 +70,7 @@ class HomeScreen extends StatelessWidget {
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: responsive.blockSpacing),
                           Wrap(
                             alignment: WrapAlignment.center,
                             spacing: 8,
@@ -94,9 +103,11 @@ class HomeScreen extends StatelessWidget {
                                 )
                                 .toList(),
                           ),
-                          const SizedBox(height: 32),
+                          SizedBox(height: responsive.blockSpacing + 8),
                           ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 360),
+                            constraints: BoxConstraints(
+                              maxWidth: responsive.isMobile ? 340 : 360,
+                            ),
                             child: Column(
                               children: <Widget>[
                                 _MenuButton(
@@ -170,7 +181,9 @@ class _MenuButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
+          constraints: BoxConstraints(
+            minHeight: context.responsive.isCompact ? 48 : 56,
+          ),
           child: Row(
             children: <Widget>[
               Icon(

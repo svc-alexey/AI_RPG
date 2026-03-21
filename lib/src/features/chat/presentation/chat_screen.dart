@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
@@ -53,6 +54,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
     final ChatViewState chatState = ref.watch(
       chatControllerProvider(widget.campaignId),
     );
@@ -102,47 +104,53 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       );
     }
 
-    const double wideBreakpoint = 760;
-    final bool wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
+    final bool wide = responsive.isWide;
 
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        title: Text(campaign.title),
-        leading: wide
-            ? null
-            : IconButton(
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                icon: const Icon(Icons.menu),
-                tooltip: l10n.campaignInfo,
+      appBar: responsive.isPhoneSmall
+          ? null
+          : AppBar(
+              title: Text(
+                campaign.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-        actions: <Widget>[
-          IconButton(
-            onPressed: () => controller.save(l10n: l10n),
-            icon: const Icon(Icons.save_outlined),
-            tooltip: l10n.saveTooltip,
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (final context) => const SettingsScreen(),
+              leading: wide
+                  ? null
+                  : IconButton(
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      icon: const Icon(Icons.menu),
+                      tooltip: l10n.campaignInfo,
+                    ),
+              actions: <Widget>[
+                IconButton(
+                  onPressed: () => controller.save(l10n: l10n),
+                  icon: const Icon(Icons.save_outlined),
+                  tooltip: l10n.saveTooltip,
                 ),
-              );
-            },
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: l10n.aiSettings,
-          ),
-          IconButton(
-            onPressed: _exitToMainMenu,
-            icon: const Icon(Icons.home_outlined),
-            tooltip: l10n.exitToMainMenu,
-          ),
-        ],
-      ),
-      drawer: wide
+                IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (final context) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.tune_rounded),
+                  tooltip: l10n.aiSettings,
+                ),
+                IconButton(
+                  onPressed: _exitToMainMenu,
+                  icon: const Icon(Icons.home_outlined),
+                  tooltip: l10n.exitToMainMenu,
+                ),
+              ],
+            ),
+      drawer: wide || responsive.isPhoneSmall
           ? null
           : Drawer(
+              width: responsive.isPhoneSmall ? responsive.width * 0.92 : null,
               child: AetherBackdrop(
                 child: SafeArea(
                   child: _buildSidebar(
@@ -155,33 +163,62 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
       body: AetherBackdrop(
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: wide
-              ? Row(
-                  children: <Widget>[
-                    SizedBox(
-                      width: 240,
-                      child: _buildSidebar(
-                        campaign: campaign,
-                        highlightedModules: chatState.highlightedModules,
-                        newlyUnlockedModules: chatState.newlyUnlockedModules,
+          padding: EdgeInsets.all(responsive.pagePadding),
+          child: Column(
+            children: <Widget>[
+              if (responsive.isPhoneSmall) ...<Widget>[
+                _CompactChatToolbar(
+                  title: campaign.title,
+                  onMenu: wide
+                      ? null
+                      : () => _showCompactCampaignSheet(
+                          campaign: campaign,
+                          highlightedModules: chatState.highlightedModules,
+                          newlyUnlockedModules: chatState.newlyUnlockedModules,
+                        ),
+                  onSave: () => controller.save(l10n: l10n),
+                  onSettings: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (final context) => const SettingsScreen(),
                       ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: _buildChatColumn(
+                    );
+                  },
+                  onHome: _exitToMainMenu,
+                ),
+                SizedBox(height: responsive.sectionSpacing),
+              ],
+              Expanded(
+                child: wide
+                    ? Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: responsive.sidebarWidth,
+                            child: _buildSidebar(
+                              campaign: campaign,
+                              highlightedModules: chatState.highlightedModules,
+                              newlyUnlockedModules:
+                                  chatState.newlyUnlockedModules,
+                            ),
+                          ),
+                          SizedBox(width: responsive.sectionSpacing + 4),
+                          Expanded(
+                            child: _buildChatColumn(
+                              campaign: campaign,
+                              chatState: chatState,
+                              controller: controller,
+                            ),
+                          ),
+                        ],
+                      )
+                    : _buildChatColumn(
                         campaign: campaign,
                         chatState: chatState,
                         controller: controller,
                       ),
-                    ),
-                  ],
-                )
-              : _buildChatColumn(
-                  campaign: campaign,
-                  chatState: chatState,
-                  controller: controller,
-                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -194,11 +231,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }) {
     final AppLocalizations l10n = context.l10n;
     final List<ChatMessage> visibleMessages = chatState.visibleMessages;
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isNarrow = screenWidth < 400;
+    final AppResponsiveData responsive = context.responsive;
+    final double screenWidth = responsive.width;
+    final bool isNarrow = responsive.isCompact;
 
     return Column(
       children: <Widget>[
+        if (responsive.isMobile) _CampaignSummaryBanner(campaign: campaign),
+        if (responsive.isMobile) SizedBox(height: responsive.sectionSpacing),
         if (chatState.status != null)
           AetherCard(
             padding: EdgeInsets.symmetric(
@@ -215,7 +255,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               ),
             ),
           ),
-        if (chatState.status != null) const SizedBox(height: 12),
+        if (chatState.status != null)
+          SizedBox(height: responsive.sectionSpacing),
         Expanded(
           child: Stack(
             children: <Widget>[
@@ -225,7 +266,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   controller: _scrollController,
                   itemCount:
                       visibleMessages.length +
-                      (campaign.choices.isNotEmpty ? 1 : 0),
+                      (campaign.choices.isNotEmpty && !responsive.isPhoneSmall
+                          ? 1
+                          : 0),
                   itemBuilder: (final context, final index) {
                     if (index == visibleMessages.length) {
                       return IgnorePointer(
@@ -330,16 +373,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: responsive.sectionSpacing),
         Container(
           decoration: BoxDecoration(
             color: AetherPalette.panel.withValues(alpha: 0.88),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(isNarrow ? 16 : 20),
             border: Border.all(
               color: AetherPalette.panelBorder.withValues(alpha: 0.68),
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: isNarrow ? 10 : 12,
+            vertical: isNarrow ? 6 : 8,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -351,55 +397,120 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     AetherPalette.accent,
                   ),
                 ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                  Expanded(
-                    child: TextField(
+              if (responsive.isPhoneSmall)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    TextField(
                       controller: _inputController,
                       minLines: 1,
                       maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: l10n.chatInputHint,
+                      decoration: const InputDecoration(
+                        hintText: '',
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ).copyWith(hintText: l10n.chatInputHint),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: chatState.isSending
+                          ? TextButton(
+                              onPressed: controller.cancelGeneration,
+                              child: Text(l10n.cancel),
+                            )
+                          : IconButton.filled(
+                              onPressed: () => controller.runTurn(
+                                l10n: l10n,
+                                action: _inputController.text,
+                                suggestionsOnly: false,
+                              ),
+                              icon: const Icon(Icons.send_rounded),
+                              tooltip: l10n.send,
+                            ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    Expanded(
+                      child: TextField(
+                        controller: _inputController,
+                        minLines: 1,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: l10n.chatInputHint,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: responsive.isCompact ? 14 : 16,
+                            vertical: responsive.isCompact ? 10 : 12,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (chatState.isSending)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        TextButton(
-                          onPressed: controller.cancelGeneration,
-                          child: Text(l10n.cancel),
+                    const SizedBox(width: 8),
+                    if (chatState.isSending)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          TextButton(
+                            onPressed: controller.cancelGeneration,
+                            child: Text(l10n.cancel),
+                          ),
+                        ],
+                      )
+                    else
+                      IconButton.filled(
+                        onPressed: () => controller.runTurn(
+                          l10n: l10n,
+                          action: _inputController.text,
+                          suggestionsOnly: false,
                         ),
-                      ],
-                    )
-                  else
-                    IconButton.filled(
-                      onPressed: () => controller.runTurn(
-                        l10n: l10n,
-                        action: _inputController.text,
-                        suggestionsOnly: false,
+                        icon: const Icon(Icons.send_rounded),
+                        tooltip: l10n.send,
                       ),
-                      icon: const Icon(Icons.send_rounded),
-                      tooltip: l10n.send,
-                    ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
       ],
     );
   }
+
+  Future<void> _showCompactCampaignSheet({
+    required final CampaignState campaign,
+    required final List<CampaignModule> highlightedModules,
+    required final List<CampaignModule> newlyUnlockedModules,
+  }) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (final context) => FractionallySizedBox(
+      heightFactor: 0.86,
+      child: AetherBackdrop(
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(context.responsive.pagePadding),
+            child: _buildSidebar(
+              campaign: campaign,
+              highlightedModules: highlightedModules,
+              newlyUnlockedModules: newlyUnlockedModules,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _buildSidebar({
     required final CampaignState campaign,
@@ -408,21 +519,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }) {
     final CharacterStats character = campaign.character;
     final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
     return AetherCard(
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(responsive.cardPadding),
         children: <Widget>[
-          Text(
-            character.name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+          Wrap(
+            runSpacing: 8,
+            children: <Widget>[
+              Text(
+                character.name,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: responsive.isCompact ? 22 : null,
+                ),
+                maxLines: responsive.isCompact ? 3 : 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  _SidebarMetaChip(
+                    label: '${l10n.turn}: ${campaign.turnNumber}',
+                  ),
+                  _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text('${l10n.location}: ${campaign.location}'),
-          Text('${l10n.objective}: ${campaign.objective}'),
-          Text('${l10n.turn}: ${campaign.turnNumber}'),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.sectionSpacing),
+          _SidebarInfoLine(label: l10n.location, value: campaign.location),
+          SizedBox(height: responsive.isCompact ? 8 : 6),
+          _SidebarInfoLine(label: l10n.objective, value: campaign.objective),
+          SizedBox(height: responsive.sectionSpacing),
           if (campaign.modules.isNotEmpty) ...<Widget>[
             Text(
               l10n.activeSystemsTitle,
@@ -472,7 +602,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 );
               }).toList(),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.vitality)) ...<Widget>[
             _ModuleHeader(
@@ -494,7 +624,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             Text(l10n.healthLabel(character)),
             Text(l10n.energyLabel(character)),
             Text(l10n.statsLabel(character)),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.inventory)) ...<Widget>[
             _ModuleHeader(
@@ -515,7 +645,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             const SizedBox(height: 8),
             if (campaign.inventory.isEmpty) Text(l10n.nothingTrackedYet),
             for (final String item in campaign.inventory) Text('- $item'),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.notes)) ...<Widget>[
             _ModuleHeader(
@@ -534,7 +664,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             const SizedBox(height: 8),
             if (campaign.notes.isEmpty) Text(l10n.nothingTrackedYet),
             for (final String item in campaign.notes) Text('- $item'),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.companions)) ...<Widget>[
             _ModuleHeader(
@@ -561,7 +691,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   '- ${item.name} (${item.status})${item.notes.trim().isEmpty ? '' : ' • ${item.notes}'}',
                 ),
               ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.resources)) ...<Widget>[
             _ModuleHeader(
@@ -585,7 +715,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               Text(
                 '- ${item.label}: ${item.value}${item.maxValue == null ? '' : '/${item.maxValue}'}',
               ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.progression)) ...<Widget>[
             _ModuleHeader(
@@ -802,6 +932,196 @@ class _ModuleHeader extends StatelessWidget {
         style: Theme.of(
           context,
         ).textTheme.bodySmall?.copyWith(color: AetherPalette.textMuted),
+      ),
+    ],
+  );
+}
+
+class _CampaignSummaryBanner extends StatelessWidget {
+  const _CampaignSummaryBanner({required this.campaign});
+
+  final CampaignState campaign;
+
+  @override
+  Widget build(final BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
+
+    return AetherCard(
+      padding: EdgeInsets.all(responsive.cardPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            campaign.character.name,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: responsive.isCompact ? 18 : 20,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
+              _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+            ],
+          ),
+          SizedBox(height: responsive.sectionSpacing),
+          _SidebarInfoLine(label: l10n.location, value: campaign.location),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactChatToolbar extends StatelessWidget {
+  const _CompactChatToolbar({
+    required this.title,
+    required this.onMenu,
+    required this.onSave,
+    required this.onSettings,
+    required this.onHome,
+  });
+
+  final String title;
+  final VoidCallback? onMenu;
+  final VoidCallback onSave;
+  final VoidCallback onSettings;
+  final VoidCallback onHome;
+
+  @override
+  Widget build(final BuildContext context) => AetherCard(
+    padding: EdgeInsets.all(context.responsive.cardPadding),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            if (onMenu != null)
+              _CompactToolbarButton(
+                icon: Icons.menu,
+                tooltip: context.l10n.campaignInfo,
+                onPressed: onMenu!,
+              ),
+            _CompactToolbarButton(
+              icon: Icons.save_outlined,
+              tooltip: context.l10n.saveTooltip,
+              onPressed: onSave,
+            ),
+            _CompactToolbarButton(
+              icon: Icons.tune_rounded,
+              tooltip: context.l10n.aiSettings,
+              onPressed: onSettings,
+            ),
+            _CompactToolbarButton(
+              icon: Icons.home_outlined,
+              tooltip: context.l10n.exitToMainMenu,
+              onPressed: onHome,
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _CompactToolbarButton extends StatelessWidget {
+  const _CompactToolbarButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(final BuildContext context) => Tooltip(
+    message: tooltip,
+    child: InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AetherPalette.panelSoft.withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AetherPalette.panelBorder.withValues(alpha: 0.62),
+          ),
+        ),
+        child: Icon(icon, size: 18),
+      ),
+    ),
+  );
+}
+
+class _SidebarMetaChip extends StatelessWidget {
+  const _SidebarMetaChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(final BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(
+      horizontal: context.responsive.isCompact ? 10 : 12,
+      vertical: context.responsive.isCompact ? 6 : 8,
+    ),
+    decoration: BoxDecoration(
+      color: AetherPalette.panelSoft.withValues(alpha: 0.82),
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(
+        color: AetherPalette.panelBorder.withValues(alpha: 0.5),
+      ),
+    ),
+    child: Text(
+      label,
+      style: Theme.of(
+        context,
+      ).textTheme.bodySmall?.copyWith(color: AetherPalette.textPrimary),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+class _SidebarInfoLine extends StatelessWidget {
+  const _SidebarInfoLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(final BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Text(
+        '$label:',
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: AetherPalette.textMuted),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        value,
+        style: Theme.of(context).textTheme.bodyLarge,
+        maxLines: context.responsive.isCompact ? 4 : 3,
+        overflow: TextOverflow.ellipsis,
       ),
     ],
   );

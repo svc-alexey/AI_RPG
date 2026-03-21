@@ -19,6 +19,9 @@ The project has already moved beyond the original MVP baseline. The current code
 - module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
 - rule-based entity extraction and reconciliation before persistence for active modules only;
 - adaptive sidebar panels and transient overlays for state changes and module unlocks;
+- shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
+- adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
+- a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
 - demo-mode AI fallback when no model is configured;
 - a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - soft page/backdrop animations that now also run on desktop outside test mode;
@@ -33,7 +36,12 @@ The project has already moved beyond the original MVP baseline. The current code
   - `SharedPreferences` as the explicit browser backend
   - adaptive storage layer under repositories for backend selection
 - AI integration: provider-agnostic client/factory layer
-- Primary target: Desktop-first, with mobile-friendly layout work already underway
+- Primary target: Cross-device Flutter UI with explicit responsive behavior for:
+  - `320-359 px` small phones
+  - `360-389 px` standard phones
+  - `390-599 px` large phones
+  - `600-1023 px` tablets / narrow landscape
+  - `1024+ px` desktop / wide layouts
 
 ## Recent milestone
 
@@ -79,4 +87,6 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 
 - chat streaming no longer races a second standard completion request in the background;
 - pending narrator bubbles now render with a softer, more readable typing experience;
-- the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground.
+- the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
+- the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
+- widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.

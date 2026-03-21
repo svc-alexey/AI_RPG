@@ -2,6 +2,7 @@ import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/hide_loader_web.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/app/theme.dart';
 import 'package:ai_prg/src/core/data/isar/app_database.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
@@ -130,9 +131,12 @@ class _AiRpgAppState extends State<AiRpgApp> {
             title: l10n.appTitle,
             debugShowCheckedModeBanner: false,
             theme: buildAppTheme(),
-            builder: (final context, final child) => ColoredBox(
-              color: AetherPalette.background,
-              child: child ?? const SizedBox.shrink(),
+            builder: (final context, final child) => Theme(
+              data: adaptThemeForContext(context, Theme.of(context)),
+              child: ColoredBox(
+                color: AetherPalette.background,
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
             home: _bootstrapComplete
                 ? const HomeScreen()
