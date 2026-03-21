@@ -1,6 +1,6 @@
 # AI PRG
 
-Flutter desktop-first AI RPG client with a local-first architecture.
+`Стирая Грань` / `Beyond the Verge` is a Flutter narrative RPG client with a local-first architecture.
 
 ## Project status
 
@@ -19,13 +19,17 @@ The project has already moved beyond the original MVP baseline. The current code
 - module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
 - rule-based entity extraction and reconciliation before persistence for active modules only;
 - adaptive sidebar panels and transient overlays for state changes and module unlocks;
+- a refreshed product-facing home screen with localized hero copy and presentation-focused CTA flows;
+- a cleaner in-game sidebar with compact module icons, a portrait card, and no exposed technical activation reasons;
+- local placeholder portraits prepared for future AI-generated character images;
 - shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
 - adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
 - demo-mode AI fallback when no model is configured;
 - a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - soft page/backdrop animations that now also run on desktop outside test mode;
-- mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content.
+- mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content;
+- a fast web landing shell that opens before Flutter and launches the full app only after the user presses the main CTA.
 
 ## Current architecture
 
@@ -82,6 +86,15 @@ powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
 ```
 
 See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobile-browser notes.
+
+## Start experience
+
+- `native / desktop / mobile app`: the app opens directly into the new branded start screen
+- `web`: `web/index.html` first shows a lightweight landing page, and Flutter starts only after the user presses `Play`
+- the in-game campaign sidebar now favors presentation over technical labels:
+  - compact module icons with tooltips
+  - portrait card under the hero name
+  - no user-visible `Enabled by prompt` / `Enabled by setting` copy
 
 ## Recent fixes
 

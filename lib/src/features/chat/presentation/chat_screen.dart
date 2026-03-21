@@ -524,101 +524,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       child: ListView(
         padding: EdgeInsets.all(responsive.cardPadding),
         children: <Widget>[
+          Text(
+            character.name,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: responsive.isCompact ? 22 : null,
+            ),
+            maxLines: responsive.isCompact ? 3 : 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          _CharacterPortraitCard(campaign: campaign),
+          const SizedBox(height: 12),
           Wrap(
+            spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              Text(
-                character.name,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: responsive.isCompact ? 22 : null,
-                ),
-                maxLines: responsive.isCompact ? 3 : 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  _SidebarMetaChip(
-                    label: '${l10n.turn}: ${campaign.turnNumber}',
-                  ),
-                  _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
-                ],
-              ),
+              _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+              _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
             ],
           ),
           SizedBox(height: responsive.sectionSpacing),
+          if (campaign.activeModules.isNotEmpty) ...<Widget>[
+            _ModuleIconStrip(
+              campaign: campaign,
+              highlightedModules: highlightedModules,
+              newlyUnlockedModules: newlyUnlockedModules,
+            ),
+            SizedBox(height: responsive.sectionSpacing),
+          ],
           _SidebarInfoLine(label: l10n.location, value: campaign.location),
           SizedBox(height: responsive.isCompact ? 8 : 6),
           _SidebarInfoLine(label: l10n.objective, value: campaign.objective),
           SizedBox(height: responsive.sectionSpacing),
-          if (campaign.modules.isNotEmpty) ...<Widget>[
-            Text(
-              l10n.activeSystemsTitle,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: campaign.activeModules.map((final item) {
-                final _ModuleHighlightState highlightState =
-                    _resolveModuleHighlightState(
-                      campaign: campaign,
-                      module: item,
-                      highlightedModules: highlightedModules,
-                      newlyUnlockedModules: newlyUnlockedModules,
-                    );
-                return Chip(
-                  backgroundColor: switch (highlightState) {
-                    _ModuleHighlightState.newlyUnlocked =>
-                      AetherPalette.accentSoft.withValues(alpha: 0.42),
-                    _ModuleHighlightState.updated =>
-                      AetherPalette.panelSoft.withValues(alpha: 0.92),
-                    _ModuleHighlightState.none => null,
-                  },
-                  side: BorderSide(
-                    color: switch (highlightState) {
-                      _ModuleHighlightState.newlyUnlocked =>
-                        AetherPalette.accent.withValues(alpha: 0.45),
-                      _ModuleHighlightState.updated =>
-                        AetherPalette.accentSoft.withValues(alpha: 0.6),
-                      _ModuleHighlightState.none =>
-                        AetherPalette.panelBorder.withValues(alpha: 0.35),
-                    },
-                  ),
-                  label: Text(
-                    l10n.campaignModuleLabel(item),
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: highlightState == _ModuleHighlightState.none
-                          ? null
-                          : AetherPalette.accent,
-                      fontWeight: highlightState == _ModuleHighlightState.none
-                          ? FontWeight.w500
-                          : FontWeight.w700,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
           if (campaign.isModuleActive(CampaignModule.vitality)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.vitality),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign
-                        .moduleState(CampaignModule.vitality)
-                        ?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.vitality,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             Text(l10n.healthLabel(character)),
@@ -627,20 +568,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.inventory)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.inventory),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign
-                        .moduleState(CampaignModule.inventory)
-                        ?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.inventory,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             if (campaign.inventory.isEmpty) Text(l10n.nothingTrackedYet),
@@ -648,18 +577,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.notes)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.notes),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign.moduleState(CampaignModule.notes)?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.notes,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             if (campaign.notes.isEmpty) Text(l10n.nothingTrackedYet),
@@ -667,20 +586,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.companions)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.companions),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign
-                        .moduleState(CampaignModule.companions)
-                        ?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.companions,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             if (campaign.companions.isEmpty) Text(l10n.nothingTrackedYet),
@@ -694,20 +601,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.resources)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.resources),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign
-                        .moduleState(CampaignModule.resources)
-                        ?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.resources,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             if (campaign.resources.isEmpty) Text(l10n.nothingTrackedYet),
@@ -718,20 +613,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SizedBox(height: responsive.sectionSpacing),
           ],
           if (campaign.isModuleActive(CampaignModule.progression)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.progression),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign
-                        .moduleState(CampaignModule.progression)
-                        ?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.progression,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -742,18 +625,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             const SizedBox(height: 16),
           ],
           if (campaign.isModuleActive(CampaignModule.checks)) ...<Widget>[
-            _ModuleHeader(
+            _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.checks),
-              reason: l10n.campaignModuleReasonLabel(
-                campaign.moduleState(CampaignModule.checks)?.activationReason ??
-                    '',
-              ),
-              highlightState: _resolveModuleHighlightState(
-                campaign: campaign,
-                module: CampaignModule.checks,
-                highlightedModules: highlightedModules,
-                newlyUnlockedModules: newlyUnlockedModules,
-              ),
             ),
             const SizedBox(height: 8),
             if (campaign.checks.isEmpty) Text(l10n.nothingTrackedYet),
@@ -847,94 +720,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     });
   }
-
-  bool _isRecentlyActivated(final CampaignModuleState? moduleState) {
-    final DateTime? activatedAt = moduleState?.activatedAt;
-    if (activatedAt == null) {
-      return false;
-    }
-    return DateTime.now().difference(activatedAt) <= const Duration(minutes: 5);
-  }
-
-  _ModuleHighlightState _resolveModuleHighlightState({
-    required final CampaignState campaign,
-    required final CampaignModule module,
-    required final List<CampaignModule> highlightedModules,
-    required final List<CampaignModule> newlyUnlockedModules,
-  }) {
-    if (newlyUnlockedModules.contains(module)) {
-      return _ModuleHighlightState.newlyUnlocked;
-    }
-    if (highlightedModules.contains(module)) {
-      return _ModuleHighlightState.updated;
-    }
-    if (_isRecentlyActivated(campaign.moduleState(module))) {
-      return _ModuleHighlightState.newlyUnlocked;
-    }
-    return _ModuleHighlightState.none;
-  }
 }
 
-class _ModuleHeader extends StatelessWidget {
-  const _ModuleHeader({
-    required this.title,
-    required this.reason,
-    required this.highlightState,
-  });
+class _SidebarSectionTitle extends StatelessWidget {
+  const _SidebarSectionTitle({required this.title});
 
   final String title;
-  final String reason;
-  final _ModuleHighlightState highlightState;
 
   @override
-  Widget build(final BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: highlightState == _ModuleHighlightState.none
-                    ? null
-                    : AetherPalette.accent,
-              ),
-            ),
-          ),
-          if (highlightState != _ModuleHighlightState.none)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: highlightState == _ModuleHighlightState.newlyUnlocked
-                    ? AetherPalette.accentSoft.withValues(alpha: 0.45)
-                    : AetherPalette.panelSoft.withValues(alpha: 0.96),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: AetherPalette.accentSoft.withValues(alpha: 0.55),
-                ),
-              ),
-              child: Text(
-                highlightState == _ModuleHighlightState.newlyUnlocked
-                    ? context.l10n.newlyUnlockedLabel
-                    : context.l10n.updatedLabel,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AetherPalette.accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-        ],
-      ),
-      const SizedBox(height: 2),
-      Text(
-        reason,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: AetherPalette.textMuted),
-      ),
-    ],
-  );
+  Widget build(final BuildContext context) =>
+      Text(title, style: Theme.of(context).textTheme.titleMedium);
 }
 
 class _CampaignSummaryBanner extends StatelessWidget {
@@ -952,23 +747,47 @@ class _CampaignSummaryBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            campaign.character.name,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontSize: responsive.isCompact ? 18 : 20,
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
-              _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+              _CharacterPortraitThumbnail(campaign: campaign),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      campaign.character.name,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: responsive.isCompact ? 18 : 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        _SidebarMetaChip(
+                          label: l10n.settingLabel(campaign.setting),
+                        ),
+                        _SidebarMetaChip(
+                          label: '${l10n.turn}: ${campaign.turnNumber}',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
+          ),
+          SizedBox(height: responsive.sectionSpacing),
+          _ModuleIconStrip(
+            campaign: campaign,
+            highlightedModules: const <CampaignModule>[],
+            newlyUnlockedModules: const <CampaignModule>[],
           ),
           SizedBox(height: responsive.sectionSpacing),
           _SidebarInfoLine(label: l10n.location, value: campaign.location),
@@ -1071,6 +890,213 @@ class _CompactToolbarButton extends StatelessWidget {
   );
 }
 
+class _CharacterPortraitCard extends StatelessWidget {
+  const _CharacterPortraitCard({required this.campaign});
+
+  final CampaignState campaign;
+
+  @override
+  Widget build(final BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AetherPalette.panelSoft.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AetherPalette.panelBorder.withValues(alpha: 0.72),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: Image.asset(
+              _portraitAssetForCampaign(campaign),
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: context.responsive.isCompact ? 190 : 220,
+              errorBuilder: (context, error, stackTrace) =>
+                  _PortraitFallbackLabel(label: l10n.portraitPlaceholderLabel),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  l10n.portraitPlaceholderLabel,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AetherPalette.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.portraitAiHint,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AetherPalette.textMuted,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CharacterPortraitThumbnail extends StatelessWidget {
+  const _CharacterPortraitThumbnail({required this.campaign});
+
+  final CampaignState campaign;
+
+  @override
+  Widget build(final BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(16),
+    child: Image.asset(
+      _portraitAssetForCampaign(campaign),
+      fit: BoxFit.cover,
+      width: 64,
+      height: 64,
+      errorBuilder: (context, error, stackTrace) =>
+          const _PortraitFallbackLabel(label: 'Hero', compact: true),
+    ),
+  );
+}
+
+class _PortraitFallbackLabel extends StatelessWidget {
+  const _PortraitFallbackLabel({required this.label, this.compact = false});
+
+  final String label;
+  final bool compact;
+
+  @override
+  Widget build(final BuildContext context) => Container(
+    height: compact ? 64 : 180,
+    color: AetherPalette.panel.withValues(alpha: 0.94),
+    alignment: Alignment.center,
+    child: Text(
+      label,
+      style: Theme.of(
+        context,
+      ).textTheme.labelLarge?.copyWith(color: AetherPalette.textMuted),
+      textAlign: TextAlign.center,
+    ),
+  );
+}
+
+class _ModuleIconStrip extends StatelessWidget {
+  const _ModuleIconStrip({
+    required this.campaign,
+    required this.highlightedModules,
+    required this.newlyUnlockedModules,
+  });
+
+  final CampaignState campaign;
+  final List<CampaignModule> highlightedModules;
+  final List<CampaignModule> newlyUnlockedModules;
+
+  @override
+  Widget build(final BuildContext context) => Wrap(
+    spacing: 10,
+    runSpacing: 10,
+    children: campaign.activeModules.map((final module) {
+      final _ModuleHighlightState highlightState = _resolveHighlight(
+        campaign: campaign,
+        module: module,
+      );
+      return Tooltip(
+        message: context.l10n.campaignModuleLabel(module),
+        waitDuration: const Duration(milliseconds: 250),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AetherPalette.panelSoft.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: switch (highlightState) {
+                _ModuleHighlightState.newlyUnlocked =>
+                  AetherPalette.accent.withValues(alpha: 0.75),
+                _ModuleHighlightState.updated =>
+                  AetherPalette.accentSoft.withValues(alpha: 0.78),
+                _ModuleHighlightState.none =>
+                  AetherPalette.panelBorder.withValues(alpha: 0.55),
+              },
+            ),
+            boxShadow: highlightState == _ModuleHighlightState.none
+                ? const <BoxShadow>[]
+                : <BoxShadow>[
+                    BoxShadow(
+                      color: AetherPalette.accent.withValues(
+                        alpha:
+                            highlightState ==
+                                _ModuleHighlightState.newlyUnlocked
+                            ? 0.22
+                            : 0.12,
+                      ),
+                      blurRadius: 20,
+                      spreadRadius: -6,
+                    ),
+                  ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Icon(
+                _iconForModule(module),
+                size: 18,
+                color: highlightState == _ModuleHighlightState.none
+                    ? AetherPalette.textMuted
+                    : AetherPalette.textPrimary,
+              ),
+              if (highlightState != _ModuleHighlightState.none)
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color:
+                          highlightState == _ModuleHighlightState.newlyUnlocked
+                          ? AetherPalette.accent
+                          : AetherPalette.gold,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }).toList(),
+  );
+
+  _ModuleHighlightState _resolveHighlight({
+    required final CampaignState campaign,
+    required final CampaignModule module,
+  }) {
+    if (newlyUnlockedModules.contains(module)) {
+      return _ModuleHighlightState.newlyUnlocked;
+    }
+    if (highlightedModules.contains(module)) {
+      return _ModuleHighlightState.updated;
+    }
+    final DateTime? activatedAt = campaign.moduleState(module)?.activatedAt;
+    if (activatedAt == null) {
+      return _ModuleHighlightState.none;
+    }
+    return DateTime.now().difference(activatedAt) <= const Duration(minutes: 5)
+        ? _ModuleHighlightState.newlyUnlocked
+        : _ModuleHighlightState.none;
+  }
+}
+
 class _SidebarMetaChip extends StatelessWidget {
   const _SidebarMetaChip({required this.label});
 
@@ -1126,6 +1152,24 @@ class _SidebarInfoLine extends StatelessWidget {
     ],
   );
 }
+
+String _portraitAssetForCampaign(final CampaignState campaign) =>
+    switch (campaign.setting) {
+      CampaignSetting.fantasy => 'assets/images/portraits/fantasy_guardian.png',
+      CampaignSetting.detective =>
+        'assets/images/portraits/detective_shadow.png',
+      CampaignSetting.sciFi => 'assets/images/portraits/scifi_oracle.png',
+    };
+
+IconData _iconForModule(final CampaignModule module) => switch (module) {
+  CampaignModule.inventory => Icons.backpack_outlined,
+  CampaignModule.companions => Icons.groups_2_outlined,
+  CampaignModule.notes => Icons.menu_book_outlined,
+  CampaignModule.vitality => Icons.favorite_border_rounded,
+  CampaignModule.resources => Icons.diamond_outlined,
+  CampaignModule.progression => Icons.insights_outlined,
+  CampaignModule.checks => Icons.casino_outlined,
+};
 
 enum _ModuleHighlightState { none, updated, newlyUnlocked }
 

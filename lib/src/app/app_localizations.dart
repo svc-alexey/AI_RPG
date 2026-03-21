@@ -14,50 +14,70 @@ class AppLocalizations {
     return scope!.localizations;
   }
 
-  String get appTitle => switch (language) {
-    AppLanguage.ru => 'ИИ RPG',
-    AppLanguage.en => 'AI RPG',
+  String get appTitle => brandName;
+
+  String get brandName => switch (language) {
+    AppLanguage.ru => '?????? ?????',
+    AppLanguage.en => 'Beyond the Verge',
+  };
+
+  String get homeHeroTitle => switch (language) {
+    AppLanguage.ru => '??????? ???????? ?? ???? ?????',
+    AppLanguage.en => 'Where choice reshapes the story',
   };
 
   String get homeDescription => switch (language) {
     AppLanguage.ru =>
-      'Минимальный desktop-first клиент: чат, настройки провайдера, локальные сохранения и интеграция с LM Studio.',
+      '??????????? RPG, ??? ?? ????? ?????, ? ??? ?????? ???????????.',
     AppLanguage.en =>
-      'A minimal desktop-first client with chat, provider settings, local saves, and LM Studio integration.',
+      'A narrative RPG where AI guides the scene and the world remembers what you do.',
+  };
+
+  String get homePrimaryCta => switch (language) {
+    AppLanguage.ru => '?????? ???????',
+    AppLanguage.en => 'Begin Your Story',
+  };
+
+  String get homeSecondaryCta => switch (language) {
+    AppLanguage.ru => '??????????',
+    AppLanguage.en => 'Continue',
+  };
+
+  String get homeTertiaryCta => switch (language) {
+    AppLanguage.ru => '?????????',
+    AppLanguage.en => 'Settings',
   };
 
   String get newCampaign => switch (language) {
-    AppLanguage.ru => 'Новая кампания',
+    AppLanguage.ru => '????? ????????',
     AppLanguage.en => 'New Campaign',
   };
 
   String get saves => switch (language) {
-    AppLanguage.ru => 'Сохранения',
+    AppLanguage.ru => '??????????',
     AppLanguage.en => 'Saves',
   };
 
   String get aiSettings => switch (language) {
-    AppLanguage.ru => 'Настройки ИИ',
+    AppLanguage.ru => '????????? ??',
     AppLanguage.en => 'AI Settings',
   };
 
   String get whatsIncluded => switch (language) {
-    AppLanguage.ru => 'Что уже есть',
+    AppLanguage.ru => '??? ??? ????',
     AppLanguage.en => 'What Is Included',
   };
 
   List<String> get homeFeatureLines => switch (language) {
     AppLanguage.ru => const <String>[
-      'Локальная история кампаний',
-      'Один полный игровой ход через ИИ',
-      'Демо-режим без модели',
-      'Совместимый с OpenAI endpoint для LM Studio',
+      '????? ??????????',
+      '????? ? ?????????????',
+      '???? ?? ????? ??????',
     ],
     AppLanguage.en => const <String>[
-      'Local campaign history',
-      'One complete AI-driven turn',
-      'Demo mode without a model',
-      'OpenAI-compatible endpoint for LM Studio',
+      'Living narrator',
+      'Choices that leave a mark',
+      'Worlds beyond a single genre',
     ],
   };
 
@@ -390,6 +410,17 @@ class AppLocalizations {
   String get activeSystemsTitle => switch (language) {
     AppLanguage.ru => 'Активные системы',
     AppLanguage.en => 'Active Systems',
+  };
+
+  String get portraitPlaceholderLabel => switch (language) {
+    AppLanguage.ru => '??????? ?????',
+    AppLanguage.en => 'Hero portrait',
+  };
+
+  String get portraitAiHint => switch (language) {
+    AppLanguage.ru => '? ??????? ????? ???????? ??????????????? ??-???????.',
+    AppLanguage.en =>
+      'An AI-generated portrait will appear here in a future update.',
   };
 
   String campaignModuleLabel(final CampaignModule value) =>

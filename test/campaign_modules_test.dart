@@ -474,7 +474,8 @@ void main() {
             questNote: 'Clue $index points to the same forged account',
             location: '',
           ),
-          memoryEntry: 'Clue: forged account $index matches the same signature.',
+          memoryEntry:
+              'Clue: forged account $index matches the same signature.',
         ),
         contextWindowSize: 1536,
       );
@@ -644,8 +645,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Notes'), findsWidgets);
-    expect(find.text('Active system'), findsWidgets);
+    expect(find.textContaining('pier 9'), findsOneWidget);
     expect(find.text('Inventory'), findsNothing);
     expect(find.text('Vitality'), findsNothing);
   });
@@ -727,7 +727,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Notes'), findsWidgets);
     expect(
       find.textContaining('Note: Ledger confirms the forged entries'),
       findsOneWidget,
@@ -891,14 +890,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Updated'), findsOneWidget);
     expect(
       find.textContaining('Note: Ledger points to warehouse 12'),
       findsOneWidget,
     );
-
-    await tester.pump(const Duration(seconds: 4));
-    expect(find.text('Updated'), findsNothing);
   });
 
   testWidgets('Chat shows client-resolved checks in sidebar after a turn', (
@@ -976,7 +971,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Checks'), findsWidgets);
     expect(find.textContaining('Wit check'), findsWidgets);
   });
 }

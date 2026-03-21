@@ -107,10 +107,10 @@ class ChatViewState {
 }
 
 class ChatController extends StateNotifier<ChatViewState> {
-  static const Duration _streamUpdateInterval = Duration(milliseconds: 48);
-
   ChatController(this._ref, this._campaignId)
     : super(const ChatViewState.initial());
+
+  static const Duration _streamUpdateInterval = Duration(milliseconds: 48);
 
   final Ref _ref;
   final String _campaignId;

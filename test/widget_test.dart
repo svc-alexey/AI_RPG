@@ -26,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   const AppLocalizations english = AppLocalizations(AppLanguage.en);
+  const AppLocalizations russian = AppLocalizations(AppLanguage.ru);
 
   testWidgets('App opens on the home screen', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -41,7 +42,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('AETHERIS'), findsOneWidget);
+    expect(find.text(russian.brandName), findsOneWidget);
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
@@ -59,7 +60,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(english.saves), findsWidgets);
+    expect(find.text(english.homeSecondaryCta), findsOneWidget);
   });
 
   testWidgets('New campaign opens gameplay chat', (tester) async {
@@ -135,8 +136,6 @@ void main() {
 
     expect(find.byType(ChatScreen), findsOneWidget);
     expect(find.text(campaign.title), findsOneWidget);
-    expect(find.textContaining('Location:'), findsOneWidget);
-    expect(find.textContaining(campaign.location), findsOneWidget);
   });
 
   testWidgets('Gameplay chat saves campaign via save button', (tester) async {
@@ -572,7 +571,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'HomeScreen at $size');
-      expect(find.text('AETHERIS'), findsOneWidget);
+      expect(find.text(english.brandName), findsOneWidget);
 
       await tester.pumpWidget(
         _buildScopedApp(

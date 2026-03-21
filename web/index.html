@@ -1,121 +1,444 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta
+    name="description"
+    content="Beyond the Verge is a narrative RPG where AI guides the scene and the world remembers your choices."
+  >
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17121F">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ai_prg">
+  <meta name="apple-mobile-web-app-title" content="Beyond the Verge">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>ai_prg</title>
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
+  <title>Beyond the Verge</title>
 
   <style>
-    /* Splash screen — AetherPalette.background (#17121F), виден до монтирования Flutter */
-    html, body {
+    :root {
       --app-height: 100vh;
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: var(--app-height);
-      min-height: var(--app-height);
-      overflow: hidden;
-      background: #17121F;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, -apple-system, sans-serif;
+      --bg: #17121f;
+      --bg-top: #241a31;
+      --panel: rgba(33, 26, 44, 0.92);
+      --panel-border: rgba(107, 84, 136, 0.68);
+      --text: #e9e2d7;
+      --muted: rgba(233, 226, 215, 0.72);
+      --accent: #b463ff;
+      --accent-soft: rgba(180, 99, 255, 0.2);
+      --gold: #e0b35b;
+      --danger: #ffb4ab;
+      color-scheme: dark;
+      font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: var(--app-height);
+      background:
+        radial-gradient(circle at top left, rgba(180, 99, 255, 0.16), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(93, 59, 121, 0.26), transparent 30%),
+        linear-gradient(180deg, var(--bg-top), var(--bg));
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body {
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      border-radius: 999px;
+      pointer-events: none;
+      filter: blur(18px);
+      opacity: 0.8;
+      animation: drift 14s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      top: 5%;
+      left: -120px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(180, 99, 255, 0.32), transparent 72%);
+    }
+
+    body::after {
+      right: -90px;
+      bottom: 10%;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(224, 179, 91, 0.18), transparent 68%);
+      animation-duration: 17s;
+    }
+
     #loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2rem;
       position: relative;
       z-index: 1;
+      min-height: var(--app-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 18px 32px;
     }
-    .loader {
-      width: 52px;
-      height: 52px;
-      border: 3px solid rgba(58, 47, 73, 0.5);
-      border-top-color: #B463FF;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+
+    .landing-shell {
+      width: min(1120px, 100%);
+      display: grid;
+      gap: 28px;
+      align-items: center;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
     }
-    .loader-label {
-      color: #E9E2D7;
-      font-size: 1rem;
+
+    .hero-panel,
+    .detail-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 28px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-panel {
+      padding: 42px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 44px;
+      height: 1px;
+      background: rgba(224, 179, 91, 0.55);
+    }
+
+    h1 {
+      margin: 22px 0 14px;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(52px, 7vw, 88px);
+      line-height: 0.95;
+      letter-spacing: 0.04em;
       font-weight: 500;
-      letter-spacing: 0.05em;
     }
-    .loader-note {
-      max-width: 20rem;
-      color: rgba(233, 226, 215, 0.72);
-      font-size: 0.92rem;
-      line-height: 1.45;
-      text-align: center;
+
+    .hero-title {
+      max-width: 620px;
+      margin: 0 0 16px;
+      font-size: clamp(24px, 3vw, 36px);
+      line-height: 1.12;
+      color: rgba(233, 226, 215, 0.94);
     }
-    .loader-note.is-error {
-      color: #ffb4ab;
+
+    .hero-subtitle {
+      max-width: 580px;
+      margin: 0 0 24px;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--muted);
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .hero-pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(107, 84, 136, 0.72);
+      background: rgba(38, 31, 51, 0.92);
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .cta-button,
+    .secondary-button {
+      appearance: none;
+      border: 0;
+      border-radius: 18px;
+      padding: 16px 22px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, rgba(180, 99, 255, 0.34), rgba(93, 59, 121, 0.8));
+      color: var(--text);
+      box-shadow: 0 20px 48px rgba(180, 99, 255, 0.18);
+    }
+
+    .secondary-button {
+      background: rgba(38, 31, 51, 0.88);
+      color: var(--text);
+      border: 1px solid rgba(107, 84, 136, 0.72);
+    }
+
+    .cta-button:hover,
+    .secondary-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .cta-button:disabled {
+      cursor: progress;
+      opacity: 0.85;
+      transform: none;
+    }
+
+    .launch-note {
+      min-height: 24px;
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .launch-note.is-error {
+      color: var(--danger);
+    }
+
+    .detail-panel {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .detail-card {
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(23, 18, 31, 0.5);
+      border: 1px solid rgba(107, 84, 136, 0.38);
+    }
+
+    .detail-label {
+      margin: 0 0 6px;
+      font-size: 13px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .detail-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .detail-copy strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .hidden-anchor {
+      position: relative;
+      top: -24px;
+    }
+
+    @keyframes drift {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to { transform: translate3d(18px, -16px, 0) scale(1.08); }
+    }
+
+    @media (max-width: 880px) {
+      .landing-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel {
+        padding: 30px 24px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      #loading-container {
+        align-items: stretch;
+      }
+
+      .hero-panel,
+      .detail-panel {
+        border-radius: 22px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .cta-button,
+      .secondary-button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
   <div id="loading-container">
-    <div class="loader" aria-hidden="true"></div>
-    <span class="loader-label">AI RPG</span>
-    <span id="loading-note" class="loader-note">
-      Loading the app...
-    </span>
+    <main class="landing-shell">
+      <section class="hero-panel">
+        <div id="landing-eyebrow" class="eyebrow"></div>
+        <h1 id="landing-brand"></h1>
+        <p id="landing-title" class="hero-title"></p>
+        <p id="landing-subtitle" class="hero-subtitle"></p>
+        <div id="landing-pills" class="hero-pills"></div>
+        <div class="hero-actions">
+          <button id="launch-button" class="cta-button" type="button"></button>
+          <button id="how-button" class="secondary-button" type="button"></button>
+        </div>
+        <div id="loading-note" class="launch-note" aria-live="polite"></div>
+      </section>
+
+      <aside class="detail-panel">
+        <span id="how-anchor" class="hidden-anchor" aria-hidden="true"></span>
+        <section class="detail-card">
+          <p id="detail-label-1" class="detail-label"></p>
+          <p id="detail-copy-1" class="detail-copy"></p>
+        </section>
+        <section class="detail-card">
+          <p id="detail-label-2" class="detail-label"></p>
+          <p id="detail-copy-2" class="detail-copy"></p>
+        </section>
+        <section class="detail-card">
+          <p id="detail-label-3" class="detail-label"></p>
+          <p id="detail-copy-3" class="detail-copy"></p>
+        </section>
+      </aside>
+    </main>
   </div>
+
   <script>
     {{flutter_js}}
     {{flutter_build_config}}
 
     (function () {
+      const copy = {
+        ru: {
+          eyebrow: 'Narrative AI RPG',
+          brand: 'Стирая Грань',
+          heroTitle: 'История отвечает на твой выбор',
+          heroSubtitle: 'Нарративная RPG, где ИИ ведет сцену, а мир помнит последствия.',
+          pills: ['Живой рассказчик', 'Выбор с последствиями', 'Миры на грани жанров'],
+          launch: 'Играть',
+          launchLoading: 'Запуск...',
+          how: 'Как это работает',
+          loading: 'Загружаем игру. Это может занять несколько секунд.',
+          slow: 'Запуск идет дольше обычного. Если вы на телефоне, подождите еще немного.',
+          failed: 'Игра не смогла открыться. Попробуйте еще раз или обновите страницу.',
+          startupError: 'Во время запуска произошла ошибка. Попробуйте еще раз.',
+          detail1Label: 'Рассказчик',
+          detail1Copy: 'ИИ ведет сцену, но сохраняет логику мира и последствия ваших решений.',
+          detail2Label: 'Темп',
+          detail2Copy: 'Сначала открывается быстрый лендинг, а сама игра загружается только по нажатию.',
+          detail3Label: 'Путь героя',
+          detail3Copy: 'Начинайте новую историю, продолжайте сохранение и возвращайтесь в мир без лишнего технического шума.',
+        },
+        en: {
+          eyebrow: 'Narrative AI RPG',
+          brand: 'Beyond the Verge',
+          heroTitle: 'Where choice reshapes the story',
+          heroSubtitle: 'A narrative RPG where AI guides the scene and the world remembers what you do.',
+          pills: ['Living narrator', 'Choices that leave a mark', 'Worlds beyond a single genre'],
+          launch: 'Play Now',
+          launchLoading: 'Launching...',
+          how: 'How it works',
+          loading: 'Launching the game. This can take a few seconds.',
+          slow: 'Startup is taking a little longer than usual. If you are on a phone, please give it a few more seconds.',
+          failed: 'The game could not start. Please try again or reload the page.',
+          startupError: 'A startup error occurred. Please try again.',
+          detail1Label: 'Narrator',
+          detail1Copy: 'AI drives the scene while the world still keeps track of rules, state, and consequences.',
+          detail2Label: 'Pace',
+          detail2Copy: 'The landing screen appears first, and the full game loads only when you choose to enter.',
+          detail3Label: 'Hero path',
+          detail3Copy: 'Start a new story, return to a save, and step back into the world without technical MVP copy.',
+        },
+      };
+
+      const language = (navigator.language || '').toLowerCase().startsWith('ru')
+        ? 'ru'
+        : 'en';
+      const text = copy[language];
+
       const loadingContainer = document.getElementById('loading-container');
       const loadingNote = document.getElementById('loading-note');
+      const launchButton = document.getElementById('launch-button');
+      const howButton = document.getElementById('how-button');
+      const howAnchor = document.getElementById('how-anchor');
+
+      let launchInFlight = false;
+
+      function setText(id, value) {
+        const node = document.getElementById(id);
+        if (node) {
+          node.textContent = value;
+        }
+      }
+
+      function renderLanding() {
+        document.documentElement.lang = language;
+        setText('landing-eyebrow', text.eyebrow);
+        setText('landing-brand', text.brand);
+        setText('landing-title', text.heroTitle);
+        setText('landing-subtitle', text.heroSubtitle);
+        setText('detail-label-1', text.detail1Label);
+        setText('detail-label-2', text.detail2Label);
+        setText('detail-label-3', text.detail3Label);
+        setText('detail-copy-1', text.detail1Copy);
+        setText('detail-copy-2', text.detail2Copy);
+        setText('detail-copy-3', text.detail3Copy);
+        document.title = text.brand;
+        launchButton.textContent = text.launch;
+        howButton.textContent = text.how;
+
+        const pillHost = document.getElementById('landing-pills');
+        pillHost.innerHTML = '';
+        text.pills.forEach((entry) => {
+          const pill = document.createElement('span');
+          pill.className = 'hero-pill';
+          pill.textContent = entry;
+          pillHost.appendChild(pill);
+        });
+      }
 
       function setLoadingNote(message, isError) {
         if (!loadingNote) {
           return;
         }
-        loadingNote.textContent = message;
+        loadingNote.textContent = message || '';
         loadingNote.classList.toggle('is-error', Boolean(isError));
-      }
-
-      function hideLoading() {
-        if (loadingContainer) {
-          loadingContainer.remove();
-        }
       }
 
       function syncViewportHeight() {
@@ -124,7 +447,6 @@
         const height = `${Math.round(nextHeight)}px`;
         document.documentElement.style.setProperty('--app-height', height);
         document.documentElement.style.height = height;
-        document.body.style.height = height;
         document.body.style.minHeight = height;
       }
 
@@ -133,7 +455,58 @@
         window.dispatchEvent(new Event('resize'));
       }
 
+      async function launchFlutter() {
+        if (launchInFlight) {
+          return;
+        }
+
+        launchInFlight = true;
+        launchButton.disabled = true;
+        launchButton.textContent = text.launchLoading;
+        setLoadingNote(text.loading, false);
+
+        const slowLoadTimer = window.setTimeout(() => {
+          setLoadingNote(text.slow, false);
+        }, 8000);
+
+        try {
+          const start = window.__codexLaunchFlutterApp || (window._flutter && window._flutter.loader
+            ? function () {
+                return window._flutter.loader.load({
+                  onEntrypointLoaded: async function (engineInitializer) {
+                    const appRunner = await engineInitializer.initializeEngine();
+                    return appRunner.runApp();
+                  },
+                });
+              }
+            : null);
+
+          if (!start) {
+            throw new Error('Flutter loader is unavailable');
+          }
+
+          await start();
+          window.clearTimeout(slowLoadTimer);
+        } catch (error) {
+          console.error('Flutter web bootstrap failed', error);
+          window.clearTimeout(slowLoadTimer);
+          setLoadingNote(text.failed, true);
+          launchInFlight = false;
+          launchButton.disabled = false;
+          launchButton.textContent = text.launch;
+        }
+      }
+
+      renderLanding();
       syncViewportHeight();
+
+      launchButton.addEventListener('click', launchFlutter);
+      howButton.addEventListener('click', function () {
+        if (howAnchor) {
+          howAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
       window.addEventListener('resize', syncViewportHeight);
       window.addEventListener('orientationchange', refreshViewportMetrics);
       window.addEventListener('focus', refreshViewportMetrics);
@@ -149,48 +522,17 @@
         window.visualViewport.addEventListener('scroll', syncViewportHeight);
       }
 
-      const slowLoadTimer = window.setTimeout(() => {
-        setLoadingNote(
-          'Loading is taking longer than usual. If this is a phone browser, please wait a few more seconds.',
-          false,
-        );
-      }, 8000);
-
-      const failedLoadTimer = window.setTimeout(() => {
-        setLoadingNote(
-          'The app did not finish starting. Please reload the page. If it keeps happening, open it in Chrome or Safari.',
-          true,
-        );
-      }, 20000);
-
       window.addEventListener('error', function () {
-        window.clearTimeout(slowLoadTimer);
-        window.clearTimeout(failedLoadTimer);
-        setLoadingNote(
-          'A startup error occurred. Please reload the page.',
-          true,
-        );
+        if (launchInFlight) {
+          setLoadingNote(text.startupError, true);
+        }
       });
 
-      _flutter.loader.load({
-        onEntrypointLoaded: async function (engineInitializer) {
-          try {
-            const appRunner = await engineInitializer.initializeEngine();
-            hideLoading();
-            window.clearTimeout(slowLoadTimer);
-            window.clearTimeout(failedLoadTimer);
-            await appRunner.runApp();
-          } catch (error) {
-            console.error('Flutter web bootstrap failed', error);
-            window.clearTimeout(slowLoadTimer);
-            window.clearTimeout(failedLoadTimer);
-            setLoadingNote(
-              'The app could not start in this browser. Please reload the page.',
-              true,
-            );
-          }
-        },
-      });
+      window.__codexHideLanding = function () {
+        if (loadingContainer) {
+          loadingContainer.remove();
+        }
+      };
     })();
   </script>
 </body>

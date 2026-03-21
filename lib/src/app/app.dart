@@ -161,20 +161,23 @@ class _SplashScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                'AETHERIS',
+                AppLocalizations.of(context).brandName,
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   color: AetherPalette.textPrimary,
                   fontWeight: FontWeight.w500,
-                  letterSpacing: 10,
+                  fontSize: context.responsive.isCompact ? 48 : 72,
+                  letterSpacing: context.responsive.scaleLetterSpacing(8),
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                AppLocalizations.of(context).appTitle,
+                AppLocalizations.of(context).homeHeroTitle,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: AetherPalette.textMuted,
-                  letterSpacing: 4,
+                  letterSpacing: 1.4,
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
               Container(
