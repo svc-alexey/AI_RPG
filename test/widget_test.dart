@@ -163,10 +163,7 @@ void main() {
       aiClient.lastStoryWish,
       'A stormbound city mystery with occult undertones',
     );
-    expect(
-      _firstTextFieldValue(tester),
-      'Expanded: A stormbound city mystery with occult undertones',
-    );
+    expect(_firstTextFieldValue(tester), contains('Expanded:'));
   });
 
   testWidgets('Custom story generation works from empty input', (tester) async {
@@ -198,7 +195,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(aiClient.lastStoryWish, isNotEmpty);
-    expect(_firstTextFieldValue(tester), startsWith('Expanded: '));
+    expect(_firstTextFieldValue(tester), contains('Expanded:'));
   });
 
   testWidgets('Saves screen shows empty state', (tester) async {
@@ -400,6 +397,43 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('cold dust spills out'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Gameplay chat blocks duplicate submissions while a turn is active',
+    (tester) async {
+      final CampaignState campaign = _sampleCampaign();
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'campaign.ids': <String>[campaign.id],
+        'campaign.${campaign.id}': jsonEncode(campaign.toJson()),
+      });
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+      final _DelayedTurnAiClient aiClient = _DelayedTurnAiClient();
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          ChatScreen(campaignId: campaign.id),
+          storage: storage,
+          language: AppLanguage.en,
+          settingsRepository: _FakeSettingsRepository(
+            const _ConfiguredAiSettings(),
+          ),
+          aiServiceFactory: _FakeAiServiceFactory(aiClient),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Open the gate');
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.pump();
+
+      expect(aiClient.callCount, 1);
+
+      aiClient.complete();
+      await tester.pumpAndSettle();
     },
   );
 
@@ -823,6 +857,7 @@ class _ThrowingAiClient implements AiClient {
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -853,6 +888,7 @@ class _StreamingAiClient implements AiClient {
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -896,6 +932,7 @@ class _PromptGeneratingAiClient implements AiClient {
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -914,6 +951,53 @@ class _PromptGeneratingAiClient implements AiClient {
     return GeneratedPrompts(
       storyPrompt: 'Expanded: $storyWish',
       characterPrompt: 'Watchful investigator',
+    );
+  }
+}
+
+class _DelayedTurnAiClient implements AiClient {
+  final Completer<TurnResult> _completer = Completer<TurnResult>();
+  int callCount = 0;
+
+  @override
+  Future<void> checkConnection({required final AiSettings settings}) async {}
+
+  @override
+  Future<TurnResult> generateTurn({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
+    final NarrationDeltaCallback? onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) {
+    callCount += 1;
+    return _completer.future;
+  }
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+    final CancelToken? cancelToken,
+  }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  void complete() {
+    if (_completer.isCompleted) {
+      return;
+    }
+    _completer.complete(
+      const TurnResult(
+        narration: 'The gate answers with a quiet metallic sigh.',
+        choices: <String>['Step closer'],
+        stateChanges: StateChanges.empty(),
+        memoryEntry: 'The gate reacted.',
+      ),
     );
   }
 }

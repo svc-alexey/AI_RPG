@@ -193,6 +193,7 @@ Reply only with JSON, no markdown.
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -209,6 +210,18 @@ Reply only with JSON, no markdown.
           AppLogger.instance.i(
             'Retry attempt $attemptCount/$maxAttempts after ${backoffMs[attemptCount]}ms',
           );
+          AppLogger.logDiagnostic(
+            level: 'WARN',
+            event: 'ai_retry_scheduled',
+            message:
+                'Retry attempt $attemptCount/$maxAttempts after ${backoffMs[attemptCount]}ms.',
+            flowId: metadata?.flowId,
+            campaignId: metadata?.campaignId,
+            triggerSource: metadata?.triggerSource,
+            attempt: attemptCount,
+            requestMode: 'retry',
+            screenMounted: metadata?.screenMounted,
+          );
           await Future<void>.delayed(
             Duration(milliseconds: backoffMs[attemptCount]),
           );
@@ -223,6 +236,7 @@ Reply only with JSON, no markdown.
               playerAction: playerAction,
               suggestionsOnly: suggestionsOnly,
               deterministicContext: deterministicContext,
+              metadata: metadata,
               fastMode: fastMode,
               onNarrationDelta: onNarrationDelta,
               cancelToken: cancelToken,
@@ -244,9 +258,33 @@ Reply only with JSON, no markdown.
             AppLogger.instance.w(
               'Streaming failed, falling back to standard response: ${error.userMessage}',
             );
+            AppLogger.logDiagnostic(
+              level: 'WARN',
+              event: 'streaming_fallback',
+              message:
+                  'Streaming failed, falling back to standard response: ${error.userMessage}',
+              flowId: metadata?.flowId,
+              campaignId: metadata?.campaignId,
+              triggerSource: metadata?.triggerSource,
+              attempt: attemptCount,
+              requestMode: 'stream-fallback',
+              screenMounted: metadata?.screenMounted,
+            );
           } catch (error) {
             AppLogger.instance.w(
               'Streaming failed, falling back to standard response: $error',
+            );
+            AppLogger.logDiagnostic(
+              level: 'WARN',
+              event: 'streaming_fallback',
+              message:
+                  'Streaming failed, falling back to standard response: $error',
+              flowId: metadata?.flowId,
+              campaignId: metadata?.campaignId,
+              triggerSource: metadata?.triggerSource,
+              attempt: attemptCount,
+              requestMode: 'stream-fallback',
+              screenMounted: metadata?.screenMounted,
             );
           }
         }
@@ -258,6 +296,9 @@ Reply only with JSON, no markdown.
           playerAction: playerAction,
           suggestionsOnly: suggestionsOnly,
           deterministicContext: deterministicContext,
+          metadata: metadata,
+          attempt: attemptCount,
+          requestMode: attemptCount == 0 ? 'standard' : 'retry',
           fastMode: fastMode,
           onNarrationDelta: onNarrationDelta,
         );
@@ -284,6 +325,9 @@ Reply only with JSON, no markdown.
             playerAction: playerAction,
             suggestionsOnly: suggestionsOnly,
             deterministicContext: deterministicContext,
+            metadata: metadata,
+            attempt: attemptCount,
+            requestMode: 'retry',
             fastMode: false,
             onNarrationDelta: onNarrationDelta,
           );
@@ -303,12 +347,29 @@ Reply only with JSON, no markdown.
           AppLogger.logAiError(
             message: 'Failed after $attemptCount attempts',
             exception: error,
+            flowId: metadata?.flowId,
+            campaignId: metadata?.campaignId,
+            triggerSource: metadata?.triggerSource,
+            attempt: attemptCount,
+            requestMode: 'retry',
+            screenMounted: metadata?.screenMounted,
           );
           rethrow;
         }
 
         AppLogger.instance.w(
           'Recoverable error, will retry: ${error.userMessage}',
+        );
+        AppLogger.logDiagnostic(
+          level: 'WARN',
+          event: 'recoverable_ai_error',
+          message: error.userMessage,
+          flowId: metadata?.flowId,
+          campaignId: metadata?.campaignId,
+          triggerSource: metadata?.triggerSource,
+          attempt: attemptCount,
+          requestMode: 'retry',
+          screenMounted: metadata?.screenMounted,
         );
       }
     }
@@ -325,6 +386,9 @@ Reply only with JSON, no markdown.
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    required final AiRequestMetadata? metadata,
+    required final int attempt,
+    required final String requestMode,
     required final bool fastMode,
     final NarrationDeltaCallback? onNarrationDelta,
   }) async {
@@ -345,6 +409,12 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       requestBody: requestBody,
       settings: settings,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: metadata?.screenMounted,
     );
 
     final http.Response response;
@@ -360,6 +430,12 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Timeout after ${_effectiveTimeoutSeconds(settings)}s',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: attempt,
+        requestMode: requestMode,
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }
@@ -370,6 +446,12 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       statusCode: response.statusCode,
       rawResponse: rawResponse,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: metadata?.screenMounted,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -386,6 +468,13 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'HTTP ${response.statusCode} error',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: attempt,
+        requestMode: requestMode,
+        screenMounted: metadata?.screenMounted,
+        statusCode: response.statusCode,
       );
       throw exception;
     }
@@ -400,6 +489,12 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Provider returned unexpected format (not a JSON map)',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: attempt,
+        requestMode: requestMode,
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }
@@ -420,6 +515,7 @@ Reply only with JSON, no markdown.
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    required final AiRequestMetadata? metadata,
     required final bool fastMode,
     required final NarrationDeltaCallback onNarrationDelta,
     final CancelToken? cancelToken,
@@ -442,6 +538,12 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       requestBody: requestBody,
       settings: settings,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: 0,
+      requestMode: 'streaming',
+      screenMounted: metadata?.screenMounted,
     );
 
     final http.Request request = http.Request('POST', uri)
@@ -464,6 +566,12 @@ Reply only with JSON, no markdown.
         message:
             'Streaming timeout after ${_effectiveTimeoutSeconds(settings)}s',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }
@@ -476,6 +584,12 @@ Reply only with JSON, no markdown.
         endpoint: uri.toString(),
         statusCode: response.statusCode,
         rawResponse: rawResponse,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
       );
       final AiTurnException exception = AiTurnException(
         userMessage: _friendlyAiEndpointError(
@@ -490,6 +604,13 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Streaming HTTP ${response.statusCode} error',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
+        statusCode: response.statusCode,
       );
       client.close();
       throw exception;
@@ -586,6 +707,12 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       statusCode: response.statusCode,
       rawResponse: rawResponse,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: 0,
+      requestMode: 'streaming',
+      screenMounted: metadata?.screenMounted,
     );
 
     final String jsonString = _extractJson(rawResponse, language);
@@ -599,6 +726,12 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Streamed model output was not valid JSON',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }

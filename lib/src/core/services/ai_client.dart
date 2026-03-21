@@ -32,6 +32,20 @@ class AiCancelException implements Exception {
 
 typedef NarrationDeltaCallback = void Function(String narration);
 
+class AiRequestMetadata {
+  const AiRequestMetadata({
+    required this.flowId,
+    required this.campaignId,
+    required this.triggerSource,
+    required this.screenMounted,
+  });
+
+  final String flowId;
+  final String campaignId;
+  final String triggerSource;
+  final bool screenMounted;
+}
+
 abstract class AiClient {
   Future<void> checkConnection({required AiSettings settings});
 
@@ -42,6 +56,7 @@ abstract class AiClient {
     required String playerAction,
     required bool suggestionsOnly,
     required DeterministicTurnContext deterministicContext,
+    AiRequestMetadata? metadata,
     NarrationDeltaCallback? onNarrationDelta,
     CancelToken? cancelToken,
   });

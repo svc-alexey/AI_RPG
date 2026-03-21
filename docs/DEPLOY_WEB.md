@@ -42,6 +42,13 @@ After the CTA press, the landing now stays visible as a staged loader:
 - the overlay is removed only after Flutter signals that the ready UI rendered;
 - there is also a fallback removal path in case a mobile browser delays or drops that ready signal.
 
+The shipped web client also exposes mobile-browser diagnostics for the first AI turn:
+
+- AI request lifecycle events are written as structured browser console logs under the `AI_PRG_DIAG` channel;
+- the first campaign intro turn carries a correlation id across controller start, streaming fallback, retries, responses, and terminal errors;
+- the chat screen shows a small on-screen diagnostics panel on web so recent events remain visible even when remote devtools are inconvenient on a phone;
+- duplicate submissions are ignored while a turn is already in flight, which helps separate real provider retries from UI-level double triggers.
+
 For local development there is one intentional exception:
 
 - on `localhost`, `127.0.0.1`, and `0.0.0.0`, the landing still renders first, but Flutter auto-starts right away;
@@ -59,3 +66,4 @@ For local development there is one intentional exception:
 - If the landing page appears but the app never launches, verify that the deployed `flutter_bootstrap.js` still contains the deferred launch hook and was not replaced by an older eager-start build artifact.
 - If Flutter appears to start but the landing overlay never leaves, verify that both `index.html` and `main.dart.js` come from the same build and then force-refresh the site on the device.
 - If local browser debugging fails after pressing `Play`, confirm you are testing a real deployed build rather than the local debug server path; deferred launch is for deployed web, while localhost intentionally auto-starts.
+- If a tester reports that the first story generation repeats several times on mobile web, inspect the `AI_PRG_DIAG` console events and compare `flowId`, `triggerSource`, `requestMode`, and `attempt` before blaming the model.

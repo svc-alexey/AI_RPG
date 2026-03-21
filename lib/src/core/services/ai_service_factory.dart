@@ -32,6 +32,7 @@ class _DemoAiClient implements AiClient {
     required final String playerAction,
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {

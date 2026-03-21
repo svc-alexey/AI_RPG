@@ -2,11 +2,13 @@ import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
 import 'package:ai_prg/src/features/chat/widgets/state_change_overlay_stack.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,6 +23,8 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen>
     with WidgetsBindingObserver {
+  static final Set<String> _introTriggeredCampaignIds = <String>{};
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -30,11 +34,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   @override
   void initState() {
     super.initState();
+    _didTriggerIntro = _introTriggeredCampaignIds.contains(widget.campaignId);
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    AppLogger.logDiagnostic(
+      level: 'INFO',
+      event: 'chat_screen_dispose',
+      message: 'ChatScreen disposed.',
+      campaignId: widget.campaignId,
+      screenMounted: false,
+    );
     WidgetsBinding.instance.removeObserver(this);
     _inputController.dispose();
     _scrollController.dispose();
@@ -79,16 +91,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
 
       if (!_didTriggerIntro &&
+          !_introTriggeredCampaignIds.contains(widget.campaignId) &&
           !next.isLoading &&
           next.campaign != null &&
           next.campaign!.messages.isEmpty &&
           !next.isSending) {
         _didTriggerIntro = true;
+        _introTriggeredCampaignIds.add(widget.campaignId);
+        AppLogger.logDiagnostic(
+          level: 'INFO',
+          event: 'intro_turn_triggered',
+          message: 'Auto-starting intro turn for empty campaign.',
+          campaignId: widget.campaignId,
+          triggerSource: 'intro',
+          screenMounted: mounted,
+        );
         controller.runTurn(
           l10n: l10n,
           action: '',
           suggestionsOnly: false,
           isIntro: true,
+          triggerSource: 'intro',
         );
       }
     });
@@ -380,6 +403,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               StateChangeOverlayStack(
                 notifications: chatState.transientNotifications,
               ),
+              if (kIsWeb) _WebDiagnosticsPanel(campaignId: widget.campaignId),
             ],
           ),
         ),
@@ -433,18 +457,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     SizedBox(height: compactMobileComposer ? 4 : 8),
                     Align(
                       alignment: Alignment.centerRight,
-                          child: chatState.isSending
-                              ? TextButton(
-                                  onPressed: controller.cancelGeneration,
-                                  child: Text(l10n.cancel),
-                                )
-                              : IconButton.filled(
-                                  onPressed: () => _submitAction(
-                                    controller: controller,
-                                    action: _inputController.text,
-                                  ),
-                                  icon: const Icon(Icons.send_rounded),
-                                  tooltip: l10n.send,
+                      child: chatState.isSending
+                          ? TextButton(
+                              onPressed: controller.cancelGeneration,
+                              child: Text(l10n.cancel),
+                            )
+                          : IconButton.filled(
+                              onPressed: () => _submitAction(
+                                controller: controller,
+                                action: _inputController.text,
+                              ),
+                              icon: const Icon(Icons.send_rounded),
+                              tooltip: l10n.send,
                             ),
                     ),
                   ],
@@ -696,6 +720,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     required final ChatController controller,
     required final String action,
   }) {
+    if (!mounted) {
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     controller.runTurn(
       l10n: context.l10n,
@@ -734,6 +761,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       if (_scrollController.hasClients) {
         final double offset = _scrollController.position.maxScrollExtent;
         if (animated) {
@@ -748,6 +778,80 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     });
   }
+}
+
+class _WebDiagnosticsPanel extends StatelessWidget {
+  const _WebDiagnosticsPanel({required this.campaignId});
+
+  final String campaignId;
+
+  @override
+  Widget build(
+    final BuildContext context,
+  ) => ValueListenableBuilder<List<AppDiagnosticEvent>>(
+    valueListenable: AppLogger.diagnosticsListenable,
+    builder: (final context, final events, _) {
+      final List<AppDiagnosticEvent> campaignEvents = events
+          .where(
+            (final item) =>
+                item.campaignId == null || item.campaignId == campaignId,
+          )
+          .toList();
+      if (campaignEvents.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      final List<AppDiagnosticEvent> recent = campaignEvents.length <= 6
+          ? campaignEvents
+          : campaignEvents.sublist(campaignEvents.length - 6);
+      final AppResponsiveData responsive = context.responsive;
+
+      return Positioned(
+        top: responsive.isCompact ? 8 : 12,
+        right: responsive.isCompact ? 8 : 12,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: responsive.isCompact ? 220 : 300,
+          ),
+          child: Opacity(
+            opacity: 0.94,
+            child: AetherCard(
+              padding: EdgeInsets.all(responsive.isCompact ? 10 : 12),
+              borderColor: AetherPalette.gold.withValues(alpha: 0.45),
+              child: DefaultTextStyle(
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                  color: AetherPalette.textPrimary,
+                  fontSize: responsive.isCompact ? 10 : 11,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      'Web diagnostics',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AetherPalette.gold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    for (final AppDiagnosticEvent event in recent)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '[${event.level}] ${event.event}: ${event.message}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _SidebarSectionTitle extends StatelessWidget {
