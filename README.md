@@ -102,6 +102,8 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
   - compact module icons with tooltips
   - portrait card under the hero name
   - no user-visible `Enabled by prompt` / `Enabled by setting` copy
+- in-game quick choices on the campaign screen now submit immediately on tap instead of only filling the composer first
+- the chat composer now also submits the current action on `Enter`, matching the send button behavior
 
 ## Recent fixes
 
@@ -109,6 +111,7 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - pending narrator bubbles now render with a softer, more readable typing experience;
 - the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
 - the mobile chat layout now hides nonessential top chrome while the keyboard is open, preventing bottom overflow on small screens;
+- overlay choice actions in chat now trigger an immediate turn submission instead of waiting for a second explicit send tap;
 - the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
 - widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.
 - custom prompt generation now has a tested local fallback that prevents silent no-op behavior when AI prompt expansion fails.

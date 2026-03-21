@@ -283,7 +283,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         child: OverlayChoiceStack(
                           choices: campaign.choices.take(3).toList(),
                           onChoiceSelected: (final choice) {
-                            _inputController.text = choice;
+                            _submitAction(
+                              controller: controller,
+                              action: choice,
+                            );
                           },
                           enabled: !chatState.isSending,
                         ),
@@ -412,6 +415,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       controller: _inputController,
                       minLines: 1,
                       maxLines: compactMobileComposer ? 3 : 4,
+                      onSubmitted: (_) => _submitAction(
+                        controller: controller,
+                        action: _inputController.text,
+                      ),
                       decoration: const InputDecoration(
                         hintText: '',
                         border: InputBorder.none,
@@ -432,10 +439,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               child: Text(l10n.cancel),
                             )
                           : IconButton.filled(
-                              onPressed: () => controller.runTurn(
-                                l10n: l10n,
+                              onPressed: () => _submitAction(
+                                controller: controller,
                                 action: _inputController.text,
-                                suggestionsOnly: false,
                               ),
                               icon: const Icon(Icons.send_rounded),
                               tooltip: l10n.send,
@@ -452,6 +458,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         controller: _inputController,
                         minLines: 1,
                         maxLines: 4,
+                        onSubmitted: (_) => _submitAction(
+                          controller: controller,
+                          action: _inputController.text,
+                        ),
                         decoration: InputDecoration(
                           hintText: l10n.chatInputHint,
                           border: InputBorder.none,
@@ -477,10 +487,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       )
                     else
                       IconButton.filled(
-                        onPressed: () => controller.runTurn(
-                          l10n: l10n,
+                        onPressed: () => _submitAction(
+                          controller: controller,
                           action: _inputController.text,
-                          suggestionsOnly: false,
                         ),
                         icon: const Icon(Icons.send_rounded),
                         tooltip: l10n.send,
@@ -680,6 +689,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
       (_) => false,
+    );
+  }
+
+  void _submitAction({
+    required final ChatController controller,
+    required final String action,
+  }) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    controller.runTurn(
+      l10n: context.l10n,
+      action: action,
+      suggestionsOnly: false,
     );
   }
 
@@ -1218,3 +1239,4 @@ class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
     return 1.0 - ((-value) % 1.0);
   }
 }
+
