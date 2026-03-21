@@ -433,18 +433,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     SizedBox(height: compactMobileComposer ? 4 : 8),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: chatState.isSending
-                          ? TextButton(
-                              onPressed: controller.cancelGeneration,
-                              child: Text(l10n.cancel),
-                            )
-                          : IconButton.filled(
-                              onPressed: () => _submitAction(
-                                controller: controller,
-                                action: _inputController.text,
-                              ),
-                              icon: const Icon(Icons.send_rounded),
-                              tooltip: l10n.send,
+                          child: chatState.isSending
+                              ? TextButton(
+                                  onPressed: controller.cancelGeneration,
+                                  child: Text(l10n.cancel),
+                                )
+                              : IconButton.filled(
+                                  onPressed: () => _submitAction(
+                                    controller: controller,
+                                    action: _inputController.text,
+                                  ),
+                                  icon: const Icon(Icons.send_rounded),
+                                  tooltip: l10n.send,
                             ),
                     ),
                   ],
@@ -1157,21 +1157,19 @@ class _StreamingNarrationContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 160),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeOut,
-          transitionBuilder: (final child, final animation) =>
-              FadeTransition(opacity: animation, child: child),
-          child: Text(
-            resolvedText.isEmpty ? placeholder : resolvedText,
-            key: ValueKey<String>(resolvedText),
-            style: textTheme.bodyLarge?.copyWith(
-              color: resolvedText.isEmpty
-                  ? AetherPalette.textMuted
-                  : AetherPalette.textPrimary,
-              fontSize: isNarrow ? 14 : 16,
-            ),
+        Text(
+          resolvedText.isEmpty ? placeholder : resolvedText,
+          style: textTheme.bodyLarge?.copyWith(
+            color: resolvedText.isEmpty
+                ? AetherPalette.textMuted
+                : AetherPalette.textPrimary,
+            fontSize: isNarrow ? 14 : 16,
+            height: 1.3,
+          ),
+          strutStyle: StrutStyle(
+            fontSize: isNarrow ? 14 : 16,
+            height: 1.3,
+            forceStrutHeight: true,
           ),
         ),
         const SizedBox(height: 10),
@@ -1239,4 +1237,3 @@ class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
     return 1.0 - ((-value) % 1.0);
   }
 }
-
