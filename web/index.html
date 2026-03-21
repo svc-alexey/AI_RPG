@@ -37,11 +37,12 @@
   <style>
     /* Splash screen — AetherPalette.background (#17121F), виден до монтирования Flutter */
     html, body {
+      --app-height: 100vh;
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%;
-      min-height: 100vh;
+      height: var(--app-height);
+      min-height: var(--app-height);
       overflow: hidden;
       background: #17121F;
       display: flex;
@@ -115,6 +116,37 @@
         if (loadingContainer) {
           loadingContainer.remove();
         }
+      }
+
+      function syncViewportHeight() {
+        const viewport = window.visualViewport;
+        const nextHeight = viewport ? viewport.height : window.innerHeight;
+        const height = `${Math.round(nextHeight)}px`;
+        document.documentElement.style.setProperty('--app-height', height);
+        document.documentElement.style.height = height;
+        document.body.style.height = height;
+        document.body.style.minHeight = height;
+      }
+
+      function refreshViewportMetrics() {
+        syncViewportHeight();
+        window.dispatchEvent(new Event('resize'));
+      }
+
+      syncViewportHeight();
+      window.addEventListener('resize', syncViewportHeight);
+      window.addEventListener('orientationchange', refreshViewportMetrics);
+      window.addEventListener('focus', refreshViewportMetrics);
+      window.addEventListener('pageshow', refreshViewportMetrics);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+          window.setTimeout(refreshViewportMetrics, 0);
+          window.setTimeout(refreshViewportMetrics, 180);
+        }
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncViewportHeight);
+        window.visualViewport.addEventListener('scroll', syncViewportHeight);
       }
 
       const slowLoadTimer = window.setTimeout(() => {

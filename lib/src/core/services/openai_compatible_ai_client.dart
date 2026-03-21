@@ -200,6 +200,7 @@ Reply only with JSON, no markdown.
     const List<int> backoffMs = [0, 2000, 5000]; // 0s, 2s, 5s
 
     int attemptCount = 0;
+    final bool fastMode = _shouldUseFastMode(settings);
 
     while (attemptCount < maxAttempts) {
       try {
@@ -213,17 +214,6 @@ Reply only with JSON, no markdown.
           );
         }
 
-        final Future<TurnResult> turnFuture = _requestTurn(
-          settings: settings,
-          language: language,
-          state: state,
-          playerAction: playerAction,
-          suggestionsOnly: suggestionsOnly,
-          deterministicContext: deterministicContext,
-          fastMode: _shouldUseFastMode(settings),
-          onNarrationDelta: onNarrationDelta,
-        );
-
         if (!suggestionsOnly && onNarrationDelta != null) {
           try {
             final Future<TurnResult> streamFuture = _requestTurnStreaming(
@@ -233,7 +223,7 @@ Reply only with JSON, no markdown.
               playerAction: playerAction,
               suggestionsOnly: suggestionsOnly,
               deterministicContext: deterministicContext,
-              fastMode: _shouldUseFastMode(settings),
+              fastMode: fastMode,
               onNarrationDelta: onNarrationDelta,
               cancelToken: cancelToken,
             );
@@ -260,6 +250,17 @@ Reply only with JSON, no markdown.
             );
           }
         }
+
+        final Future<TurnResult> turnFuture = _requestTurn(
+          settings: settings,
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
+          fastMode: fastMode,
+          onNarrationDelta: onNarrationDelta,
+        );
 
         if (cancelToken != null) {
           return await Future.any(<Future<TurnResult>>[

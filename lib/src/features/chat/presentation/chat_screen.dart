@@ -18,7 +18,8 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -26,10 +27,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _didTriggerIntro = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom(animated: false);
+      });
+    }
   }
 
   @override
@@ -50,8 +68,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _inputController.clear();
       }
 
-      if (_shouldScroll(previous, next)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      final _ScrollMode scrollMode = _resolveScrollMode(previous, next);
+      if (scrollMode != _ScrollMode.none) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _scrollToBottom(animated: scrollMode == _ScrollMode.animate),
+        );
       }
 
       if (!_didTriggerIntro &&
@@ -222,6 +243,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     final ChatMessage message = visibleMessages[index];
                     final bool isPlayer = message.role == ChatRole.player;
                     final bool isSystem = message.role == ChatRole.system;
+                    final bool isPendingNarrator =
+                        chatState.isSending &&
+                        message.id == 'pending_narrator' &&
+                        message.role == ChatRole.narrator;
 
                     return Padding(
                       padding: EdgeInsets.only(
@@ -247,6 +272,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 ? AetherPalette.panelSoft.withValues(
                                     alpha: 0.92,
                                   )
+                                : isPendingNarrator
+                                ? AetherPalette.panelSoft.withValues(
+                                    alpha: 0.98,
+                                  )
                                 : AetherPalette.panel.withValues(alpha: 0.96),
                             borderRadius: BorderRadius.circular(
                               isNarrow ? 16 : 20,
@@ -255,20 +284,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               color:
                                   (isPlayer
                                           ? AetherPalette.accent
+                                          : isPendingNarrator
+                                          ? AetherPalette.accentSoft
                                           : AetherPalette.panelBorder)
                                       .withValues(alpha: 0.45),
                             ),
+                            boxShadow: isPendingNarrator
+                                ? <BoxShadow>[
+                                    BoxShadow(
+                                      color: AetherPalette.accent.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      blurRadius: 22,
+                                      spreadRadius: -8,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ]
+                                : const <BoxShadow>[],
                           ),
-                          child: Text(
-                            message.text,
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: isSystem
-                                      ? AetherPalette.textMuted
-                                      : AetherPalette.textPrimary,
-                                  fontSize: isNarrow ? 14 : 16,
+                          child: isPendingNarrator
+                              ? _StreamingNarrationContent(
+                                  text: message.text,
+                                  placeholder: l10n.generatingResponse,
+                                  isNarrow: isNarrow,
+                                )
+                              : Text(
+                                  message.text,
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: isSystem
+                                            ? AetherPalette.textMuted
+                                            : AetherPalette.textPrimary,
+                                        fontSize: isNarrow ? 14 : 16,
+                                      ),
                                 ),
-                          ),
                         ),
                       ),
                     );
@@ -624,9 +673,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  bool _shouldScroll(final ChatViewState? previous, final ChatViewState next) {
+  _ScrollMode _resolveScrollMode(
+    final ChatViewState? previous,
+    final ChatViewState next,
+  ) {
     if (previous == null) {
-      return !next.isLoading;
+      return next.isLoading ? _ScrollMode.none : _ScrollMode.animate;
     }
 
     final bool visibleCountChanged =
@@ -636,21 +688,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         next.pendingNarratorMessage?.text;
     final bool finishedSending = previous.isSending && !next.isSending;
 
-    return visibleCountChanged || narratorChanged || finishedSending;
+    if (visibleCountChanged || finishedSending) {
+      return _ScrollMode.animate;
+    }
+    if (narratorChanged) {
+      return _ScrollMode.jump;
+    }
+    return _ScrollMode.none;
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({required final bool animated}) {
     if (!_scrollController.hasClients) {
       return;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        final double offset = _scrollController.position.maxScrollExtent;
+        if (animated) {
+          _scrollController.animateTo(
+            offset,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+          );
+          return;
+        }
+        _scrollController.jumpTo(offset);
       }
     });
   }
@@ -745,3 +808,127 @@ class _ModuleHeader extends StatelessWidget {
 }
 
 enum _ModuleHighlightState { none, updated, newlyUnlocked }
+
+enum _ScrollMode { none, jump, animate }
+
+class _StreamingNarrationContent extends StatelessWidget {
+  const _StreamingNarrationContent({
+    required this.text,
+    required this.placeholder,
+    required this.isNarrow,
+  });
+
+  final String text;
+  final String placeholder;
+  final bool isNarrow;
+
+  @override
+  Widget build(final BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final String resolvedText = text.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: isNarrow ? 14 : 16,
+              color: AetherPalette.accent,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              placeholder,
+              style: textTheme.labelLarge?.copyWith(
+                color: AetherPalette.accent.withValues(alpha: 0.92),
+                fontSize: isNarrow ? 11 : 12,
+                letterSpacing: 0.9,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 160),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeOut,
+          transitionBuilder: (final child, final animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: Text(
+            resolvedText.isEmpty ? placeholder : resolvedText,
+            key: ValueKey<String>(resolvedText),
+            style: textTheme.bodyLarge?.copyWith(
+              color: resolvedText.isEmpty
+                  ? AetherPalette.textMuted
+                  : AetherPalette.textPrimary,
+              fontSize: isNarrow ? 14 : 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        const _TypingPulseIndicator(),
+      ],
+    );
+  }
+}
+
+class _TypingPulseIndicator extends StatefulWidget {
+  const _TypingPulseIndicator();
+
+  @override
+  State<_TypingPulseIndicator> createState() => _TypingPulseIndicatorState();
+}
+
+class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => SizedBox(
+    width: 34,
+    child: AnimatedBuilder(
+      animation: _controller,
+      builder: (final context, _) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List<Widget>.generate(3, (final index) {
+          final double phase = _wrappedPhase(
+            _controller.value - (index * 0.16),
+          );
+          final double intensity = (1 - ((phase * 2) - 1).abs()).clamp(
+            0.2,
+            1.0,
+          );
+
+          return Container(
+            width: 6,
+            height: 6 + (2 * intensity),
+            decoration: BoxDecoration(
+              color: AetherPalette.accent.withValues(
+                alpha: 0.35 + (0.55 * intensity),
+              ),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          );
+        }),
+      ),
+    ),
+  );
+
+  double _wrappedPhase(final double value) {
+    if (value >= 0) {
+      return value % 1.0;
+    }
+    return 1.0 - ((-value) % 1.0);
+  }
+}

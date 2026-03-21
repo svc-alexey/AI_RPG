@@ -107,6 +107,8 @@ class ChatViewState {
 }
 
 class ChatController extends StateNotifier<ChatViewState> {
+  static const Duration _streamUpdateInterval = Duration(milliseconds: 48);
+
   ChatController(this._ref, this._campaignId)
     : super(const ChatViewState.initial());
 
@@ -115,6 +117,9 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   CancelToken? _cancelToken;
   Timer? _notificationTimer;
+  Timer? _narrationTimer;
+  DateTime? _lastNarrationUpdateAt;
+  String? _bufferedNarration;
   bool _didLoad = false;
   bool _disposed = false;
 
@@ -136,6 +141,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     _disposed = true;
     _cancelToken?.cancel();
     _notificationTimer?.cancel();
+    _narrationTimer?.cancel();
     super.dispose();
   }
 
@@ -209,6 +215,10 @@ class ChatController extends StateNotifier<ChatViewState> {
     final CancelToken cancelToken = CancelToken();
     final DateTime now = DateTime.now();
     _cancelToken = cancelToken;
+    _narrationTimer?.cancel();
+    _narrationTimer = null;
+    _lastNarrationUpdateAt = null;
+    _bufferedNarration = null;
 
     state = state.copyWith(
       isSending: true,
@@ -281,6 +291,10 @@ class ChatController extends StateNotifier<ChatViewState> {
         previousCampaign: campaign,
         nextCampaign: turnApplication.state,
       );
+      _narrationTimer?.cancel();
+      _narrationTimer = null;
+      _lastNarrationUpdateAt = null;
+      _bufferedNarration = null;
       state = state.copyWith(
         campaign: turnApplication.state,
         settings: settings,
@@ -367,6 +381,32 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
+    _bufferedNarration = narration;
+    final DateTime now = DateTime.now();
+    final Duration elapsed = _lastNarrationUpdateAt == null
+        ? _streamUpdateInterval
+        : now.difference(_lastNarrationUpdateAt!);
+
+    if (elapsed >= _streamUpdateInterval) {
+      _flushPendingNarration(createdAt: createdAt);
+      return;
+    }
+
+    _narrationTimer?.cancel();
+    _narrationTimer = Timer(_streamUpdateInterval - elapsed, () {
+      _flushPendingNarration(createdAt: createdAt);
+    });
+  }
+
+  void _flushPendingNarration({required final DateTime createdAt}) {
+    final String narration = (_bufferedNarration ?? '').trimRight();
+    if (_disposed || narration.isEmpty) {
+      return;
+    }
+
+    _narrationTimer?.cancel();
+    _narrationTimer = null;
+    _lastNarrationUpdateAt = DateTime.now();
     state = state.copyWith(
       pendingNarratorMessage: ChatMessage(
         id: 'pending_narrator',
@@ -382,6 +422,10 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
+    _narrationTimer?.cancel();
+    _narrationTimer = null;
+    _lastNarrationUpdateAt = null;
+    _bufferedNarration = null;
     state = state.copyWith(
       pendingPlayerMessage: null,
       pendingNarratorMessage: null,

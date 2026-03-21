@@ -23,10 +23,13 @@ The script:
 - runs `flutter build web`;
 - patches Flutter's generated `flutter_bootstrap.js`;
 - disables service-worker-based startup in the final bootstrap path;
-- keeps a mobile-friendly loading/error message in the browser splash.
+- keeps a mobile-friendly loading/error message in the browser splash;
+- preserves the custom `index.html` viewport recovery logic used for mobile-browser resume cases.
 
 ## Deploy notes
 
 - Deploy the contents of `build/web`.
 - If a phone keeps showing an old endless loader, clear site data/cache for that domain before retrying.
 - For local network testing, you can serve `build/web` over HTTP and open it from the phone on the same Wi-Fi network.
+- The shipped `web/index.html` listens to `visualViewport`, `pageshow`, `focus`, and `visibilitychange` to resync height after app switching on mobile browsers.
+- If a tester reports an empty area where the keyboard used to be after returning to the browser, verify that the latest built `index.html` was deployed together with the rest of `build/web`.

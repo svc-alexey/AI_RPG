@@ -13,13 +13,16 @@ The project has already moved beyond the original MVP baseline. The current code
 - campaign creation, saves, chat, and settings flows managed through controllers/providers;
 - provider-scoped AI settings and runtime controls for `max response tokens`, `context window`, and quick profiles;
 - real response streaming in chat for OpenAI-compatible endpoints, with automatic fallback to standard completions;
+- deduplicated AI turn generation so streaming and fallback no longer produce double requests or rewritten final answers;
+- smoother chat rendering during narration streaming with throttled preview updates, calmer autoscroll, and a polished pending-response bubble;
 - hybrid context assembly with `static header`, `dynamic summary`, `recent buffer`, and runtime-aware prompt trimming;
 - module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
 - rule-based entity extraction and reconciliation before persistence for active modules only;
 - adaptive sidebar panels and transient overlays for state changes and module unlocks;
 - demo-mode AI fallback when no model is configured;
 - a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
-- soft page/backdrop animations that now also run on desktop outside test mode.
+- soft page/backdrop animations that now also run on desktop outside test mode;
+- mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content.
 
 ## Current architecture
 
@@ -71,3 +74,9 @@ powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
 ```
 
 See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobile-browser notes.
+
+## Recent fixes
+
+- chat streaming no longer races a second standard completion request in the background;
+- pending narrator bubbles now render with a softer, more readable typing experience;
+- the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground.
