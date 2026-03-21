@@ -48,6 +48,7 @@ The shipped web client also exposes mobile-browser diagnostics for the first AI 
 - the first campaign intro turn carries a correlation id across controller start, streaming fallback, retries, responses, and terminal errors;
 - the chat screen shows a small on-screen diagnostics panel on web so recent events remain visible even when remote devtools are inconvenient on a phone;
 - duplicate submissions are ignored while a turn is already in flight, which helps separate real provider retries from UI-level double triggers.
+- for OpenAI-compatible providers, the web chat now keeps a stable `Generating response...` bubble while the provider drafts internally, then reveals only the completed narrator answer with a soft final-text entrance; speculative intermediate stream text is no longer shown to the player.
 
 For local development there is one intentional exception:
 
@@ -67,5 +68,6 @@ For local development there is one intentional exception:
 - If Flutter appears to start but the landing overlay never leaves, verify that both `index.html` and `main.dart.js` come from the same build, then force-refresh the site on the device so the first-frame bridge and web bootstrap stay in sync.
 - If local browser debugging fails after pressing `Play`, confirm you are testing a real deployed build rather than the local debug server path; deferred launch is for deployed web, while localhost intentionally auto-starts.
 - If a tester reports that the first story generation repeats several times on mobile web, inspect the `AI_PRG_DIAG` console events and compare `flowId`, `triggerSource`, `requestMode`, and `attempt` before blaming the model.
+- If a tester reports a token-limit error on mobile web, confirm whether the provider exhausted the configured response budget; OpenAI-compatible flows now retry final-turn fetches with a larger `max_tokens`, but very small runtime limits can still surface provider-side truncation.
 - If you want to test from a phone against the local debug server, start Flutter with `--web-hostname 0.0.0.0 --web-port 8080` and open `http://<pc-lan-ip>:8080/?autostart=1` on the phone.
 - If the phone also needs the local Sber proxy, set `SBER_PROXY_HOST=0.0.0.0` before running `dart run tool/sber_proxy.dart`, then point the app to `http://<pc-lan-ip>:8787/v1` rather than `127.0.0.1`.

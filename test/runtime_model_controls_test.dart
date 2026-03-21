@@ -139,6 +139,78 @@ void main() {
     expect(client.extractNarrationPreview('{"choices":["Wait"]}'), isNull);
   });
 
+  test('Client detects token-limit finish reasons across response formats', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(
+      client.responseHitTokenLimitForTesting(<String, Object?>{
+        'choices': <Object?>[
+          <String, Object?>{'finish_reason': 'length'},
+        ],
+      }),
+      isTrue,
+    );
+    expect(
+      client.responseHitTokenLimitForTesting(<String, Object?>{
+        'choices': <Object?>[
+          <String, Object?>{'finishReason': 'max_output_tokens'},
+        ],
+      }),
+      isTrue,
+    );
+    expect(
+      client.responseHitTokenLimitForTesting(<String, Object?>{
+        'choices': <Object?>[
+          <String, Object?>{'finish_reason': 'stop'},
+        ],
+      }),
+      isFalse,
+    );
+  });
+
+  test('Client expands max tokens conservatively and caps at provider limit', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(client.expandedMaxTokensForTesting(256), 512);
+    expect(
+      client.expandedMaxTokensForTesting(ModelRuntimeSettings.maxMaxResponseTokens),
+      ModelRuntimeSettings.maxMaxResponseTokens,
+    );
+  });
+
+  test('Client extracts content from message content arrays', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    final String content = client.extractChoiceContentForTesting(<String, Object?>{
+      'message': <String, Object?>{
+        'content': <Object?>[
+          <String, Object?>{'type': 'text', 'text': '{"narration":"Scene"}'},
+        ],
+      },
+    });
+
+    expect(content, '{"narration":"Scene"}');
+  });
+
+  test('Stream chunk merge avoids duplicating cumulative provider output', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(
+      client.mergeStreamChunkForTesting(
+        existing: '{"narration":"You enter',
+        incoming: '{"narration":"You enter the room',
+      ),
+      '{"narration":"You enter the room',
+    );
+    expect(
+      client.mergeStreamChunkForTesting(
+        existing: '{"narration":"You enter',
+        incoming: ' the room',
+      ),
+      '{"narration":"You enter the room',
+    );
+  });
+
   test('Deterministic check context is embedded into AI requests', () {
     final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
     const GameEngine engine = GameEngine();

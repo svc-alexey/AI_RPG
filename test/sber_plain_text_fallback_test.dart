@@ -94,4 +94,31 @@ void main() {
     expect(result.choices, <String>['Check the console', 'Open the hatch']);
     expect(result.stateChanges.location, 'Maintenance shaft');
   });
+
+  test('Truncated JSON narration is recovered instead of shown raw', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    final result = client.parseTurnContentForTesting(
+      rawContent: '''
+{"narration":"Ты встаёшь, потирая запястья, и в груди разгорается привычное покалывание маны. Сквозь решётку падает серый свет
+''',
+      language: AppLanguage.ru,
+    );
+
+    expect(result.narration, startsWith('Ты встаёшь, потирая запястья'));
+    expect(result.narration, isNot(contains('{"narration"')));
+  });
+  test('Choice-only JSON does not resolve to silence fallback narration', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(
+      () => client.parseTurnContentForTesting(
+        rawContent: '''
+{"choices":["Grab the tail","Dive deeper"]}
+''',
+        language: AppLanguage.en,
+      ),
+      throwsA(isA<Exception>()),
+    );
+  });
 }

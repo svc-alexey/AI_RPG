@@ -459,44 +459,11 @@ class ChatController extends StateNotifier<ChatViewState> {
     required final String narration,
     required final DateTime createdAt,
   }) {
+    // Some providers stream speculative text that gets revised mid-generation.
+    // Keep the UI on a stable "generating" placeholder until the final turn lands.
     if (_disposed || narration.trim().isEmpty) {
       return;
     }
-
-    _bufferedNarration = narration;
-    final DateTime now = DateTime.now();
-    final Duration elapsed = _lastNarrationUpdateAt == null
-        ? _streamUpdateInterval
-        : now.difference(_lastNarrationUpdateAt!);
-
-    if (elapsed >= _streamUpdateInterval) {
-      _flushPendingNarration(createdAt: createdAt);
-      return;
-    }
-
-    _narrationTimer?.cancel();
-    _narrationTimer = Timer(_streamUpdateInterval - elapsed, () {
-      _flushPendingNarration(createdAt: createdAt);
-    });
-  }
-
-  void _flushPendingNarration({required final DateTime createdAt}) {
-    final String narration = (_bufferedNarration ?? '').trimRight();
-    if (_disposed || narration.isEmpty) {
-      return;
-    }
-
-    _narrationTimer?.cancel();
-    _narrationTimer = null;
-    _lastNarrationUpdateAt = DateTime.now();
-    state = state.copyWith(
-      pendingNarratorMessage: ChatMessage(
-        id: 'pending_narrator',
-        role: ChatRole.narrator,
-        text: narration,
-        createdAt: state.pendingNarratorMessage?.createdAt ?? createdAt,
-      ),
-    );
   }
 
   void _clearPendingMessages() {

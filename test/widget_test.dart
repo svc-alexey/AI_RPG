@@ -595,7 +595,7 @@ void main() {
   });
 
   testWidgets(
-    'Gameplay chat renders streamed narration before turn completes',
+    'Gameplay chat keeps stable generating placeholder until turn completes',
     (tester) async {
       final CampaignState campaign = _sampleCampaign();
       SharedPreferences.setMockInitialValues(<String, Object>{
@@ -623,7 +623,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
 
-      expect(find.textContaining('The gate groans'), findsOneWidget);
+      expect(find.textContaining('Generating'), findsWidgets);
 
       await tester.pumpAndSettle();
 

@@ -380,6 +380,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   placeholder: l10n.generatingResponse,
                                   isNarrow: isNarrow,
                                 )
+                              : message.role == ChatRole.narrator
+                              ? _AnimatedNarrationMessage(
+                                  key: ValueKey<String>(message.id),
+                                  text: message.text,
+                                  isNarrow: isNarrow,
+                                )
                               : Text(
                                   message.text,
                                   style: Theme.of(context).textTheme.bodyLarge
@@ -746,7 +752,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return _ScrollMode.animate;
     }
     if (narratorChanged) {
-      return _ScrollMode.jump;
+      return _ScrollMode.animate;
     }
     return _ScrollMode.none;
   }
@@ -1201,6 +1207,79 @@ class _StreamingNarrationContent extends StatelessWidget {
         const SizedBox(height: 10),
         const _TypingPulseIndicator(),
       ],
+    );
+  }
+}
+
+class _AnimatedNarrationMessage extends StatefulWidget {
+  const _AnimatedNarrationMessage({
+    required this.text,
+    required this.isNarrow,
+    super.key,
+  });
+
+  final String text;
+  final bool isNarrow;
+
+  @override
+  State<_AnimatedNarrationMessage> createState() =>
+      _AnimatedNarrationMessageState();
+}
+
+class _AnimatedNarrationMessageState extends State<_AnimatedNarrationMessage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 760),
+  )..forward();
+
+  @override
+  void didUpdateWidget(covariant final _AnimatedNarrationMessage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final TextStyle style = Theme.of(context).textTheme.bodyLarge!.copyWith(
+      color: AetherPalette.textPrimary,
+      fontSize: widget.isNarrow ? 14 : 16,
+      height: 1.3,
+    );
+
+    final Animation<double> animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.12, 1.0, curve: Curves.easeOutCubic),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.018),
+          end: Offset.zero,
+        ).animate(animation),
+        child: Text(
+          widget.text,
+          style: style,
+          strutStyle: StrutStyle(
+            fontSize: widget.isNarrow ? 14 : 16,
+            height: 1.3,
+            forceStrutHeight: true,
+          ),
+        ),
+      ),
     );
   }
 }

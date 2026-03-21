@@ -20,6 +20,7 @@ class OpenAiCompatibleAiClient implements AiClient {
   static const TurnPromptBuilder _turnPromptBuilder = TurnPromptBuilder();
   static const CharacterPortraitPromptBuilder _portraitPromptBuilder =
       CharacterPortraitPromptBuilder();
+  static const int _truncationRetryMultiplier = 2;
 
   Map<String, Object?> _jsonMap(final Object? value) {
     if (value is Map) {
@@ -477,6 +478,8 @@ Reply only with JSON, no markdown.
     required final int attempt,
     required final String requestMode,
     required final bool fastMode,
+    final int? maxTokensOverride,
+    final bool allowTruncationRetry = true,
     final NarrationDeltaCallback? onNarrationDelta,
   }) async {
     final Uri uri = Uri.parse(
@@ -490,6 +493,7 @@ Reply only with JSON, no markdown.
       suggestionsOnly: suggestionsOnly,
       deterministicContext: deterministicContext,
       fastMode: fastMode,
+      maxTokensOverride: maxTokensOverride,
     );
 
     AppLogger.logAiRequest(
@@ -586,9 +590,45 @@ Reply only with JSON, no markdown.
       throw exception;
     }
 
+    final Map<String, Object?> responseMap = _jsonMap(decoded);
+    if (allowTruncationRetry && _responseHitTokenLimit(responseMap)) {
+      final int currentMaxTokens =
+          maxTokensOverride ?? settings.maxResponseTokens;
+      final int nextMaxTokens = _expandedMaxTokens(currentMaxTokens);
+      if (nextMaxTokens > currentMaxTokens) {
+        AppLogger.logDiagnostic(
+          level: 'WARN',
+          event: 'ai_truncation_retry',
+          message:
+              'Model response hit token limit, retrying with max_tokens=$nextMaxTokens.',
+          flowId: metadata?.flowId,
+          campaignId: metadata?.campaignId,
+          triggerSource: metadata?.triggerSource,
+          attempt: attempt,
+          requestMode: requestMode,
+          screenMounted: metadata?.screenMounted,
+        );
+        return _requestTurn(
+          settings: settings,
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
+          metadata: metadata,
+          attempt: attempt,
+          requestMode: '$requestMode-token-retry',
+          fastMode: fastMode,
+          maxTokensOverride: nextMaxTokens,
+          allowTruncationRetry: false,
+          onNarrationDelta: onNarrationDelta,
+        );
+      }
+    }
+
     final TurnResult result = _parseTurnResponse(
       rawResponse: rawResponse,
-      responseMap: _jsonMap(decoded),
+      responseMap: responseMap,
       language: language,
     );
     onNarrationDelta?.call(result.narration);
@@ -605,6 +645,8 @@ Reply only with JSON, no markdown.
     required final AiRequestMetadata? metadata,
     required final bool fastMode,
     required final NarrationDeltaCallback onNarrationDelta,
+    final int? maxTokensOverride,
+    final bool allowTruncationRetry = true,
     final CancelToken? cancelToken,
   }) async {
     final Uri uri = Uri.parse(
@@ -618,6 +660,7 @@ Reply only with JSON, no markdown.
       suggestionsOnly: suggestionsOnly,
       deterministicContext: deterministicContext,
       fastMode: fastMode,
+      maxTokensOverride: maxTokensOverride,
       stream: true,
     );
 
@@ -706,6 +749,7 @@ Reply only with JSON, no markdown.
     final StringBuffer rawContent = StringBuffer();
     final StringBuffer eventBuffer = StringBuffer();
     bool cancelled = false;
+    bool responseHitTokenLimit = false;
     String? lastPreview;
     unawaited(cancelToken?.whenCancelled.then((_) => cancelled = true));
 
@@ -729,14 +773,23 @@ Reply only with JSON, no markdown.
         );
       }
 
-      final String chunk = _extractStreamChunk(_jsonMap(decoded));
+      final Map<String, Object?> decodedMap = _jsonMap(decoded);
+      responseHitTokenLimit =
+          responseHitTokenLimit || _responseHitTokenLimit(decodedMap);
+      final String chunk = _extractStreamChunk(decodedMap);
       if (chunk.isEmpty) {
         return;
       }
 
-      rawContent.write(chunk);
+      final String mergedContent = _mergeStreamChunk(
+        existing: rawContent.toString(),
+        incoming: chunk,
+      );
+      rawContent
+        ..clear()
+        ..write(mergedContent);
       final String? preview = extractNarrationPreview(
-        rawContent.toString(),
+        mergedContent,
       )?.trimRight();
       if (preview != null && preview.isNotEmpty && preview != lastPreview) {
         lastPreview = preview;
@@ -802,6 +855,41 @@ Reply only with JSON, no markdown.
       screenMounted: metadata?.screenMounted,
     );
 
+    if (allowTruncationRetry && responseHitTokenLimit) {
+      final int currentMaxTokens =
+          maxTokensOverride ?? settings.maxResponseTokens;
+      final int nextMaxTokens = _expandedMaxTokens(currentMaxTokens);
+      if (nextMaxTokens > currentMaxTokens) {
+        AppLogger.logDiagnostic(
+          level: 'WARN',
+          event: 'ai_stream_truncation_retry',
+          message:
+              'Streaming response hit token limit, retrying standard request with max_tokens=$nextMaxTokens.',
+          flowId: metadata?.flowId,
+          campaignId: metadata?.campaignId,
+          triggerSource: metadata?.triggerSource,
+          attempt: 0,
+          requestMode: 'streaming',
+          screenMounted: metadata?.screenMounted,
+        );
+        return _requestTurn(
+          settings: settings,
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
+          metadata: metadata,
+          attempt: 0,
+          requestMode: 'streaming-token-retry',
+          fastMode: fastMode,
+          maxTokensOverride: nextMaxTokens,
+          allowTruncationRetry: false,
+          onNarrationDelta: onNarrationDelta,
+        );
+      }
+    }
+
     final TurnResult result = _parseRawTurnContent(
       rawContent: rawResponse,
       language: language,
@@ -828,10 +916,11 @@ Reply only with JSON, no markdown.
     required final AiSettings settings,
     required final AppLanguage language,
     required final String metaPrompt,
+    final int? maxTokensOverride,
   }) => <String, Object?>{
     'model': settings.model,
     'temperature': 0.5,
-    'max_tokens': settings.maxResponseTokens,
+    'max_tokens': maxTokensOverride ?? settings.maxResponseTokens,
     'messages': <Map<String, String>>[
       <String, String>{
         'role': 'system',
@@ -853,11 +942,12 @@ Reply only with JSON, no markdown.
     required final bool suggestionsOnly,
     required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
+    final int? maxTokensOverride,
     final bool stream = false,
   }) => <String, Object?>{
     'model': settings.model,
     'temperature': fastMode ? 0.2 : 0.7,
-    'max_tokens': settings.maxResponseTokens,
+    'max_tokens': maxTokensOverride ?? settings.maxResponseTokens,
     if (stream) 'stream': true,
     'messages': <Map<String, String>>[
       <String, String>{
@@ -1206,8 +1296,13 @@ $actionText
     }
 
     final Map<String, Object?> choice = _jsonMap(choices.first);
-    final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String content = _stringValue(message['content']);
+    final String content = _extractChoiceContent(choice).trim();
+    if (content.isEmpty) {
+      final String nestedText = _extractResponseLevelText(responseMap).trim();
+      if (nestedText.isNotEmpty) {
+        return _parseRawTurnContent(rawContent: nestedText, language: language);
+      }
+    }
     return _parseRawTurnContent(rawContent: content, language: language);
   }
 
@@ -1219,7 +1314,10 @@ $actionText
       final String jsonString = _extractJson(rawContent, language);
       final Object? turnDecoded = _safeJsonDecode(jsonString);
       if (turnDecoded is Map) {
-        return TurnResult.fromJson(_jsonMap(turnDecoded));
+        final Map<String, Object?> turnMap = _jsonMap(turnDecoded);
+        if (_hasMeaningfulTurnPayload(turnMap)) {
+          return TurnResult.fromJson(turnMap);
+        }
       }
     } on AiTurnException {
       // Fall back to heuristic parsing for providers that ignore structured output.
@@ -1262,6 +1360,9 @@ $actionText
         .replaceAll('```', '')
         .trim();
     if (cleaned.isEmpty) {
+      return null;
+    }
+    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
       return null;
     }
 
@@ -1361,14 +1462,36 @@ $actionText
       'response',
       'memory_entry',
     ]);
+    final String incompleteNarration = _firstTruncatedStringValue(
+      cleaned,
+      const <String>[
+        'narration',
+        'scene',
+        'story',
+        'description',
+        'text',
+        'response',
+      ],
+    );
     final String location = _firstMatchedValue(cleaned, <String>[
       'location',
       'current_location',
       'place',
       'scene_location',
     ]);
+    final String incompleteLocation = _firstTruncatedStringValue(
+      cleaned,
+      const <String>['location', 'current_location', 'place', 'scene_location'],
+    );
     final List<String> choices = _extractStructuredChoices(cleaned);
-    if (narration.isEmpty && choices.isEmpty && location.isEmpty) {
+    final String resolvedStructuredNarration = narration.isNotEmpty
+        ? narration
+        : incompleteNarration;
+    final String resolvedStructuredLocation = location.isNotEmpty
+        ? location
+        : incompleteLocation;
+    if (resolvedStructuredNarration.isEmpty &&
+        resolvedStructuredLocation.isEmpty) {
       return null;
     }
 
@@ -1387,8 +1510,8 @@ $actionText
             ],
           };
 
-    final String resolvedNarration = narration.isNotEmpty
-        ? narration
+    final String resolvedNarration = resolvedStructuredNarration.isNotEmpty
+        ? resolvedStructuredNarration
         : switch (language) {
             AppLanguage.ru => 'История продолжается.',
             AppLanguage.en => 'The story continues.',
@@ -1397,7 +1520,9 @@ $actionText
     return TurnResult.fromJson(<String, Object?>{
       'narration': resolvedNarration,
       'choices': fallbackChoices,
-      'state_changes': <String, Object?>{'location': location},
+      'state_changes': <String, Object?>{
+        'location': resolvedStructuredLocation,
+      },
       'memory_entry': resolvedNarration,
     });
   }
@@ -1460,6 +1585,102 @@ $actionText
     return '';
   }
 
+  String _firstTruncatedStringValue(
+    final String rawContent,
+    final List<String> keys,
+  ) {
+    for (final String key in keys) {
+      final String resolved = _extractTruncatedStringField(rawContent, key);
+      if (resolved.trim().isNotEmpty) {
+        return resolved.trimRight();
+      }
+    }
+    return '';
+  }
+
+  String _extractTruncatedStringField(
+    final String rawContent,
+    final String key,
+  ) {
+    final int fieldStart = rawContent.indexOf('"$key"');
+    if (fieldStart == -1) {
+      return '';
+    }
+
+    int index = fieldStart + key.length + 2;
+    while (index < rawContent.length &&
+        _isWhitespace(rawContent.codeUnitAt(index))) {
+      index++;
+    }
+    if (index >= rawContent.length || rawContent[index] != ':') {
+      return '';
+    }
+    index++;
+    while (index < rawContent.length &&
+        _isWhitespace(rawContent.codeUnitAt(index))) {
+      index++;
+    }
+    if (index >= rawContent.length || rawContent[index] != '"') {
+      return '';
+    }
+    index++;
+
+    final StringBuffer buffer = StringBuffer();
+    while (index < rawContent.length) {
+      final String char = rawContent[index];
+      if (char == '"') {
+        return buffer.toString();
+      }
+      if (char == r'\') {
+        if (index + 1 >= rawContent.length) {
+          return buffer.toString();
+        }
+        final String escape = rawContent[index + 1];
+        switch (escape) {
+          case '"':
+          case r'\':
+          case '/':
+            buffer.write(escape);
+            break;
+          case 'b':
+            buffer.write('\b');
+            break;
+          case 'f':
+            buffer.write('\f');
+            break;
+          case 'n':
+            buffer.write('\n');
+            break;
+          case 'r':
+            buffer.write('\r');
+            break;
+          case 't':
+            buffer.write('\t');
+            break;
+          case 'u':
+            if (index + 5 >= rawContent.length) {
+              return buffer.toString();
+            }
+            final String codeUnit = rawContent.substring(index + 2, index + 6);
+            final int? parsed = int.tryParse(codeUnit, radix: 16);
+            if (parsed != null) {
+              buffer.writeCharCode(parsed);
+              index += 4;
+            }
+            break;
+          default:
+            buffer.write(escape);
+            break;
+        }
+        index += 2;
+        continue;
+      }
+      buffer.write(char);
+      index++;
+    }
+    return buffer.toString();
+  }
+
   String _unescapeJsonString(final String value) {
     try {
       return jsonDecode('"$value"') as String;
@@ -1492,6 +1713,226 @@ $actionText
   @visibleForTesting
   bool supportsStreamingForTesting(final AiSettings settings) =>
       _supportsStreaming(settings);
+
+  @visibleForTesting
+  bool responseHitTokenLimitForTesting(final Map<String, Object?> responseMap) =>
+      _responseHitTokenLimit(responseMap);
+
+  @visibleForTesting
+  int expandedMaxTokensForTesting(final int currentMaxTokens) =>
+      _expandedMaxTokens(currentMaxTokens);
+
+  @visibleForTesting
+  String extractChoiceContentForTesting(final Map<String, Object?> choice) =>
+      _extractChoiceContent(choice);
+
+  @visibleForTesting
+  String mergeStreamChunkForTesting({
+    required final String existing,
+    required final String incoming,
+  }) => _mergeStreamChunk(existing: existing, incoming: incoming);
+
+  bool _responseHitTokenLimit(final Map<String, Object?> responseMap) {
+    final List<Object?> choices = _jsonList(responseMap['choices']);
+    if (choices.isEmpty) {
+      return false;
+    }
+
+    for (final Object? rawChoice in choices) {
+      final Map<String, Object?> choice = _jsonMap(rawChoice);
+      final String finishReason = _normalizedFinishReason(
+        choice['finish_reason'] ?? choice['finishReason'],
+      );
+      if (_isTokenLimitFinishReason(finishReason)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int _expandedMaxTokens(final int currentMaxTokens) {
+    final int cappedCurrent = currentMaxTokens.clamp(
+      ModelRuntimeSettings.minMaxResponseTokens,
+      ModelRuntimeSettings.maxMaxResponseTokens,
+    );
+    final int expanded = cappedCurrent * _truncationRetryMultiplier;
+    return expanded.clamp(
+      ModelRuntimeSettings.minMaxResponseTokens,
+      ModelRuntimeSettings.maxMaxResponseTokens,
+    );
+  }
+
+  String _normalizedFinishReason(final Object? value) =>
+      _stringValue(value).trim().toLowerCase();
+
+  bool _isTokenLimitFinishReason(final String finishReason) =>
+      finishReason == 'length' ||
+      finishReason == 'max_tokens' ||
+      finishReason == 'max_output_tokens' ||
+      finishReason == 'token_limit' ||
+      finishReason == 'model_length';
+
+  bool _hasMeaningfulTurnPayload(final Map<String, Object?> turnMap) {
+    final String narration = _extractResponseLevelText(turnMap).trim();
+    if (narration.isNotEmpty) {
+      return true;
+    }
+    final String location = _firstMatchedValue(jsonEncode(turnMap), <String>[
+      'location',
+      'current_location',
+      'place',
+      'scene_location',
+    ]).trim();
+    return location.isNotEmpty;
+  }
+
+  String _extractResponseLevelText(final Map<String, Object?> map) {
+    final String direct = _firstNonEmptyJsonString(map, const <String>[
+      'narration',
+      'scene',
+      'story',
+      'description',
+      'text',
+      'response',
+      'memory_entry',
+      'memoryEntry',
+      'output_text',
+      'content',
+    ]);
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+
+    final Map<String, Object?> message = _jsonMap(map['message']);
+    final String messageContent = _extractMessageContent(message);
+    if (messageContent.isNotEmpty) {
+      return messageContent;
+    }
+
+    final List<Object?> output = _jsonList(map['output']);
+    for (final Object? item in output) {
+      final Map<String, Object?> outputItem = _jsonMap(item);
+      final String itemText = _firstNonEmptyJsonString(outputItem, const <String>[
+        'text',
+        'content',
+        'output_text',
+      ]);
+      if (itemText.isNotEmpty) {
+        return itemText;
+      }
+      final List<Object?> content = _jsonList(outputItem['content']);
+      for (final Object? contentItem in content) {
+        final Map<String, Object?> contentMap = _jsonMap(contentItem);
+        final String contentText = _firstNonEmptyJsonString(
+          contentMap,
+          const <String>['text', 'content', 'output_text'],
+        );
+        if (contentText.isNotEmpty) {
+          return contentText;
+        }
+      }
+    }
+    return '';
+  }
+
+  String _extractChoiceContent(final Map<String, Object?> choice) {
+    final Map<String, Object?> message = _jsonMap(choice['message']);
+    final String messageContent = _extractMessageContent(message);
+    if (messageContent.isNotEmpty) {
+      return messageContent;
+    }
+
+    final String text = _stringValue(choice['text']).trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+
+    return _extractResponseLevelText(choice);
+  }
+
+  String _extractMessageContent(final Map<String, Object?> message) {
+    final List<Object?> contentItems = _jsonList(message['content']);
+    if (contentItems.isNotEmpty) {
+      final List<String> textParts = <String>[];
+      for (final Object? item in contentItems) {
+        if (item is String) {
+          final String value = item.trim();
+          if (value.isNotEmpty) {
+            textParts.add(value);
+          }
+          continue;
+        }
+        final Map<String, Object?> contentMap = _jsonMap(item);
+        final String text = _firstNonEmptyJsonString(
+          contentMap,
+          const <String>['text', 'content', 'output_text'],
+        );
+        if (text.isNotEmpty) {
+          textParts.add(text);
+        }
+      }
+      return textParts.join('\n').trim();
+    }
+
+    final Object? rawContent = message['content'];
+    if (rawContent is Map || rawContent is List) {
+      return '';
+    }
+
+    final String direct = _stringValue(rawContent).trim();
+    if (direct.isNotEmpty && direct != '[]' && direct != '{}') {
+      return direct;
+    }
+    return '';
+  }
+
+  String _mergeStreamChunk({
+    required final String existing,
+    required final String incoming,
+  }) {
+    if (incoming.isEmpty) {
+      return existing;
+    }
+    if (existing.isEmpty) {
+      return incoming;
+    }
+    if (incoming == existing) {
+      return existing;
+    }
+    if (incoming.startsWith(existing)) {
+      return incoming;
+    }
+    if (existing.startsWith(incoming)) {
+      return existing;
+    }
+
+    final int maxOverlap = existing.length < incoming.length
+        ? existing.length
+        : incoming.length;
+    for (int overlap = maxOverlap; overlap > 0; overlap -= 1) {
+      if (existing.endsWith(incoming.substring(0, overlap))) {
+        return '$existing${incoming.substring(overlap)}';
+      }
+    }
+    return '$existing$incoming';
+  }
+
+  String _firstNonEmptyJsonString(
+    final Map<String, Object?> map,
+    final List<String> keys,
+  ) {
+    for (final String key in keys) {
+      final Object? value = map[key];
+      if (value is Map || value is List) {
+        continue;
+      }
+      final String text = _stringValue(value).trim();
+      if (text.isNotEmpty) {
+        return text;
+      }
+    }
+    return '';
+  }
 
   String _extractStreamChunk(final Map<String, Object?> event) {
     final List<Object?> choices = _jsonList(event['choices']);

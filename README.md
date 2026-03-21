@@ -12,9 +12,9 @@ The project has already moved beyond the original MVP baseline. The current code
 - `Riverpod`-driven app orchestration instead of UI-owned service location;
 - campaign creation, saves, chat, and settings flows managed through controllers/providers;
 - provider-scoped AI settings and runtime controls for `max response tokens`, `context window`, and quick profiles;
-- real response streaming in chat for OpenAI-compatible endpoints, with automatic fallback to standard completions;
+- OpenAI-compatible turn generation with resilient streaming transport, automatic fallback to standard completions, and token-limit retries for the final answer;
 - deduplicated AI turn generation so streaming and fallback no longer produce double requests or rewritten final answers;
-- smoother chat rendering during narration streaming with throttled preview updates, calmer autoscroll, and a polished pending-response bubble;
+- calmer chat rendering that keeps a stable pending-response bubble while the model works, then reveals the final narrator message with a soft fade/slide entrance and smoother autoscroll;
 - hybrid context assembly with `static header`, `dynamic summary`, `recent buffer`, and runtime-aware prompt trimming;
 - module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
 - rule-based entity extraction and reconciliation before persistence for active modules only;
@@ -111,7 +111,7 @@ For local-network testing from another device on the same Wi-Fi:
 
 Current limitations:
 
-- `Sber GigaChat` uses standard completions only; streaming stays enabled for the existing OpenAI-compatible providers.
+- `Sber GigaChat` uses standard completions only; other OpenAI-compatible providers may still use streaming transport internally, but the UI now waits for a stable final answer instead of exposing speculative partial text.
 - Some Sber-family models may ignore strict JSON instructions. The app now includes tolerant recovery for plain text and partially structured responses, but the most stable path is still a model that reliably follows structured output.
 - The local proxy is required for `Sber GigaChat` on all platforms because Sber credentials are read from `.env` by the proxy, not by the Flutter client.
 - Portrait generation is independent from the selected story provider. If Sber portrait generation fails or is not configured, the app keeps the default placeholder portrait.
@@ -146,7 +146,7 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 ## Recent fixes
 
 - chat streaming no longer races a second standard completion request in the background;
-- pending narrator bubbles now render with a softer, more readable typing experience;
+- pending narrator bubbles now stay stable while the model is still drafting, and the final narrator text fades in softly once the completed answer is ready;
 - the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
 - the web landing now keeps a staged loading UI during deferred startup and waits for Flutter's first rendered frame before fading out, which removes the blank-screen gap on slower mobile browsers;
 - mobile-browser intro turn diagnostics now surface directly in web console output, making repeated generation and fallback chains easier to trace on-device;
