@@ -21,6 +21,7 @@ The project has already moved beyond the original MVP baseline. The current code
 - adaptive sidebar panels and transient overlays for state changes and module unlocks;
 - a refreshed product-facing home screen with localized hero copy and presentation-focused CTA flows;
 - a streamlined custom campaign wizard with a single story input, AI prompt expansion, and top-bar step navigation instead of bottom action buttons;
+- resilient story prompt generation in custom setup, with automatic enrichment into a more vivid hook when the model returns an empty, too-short, or unchanged response;
 - a cleaner in-game sidebar with compact module icons, a portrait card, and no exposed technical activation reasons;
 - local placeholder portraits prepared for future AI-generated character images;
 - shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
@@ -95,6 +96,7 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - `web`: `web/index.html` first shows a lightweight landing page, and Flutter starts only after the user presses `Play`
 - `localhost / flutter run -d web-server`: the landing still renders, but Flutter auto-starts immediately so the debug WebSocket flow keeps working
 - `custom campaign / story step`: there is now one editable story field; typed text expands into a richer prompt, and an empty submit generates a fresh random hook first
+- `custom campaign / generate prompt`: when the AI response is weak or effectively echoes the input, the app now rewrites it into a more atmospheric story prompt and fills a matching character prompt instead of leaving the field unchanged
 - `custom campaign / step navigation`: moving between steps now uses the top arrows only
 - the in-game campaign sidebar now favors presentation over technical labels:
   - compact module icons with tooltips
@@ -109,3 +111,4 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - the mobile chat layout now hides nonessential top chrome while the keyboard is open, preventing bottom overflow on small screens;
 - the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
 - widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.
+- custom prompt generation now has a tested local fallback that prevents silent no-op behavior when AI prompt expansion fails.
