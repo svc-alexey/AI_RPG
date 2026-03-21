@@ -23,7 +23,7 @@ The project has already moved beyond the original MVP baseline. The current code
 - a streamlined custom campaign wizard with a single story input, AI prompt expansion, and top-bar step navigation instead of bottom action buttons;
 - resilient story prompt generation in custom setup, with automatic enrichment into a more vivid hook when the model returns an empty, too-short, or unchanged response;
 - a cleaner in-game sidebar with compact module icons, a portrait card, and no exposed technical activation reasons;
-- local placeholder portraits prepared for future AI-generated character images;
+- automatic AI-generated character portraits through the local Sber proxy, with placeholder fallback when image generation is unavailable;
 - shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
 - adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
@@ -84,23 +84,29 @@ flutter test
 
 ## Sber GigaChat proxy
 
-`Sber GigaChat` now uses a local proxy so the Flutter client never stores Sber secrets directly.
+`Sber GigaChat` now uses a local proxy so the Flutter client never stores Sber secrets directly. The same proxy also exposes portrait image generation for the campaign creator.
 
 1. Create `.env` from `.env.example`.
 2. Fill in `SBER_AUTH_KEY`, `SBER_CLIENT_ID`, and `SBER_CLIENT_SECRET`.
-3. Start the proxy:
+3. Optionally adjust `SBER_IMAGE_MODEL` if you want a different Sber model for portrait generation. The tested default is `GigaChat-2-Pro`; `GigaChat-2-Max` is also a reasonable option if your account has access.
+4. Start the proxy:
 
 ```bash
 dart run tool/sber_proxy.dart
 ```
 
-The app expects the proxy at `http://127.0.0.1:8787/v1` by default and uses the Sber API model id `GigaChat-2`.
+The app expects the proxy at `http://127.0.0.1:8787/v1` by default and uses:
+
+- `SBER_MODEL` for story/chat generation;
+- `SBER_IMAGE_MODEL` for portrait generation;
+- a spec-based image flow through `chat/completions` with Sber `text2image`, followed by file download from `/files/{id}/content`.
 
 Current limitations:
 
 - `Sber GigaChat` uses standard completions only; streaming stays enabled for the existing OpenAI-compatible providers.
 - Some Sber-family models may ignore strict JSON instructions. The app now includes tolerant recovery for plain text and partially structured responses, but the most stable path is still a model that reliably follows structured output.
 - The local proxy is required for `Sber GigaChat` on all platforms because Sber credentials are read from `.env` by the proxy, not by the Flutter client.
+- Portrait generation is independent from the selected story provider. If Sber portrait generation fails or is not configured, the app keeps the default placeholder portrait.
 
 ## Web build
 

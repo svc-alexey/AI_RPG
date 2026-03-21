@@ -728,6 +728,8 @@ class CampaignState {
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
       customStoryPrompt: _jsonString(json['customStoryPrompt']),
       characterPrompt: _jsonString(json['characterPrompt']),
+      portraitPath: _jsonString(json['portraitPath']),
+      portraitPrompt: _jsonString(json['portraitPrompt']),
     );
   }
 
@@ -755,6 +757,8 @@ class CampaignState {
     this.checks = const <CampaignCheck>[],
     this.customStoryPrompt = '',
     this.characterPrompt = '',
+    this.portraitPath = '',
+    this.portraitPrompt = '',
   });
 
   final String id;
@@ -780,6 +784,8 @@ class CampaignState {
   final DateTime updatedAt;
   final String customStoryPrompt;
   final String characterPrompt;
+  final String portraitPath;
+  final String portraitPrompt;
 
   String get summary => memory.rollingSummary;
   String get activeGoal => memory.activeGoal;
@@ -823,6 +829,8 @@ class CampaignState {
     final DateTime? updatedAt,
     final String? customStoryPrompt,
     final String? characterPrompt,
+    final String? portraitPath,
+    final String? portraitPrompt,
   }) => CampaignState(
     id: id,
     schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -847,6 +855,8 @@ class CampaignState {
     updatedAt: updatedAt ?? this.updatedAt,
     customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
     characterPrompt: characterPrompt ?? this.characterPrompt,
+    portraitPath: portraitPath ?? this.portraitPath,
+    portraitPrompt: portraitPrompt ?? this.portraitPrompt,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -875,6 +885,8 @@ class CampaignState {
     'updatedAt': updatedAt.toIso8601String(),
     'customStoryPrompt': customStoryPrompt,
     'characterPrompt': characterPrompt,
+    'portraitPath': portraitPath,
+    'portraitPrompt': portraitPrompt,
   };
 
   static List<CampaignModuleState> inferLegacyModules({
@@ -935,11 +947,15 @@ class CampaignDraft {
     required this.mode,
     required this.difficulty,
     required this.heroName,
+    this.id,
     this.storyWish = '',
     this.customStoryPrompt = '',
     this.characterProfile,
+    this.portraitPath = '',
+    this.portraitPrompt = '',
   });
 
+  final String? id;
   final CampaignSetting setting;
   final StoryMode mode;
   final DifficultyLevel difficulty;
@@ -947,6 +963,8 @@ class CampaignDraft {
   final String storyWish;
   final String customStoryPrompt;
   final CharacterProfile? characterProfile;
+  final String portraitPath;
+  final String portraitPrompt;
 }
 
 /// Result of AI-generated prompts from story wish.
@@ -958,4 +976,16 @@ class GeneratedPrompts {
 
   final String storyPrompt;
   final String characterPrompt;
+}
+
+class GeneratedPortrait {
+  const GeneratedPortrait({
+    required this.bytesBase64,
+    required this.mimeType,
+    required this.promptUsed,
+  });
+
+  final String bytesBase64;
+  final String mimeType;
+  final String promptUsed;
 }

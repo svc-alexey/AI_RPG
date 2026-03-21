@@ -13,6 +13,7 @@ import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/lm_studio_auto_config.dart';
+import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ class AiRpgApp extends StatefulWidget {
     this.campaignRepository,
     this.aiServiceFactory,
     this.gameEngine,
+    this.portraitStorage,
     this.lmStudioAutoConfig,
     this.appLanguageListenable,
     this.onLaunchUiReady,
@@ -36,6 +38,7 @@ class AiRpgApp extends StatefulWidget {
   final CampaignRepository? campaignRepository;
   final AiServiceFactory? aiServiceFactory;
   final GameEngine? gameEngine;
+  final PortraitStorage? portraitStorage;
   final LmStudioAutoConfig? lmStudioAutoConfig;
   final ValueNotifier<AppLanguage>? appLanguageListenable;
   final VoidCallback? onLaunchUiReady;
@@ -50,6 +53,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
   late final CampaignRepository _campaignRepository;
   late final AiServiceFactory _aiServiceFactory;
   late final GameEngine _gameEngine;
+  late final PortraitStorage _portraitStorage;
   late final LmStudioAutoConfig _lmStudioAutoConfig;
   late final ValueNotifier<AppLanguage> _appLanguageListenable;
   late final bool _ownsLanguageListenable;
@@ -67,6 +71,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
         widget.campaignRepository ?? CampaignRepository(database: _database);
     _aiServiceFactory = widget.aiServiceFactory ?? const AiServiceFactory();
     _gameEngine = widget.gameEngine ?? const GameEngine();
+    _portraitStorage = widget.portraitStorage ?? const PortraitStorage();
     _lmStudioAutoConfig =
         widget.lmStudioAutoConfig ?? const LmStudioAutoConfig();
     _appLanguageListenable =
@@ -144,6 +149,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
         campaignRepository: _campaignRepository,
         aiServiceFactory: _aiServiceFactory,
         gameEngine: _gameEngine,
+        portraitStorage: _portraitStorage,
         appLanguageListenable: _appLanguageListenable,
       ),
       child: ValueListenableBuilder<AppLanguage>(

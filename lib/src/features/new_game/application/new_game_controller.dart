@@ -11,6 +11,7 @@ import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
+import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/core/services/random_story_prompt_generator.dart';
 import 'package:ai_prg/src/core/services/story_prompt_enricher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +40,7 @@ class NewGameViewState {
     required this.gender,
     required this.isSaving,
     required this.isGenerating,
+    required this.isGeneratingPortrait,
     required this.aiConfigured,
     required this.characterProfile,
     required this.plannedModules,
@@ -59,6 +61,7 @@ class NewGameViewState {
       gender = CharacterGender.other,
       isSaving = false,
       isGenerating = false,
+      isGeneratingPortrait = false,
       aiConfigured = false,
       characterProfile = null,
       plannedModules = const <CampaignModuleState>[],
@@ -77,6 +80,7 @@ class NewGameViewState {
   final CharacterGender gender;
   final bool isSaving;
   final bool isGenerating;
+  final bool isGeneratingPortrait;
   final bool aiConfigured;
   final CharacterProfile? characterProfile;
   final List<CampaignModuleState> plannedModules;
@@ -96,6 +100,7 @@ class NewGameViewState {
     final CharacterGender? gender,
     final bool? isSaving,
     final bool? isGenerating,
+    final bool? isGeneratingPortrait,
     final bool? aiConfigured,
     final CharacterProfile? characterProfile,
     final List<CampaignModuleState>? plannedModules,
@@ -114,6 +119,7 @@ class NewGameViewState {
     gender: gender ?? this.gender,
     isSaving: isSaving ?? this.isSaving,
     isGenerating: isGenerating ?? this.isGenerating,
+    isGeneratingPortrait: isGeneratingPortrait ?? this.isGeneratingPortrait,
     aiConfigured: aiConfigured ?? this.aiConfigured,
     characterProfile: characterProfile ?? this.characterProfile,
     plannedModules: plannedModules ?? this.plannedModules,
@@ -401,72 +407,109 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   Future<CampaignState> createQuickCampaign() async {
     state = state.copyWith(isSaving: true);
-
-    final AppLanguage currentLanguage = language;
-    final CharacterProfile charProfile = _defaultCharacterProfile();
-    final String randomPrompt = _storyPromptGenerator.generateForSetting(
-      setting: state.setting,
-      language: currentLanguage,
-    );
-
-    final CampaignState campaign = _gameEngine.createCampaign(
-      draft: CampaignDraft(
+    try {
+      final AppLanguage currentLanguage = language;
+      final CharacterProfile charProfile = _defaultCharacterProfile();
+      final String randomPrompt = _storyPromptGenerator.generateForSetting(
         setting: state.setting,
-        mode: StoryMode.shortStory,
-        difficulty: DifficultyLevel.easy,
-        heroName: _resolvedHeroName(currentLanguage),
-        customStoryPrompt: randomPrompt,
-        characterProfile: charProfile,
-      ),
-      language: currentLanguage,
-    );
+        language: currentLanguage,
+      );
 
-    await _campaignRepository.saveCampaign(campaign);
-    state = state.copyWith(isSaving: false);
-    return campaign;
+      final CampaignState campaign = _gameEngine.createCampaign(
+        draft: CampaignDraft(
+          setting: state.setting,
+          mode: StoryMode.shortStory,
+          difficulty: DifficultyLevel.easy,
+          heroName: _resolvedHeroName(currentLanguage),
+          customStoryPrompt: randomPrompt,
+          characterProfile: charProfile,
+        ),
+        language: currentLanguage,
+      );
+
+      await _campaignRepository.saveCampaign(campaign);
+      return campaign;
+    } finally {
+      state = state.copyWith(isSaving: false);
+    }
   }
 
   Future<CampaignState> createCampaign() async {
     state = state.copyWith(isSaving: true);
-
-    final AppLanguage currentLanguage = language;
-    CharacterProfile charProfile =
-        state.characterProfile ?? _defaultCharacterProfile();
-    if (state.characterPrompt.trim().isNotEmpty) {
+    try {
+      final AppLanguage currentLanguage = language;
+      CharacterProfile charProfile =
+          state.characterProfile ?? _defaultCharacterProfile();
+      if (state.characterPrompt.trim().isNotEmpty) {
+        charProfile = charProfile.copyWith(
+          promptFragment: state.characterPrompt.trim(),
+        );
+      }
+      if (state.personality.trim().isNotEmpty) {
+        charProfile = charProfile.copyWith(
+          personality: state.personality.trim(),
+        );
+      }
       charProfile = charProfile.copyWith(
-        promptFragment: state.characterPrompt.trim(),
+        name: _resolvedHeroName(currentLanguage),
       );
+
+      final String storyPrompt = state.customStoryPrompt.trim().isEmpty
+          ? _storyPromptGenerator.generateForSetting(
+              setting: state.setting,
+              language: currentLanguage,
+            )
+          : state.customStoryPrompt.trim();
+
+      final String campaignId = DateTime.now().microsecondsSinceEpoch
+          .toString();
+      String portraitPath = '';
+      String portraitPrompt = '';
+      final AiSettings? portraitSettings = await _loadSberPortraitSettings();
+      if (portraitSettings != null && portraitSettings.isConfigured) {
+        state = state.copyWith(isGeneratingPortrait: true);
+        final AiClient client = _aiServiceFactory.create(portraitSettings);
+        final GeneratedPortrait? portrait = await client
+            .generateCharacterPortrait(
+              settings: portraitSettings,
+              language: currentLanguage,
+              setting: state.setting,
+              storyPrompt: storyPrompt,
+              character: charProfile,
+            );
+        if (portrait != null) {
+          portraitPrompt = portrait.promptUsed;
+          portraitPath =
+              await _portraitStorage.savePortrait(
+                campaignId: campaignId,
+                mimeType: portrait.mimeType,
+                bytesBase64: portrait.bytesBase64,
+              ) ??
+              '';
+        }
+      }
+
+      final CampaignState campaign = _gameEngine.createCampaign(
+        draft: CampaignDraft(
+          id: campaignId,
+          setting: state.setting,
+          mode: state.storyMode,
+          difficulty: state.difficulty,
+          heroName: _resolvedHeroName(currentLanguage),
+          storyWish: state.storyWish.trim(),
+          customStoryPrompt: storyPrompt,
+          characterProfile: charProfile,
+          portraitPath: portraitPath,
+          portraitPrompt: portraitPrompt,
+        ),
+        language: currentLanguage,
+      );
+
+      await _campaignRepository.saveCampaign(campaign);
+      return campaign;
+    } finally {
+      state = state.copyWith(isSaving: false, isGeneratingPortrait: false);
     }
-    if (state.personality.trim().isNotEmpty) {
-      charProfile = charProfile.copyWith(personality: state.personality.trim());
-    }
-    charProfile = charProfile.copyWith(
-      name: _resolvedHeroName(currentLanguage),
-    );
-
-    final String storyPrompt = state.customStoryPrompt.trim().isEmpty
-        ? _storyPromptGenerator.generateForSetting(
-            setting: state.setting,
-            language: currentLanguage,
-          )
-        : state.customStoryPrompt.trim();
-
-    final CampaignState campaign = _gameEngine.createCampaign(
-      draft: CampaignDraft(
-        setting: state.setting,
-        mode: state.storyMode,
-        difficulty: state.difficulty,
-        heroName: _resolvedHeroName(currentLanguage),
-        storyWish: state.storyWish.trim(),
-        customStoryPrompt: storyPrompt,
-        characterProfile: charProfile,
-      ),
-      language: currentLanguage,
-    );
-
-    await _campaignRepository.saveCampaign(campaign);
-    state = state.copyWith(isSaving: false);
-    return campaign;
   }
 
   CharacterProfile _defaultCharacterProfile() {
@@ -525,4 +568,29 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   CampaignRepository get _campaignRepository =>
       _ref.read(campaignRepositoryProvider);
+
+  PortraitStorage get _portraitStorage => _ref.read(portraitStorageProvider);
+
+  Future<AiSettings?> _loadSberPortraitSettings() async {
+    final ProviderScopedSettings scoped = await _settingsRepository
+        .loadProviderScopedSettings();
+    final ProviderProfile profile = scoped.profileFor(
+      AiProviderType.sberGigaChat,
+    );
+    final AiSettings settings = AiSettings(
+      provider: AiProviderType.sberGigaChat,
+      baseUrl: profile.baseUrl.trim().isEmpty
+          ? AiSettings.defaultBaseUrlFor(AiProviderType.sberGigaChat)
+          : profile.baseUrl,
+      model: profile.model.trim().isEmpty
+          ? AiSettings.defaultModelFor(AiProviderType.sberGigaChat)
+          : profile.model,
+      apiKey: profile.apiKey,
+      timeoutSeconds: profile.timeoutSeconds,
+      fastResponses: false,
+      runtimeSettings: profile.runtimeSettings,
+      confirmed18Plus: scoped.confirmed18Plus,
+    );
+    return settings.isConfigured ? settings : null;
+  }
 }

@@ -477,6 +477,18 @@ class AppLocalizations {
       'An AI-generated portrait will appear here in a future update.',
   };
 
+  String get portraitAiReadyHint => switch (language) {
+    AppLanguage.ru => 'Портрет сгенерирован на основе истории и персонажа.',
+    AppLanguage.en => 'Portrait generated from the story and character.',
+  };
+
+  String get portraitAutoGenerateHint => switch (language) {
+    AppLanguage.ru =>
+      'При создании кампании Sber сгенерирует портрет героя по истории и выбранному персонажу.',
+    AppLanguage.en =>
+      'When the campaign is created, Sber will generate a hero portrait from the story and selected character.',
+  };
+
   String campaignModuleLabel(final CampaignModule value) =>
       switch ((language, value)) {
         (AppLanguage.ru, CampaignModule.inventory) => 'Инвентарь',
@@ -626,6 +638,11 @@ class AppLocalizations {
   String get generatingResponse => switch (language) {
     AppLanguage.ru => 'Генерируется ответ...',
     AppLanguage.en => 'Generating response...',
+  };
+
+  String get generatingPortrait => switch (language) {
+    AppLanguage.ru => 'Генерируется портрет...',
+    AppLanguage.en => 'Generating portrait...',
   };
 
   String get creatingCampaign => switch (language) {

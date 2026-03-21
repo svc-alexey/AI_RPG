@@ -5,6 +5,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
+import 'package:ai_prg/src/features/chat/widgets/portrait_image.dart';
 import 'package:ai_prg/src/features/chat/widgets/state_change_overlay_stack.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
@@ -889,6 +890,10 @@ class _CharacterPortraitCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
+    final bool hasGeneratedPortrait = campaign.portraitPath.trim().isNotEmpty;
+    final String imagePath = hasGeneratedPortrait
+        ? campaign.portraitPath.trim()
+        : _portraitAssetForCampaign(campaign);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -903,8 +908,8 @@ class _CharacterPortraitCard extends StatelessWidget {
         children: <Widget>[
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            child: Image.asset(
-              _portraitAssetForCampaign(campaign),
+            child: buildPortraitImage(
+              portraitPath: imagePath,
               fit: BoxFit.cover,
               width: double.infinity,
               height: context.responsive.isCompact ? 190 : 220,
@@ -925,7 +930,9 @@ class _CharacterPortraitCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  l10n.portraitAiHint,
+                  hasGeneratedPortrait
+                      ? l10n.portraitAiReadyHint
+                      : l10n.portraitAiHint,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AetherPalette.textMuted,
                     height: 1.5,

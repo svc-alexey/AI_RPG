@@ -7,6 +7,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
+import 'package:ai_prg/src/core/services/character_portrait_prompt_builder.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
@@ -17,6 +18,8 @@ class OpenAiCompatibleAiClient implements AiClient {
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
   static const TurnPromptBuilder _turnPromptBuilder = TurnPromptBuilder();
+  static const CharacterPortraitPromptBuilder _portraitPromptBuilder =
+      CharacterPortraitPromptBuilder();
 
   Map<String, Object?> _jsonMap(final Object? value) {
     if (value is Map) {
@@ -185,6 +188,85 @@ Reply only with JSON, no markdown.
     } catch (e) {
       debugPrint('generatePromptsFromStoryWish failed: $e');
       return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+    }
+  }
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async {
+    if (settings.provider != AiProviderType.sberGigaChat) {
+      return null;
+    }
+
+    final String prompt = _portraitPromptBuilder.build(
+      language: language,
+      setting: setting,
+      storyPrompt: storyPrompt,
+      character: character,
+    );
+    final Uri uri = Uri.parse(
+      '${_normalizedBaseUrl(settings.baseUrl)}/images/generations',
+    );
+    final Map<String, Object?> requestBody = <String, Object?>{
+      'model': settings.model,
+      'prompt': prompt,
+      'size': '1024x1024',
+      'response_format': 'b64_json',
+    };
+
+    try {
+      final Future<http.Response> requestFuture = http
+          .post(uri, headers: _headers(settings), body: jsonEncode(requestBody))
+          .timeout(Duration(seconds: _effectiveTimeoutSeconds(settings)));
+
+      final http.Response response = cancelToken != null
+          ? await Future.any(<Future<http.Response>>[
+              requestFuture,
+              cancelToken.whenCancelled.then(
+                (_) => throw const AiCancelException(),
+              ),
+            ])
+          : await requestFuture;
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return null;
+      }
+
+      final Object? decoded = _safeJsonDecode(_responseText(response));
+      if (decoded is! Map) {
+        return null;
+      }
+
+      final Map<String, Object?> map = _jsonMap(decoded);
+      final List<Object?> data = _jsonList(map['data']);
+      if (data.isEmpty) {
+        return null;
+      }
+
+      final Map<String, Object?> first = _jsonMap(data.first);
+      final String bytesBase64 = _stringValue(
+        first['b64_json'] ?? first['base64'] ?? first['image_base64'],
+      ).trim();
+      if (bytesBase64.isEmpty) {
+        return null;
+      }
+
+      return GeneratedPortrait(
+        bytesBase64: bytesBase64,
+        mimeType: _stringValue(first['mime_type']).trim().isEmpty
+            ? 'image/png'
+            : _stringValue(first['mime_type']).trim(),
+        promptUsed: prompt,
+      );
+    } catch (error) {
+      debugPrint('generateCharacterPortrait failed: $error');
+      return null;
     }
   }
 

@@ -87,38 +87,48 @@ const CampaignRecordSchema = CollectionSchema(
       name: r'objective',
       type: IsarType.string,
     ),
-    r'questLogJson': PropertySchema(
+    r'portraitPath': PropertySchema(
       id: 14,
+      name: r'portraitPath',
+      type: IsarType.string,
+    ),
+    r'portraitPrompt': PropertySchema(
+      id: 15,
+      name: r'portraitPrompt',
+      type: IsarType.string,
+    ),
+    r'questLogJson': PropertySchema(
+      id: 16,
       name: r'questLogJson',
       type: IsarType.string,
     ),
     r'schemaVersion': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'schemaVersion',
       type: IsarType.long,
     ),
     r'setting': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'setting',
       type: IsarType.string,
     ),
     r'summary': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'summary',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'title',
       type: IsarType.string,
     ),
     r'turnNumber': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'turnNumber',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -171,6 +181,8 @@ int _campaignRecordEstimateSize(
   bytesCount += 3 + object.mode.length * 3;
   bytesCount += 3 + object.modulesJson.length * 3;
   bytesCount += 3 + object.objective.length * 3;
+  bytesCount += 3 + object.portraitPath.length * 3;
+  bytesCount += 3 + object.portraitPrompt.length * 3;
   bytesCount += 3 + object.questLogJson.length * 3;
   bytesCount += 3 + object.setting.length * 3;
   bytesCount += 3 + object.summary.length * 3;
@@ -198,13 +210,15 @@ void _campaignRecordSerialize(
   writer.writeString(offsets[11], object.mode);
   writer.writeString(offsets[12], object.modulesJson);
   writer.writeString(offsets[13], object.objective);
-  writer.writeString(offsets[14], object.questLogJson);
-  writer.writeLong(offsets[15], object.schemaVersion);
-  writer.writeString(offsets[16], object.setting);
-  writer.writeString(offsets[17], object.summary);
-  writer.writeString(offsets[18], object.title);
-  writer.writeLong(offsets[19], object.turnNumber);
-  writer.writeDateTime(offsets[20], object.updatedAt);
+  writer.writeString(offsets[14], object.portraitPath);
+  writer.writeString(offsets[15], object.portraitPrompt);
+  writer.writeString(offsets[16], object.questLogJson);
+  writer.writeLong(offsets[17], object.schemaVersion);
+  writer.writeString(offsets[18], object.setting);
+  writer.writeString(offsets[19], object.summary);
+  writer.writeString(offsets[20], object.title);
+  writer.writeLong(offsets[21], object.turnNumber);
+  writer.writeDateTime(offsets[22], object.updatedAt);
 }
 
 CampaignRecord _campaignRecordDeserialize(
@@ -229,13 +243,15 @@ CampaignRecord _campaignRecordDeserialize(
   object.mode = reader.readString(offsets[11]);
   object.modulesJson = reader.readString(offsets[12]);
   object.objective = reader.readString(offsets[13]);
-  object.questLogJson = reader.readString(offsets[14]);
-  object.schemaVersion = reader.readLong(offsets[15]);
-  object.setting = reader.readString(offsets[16]);
-  object.summary = reader.readString(offsets[17]);
-  object.title = reader.readString(offsets[18]);
-  object.turnNumber = reader.readLong(offsets[19]);
-  object.updatedAt = reader.readDateTime(offsets[20]);
+  object.portraitPath = reader.readString(offsets[14]);
+  object.portraitPrompt = reader.readString(offsets[15]);
+  object.questLogJson = reader.readString(offsets[16]);
+  object.schemaVersion = reader.readLong(offsets[17]);
+  object.setting = reader.readString(offsets[18]);
+  object.summary = reader.readString(offsets[19]);
+  object.title = reader.readString(offsets[20]);
+  object.turnNumber = reader.readLong(offsets[21]);
+  object.updatedAt = reader.readDateTime(offsets[22]);
   return object;
 }
 
@@ -277,16 +293,20 @@ P _campaignRecordDeserializeProp<P>(
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 18:
       return (reader.readString(offset)) as P;
     case 19:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
+      return (reader.readLong(offset)) as P;
+    case 22:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2450,6 +2470,278 @@ extension CampaignRecordQueryFilter
   }
 
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'portraitPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'portraitPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'portraitPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'portraitPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'portraitPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'portraitPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'portraitPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'portraitPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'portraitPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'portraitPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'portraitPrompt',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'portraitPrompt',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'portraitPrompt',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'portraitPrompt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'portraitPrompt',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'portraitPrompt',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'portraitPrompt',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'portraitPrompt',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'portraitPrompt',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      portraitPromptIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'portraitPrompt',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
       questLogJsonEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -3363,6 +3655,34 @@ extension CampaignRecordQuerySortBy
   }
 
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByPortraitPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByPortraitPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByPortraitPrompt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPrompt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByPortraitPromptDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPrompt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
       sortByQuestLogJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'questLogJson', Sort.asc);
@@ -3663,6 +3983,34 @@ extension CampaignRecordQuerySortThenBy
   }
 
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByPortraitPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByPortraitPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByPortraitPrompt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPrompt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByPortraitPromptDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portraitPrompt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
       thenByQuestLogJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'questLogJson', Sort.asc);
@@ -3862,6 +4210,21 @@ extension CampaignRecordQueryWhereDistinct
   }
 
   QueryBuilder<CampaignRecord, CampaignRecord, QDistinct>
+      distinctByPortraitPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'portraitPath', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QDistinct>
+      distinctByPortraitPrompt({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'portraitPrompt',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QDistinct>
       distinctByQuestLogJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'questLogJson', caseSensitive: caseSensitive);
@@ -4005,6 +4368,20 @@ extension CampaignRecordQueryProperty
   QueryBuilder<CampaignRecord, String, QQueryOperations> objectiveProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'objective');
+    });
+  }
+
+  QueryBuilder<CampaignRecord, String, QQueryOperations>
+      portraitPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'portraitPath');
+    });
+  }
+
+  QueryBuilder<CampaignRecord, String, QQueryOperations>
+      portraitPromptProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'portraitPrompt');
     });
   }
 

@@ -22,7 +22,7 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase();
 
   static const String _schemaVersionKey = 'storage.schema_version';
-  static const int _currentSchemaVersion = 5;
+  static const int _currentSchemaVersion = 6;
   static const String _legacyCampaignIdsKey = 'campaign.ids';
   static const String _legacyAiSettingsKey = 'settings.ai';
   static const String _legacyAppLanguageKey = 'settings.app_language';
@@ -230,8 +230,8 @@ class AppDatabase {
         await _campaignLocal.saveCampaign(
           isar,
           campaign.copyWith(
-            schemaVersion: campaign.schemaVersion < 3
-                ? 3
+            schemaVersion: campaign.schemaVersion < 4
+                ? 4
                 : campaign.schemaVersion,
           ),
         );

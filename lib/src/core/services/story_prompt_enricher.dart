@@ -85,32 +85,26 @@ class StoryPromptEnricher {
     );
   }
 
-  GeneratedPrompts _fantasyEn(final String seed) {
-    return GeneratedPrompts(
-      storyPrompt:
-          'Run the story as dark, cinematic fantasy rooted in "$seed". Open with tactile detail, uneasy silence, and a sense that old powers are waking up nearby. Give each scene a strong image, a hard choice, and a revelation that deepens the world. Let magic feel tempting and dangerous, let allies hide inconvenient truths, and keep the tone vivid, serious, and atmospheric.',
-      characterPrompt:
-          'A stubborn, perceptive wanderer who notices hidden signs, keeps going under pressure, and treats every promise as something costly.',
-    );
-  }
+  GeneratedPrompts _fantasyEn(final String seed) => GeneratedPrompts(
+    storyPrompt:
+        'Run the story as dark, cinematic fantasy rooted in "$seed". Open with tactile detail, uneasy silence, and a sense that old powers are waking up nearby. Give each scene a strong image, a hard choice, and a revelation that deepens the world. Let magic feel tempting and dangerous, let allies hide inconvenient truths, and keep the tone vivid, serious, and atmospheric.',
+    characterPrompt:
+        'A stubborn, perceptive wanderer who notices hidden signs, keeps going under pressure, and treats every promise as something costly.',
+  );
 
-  GeneratedPrompts _detectiveEn(final String seed) {
-    return GeneratedPrompts(
-      storyPrompt:
-          'Run the story as a grim noir investigation built around "$seed". Start with rain, bad lighting, tired witnesses, and a city that feels like it is withholding the truth. Make every scene advance the case, add a fresh contradiction, or raise the personal cost of the search. Keep the dialogue sharp, the suspects layered, and the atmosphere concrete and alive.',
-      characterPrompt:
-          'A sharp, worn-down investigator with a talent for spotting lies, reading rooms, and pushing one question too far.',
-    );
-  }
+  GeneratedPrompts _detectiveEn(final String seed) => GeneratedPrompts(
+    storyPrompt:
+        'Run the story as a grim noir investigation built around "$seed". Start with rain, bad lighting, tired witnesses, and a city that feels like it is withholding the truth. Make every scene advance the case, add a fresh contradiction, or raise the personal cost of the search. Keep the dialogue sharp, the suspects layered, and the atmosphere concrete and alive.',
+    characterPrompt:
+        'A sharp, worn-down investigator with a talent for spotting lies, reading rooms, and pushing one question too far.',
+  );
 
-  GeneratedPrompts _sciFiEn(final String seed) {
-    return GeneratedPrompts(
-      storyPrompt:
-          'Run the story as tense, sensory science fiction centered on "$seed". Open with concrete technological detail, subtle system failures, and a feeling that reality is starting to misbehave. Alternate discovery, danger, and moral pressure. Let every new scene either reveal a deeper layer of the mystery or complicate survival, while keeping the world tactile and believable.',
-      characterPrompt:
-          'A composed, curious specialist who stays useful under pressure, notices anomalies early, and still reacts like a human being when the unknown pushes back.',
-    );
-  }
+  GeneratedPrompts _sciFiEn(final String seed) => GeneratedPrompts(
+    storyPrompt:
+        'Run the story as tense, sensory science fiction centered on "$seed". Open with concrete technological detail, subtle system failures, and a feeling that reality is starting to misbehave. Alternate discovery, danger, and moral pressure. Let every new scene either reveal a deeper layer of the mystery or complicate survival, while keeping the world tactile and believable.',
+    characterPrompt:
+        'A composed, curious specialist who stays useful under pressure, notices anomalies early, and still reacts like a human being when the unknown pushes back.',
+  );
 
   String _pick(final List<String> values) =>
       values[_random.nextInt(values.length)];

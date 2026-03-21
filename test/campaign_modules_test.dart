@@ -11,6 +11,7 @@ import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
+import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -150,6 +151,8 @@ void main() {
         messages: const <ChatMessage>[],
         choices: const <String>[],
         updatedAt: DateTime(2026, 3, 20, 12),
+        portraitPath: 'C:/tmp/roundtrip-1.png',
+        portraitPrompt: 'cinematic portrait',
       );
 
       final CampaignState decoded = CampaignState.fromJson(state.toJson());
@@ -164,6 +167,8 @@ void main() {
         decoded.moduleState(CampaignModule.progression)?.activationReason,
         'prompt:progression',
       );
+      expect(decoded.portraitPath, 'C:/tmp/roundtrip-1.png');
+      expect(decoded.portraitPrompt, 'cinematic portrait');
     },
   );
 
@@ -635,6 +640,7 @@ void main() {
           campaignRepository: _FakeCampaignRepository(campaign),
           aiServiceFactory: const AiServiceFactory(),
           gameEngine: const GameEngine(),
+          portraitStorage: const PortraitStorage(),
           appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
         ),
         child: const AppLocalizationsScope(
@@ -712,6 +718,7 @@ void main() {
             const _DetectiveChromeAiClient(),
           ),
           gameEngine: const GameEngine(),
+          portraitStorage: const PortraitStorage(),
           appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
         ),
         child: const AppLocalizationsScope(
@@ -796,6 +803,7 @@ void main() {
           campaignRepository: _MutableCampaignRepository(campaign),
           aiServiceFactory: _FakeAiServiceFactory(const _OverlayAiClient()),
           gameEngine: const GameEngine(),
+          portraitStorage: const PortraitStorage(),
           appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
         ),
         child: const AppLocalizationsScope(
@@ -875,6 +883,7 @@ void main() {
           campaignRepository: _MutableCampaignRepository(campaign),
           aiServiceFactory: _FakeAiServiceFactory(const _NotesOnlyAiClient()),
           gameEngine: const GameEngine(),
+          portraitStorage: const PortraitStorage(),
           appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
         ),
         child: const AppLocalizationsScope(
@@ -956,6 +965,7 @@ void main() {
           campaignRepository: _MutableCampaignRepository(campaign),
           aiServiceFactory: _FakeAiServiceFactory(const _ChecksAiClient()),
           gameEngine: const GameEngine(),
+          portraitStorage: const PortraitStorage(),
           appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
         ),
         child: const AppLocalizationsScope(
@@ -1070,6 +1080,16 @@ class _OverlayAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }
 
 class _NotesOnlyAiClient implements AiClient {
@@ -1115,6 +1135,16 @@ class _NotesOnlyAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }
 
 class _ChecksAiClient implements AiClient {
@@ -1154,6 +1184,16 @@ class _ChecksAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }
 
 class _DetectiveChromeAiClient implements AiClient {
@@ -1200,4 +1240,14 @@ class _DetectiveChromeAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }

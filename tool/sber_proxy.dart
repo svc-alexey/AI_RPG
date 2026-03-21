@@ -6,6 +6,7 @@ import 'dart:math';
 const String _defaultHost = '127.0.0.1';
 const int _defaultPort = 8787;
 const String _defaultModel = 'GigaChat-2';
+const String _defaultImageModel = 'GigaChat-2-Pro';
 const String _oauthUrl = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const String _apiBaseUrl = 'https://gigachat.devices.sberbank.ru/api/v1';
 const Set<String> _sberHosts = <String>{
@@ -45,6 +46,7 @@ Future<void> _handleRequest(
       await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
         'status': 'ok',
         'model': config.model,
+        'imageModel': config.imageModel,
       });
       return;
     }
@@ -73,6 +75,16 @@ Future<void> _handleRequest(
       return;
     }
 
+    if (request.uri.path == '/v1/images/generations' &&
+        request.method == 'POST') {
+      await _handleImageGenerations(
+        request: request,
+        config: config,
+        tokenProvider: tokenProvider,
+      );
+      return;
+    }
+
     await _writeJson(request.response, HttpStatus.notFound, <String, Object?>{
       'error': <String, Object?>{'message': 'Not found'},
     });
@@ -88,6 +100,174 @@ Future<void> _handleRequest(
       },
     );
   }
+}
+
+Future<void> _handleImageGenerations({
+  required final HttpRequest request,
+  required final ProxyConfig config,
+  required final SberTokenProvider tokenProvider,
+}) async {
+  final String rawBody = await utf8.decoder.bind(request).join();
+  final Object? decoded = jsonDecode(rawBody);
+  if (decoded is! Map) {
+    await _writeJson(request.response, HttpStatus.badRequest, <String, Object?>{
+      'error': <String, Object?>{'message': 'Expected a JSON object body.'},
+    });
+    return;
+  }
+
+  final Map<String, Object?> body = _normalizeJsonMap(decoded);
+  final String prompt = (body['prompt'] as String? ?? '').trim();
+  if (prompt.isEmpty) {
+    await _writeJson(request.response, HttpStatus.badRequest, <String, Object?>{
+      'error': <String, Object?>{'message': 'Prompt is required.'},
+    });
+    return;
+  }
+
+  final String accessToken = await tokenProvider.getAccessToken();
+  final HttpClient client = _createSberHttpClient();
+  try {
+    final Map<String, Object?> imageRequest = <String, Object?>{
+      'model': config.imageModel,
+      'messages': <Map<String, Object?>>[
+        <String, Object?>{
+          'role': 'system',
+          'content':
+              'Ты художник-иллюстратор персонажей. Сгенерируй одно качественное изображение по описанию пользователя. Верни результат генерации изображения.',
+        },
+        <String, Object?>{'role': 'user', 'content': prompt},
+      ],
+      'function_call': 'auto',
+      'stream': false,
+    };
+
+    final HttpClientResponse chatResponse = await _postJson(
+      client: client,
+      uri: Uri.parse('$_apiBaseUrl/chat/completions'),
+      accessToken: accessToken,
+      body: imageRequest,
+    );
+    final String chatBody = await utf8.decoder.bind(chatResponse).join();
+    if (chatResponse.statusCode < 200 || chatResponse.statusCode >= 300) {
+      request.response.statusCode = chatResponse.statusCode;
+      request.response.headers.set(
+        HttpHeaders.contentTypeHeader,
+        'application/json; charset=utf-8',
+      );
+      request.response.write(chatBody);
+      await request.response.close();
+      return;
+    }
+
+    final Object? responseDecoded = jsonDecode(chatBody);
+    if (responseDecoded is! Map) {
+      throw const FormatException('Unexpected chat image response format.');
+    }
+    final Map<String, Object?> json = _normalizeJsonMap(responseDecoded);
+    final String fileId = _extractImageFileId(json);
+    if (fileId.isEmpty) {
+      throw StateError('Sber image generation did not return a file id.');
+    }
+
+    final HttpClientRequest fileRequest = await client.getUrl(
+      Uri.parse('$_apiBaseUrl/files/$fileId/content'),
+    );
+    fileRequest.headers.set(
+      HttpHeaders.acceptHeader,
+      'application/octet-stream',
+    );
+    fileRequest.headers.set(
+      HttpHeaders.authorizationHeader,
+      'Bearer $accessToken',
+    );
+    final HttpClientResponse fileResponse = await fileRequest.close();
+    final List<int> imageBytes = await fileResponse.fold<List<int>>(
+      <int>[],
+      (final acc, final chunk) => acc..addAll(chunk),
+    );
+
+    if (fileResponse.statusCode < 200 || fileResponse.statusCode >= 300) {
+      request.response.statusCode = fileResponse.statusCode;
+      request.response.headers.set(
+        HttpHeaders.contentTypeHeader,
+        'application/json; charset=utf-8',
+      );
+      request.response.write(
+        jsonEncode(<String, Object?>{
+          'error': <String, Object?>{
+            'message': 'Failed to download generated image file.',
+            'fileId': fileId,
+          },
+        }),
+      );
+      await request.response.close();
+      return;
+    }
+
+    final String mimeType =
+        fileResponse.headers.contentType?.mimeType ?? 'image/png';
+    request.response.statusCode = HttpStatus.ok;
+    request.response.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json; charset=utf-8',
+    );
+    request.response.write(
+      jsonEncode(<String, Object?>{
+        'created': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'data': <Map<String, Object?>>[
+          <String, Object?>{
+            'b64_json': base64Encode(imageBytes),
+            'mime_type': mimeType,
+            'file_id': fileId,
+          },
+        ],
+      }),
+    );
+    await request.response.close();
+  } finally {
+    client.close();
+  }
+}
+
+Future<HttpClientResponse> _postJson({
+  required final HttpClient client,
+  required final Uri uri,
+  required final String accessToken,
+  required final Map<String, Object?> body,
+}) async {
+  final HttpClientRequest upstreamRequest = await client.postUrl(uri);
+  upstreamRequest.headers.set(
+    HttpHeaders.contentTypeHeader,
+    'application/json',
+  );
+  upstreamRequest.headers.set(HttpHeaders.acceptHeader, 'application/json');
+  upstreamRequest.headers.set(
+    HttpHeaders.authorizationHeader,
+    'Bearer $accessToken',
+  );
+  final List<int> encodedRequestBody = utf8.encode(jsonEncode(body));
+  upstreamRequest.headers.set(
+    HttpHeaders.contentLengthHeader,
+    encodedRequestBody.length,
+  );
+  upstreamRequest.add(encodedRequestBody);
+  return upstreamRequest.close();
+}
+
+String _extractImageFileId(final Map<String, Object?> responseMap) {
+  final List<Object?> choices = responseMap['choices'] is List
+      ? List<Object?>.from(responseMap['choices'] as List)
+      : const <Object?>[];
+  if (choices.isEmpty) {
+    return '';
+  }
+  final Map<String, Object?> choice = _normalizeJsonMap(choices.first);
+  final Map<String, Object?> message = _normalizeJsonMap(choice['message']);
+  final String content = (message['content'] as String? ?? '').trim();
+  final RegExp imgTag = RegExp(r'<img\s+src="([^"]+)"', caseSensitive: false);
+  final Match? match = imgTag.firstMatch(content);
+  return match?.group(1)?.trim() ?? '';
 }
 
 Future<void> _handleChatCompletions({
@@ -197,6 +377,7 @@ class ProxyConfig {
     required this.clientId,
     required this.clientSecret,
     required this.model,
+    required this.imageModel,
     required this.scope,
   });
 
@@ -221,6 +402,9 @@ class ProxyConfig {
       model: env['SBER_MODEL']?.trim().isNotEmpty == true
           ? env['SBER_MODEL']!.trim()
           : _defaultModel,
+      imageModel: env['SBER_IMAGE_MODEL']?.trim().isNotEmpty == true
+          ? env['SBER_IMAGE_MODEL']!.trim()
+          : _defaultImageModel,
       scope: env['SBER_SCOPE']?.trim().isNotEmpty == true
           ? env['SBER_SCOPE']!.trim()
           : 'GIGACHAT_API_PERS',
@@ -233,6 +417,7 @@ class ProxyConfig {
   final String clientId;
   final String clientSecret;
   final String model;
+  final String imageModel;
   final String scope;
 }
 

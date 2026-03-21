@@ -70,6 +70,15 @@ abstract class AiClient {
     required CampaignSetting setting,
     CancelToken? cancelToken,
   });
+
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required AiSettings settings,
+    required AppLanguage language,
+    required CampaignSetting setting,
+    required String storyPrompt,
+    required CharacterProfile character,
+    CancelToken? cancelToken,
+  });
 }
 
 class AiTurnException implements Exception {

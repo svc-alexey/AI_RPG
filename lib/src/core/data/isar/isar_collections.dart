@@ -26,6 +26,8 @@ class CampaignRecord {
   late String choicesJson;
   late String customStoryPrompt;
   late String characterPrompt;
+  late String portraitPath;
+  late String portraitPrompt;
   late String summary;
   late String activeGoal;
   late String activeSituation;

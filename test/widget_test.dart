@@ -15,6 +15,7 @@ import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
+import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
@@ -197,6 +198,172 @@ void main() {
     expect(aiClient.lastStoryWish, isNotEmpty);
     expect(_firstTextFieldValue(tester), contains('Expanded:'));
   });
+
+  testWidgets(
+    'Custom campaign saves generated portrait when Sber returns one',
+    (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+      final _PortraitGeneratingAiClient aiClient =
+          _PortraitGeneratingAiClient();
+      final _FakePortraitStorage portraitStorage = _FakePortraitStorage();
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          const NewGameScreen(),
+          storage: storage,
+          language: AppLanguage.en,
+          settingsRepository: _FakeSettingsRepository(
+            const _ConfiguredSberSettings(),
+          ),
+          aiServiceFactory: _FakeAiServiceFactory(aiClient),
+          portraitStorage: portraitStorage,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(english.customSetup));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(english.nextButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField),
+        'A stormbound city mystery',
+      );
+      await tester.tap(find.byTooltip(english.nextButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(english.nextButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(english.createCampaignButton));
+      await tester.pumpAndSettle();
+
+      final List<CampaignState> campaigns = await storage.campaignRepository
+          .loadAllCampaigns();
+      expect(campaigns, hasLength(1));
+      expect(campaigns.single.portraitPath, portraitStorage.savedPath);
+      expect(campaigns.single.portraitPrompt, contains('cinematic character'));
+      expect(aiClient.lastStoryPrompt, contains('stormbound city mystery'));
+    },
+  );
+
+  testWidgets('Custom campaign falls back when portrait generation fails', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final _TestStorageBundle storage = _TestStorageBundle.create();
+    addTearDown(storage.dispose);
+
+    await tester.pumpWidget(
+      _buildScopedApp(
+        const NewGameScreen(),
+        storage: storage,
+        language: AppLanguage.en,
+        settingsRepository: _FakeSettingsRepository(
+          const _ConfiguredSberSettings(),
+        ),
+        aiServiceFactory: const _FakeAiServiceFactory(_NullPortraitAiClient()),
+        portraitStorage: _FakePortraitStorage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(english.customSetup));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(english.nextButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'An occult detective case');
+    await tester.tap(find.byTooltip(english.nextButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(english.nextButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(english.createCampaignButton));
+    await tester.pumpAndSettle();
+
+    final List<CampaignState> campaigns = await storage.campaignRepository
+        .loadAllCampaigns();
+    expect(campaigns, hasLength(1));
+    expect(campaigns.single.portraitPath, isEmpty);
+    expect(campaigns.single.portraitPrompt, isEmpty);
+  });
+
+  testWidgets(
+    'Custom campaign can generate portrait through Sber while story model stays non-Sber',
+    (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final _TestStorageBundle storage = _TestStorageBundle.create();
+      addTearDown(storage.dispose);
+      final _PortraitGeneratingAiClient aiClient =
+          _PortraitGeneratingAiClient();
+      final _FakePortraitStorage portraitStorage = _FakePortraitStorage();
+      final ProviderScopedSettings scoped =
+          ProviderScopedSettings(
+            activeProvider: AiProviderType.openAiCompatible,
+            profiles: <AiProviderType, ProviderProfile>{
+              for (final AiProviderType provider in AiProviderType.values)
+                provider: ProviderProfile.defaultsFor(provider),
+            },
+            fastResponses: false,
+          ).copyWith(
+            profiles: <AiProviderType, ProviderProfile>{
+              for (final AiProviderType provider in AiProviderType.values)
+                provider: switch (provider) {
+                  AiProviderType.openAiCompatible => const ProviderProfile(
+                    baseUrl: 'http://127.0.0.1:9999/v1',
+                    model: 'story-model',
+                    apiKey: 'story-key',
+                    timeoutSeconds: 15,
+                    runtimeSettings: ModelRuntimeSettings.smartPreset,
+                  ),
+                  AiProviderType.sberGigaChat => const ProviderProfile(
+                    baseUrl: 'http://127.0.0.1:8787/v1',
+                    model: 'GigaChat-2',
+                    apiKey: '',
+                    timeoutSeconds: 15,
+                    runtimeSettings: ModelRuntimeSettings.smartPreset,
+                  ),
+                  _ => ProviderProfile.defaultsFor(provider),
+                },
+            },
+          );
+
+      await tester.pumpWidget(
+        _buildScopedApp(
+          const NewGameScreen(),
+          storage: storage,
+          language: AppLanguage.en,
+          settingsRepository: _FakeSettingsRepository(
+            const _ConfiguredAiSettings(),
+            scoped: scoped,
+          ),
+          aiServiceFactory: _FakeAiServiceFactory(aiClient),
+          portraitStorage: portraitStorage,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(english.customSetup));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(english.nextButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField),
+        'A haunted archive mystery',
+      );
+      await tester.tap(find.byTooltip(english.nextButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(english.nextButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(english.createCampaignButton));
+      await tester.pumpAndSettle();
+
+      final List<CampaignState> campaigns = await storage.campaignRepository
+          .loadAllCampaigns();
+      expect(campaigns, hasLength(1));
+      expect(campaigns.single.portraitPath, portraitStorage.savedPath);
+      expect(aiClient.lastProvider, AiProviderType.sberGigaChat);
+    },
+  );
 
   testWidgets('Saves screen shows empty state', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -770,6 +937,7 @@ Widget _buildScopedApp(
   final CampaignRepository? campaignRepository,
   final AiServiceFactory? aiServiceFactory,
   final GameEngine? gameEngine,
+  final PortraitStorage? portraitStorage,
 }) {
   final SettingsRepository resolvedSettingsRepository =
       settingsRepository ?? storage.settingsRepository;
@@ -778,6 +946,8 @@ Widget _buildScopedApp(
   final AiServiceFactory resolvedAiServiceFactory =
       aiServiceFactory ?? const AiServiceFactory();
   final GameEngine resolvedGameEngine = gameEngine ?? const GameEngine();
+  final PortraitStorage resolvedPortraitStorage =
+      portraitStorage ?? const PortraitStorage();
   final ValueNotifier<AppLanguage> appLanguageListenable =
       ValueNotifier<AppLanguage>(language);
 
@@ -787,6 +957,7 @@ Widget _buildScopedApp(
       campaignRepository: resolvedCampaignRepository,
       aiServiceFactory: resolvedAiServiceFactory,
       gameEngine: resolvedGameEngine,
+      portraitStorage: resolvedPortraitStorage,
       appLanguageListenable: appLanguageListenable,
     ),
     child: AppLocalizationsScope(
@@ -814,12 +985,35 @@ String _firstTextFieldValue(final WidgetTester tester) {
 }
 
 class _FakeSettingsRepository extends SettingsRepository {
-  _FakeSettingsRepository(this._settings);
+  _FakeSettingsRepository(this._settings, {ProviderScopedSettings? scoped})
+    : _scoped =
+          scoped ??
+          ProviderScopedSettings(
+            activeProvider: _settings.provider,
+            profiles: <AiProviderType, ProviderProfile>{
+              for (final AiProviderType provider in AiProviderType.values)
+                provider: provider == _settings.provider
+                    ? ProviderProfile(
+                        baseUrl: _settings.baseUrl,
+                        model: _settings.model,
+                        apiKey: _settings.apiKey,
+                        timeoutSeconds: _settings.timeoutSeconds,
+                        runtimeSettings: _settings.runtimeSettings,
+                      )
+                    : ProviderProfile.defaultsFor(provider),
+            },
+            fastResponses: _settings.fastResponses,
+            confirmed18Plus: _settings.confirmed18Plus,
+          );
 
   final AiSettings _settings;
+  final ProviderScopedSettings _scoped;
 
   @override
   Future<AiSettings> loadAiSettings() async => _settings;
+
+  @override
+  Future<ProviderScopedSettings> loadProviderScopedSettings() async => _scoped;
 }
 
 class _DelayedSettingsRepository extends SettingsRepository {
@@ -872,6 +1066,16 @@ class _ThrowingAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }
 
 class _StreamingAiClient implements AiClient {
@@ -916,10 +1120,124 @@ class _StreamingAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }
 
 class _PromptGeneratingAiClient implements AiClient {
   String lastStoryWish = '';
+
+  @override
+  Future<void> checkConnection({required final AiSettings settings}) async {}
+
+  @override
+  Future<TurnResult> generateTurn({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
+    final NarrationDeltaCallback? onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) async => const TurnResult(
+    narration: 'The story begins.',
+    choices: <String>['Continue'],
+    stateChanges: StateChanges.empty(),
+    memoryEntry: 'The story begins.',
+  );
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+    final CancelToken? cancelToken,
+  }) async {
+    lastStoryWish = storyWish;
+    return GeneratedPrompts(
+      storyPrompt: 'Expanded: $storyWish',
+      characterPrompt: 'Watchful investigator',
+    );
+  }
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
+}
+
+class _PortraitGeneratingAiClient implements AiClient {
+  String lastStoryPrompt = '';
+  AiProviderType? lastProvider;
+
+  @override
+  Future<void> checkConnection({required final AiSettings settings}) async {}
+
+  @override
+  Future<TurnResult> generateTurn({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
+    final NarrationDeltaCallback? onNarrationDelta,
+    final CancelToken? cancelToken,
+  }) async => const TurnResult(
+    narration: 'The story begins.',
+    choices: <String>['Continue'],
+    stateChanges: StateChanges.empty(),
+    memoryEntry: 'The story begins.',
+  );
+
+  @override
+  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final String storyWish,
+    required final CampaignSetting setting,
+    final CancelToken? cancelToken,
+  }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async {
+    lastProvider = settings.provider;
+    lastStoryPrompt = storyPrompt;
+    return const GeneratedPortrait(
+      bytesBase64: 'aGVsbG8=',
+      mimeType: 'image/png',
+      promptUsed:
+          'cinematic character portrait, expressive lighting, no text, no watermark',
+    );
+  }
+}
+
+class _NullPortraitAiClient implements AiClient {
+  const _NullPortraitAiClient();
 
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {}
@@ -946,13 +1264,17 @@ class _PromptGeneratingAiClient implements AiClient {
     required final String storyWish,
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
-  }) async {
-    lastStoryWish = storyWish;
-    return GeneratedPrompts(
-      storyPrompt: 'Expanded: $storyWish',
-      characterPrompt: 'Watchful investigator',
-    );
-  }
+  }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }
 
 class _DelayedTurnAiClient implements AiClient {
@@ -987,6 +1309,16 @@ class _DelayedTurnAiClient implements AiClient {
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
+
   void complete() {
     if (_completer.isCompleted) {
       return;
@@ -1013,6 +1345,30 @@ class _ConfiguredAiSettings extends AiSettings {
         fastResponses: false,
         runtimeSettings: ModelRuntimeSettings.smartPreset,
       );
+}
+
+class _ConfiguredSberSettings extends AiSettings {
+  const _ConfiguredSberSettings()
+    : super(
+        provider: AiProviderType.sberGigaChat,
+        baseUrl: 'http://127.0.0.1:8787/v1',
+        model: 'GigaChat-2',
+        apiKey: '',
+        timeoutSeconds: 15,
+        fastResponses: false,
+        runtimeSettings: ModelRuntimeSettings.smartPreset,
+      );
+}
+
+class _FakePortraitStorage extends PortraitStorage {
+  String savedPath = '';
+
+  @override
+  Future<String?> savePortrait({
+    required final String campaignId,
+    required final String mimeType,
+    required final String bytesBase64,
+  }) async => savedPath = 'C:/tmp/$campaignId.png';
 }
 
 CampaignState _sampleCampaign() => CampaignState(

@@ -244,7 +244,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Icon(
-                      isLastStep
+                      isLastStep && state.isGeneratingPortrait
+                          ? Icons.image_outlined
+                          : isLastStep
                           ? Icons.check_rounded
                           : Icons.arrow_forward_rounded,
                     ),
@@ -410,6 +412,13 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           ),
         ),
       ],
+      const SizedBox(height: 12),
+      Text(
+        l10n.portraitAutoGenerateHint,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: AetherPalette.textMuted,
+        ),
+      ),
       const SizedBox(height: 12),
       Wrap(
         spacing: 12,
@@ -669,7 +678,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         ],
         SizedBox(height: context.responsive.blockSpacing),
         Text(
-          l10n.readyToStart,
+          state.isGeneratingPortrait
+              ? l10n.generatingPortrait
+              : l10n.readyToStart,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AetherPalette.textMuted,
           ),

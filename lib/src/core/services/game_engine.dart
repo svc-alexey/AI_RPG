@@ -23,7 +23,9 @@ class GameEngine {
     required final AppLanguage language,
   }) {
     final DateTime now = DateTime.now();
-    final String id = now.microsecondsSinceEpoch.toString();
+    final String id = draft.id?.trim().isNotEmpty == true
+        ? draft.id!.trim()
+        : now.microsecondsSinceEpoch.toString();
     final List<CampaignModuleState> modules = _moduleResolver
         .resolveInitialModules(draft: draft);
     final bool inventoryActive = _isModuleActive(
@@ -103,7 +105,7 @@ class GameEngine {
 
     return CampaignState(
       id: id,
-      schemaVersion: 3,
+      schemaVersion: 4,
       title: '${character.name} - $settingLabel',
       setting: draft.setting,
       mode: draft.mode,
@@ -128,6 +130,8 @@ class GameEngine {
       updatedAt: now,
       customStoryPrompt: draft.customStoryPrompt,
       characterPrompt: characterPrompt,
+      portraitPath: draft.portraitPath,
+      portraitPrompt: draft.portraitPrompt,
     );
   }
 
@@ -174,7 +178,7 @@ class GameEngine {
     );
 
     final CampaignState nextState = state.copyWith(
-      schemaVersion: 3,
+      schemaVersion: 4,
       character: reconciliation.character,
       location: location,
       turnNumber: state.turnNumber + 1,
