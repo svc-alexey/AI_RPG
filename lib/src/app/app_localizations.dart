@@ -28,7 +28,7 @@ class AppLocalizations {
 
   String get homeDescription => switch (language) {
     AppLanguage.ru =>
-      'Нарративная RPG, где ИИ ведет сцену, а мир помнит последствия.',
+      'Нарративная ролевая игра, где ИИ ведет сцену, а мир помнит последствия.',
     AppLanguage.en =>
       'A narrative RPG where AI guides the scene and the world remembers what you do.',
   };
@@ -690,7 +690,7 @@ class AppLocalizations {
 
   String get contentRatingSubtitle => switch (language) {
     AppLanguage.ru =>
-      'Без подтверждения ИИ избегает сексуального контента. Подходит для общих аудиторий.',
+      'Без подтверждения ИИ избегает сексуального контента.',
     AppLanguage.en =>
       'Without confirmation, AI avoids sexual content. Suitable for general audiences.',
   };
