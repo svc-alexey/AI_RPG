@@ -524,13 +524,14 @@ class StateChanges {
 
 class TurnResult {
   factory TurnResult.fromJson(final Map<String, Object?> json) => TurnResult(
-    narration: _jsonString(
-      json['narration'],
+    narration: _resolveTurnNarration(
+      json,
       fallback: 'Мир ненадолго замирает в тишине.',
     ),
-    choices: _jsonList(
-      json['choices'],
-    ).map((final item) => item.toString()).toList(),
+    choices: _jsonList(json['choices'] ?? json['options'] ?? json['actions'])
+        .map((final item) => _choiceLabel(item))
+        .where((final item) => item.isNotEmpty)
+        .toList(),
     stateChanges: StateChanges.fromJson(
       _jsonMap(json['state_changes'] ?? json['stateChanges']),
     ),
@@ -548,6 +549,53 @@ class TurnResult {
   final List<String> choices;
   final StateChanges stateChanges;
   final String memoryEntry;
+}
+
+String _choiceLabel(final Object? item) {
+  if (item is String) {
+    return item.trim();
+  }
+  final Map<String, Object?> map = _jsonMap(item);
+  for (final String key in const <String>[
+    'label',
+    'title',
+    'text',
+    'choice',
+    'name',
+  ]) {
+    final String value = _jsonString(map[key]).trim();
+    if (value.isNotEmpty) {
+      return value;
+    }
+  }
+  return item?.toString().trim() ?? '';
+}
+
+String _resolveTurnNarration(
+  final Object? value, {
+  required final String fallback,
+}) {
+  final Map<String, Object?> json = _jsonMap(value);
+  final Map<String, Object?> result = _jsonMap(json['result']);
+  for (final Object? candidate in <Object?>[
+    json['narration'],
+    json['scene'],
+    json['story'],
+    json['description'],
+    json['text'],
+    json['response'],
+    result['narration'],
+    result['scene'],
+    result['story'],
+    result['description'],
+    result['text'],
+  ]) {
+    final String resolved = _jsonString(candidate).trim();
+    if (resolved.isNotEmpty) {
+      return resolved;
+    }
+  }
+  return fallback;
 }
 
 enum StateChangeNotificationKind {
@@ -672,9 +720,10 @@ class CampaignState {
       messages: messagesJson
           .map((final item) => ChatMessage.fromJson(_jsonMap(item)))
           .toList(),
-      choices: _jsonList(
-        json['choices'],
-      ).map((final item) => item.toString()).toList(),
+      choices: _jsonList(json['choices'])
+          .map((final item) => _choiceLabel(item))
+          .where((final item) => item.isNotEmpty)
+          .toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
       customStoryPrompt: _jsonString(json['customStoryPrompt']),

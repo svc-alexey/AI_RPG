@@ -34,7 +34,7 @@ The project has already moved beyond the original MVP baseline. The current code
 - mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content;
 - a fast web landing shell that opens before Flutter and launches the full app only after the user presses the main CTA;
 - a staged web/mobile-web startup loader with localized progress steps, rotating flavor text, and a safe fallback that removes the landing overlay even if the ready event is delayed on some phones.
-- web-safe AI diagnostics for mobile browsers, including structured console events, intro-turn tracing, retry/fallback visibility, and a compact in-chat debug panel during investigation.
+- web-safe AI diagnostics for mobile browsers, including structured console events, intro-turn tracing, and retry/fallback visibility in browser console logs.
 
 ## Current architecture
 
@@ -82,6 +82,26 @@ flutter analyze
 flutter test
 ```
 
+## Sber GigaChat proxy
+
+`Sber GigaChat` now uses a local proxy so the Flutter client never stores Sber secrets directly.
+
+1. Create `.env` from `.env.example`.
+2. Fill in `SBER_AUTH_KEY`, `SBER_CLIENT_ID`, and `SBER_CLIENT_SECRET`.
+3. Start the proxy:
+
+```bash
+dart run tool/sber_proxy.dart
+```
+
+The app expects the proxy at `http://127.0.0.1:8787/v1` by default and uses the Sber API model id `GigaChat-2`.
+
+Current limitations:
+
+- `Sber GigaChat` uses standard completions only; streaming stays enabled for the existing OpenAI-compatible providers.
+- Some Sber-family models may ignore strict JSON instructions. The app now includes tolerant recovery for plain text and partially structured responses, but the most stable path is still a model that reliably follows structured output.
+- The local proxy is required for `Sber GigaChat` on all platforms because Sber credentials are read from `.env` by the proxy, not by the Flutter client.
+
 ## Web build
 
 For browser and mobile-browser deployment, use the project build script instead of raw `flutter build web`:
@@ -97,8 +117,8 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - `native / desktop / mobile app`: the app opens directly into the new branded start screen
 - `web`: `web/index.html` first shows a lightweight landing page, and Flutter starts only after the user presses `Play`
 - `web / mobile browser`: after `Play`, the CTA becomes a staged loader with progress, loading phrases, and a guarded handoff that hides the HTML landing only when Flutter is ready
-- `web / mobile browser / first AI turn`: the chat screen now emits structured diagnostic events for intro autostart, retries, streaming fallback, request/response flow, and duplicate-turn suppression; recent events are also visible in a compact debug panel inside chat
-- `localhost / flutter run -d web-server`: the landing still renders, but Flutter auto-starts immediately so the debug WebSocket flow keeps working
+- `web / mobile browser / first AI turn`: the chat flow emits structured diagnostic events for intro autostart, retries, fallback behavior, request/response flow, and duplicate-turn suppression in browser console logs
+- `localhost / flutter run -d web-server`: the landing still renders by default; add `?autostart=1` to the URL if you explicitly want immediate Flutter startup
 - `custom campaign / story step`: there is now one editable story field; typed text expands into a richer prompt, and an empty submit generates a fresh random hook first
 - `custom campaign / generate prompt`: when the AI response is weak or effectively echoes the input, the app now rewrites it into a more atmospheric story prompt and fills a matching character prompt instead of leaving the field unchanged
 - `custom campaign / step navigation`: moving between steps now uses the top arrows only
@@ -115,10 +135,11 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - pending narrator bubbles now render with a softer, more readable typing experience;
 - the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
 - the web landing now keeps a staged loading UI during deferred startup and has an extra fallback removal path for phones where the ready signal can be delayed;
-- mobile-browser intro turn diagnostics now surface directly in web console output and in a lightweight on-screen panel, making repeated generation and fallback chains easier to trace on-device;
+- mobile-browser intro turn diagnostics now surface directly in web console output, making repeated generation and fallback chains easier to trace on-device;
 - chat turn submission is now single-flight, so duplicate taps or repeated intro triggers no longer start parallel first-turn requests;
 - the mobile chat layout now hides nonessential top chrome while the keyboard is open, preventing bottom overflow on small screens;
 - overlay choice actions in chat now trigger an immediate turn submission instead of waiting for a second explicit send tap;
 - the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
 - widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.
 - custom prompt generation now has a tested local fallback that prevents silent no-op behavior when AI prompt expansion fails.
+- `Sber GigaChat` now runs through a local proxy, disables streaming for turn generation, and includes fallback parsing for plain text, broken JSON-like output, alternative narration fields, and object-shaped choices.

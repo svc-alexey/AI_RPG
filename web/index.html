@@ -585,6 +585,8 @@
       const launchButton = document.getElementById('launch-button');
       const howButton = document.getElementById('how-button');
       const howAnchor = document.getElementById('how-anchor');
+      const urlParams = new URLSearchParams(window.location.search);
+      const shouldAutoLaunch = urlParams.get('autostart') === '1';
 
       let launchInFlight = false;
       let launchCompleted = false;
@@ -824,6 +826,10 @@
           resetLaunchState(text.startupError);
         }
       });
+
+      if (shouldAutoLaunch) {
+        window.setTimeout(launchFlutter, 0);
+      }
 
       window.__codexHideLanding = function () {
         if (loadingContainer) {

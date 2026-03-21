@@ -160,6 +160,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     AiProviderType.deepSeek,
                                   ),
                                 ),
+                                const SizedBox(height: 8),
+                                _ProviderTile(
+                                  title: l10n.sberGigaChat,
+                                  subtitle: l10n.sberGigaChatSubtitle,
+                                  selected:
+                                      settingsState.provider ==
+                                      AiProviderType.sberGigaChat,
+                                  onTap: () => controller.changeProvider(
+                                    AiProviderType.sberGigaChat,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -167,32 +178,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _SettingsSection(
                             title: 'Connection',
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                TextField(
-                                  controller: _baseUrlController,
-                                  onChanged: controller.setBaseUrl,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.baseUrl,
+                                if (settingsState
+                                    .provider
+                                    .hidesConnectionSecrets)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Text(
+                                      l10n.sberManagedConnectionNotice,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _modelController,
-                                  onChanged: controller.setModel,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.model,
+                                if (!settingsState
+                                    .provider
+                                    .hidesConnectionSecrets)
+                                  TextField(
+                                    controller: _baseUrlController,
+                                    onChanged: controller.setBaseUrl,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.baseUrl,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _apiKeyController,
-                                  onChanged: controller.setApiKey,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.apiKey,
-                                    hintText: l10n.apiKeyHint,
+                                if (!settingsState
+                                    .provider
+                                    .hidesConnectionSecrets)
+                                  const SizedBox(height: 12),
+                                if (!settingsState.provider.hidesModelField)
+                                  TextField(
+                                    controller: _modelController,
+                                    onChanged: controller.setModel,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.model,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
+                                if (!settingsState.provider.hidesModelField)
+                                  const SizedBox(height: 12),
+                                if (!settingsState
+                                    .provider
+                                    .hidesConnectionSecrets)
+                                  TextField(
+                                    controller: _apiKeyController,
+                                    onChanged: controller.setApiKey,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.apiKey,
+                                      hintText: l10n.apiKeyHint,
+                                    ),
+                                  ),
+                                if (!settingsState
+                                    .provider
+                                    .hidesConnectionSecrets)
+                                  const SizedBox(height: 12),
                                 TextField(
                                   controller: _timeoutController,
                                   onChanged: controller.setTimeoutText,

@@ -28,6 +28,8 @@ class OpenAiCompatibleAiClient implements AiClient {
   List<Object?> _jsonList(final Object? value) =>
       value is List ? List<Object?>.from(value) : const <Object?>[];
 
+  String _stringValue(final Object? value) => value == null ? '' : '$value';
+
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {
     final Uri uri = Uri.parse('${_normalizedBaseUrl(settings.baseUrl)}/models');
@@ -151,7 +153,7 @@ Reply only with JSON, no markdown.
 
       final Map<String, Object?> choice = _jsonMap(choices.first);
       final Map<String, Object?> message = _jsonMap(choice['message']);
-      final String content = (message['content'] as String?) ?? '';
+      final String content = _stringValue(message['content']);
       final String jsonStr = content.trim();
       final int start = jsonStr.indexOf('{');
       final int end = jsonStr.lastIndexOf('}');
@@ -165,12 +167,13 @@ Reply only with JSON, no markdown.
       }
 
       final Map<String, Object?> parsedMap = _jsonMap(parsed);
-      String storyPrompt = ((parsedMap['storyPrompt'] as String?) ?? '').trim();
+      String storyPrompt = _stringValue(parsedMap['storyPrompt']).trim();
       if (storyPrompt.length > _maxCustomPromptLength) {
         storyPrompt = storyPrompt.substring(0, _maxCustomPromptLength);
       }
-      String characterPrompt = ((parsedMap['characterPrompt'] as String?) ?? '')
-          .trim();
+      String characterPrompt = _stringValue(
+        parsedMap['characterPrompt'],
+      ).trim();
       if (characterPrompt.length > _maxCustomPromptLength) {
         characterPrompt = characterPrompt.substring(0, _maxCustomPromptLength);
       }
@@ -227,7 +230,9 @@ Reply only with JSON, no markdown.
           );
         }
 
-        if (!suggestionsOnly && onNarrationDelta != null) {
+        if (!suggestionsOnly &&
+            onNarrationDelta != null &&
+            _supportsStreaming(settings)) {
           try {
             final Future<TurnResult> streamFuture = _requestTurnStreaming(
               settings: settings,
@@ -715,28 +720,10 @@ Reply only with JSON, no markdown.
       screenMounted: metadata?.screenMounted,
     );
 
-    final String jsonString = _extractJson(rawResponse, language);
-    final Object? turnDecoded = _safeJsonDecode(jsonString);
-    if (turnDecoded is! Map) {
-      final AiTurnException exception = AiTurnException(
-        userMessage: _invalidJson(language),
-        rawResponse: rawResponse,
-        recoverable: true,
-      );
-      AppLogger.logAiError(
-        message: 'Streamed model output was not valid JSON',
-        exception: exception,
-        flowId: metadata?.flowId,
-        campaignId: metadata?.campaignId,
-        triggerSource: metadata?.triggerSource,
-        attempt: 0,
-        requestMode: 'streaming',
-        screenMounted: metadata?.screenMounted,
-      );
-      throw exception;
-    }
-
-    final TurnResult result = TurnResult.fromJson(_jsonMap(turnDecoded));
+    final TurnResult result = _parseRawTurnContent(
+      rawContent: rawResponse,
+      language: language,
+    );
     if (result.narration.trim().isNotEmpty && result.narration != lastPreview) {
       onNarrationDelta(result.narration);
     }
@@ -745,6 +732,9 @@ Reply only with JSON, no markdown.
 
   bool _shouldUseFastMode(final AiSettings settings) =>
       settings.provider == AiProviderType.lmStudio && settings.fastResponses;
+
+  bool _supportsStreaming(final AiSettings settings) =>
+      settings.provider != AiProviderType.sberGigaChat;
 
   bool _shouldRetryWithoutFastMode(
     final AiSettings settings,
@@ -850,11 +840,10 @@ Reply only with JSON, no markdown.
 
     final Map<String, Object?> map = _jsonMap(decoded);
     final Map<String, Object?> error = _jsonMap(map['error']);
-    final String message =
-        (error['message'] as String?)?.trim() ??
-        (map['message'] as String?)?.trim() ??
-        '';
-    final String code = (error['code'] as String?)?.trim() ?? '';
+    final String message = _stringValue(error['message']).trim().isNotEmpty
+        ? _stringValue(error['message']).trim()
+        : _stringValue(map['message']).trim();
+    final String code = _stringValue(error['code']).trim();
 
     if (message.isEmpty && code.isEmpty) {
       return null;
@@ -871,6 +860,7 @@ Reply only with JSON, no markdown.
   ) => switch ((settings.provider, language)) {
     (AiProviderType.deepSeek, _) => 'DeepSeek',
     (AiProviderType.openRouter, _) => 'OpenRouter',
+    (AiProviderType.sberGigaChat, _) => 'Sber GigaChat',
     (AiProviderType.lmStudio, _) => 'LM Studio',
     (AiProviderType.openAiCompatible, AppLanguage.ru) => 'AI endpoint',
     (AiProviderType.openAiCompatible, AppLanguage.en) => 'AI endpoint',
@@ -1013,6 +1003,7 @@ Rules:
 - narration: 1-2 paragraphs. Include scene atmosphere, character emotions, short in-flow dialogues, sensory details (sound, light, smell) in moderation.
 - choices: up to 3 options, each 2–3 words max
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string, "location": string }
+- choices must be plain visible button labels only
 - location in state_changes: specify current location (especially important on first turn). If location doesn't change, leave empty "".
 - changes must stay moderate for the MVP
 - do not break world continuity
@@ -1134,24 +1125,285 @@ $actionText
 
     final Map<String, Object?> choice = _jsonMap(choices.first);
     final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String content = (message['content'] as String?) ?? '';
-    final String jsonString = _extractJson(content, language);
-    final Object? turnDecoded = _safeJsonDecode(jsonString);
-    if (turnDecoded is! Map) {
-      final AiTurnException exception = AiTurnException(
-        userMessage: _invalidJson(language),
-        rawResponse: content,
-        recoverable: true,
-      );
-      AppLogger.logAiError(
-        message: 'Model returned invalid JSON structure',
-        exception: exception,
-      );
-      throw exception;
+    final String content = _stringValue(message['content']);
+    return _parseRawTurnContent(rawContent: content, language: language);
+  }
+
+  TurnResult _parseRawTurnContent({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) {
+    try {
+      final String jsonString = _extractJson(rawContent, language);
+      final Object? turnDecoded = _safeJsonDecode(jsonString);
+      if (turnDecoded is Map) {
+        return TurnResult.fromJson(_jsonMap(turnDecoded));
+      }
+    } on AiTurnException {
+      // Fall back to heuristic parsing for providers that ignore structured output.
     }
 
-    return TurnResult.fromJson(_jsonMap(turnDecoded));
+    final TurnResult? structuredRecovery = _recoverTurnResultFromStructuredText(
+      rawContent: rawContent,
+      language: language,
+    );
+    if (structuredRecovery != null) {
+      return structuredRecovery;
+    }
+
+    final TurnResult? recovered = _recoverTurnResultFromPlainText(
+      rawContent: rawContent,
+      language: language,
+    );
+    if (recovered != null) {
+      return recovered;
+    }
+
+    final AiTurnException exception = AiTurnException(
+      userMessage: _invalidJson(language),
+      rawResponse: rawContent,
+      recoverable: true,
+    );
+    AppLogger.logAiError(
+      message: 'Model returned invalid JSON structure',
+      exception: exception,
+    );
+    throw exception;
   }
+
+  TurnResult? _recoverTurnResultFromPlainText({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) {
+    final String cleaned = rawContent
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+    if (cleaned.isEmpty) {
+      return null;
+    }
+
+    final List<String> lines = cleaned
+        .split(RegExp(r'\r?\n'))
+        .map((final item) => item.trim())
+        .where((final item) => item.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) {
+      return null;
+    }
+
+    final List<String> narrationParts = <String>[];
+    final List<String> recoveredChoices = <String>[];
+    bool readingChoices = false;
+
+    for (final String line in lines) {
+      final String lower = line.toLowerCase();
+      final bool isChoicesHeader =
+          lower == 'choices:' ||
+          lower == 'options:' ||
+          lower == 'actions:' ||
+          lower == 'варианты:' ||
+          lower == 'выбор:' ||
+          lower == 'действия:';
+      if (isChoicesHeader) {
+        readingChoices = true;
+        continue;
+      }
+
+      final String? normalizedChoice = _normalizeChoiceLine(line);
+      if (normalizedChoice != null) {
+        recoveredChoices.add(normalizedChoice);
+        readingChoices = true;
+        continue;
+      }
+
+      if (!readingChoices) {
+        narrationParts.add(line);
+      }
+    }
+
+    final String narration = narrationParts.join('\n\n').trim();
+    final List<String> choices = recoveredChoices.take(3).toList();
+    if (narration.isEmpty && choices.isEmpty) {
+      return null;
+    }
+
+    final List<String> fallbackChoices = choices.isNotEmpty
+        ? choices
+        : switch (language) {
+            AppLanguage.ru => const <String>[
+              'Осмотреться',
+              'Действовать осторожно',
+              'Сделать шаг',
+            ],
+            AppLanguage.en => const <String>[
+              'Look around',
+              'Move carefully',
+              'Take action',
+            ],
+          };
+
+    final String resolvedNarration = narration.isNotEmpty
+        ? narration
+        : switch (language) {
+            AppLanguage.ru => 'История продолжается.',
+            AppLanguage.en => 'The story continues.',
+          };
+
+    return TurnResult(
+      narration: resolvedNarration,
+      choices: fallbackChoices,
+      stateChanges: const StateChanges.empty(),
+      memoryEntry: resolvedNarration,
+    );
+  }
+
+  TurnResult? _recoverTurnResultFromStructuredText({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) {
+    final String cleaned = rawContent
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+    if (cleaned.isEmpty) {
+      return null;
+    }
+
+    final String narration = _firstMatchedValue(cleaned, <String>[
+      'narration',
+      'scene',
+      'story',
+      'description',
+      'text',
+      'response',
+      'memory_entry',
+    ]);
+    final List<String> choices = _extractStructuredChoices(cleaned);
+    if (narration.isEmpty && choices.isEmpty) {
+      return null;
+    }
+
+    final List<String> fallbackChoices = choices.isNotEmpty
+        ? choices.take(3).toList()
+        : switch (language) {
+            AppLanguage.ru => const <String>[
+              'Осмотреться',
+              'Действовать осторожно',
+              'Сделать шаг',
+            ],
+            AppLanguage.en => const <String>[
+              'Look around',
+              'Move carefully',
+              'Take action',
+            ],
+          };
+
+    final String resolvedNarration = narration.isNotEmpty
+        ? narration
+        : switch (language) {
+            AppLanguage.ru => 'История продолжается.',
+            AppLanguage.en => 'The story continues.',
+          };
+
+    return TurnResult(
+      narration: resolvedNarration,
+      choices: fallbackChoices,
+      stateChanges: const StateChanges.empty(),
+      memoryEntry: resolvedNarration,
+    );
+  }
+
+  List<String> _extractStructuredChoices(final String rawContent) {
+    final RegExp arrayPattern = RegExp(
+      r'"(?:choices|options|actions)"\s*:\s*\[(.*?)\]',
+      dotAll: true,
+    );
+    final Match? match = arrayPattern.firstMatch(rawContent);
+    if (match == null) {
+      return const <String>[];
+    }
+
+    final String body = match.group(1) ?? '';
+    final RegExp stringPattern = RegExp(r'"((?:\\.|[^"\\])*)"');
+    final List<String> directStrings = stringPattern
+        .allMatches(body)
+        .map((final item) => _unescapeJsonString(item.group(1) ?? ''))
+        .where((final item) => item.trim().isNotEmpty)
+        .toList();
+
+    final List<String> labels = <String>[];
+    for (int i = 0; i < directStrings.length; i++) {
+      final String current = directStrings[i];
+      if (current == 'label' ||
+          current == 'title' ||
+          current == 'text' ||
+          current == 'choice' ||
+          current == 'name') {
+        if (i + 1 < directStrings.length) {
+          labels.add(directStrings[i + 1].trim());
+        }
+      }
+    }
+
+    if (labels.isNotEmpty) {
+      return labels;
+    }
+    return directStrings;
+  }
+
+  String _firstMatchedValue(final String rawContent, final List<String> keys) {
+    for (final String key in keys) {
+      final RegExp pattern = RegExp(
+        '"${RegExp.escape(key)}"\\s*:\\s*(?:"((?:\\\\.|[^"\\\\])*)"|\\{[^\\}]*"text"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)")',
+        dotAll: true,
+      );
+      final Match? match = pattern.firstMatch(rawContent);
+      if (match == null) {
+        continue;
+      }
+      final String resolved = _unescapeJsonString(
+        match.group(1) ?? match.group(2) ?? '',
+      ).trim();
+      if (resolved.isNotEmpty) {
+        return resolved;
+      }
+    }
+    return '';
+  }
+
+  String _unescapeJsonString(final String value) {
+    try {
+      return jsonDecode('"$value"') as String;
+    } catch (_) {
+      return value
+          .replaceAll(r'\"', '"')
+          .replaceAll(r'\n', '\n')
+          .replaceAll(r'\r', '\r')
+          .replaceAll(r'\t', '\t');
+    }
+  }
+
+  String? _normalizeChoiceLine(final String line) {
+    final RegExp prefixPattern = RegExp(
+      r'^(?:[-*•]|\d+[.)]|[A-Za-zА-Яа-я][.)])\s+',
+    );
+    if (!prefixPattern.hasMatch(line)) {
+      return null;
+    }
+    final String normalized = line.replaceFirst(prefixPattern, '').trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  @visibleForTesting
+  TurnResult parseTurnContentForTesting({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) => _parseRawTurnContent(rawContent: rawContent, language: language);
+
+  @visibleForTesting
+  bool supportsStreamingForTesting(final AiSettings settings) =>
+      _supportsStreaming(settings);
 
   String _extractStreamChunk(final Map<String, Object?> event) {
     final List<Object?> choices = _jsonList(event['choices']);
@@ -1161,18 +1413,18 @@ $actionText
 
     final Map<String, Object?> choice = _jsonMap(choices.first);
     final Map<String, Object?> delta = _jsonMap(choice['delta']);
-    final String deltaContent = (delta['content'] as String?) ?? '';
+    final String deltaContent = _stringValue(delta['content']);
     if (deltaContent.isNotEmpty) {
       return deltaContent;
     }
 
     final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String messageContent = (message['content'] as String?) ?? '';
+    final String messageContent = _stringValue(message['content']);
     if (messageContent.isNotEmpty) {
       return messageContent;
     }
 
-    return (choice['text'] as String?) ?? '';
+    return _stringValue(choice['text']);
   }
 
   @visibleForTesting

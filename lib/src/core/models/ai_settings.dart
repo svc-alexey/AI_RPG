@@ -1,4 +1,10 @@
-enum AiProviderType { lmStudio, openAiCompatible, openRouter, deepSeek }
+enum AiProviderType {
+  lmStudio,
+  openAiCompatible,
+  openRouter,
+  deepSeek,
+  sberGigaChat,
+}
 
 enum ModelRuntimeProfile { cheap, fast, smart, custom }
 
@@ -141,6 +147,10 @@ extension AiProviderTypeCapabilities on AiProviderType {
   bool get supportsFastResponses => this == AiProviderType.lmStudio;
 
   bool get supportsModelAutoDetect => this == AiProviderType.lmStudio;
+
+  bool get hidesConnectionSecrets => this == AiProviderType.sberGigaChat;
+
+  bool get hidesModelField => this == AiProviderType.sberGigaChat;
 }
 
 /// Per-provider profile: baseUrl, model, apiKey, timeoutSeconds.
@@ -391,11 +401,13 @@ class AiSettings {
         AiProviderType.openAiCompatible => '',
         AiProviderType.openRouter => 'https://openrouter.ai/api/v1',
         AiProviderType.deepSeek => 'https://api.deepseek.com/v1',
+        AiProviderType.sberGigaChat => 'http://127.0.0.1:8787/v1',
       };
 
   static String defaultModelFor(final AiProviderType provider) =>
       switch (provider) {
         AiProviderType.deepSeek => 'deepseek-chat',
+        AiProviderType.sberGigaChat => 'GigaChat-2',
         _ => '',
       };
 

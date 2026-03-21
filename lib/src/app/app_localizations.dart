@@ -713,6 +713,23 @@ class AppLocalizations {
     AppLanguage.en => 'DeepSeek',
   };
 
+  String get sberGigaChat => switch (language) {
+    AppLanguage.ru => 'Sber GigaChat',
+    AppLanguage.en => 'Sber GigaChat',
+  };
+
+  String get sberGigaChatSubtitle => switch (language) {
+    AppLanguage.ru => 'Потоковая текстовая генерация через локальный proxy',
+    AppLanguage.en => 'Streaming text generation through a local proxy',
+  };
+
+  String get sberManagedConnectionNotice => switch (language) {
+    AppLanguage.ru =>
+      'Для Sber GigaChat модель и секреты берутся из proxy `.env`. В приложении нужно только выбрать провайдер.',
+    AppLanguage.en =>
+      'For Sber GigaChat, the model and secrets come from the proxy `.env`. In the app, you only need to choose the provider.',
+  };
+
   String get baseUrl => switch (language) {
     AppLanguage.ru => 'Базовый URL',
     AppLanguage.en => 'Base URL',
