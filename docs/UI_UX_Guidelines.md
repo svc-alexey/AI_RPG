@@ -224,10 +224,7 @@
 │  [Русский] [English]        │
 │                             │
 │  AI PROVIDER                │
-│  ○ LM Studio                │
 │  ● Совместимый с OpenAI     │
-│  ○ OpenRouter               │
-│  ○ DeepSeek                 │
 │                             │
 │  CONNECTION                 │
 │  Base URL [____________]    │

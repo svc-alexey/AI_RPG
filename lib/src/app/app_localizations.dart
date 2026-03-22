@@ -484,9 +484,9 @@ class AppLocalizations {
 
   String get portraitAutoGenerateHint => switch (language) {
     AppLanguage.ru =>
-      'При создании кампании Sber сгенерирует портрет героя по истории и выбранному персонажу.',
+      'Автоматическая генерация портрета временно отключена.',
     AppLanguage.en =>
-      'When the campaign is created, Sber will generate a hero portrait from the story and selected character.',
+      'Automatic portrait generation is currently disabled.',
   };
 
   String campaignModuleLabel(final CampaignModule value) =>
@@ -704,47 +704,20 @@ class AppLocalizations {
   String get english => 'English';
 
   String get aiSettingsTitle => switch (language) {
-    AppLanguage.ru => 'LM Studio и OpenAI-compatible endpoint',
-    AppLanguage.en => 'LM Studio and OpenAI-compatible endpoint',
+    AppLanguage.ru => 'OpenAI-compatible endpoint',
+    AppLanguage.en => 'OpenAI-compatible endpoint',
   };
 
   String get aiSettingsDescription => switch (language) {
     AppLanguage.ru =>
-      'Для LM Studio по умолчанию используется http://127.0.0.1:1234/v1. Если локальный сервер LM Studio запущен, приложение само подберет подходящую загруженную модель.',
+      'Настройте любой OpenAI-compatible endpoint, модель и API-ключ, если он нужен.',
     AppLanguage.en =>
-      'LM Studio uses http://127.0.0.1:1234/v1 by default. If the local LM Studio server is running, the app will pick a suitable loaded model automatically.',
+      'Configure any OpenAI-compatible endpoint, model, and API key if needed.',
   };
 
   String get openAiCompatible => switch (language) {
     AppLanguage.ru => 'Совместимый с OpenAI',
     AppLanguage.en => 'OpenAI Compatible',
-  };
-
-  String get openRouter => switch (language) {
-    AppLanguage.ru => 'OpenRouter',
-    AppLanguage.en => 'OpenRouter',
-  };
-
-  String get deepSeek => switch (language) {
-    AppLanguage.ru => 'DeepSeek',
-    AppLanguage.en => 'DeepSeek',
-  };
-
-  String get sberGigaChat => switch (language) {
-    AppLanguage.ru => 'Sber GigaChat',
-    AppLanguage.en => 'Sber GigaChat',
-  };
-
-  String get sberGigaChatSubtitle => switch (language) {
-    AppLanguage.ru => 'Потоковая текстовая генерация через локальный proxy',
-    AppLanguage.en => 'Streaming text generation through a local proxy',
-  };
-
-  String get sberManagedConnectionNotice => switch (language) {
-    AppLanguage.ru =>
-      'Для Sber GigaChat модель и секреты берутся из proxy `.env`. В приложении нужно только выбрать провайдер.',
-    AppLanguage.en =>
-      'For Sber GigaChat, the model and secrets come from the proxy `.env`. In the app, you only need to choose the provider.',
   };
 
   String get baseUrl => switch (language) {
@@ -763,25 +736,13 @@ class AppLocalizations {
   };
 
   String get apiKeyHint => switch (language) {
-    AppLanguage.ru => 'Для LM Studio обычно не нужен',
-    AppLanguage.en => 'Usually not needed for LM Studio',
+    AppLanguage.ru => 'Оставьте пустым, если endpoint не требует ключ',
+    AppLanguage.en => 'Leave empty if the endpoint does not require a key',
   };
 
   String get timeoutSeconds => switch (language) {
     AppLanguage.ru => 'Таймаут в секундах',
     AppLanguage.en => 'Timeout in Seconds',
-  };
-
-  String get fastModeTitle => switch (language) {
-    AppLanguage.ru => 'Быстрый режим LM Studio',
-    AppLanguage.en => 'LM Studio Fast Mode',
-  };
-
-  String get fastModeSubtitle => switch (language) {
-    AppLanguage.ru =>
-      'Добавляет /no_think и строгий JSON-формат для более быстрых ответов.',
-    AppLanguage.en =>
-      'Adds /no_think and strict JSON formatting for faster responses.',
   };
 
   String get runtimeControlsTitle => switch (language) {
@@ -836,16 +797,6 @@ class AppLocalizations {
     AppLanguage.en => 'Check Connection',
   };
 
-  String get detectModel => switch (language) {
-    AppLanguage.ru => 'Подобрать модель автоматически',
-    AppLanguage.en => 'Detect Model Automatically',
-  };
-
-  String get detectingModel => switch (language) {
-    AppLanguage.ru => 'Подбираю модель...',
-    AppLanguage.en => 'Detecting model...',
-  };
-
   String get settingsSaved => switch (language) {
     AppLanguage.ru => 'Настройки сохранены.',
     AppLanguage.en => 'Settings saved.',
@@ -857,25 +808,8 @@ class AppLocalizations {
   };
 
   String connectionFailed(final Object error) => switch (language) {
-    AppLanguage.ru => 'Не удалось подключиться: $error',
-    AppLanguage.en => 'Connection failed: $error',
-  };
-
-  String get noLmStudioModel => switch (language) {
-    AppLanguage.ru => 'LM Studio ответил, но подходящая модель не найдена.',
-    AppLanguage.en => 'LM Studio responded, but no suitable model was found.',
-  };
-
-  String selectedLmStudioModel(final String modelId) => switch (language) {
-    AppLanguage.ru => 'Автоматически выбрана модель LM Studio: $modelId',
-    AppLanguage.en => 'LM Studio model selected automatically: $modelId',
-  };
-
-  String detectLmStudioFailed(final Object error) => switch (language) {
-    AppLanguage.ru =>
-      'Не удалось автоматически определить модель LM Studio. Убедись, что локальный сервер запущен: $error',
-    AppLanguage.en =>
-      'Could not detect an LM Studio model automatically. Make sure the local server is running: $error',
+    AppLanguage.ru => 'Не удалось проверить подключение: $error',
+    AppLanguage.en => 'Failed to check connection: $error',
   };
 
   String serverReturned(final int statusCode) => switch (language) {

@@ -16,10 +16,10 @@
 
 ## Пример заполнения
 
-**Заголовок:** LM Studio + structured contract: как это работает
+**Заголовок:** OpenAI-compatible endpoint + structured contract: как это работает
 
 **Суть:**
-Мы подключили AI RPG к LM Studio через OpenAI-compatible API. Модель получает structured prompt и возвращает JSON с narrative и вариантами действий. Движок валидирует ответ и только потом обновляет состояние — LLM не источник истины.
+Мы подключили AI RPG к OpenAI-compatible endpoint. Модель получает structured prompt и возвращает JSON с narrative и вариантами действий. Движок валидирует ответ и только потом обновляет состояние — LLM не источник истины.
 
 **Детали:**
 Контракт жёсткий: `narrative`, `suggestedActions`, `stateDelta`. Если модель вернула битый JSON или невалидный stateDelta — срабатывает fallback, игра не ломается. Добавили режим `/no_think` для ускорения ответов на совместимых моделях.

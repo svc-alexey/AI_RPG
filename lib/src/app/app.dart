@@ -12,10 +12,8 @@ import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
-import 'package:ai_prg/src/core/services/lm_studio_auto_config.dart';
 import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,7 +26,6 @@ class AiRpgApp extends StatefulWidget {
     this.aiServiceFactory,
     this.gameEngine,
     this.portraitStorage,
-    this.lmStudioAutoConfig,
     this.appLanguageListenable,
     this.onLaunchUiReady,
   });
@@ -39,7 +36,6 @@ class AiRpgApp extends StatefulWidget {
   final AiServiceFactory? aiServiceFactory;
   final GameEngine? gameEngine;
   final PortraitStorage? portraitStorage;
-  final LmStudioAutoConfig? lmStudioAutoConfig;
   final ValueNotifier<AppLanguage>? appLanguageListenable;
   final VoidCallback? onLaunchUiReady;
 
@@ -54,7 +50,6 @@ class _AiRpgAppState extends State<AiRpgApp> {
   late final AiServiceFactory _aiServiceFactory;
   late final GameEngine _gameEngine;
   late final PortraitStorage _portraitStorage;
-  late final LmStudioAutoConfig _lmStudioAutoConfig;
   late final ValueNotifier<AppLanguage> _appLanguageListenable;
   late final bool _ownsLanguageListenable;
   bool _didBootstrap = false;
@@ -72,8 +67,6 @@ class _AiRpgAppState extends State<AiRpgApp> {
     _aiServiceFactory = widget.aiServiceFactory ?? const AiServiceFactory();
     _gameEngine = widget.gameEngine ?? const GameEngine();
     _portraitStorage = widget.portraitStorage ?? const PortraitStorage();
-    _lmStudioAutoConfig =
-        widget.lmStudioAutoConfig ?? const LmStudioAutoConfig();
     _appLanguageListenable =
         widget.appLanguageListenable ??
         ValueNotifier<AppLanguage>(AppLanguage.ru);
@@ -98,9 +91,6 @@ class _AiRpgAppState extends State<AiRpgApp> {
           _appLanguageListenable.value = language;
         }),
       ];
-      if (!kIsWeb) {
-        tasks.add(_lmStudioAutoConfig.sync(_settingsRepository));
-      }
       await Future.wait(
         tasks,
       ).timeout(const Duration(seconds: 3), onTimeout: () => <void>[]);

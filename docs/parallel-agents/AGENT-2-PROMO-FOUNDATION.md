@@ -19,7 +19,7 @@ git checkout codex/promo-foundation
 ## Контекст
 
 - Прочитай: `PRD.md`, `ImplementationPlan.md` — раздел Этап 8
-- Проект: narrative RPG с AI, Flutter, LM Studio, ru/en, без рекламного бюджета
+- Проект: narrative RPG с AI, Flutter, OpenAI-compatible endpoints, ru/en, без рекламного бюджета
 
 ## Зона файлов
 

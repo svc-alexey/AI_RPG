@@ -8,106 +8,70 @@ class SettingsLocalDataSource {
 
   static const String _appLanguageKey = 'settings.app_language';
   static const String _modelControlKey = 'model_control';
+  static const String _profileKey = 'openAiCompatible';
 
-  Future<ProviderScopedSettings?> loadProviderScopedSettings(
-    final Isar isar,
-  ) async {
+  Future<AiSettings?> loadAiSettings(final Isar isar) async {
     final ModelControlRecord? control = await isar.modelControlRecords
         .filter()
         .keyEqualTo(_modelControlKey)
         .findFirst();
-    final List<ProviderProfileRecord> profiles = await isar
-        .providerProfileRecords
-        .where()
-        .findAll();
+    final ProviderProfileRecord? profile = await isar.providerProfileRecords
+        .filter()
+        .providerKeyEqualTo(_profileKey)
+        .findFirst();
 
-    if (control == null || profiles.isEmpty) {
+    if (control == null || profile == null) {
       return null;
     }
 
-    final Map<AiProviderType, ProviderProfile> mapped =
-        <AiProviderType, ProviderProfile>{};
-    for (final ProviderProfileRecord record in profiles) {
-      final AiProviderType provider = AiProviderType.values.firstWhere(
-        (final item) => item.name == record.providerKey,
-        orElse: () => AiProviderType.lmStudio,
-      );
-      mapped[provider] = ProviderProfile(
-        baseUrl: record.baseUrl,
-        model: record.model,
-        apiKey: record.apiKey,
-        timeoutSeconds: record.timeoutSeconds,
-        runtimeSettings: ModelRuntimeSettings(
-          maxResponseTokens: record.maxResponseTokens,
-          contextWindowSize: record.contextWindowSize,
-          profile: ModelRuntimeProfile.values.firstWhere(
-            (final item) => item.name == record.runtimeProfile,
-            orElse: () => ModelRuntimeSettings.defaultsFor(provider).profile,
-          ),
+    return AiSettings(
+      baseUrl: profile.baseUrl,
+      model: profile.model,
+      apiKey: profile.apiKey,
+      timeoutSeconds: profile.timeoutSeconds,
+      runtimeSettings: ModelRuntimeSettings(
+        maxResponseTokens: profile.maxResponseTokens,
+        contextWindowSize: profile.contextWindowSize,
+        profile: ModelRuntimeProfile.values.firstWhere(
+          (final item) => item.name == profile.runtimeProfile,
+          orElse: () => ModelRuntimeSettings.defaults.profile,
         ),
-      );
-    }
-
-    return ProviderScopedSettings(
-      activeProvider: AiProviderType.values.firstWhere(
-        (final item) => item.name == control.activeProvider,
-        orElse: () => AiProviderType.lmStudio,
       ),
-      profiles: <AiProviderType, ProviderProfile>{
-        for (final AiProviderType provider in AiProviderType.values)
-          provider: mapped[provider] ?? ProviderProfile.defaultsFor(provider),
-      },
-      fastResponses: control.fastResponses,
       confirmed18Plus: control.confirmed18Plus,
     );
   }
 
-  Future<void> saveProviderScopedSettings(
-    final Isar isar,
-    final ProviderScopedSettings settings,
-  ) async {
+  Future<void> saveAiSettings(final Isar isar, final AiSettings settings) async {
     await isar.writeTxn(() async {
-      await saveProviderScopedSettingsInTxn(isar, settings);
+      await saveAiSettingsInTxn(isar, settings);
     });
   }
 
-  Future<void> saveProviderScopedSettingsInTxn(
+  Future<void> saveAiSettingsInTxn(
     final Isar isar,
-    final ProviderScopedSettings settings,
+    final AiSettings settings,
   ) async {
     await isar.modelControlRecords.put(
       ModelControlRecord()
         ..key = _modelControlKey
-        ..activeProvider = settings.activeProvider.name
-        ..fastResponses = settings.fastResponses
+        ..activeProvider = AiProviderType.openAiCompatible.name
+        ..fastResponses = false
         ..confirmed18Plus = settings.confirmed18Plus
         ..updatedAt = DateTime.now(),
     );
 
-    final List<ProviderProfileRecord> records = <ProviderProfileRecord>[
-      for (final AiProviderType provider in AiProviderType.values)
-        ProviderProfileRecord()
-          ..providerKey = provider.name
-          ..baseUrl = settings.profileFor(provider).baseUrl
-          ..model = settings.profileFor(provider).model
-          ..apiKey = settings.profileFor(provider).apiKey
-          ..timeoutSeconds = settings.profileFor(provider).timeoutSeconds
-          ..maxResponseTokens = settings
-              .profileFor(provider)
-              .runtimeSettings
-              .maxResponseTokens
-          ..contextWindowSize = settings
-              .profileFor(provider)
-              .runtimeSettings
-              .contextWindowSize
-          ..runtimeProfile = settings
-              .profileFor(provider)
-              .runtimeSettings
-              .profile
-              .name
-          ..updatedAt = DateTime.now(),
-    ];
-    await isar.providerProfileRecords.putAll(records);
+    await isar.providerProfileRecords.put(
+      ProviderProfileRecord()
+        ..providerKey = _profileKey
+        ..baseUrl = settings.baseUrl
+        ..model = settings.model
+        ..apiKey = settings.apiKey
+        ..timeoutSeconds = settings.timeoutSeconds
+        ..maxResponseTokens = settings.runtimeSettings.maxResponseTokens
+        ..contextWindowSize = settings.runtimeSettings.contextWindowSize
+        ..runtimeProfile = settings.runtimeSettings.profile.name
+        ..updatedAt = DateTime.now(),
+    );
   }
 
   Future<AppLanguage?> loadAppLanguage(final Isar isar) async {

@@ -65,12 +65,12 @@ class _DemoAiClient implements AiClient {
         AppLanguage.ru => const <String>[
           'Осмотреться внимательнее',
           'Сделать решительный шаг к цели',
-          'Открыть настройки и подключить LM Studio',
+          'Открыть настройки и настроить endpoint',
         ],
         AppLanguage.en => const <String>[
           'Look around more carefully',
           'Take a decisive step toward the goal',
-          'Open settings and connect LM Studio',
+          'Open settings and configure endpoint',
         ],
       },
       stateChanges: suggestionsOnly

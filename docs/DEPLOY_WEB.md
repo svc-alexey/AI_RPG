@@ -70,4 +70,4 @@ For local development there is one intentional exception:
 - If a tester reports that the first story generation repeats several times on mobile web, inspect the `AI_PRG_DIAG` console events and compare `flowId`, `triggerSource`, `requestMode`, and `attempt` before blaming the model.
 - If a tester reports a token-limit error on mobile web, confirm whether the provider exhausted the configured response budget; OpenAI-compatible flows now retry final-turn fetches with a larger `max_tokens`, but very small runtime limits can still surface provider-side truncation.
 - If you want to test from a phone against the local debug server, start Flutter with `--web-hostname 0.0.0.0 --web-port 8080` and open `http://<pc-lan-ip>:8080/?autostart=1` on the phone.
-- If the phone also needs the local Sber proxy, set `SBER_PROXY_HOST=0.0.0.0` before running `dart run tool/sber_proxy.dart`, then point the app to `http://<pc-lan-ip>:8787/v1` rather than `127.0.0.1`.
+- If the phone needs access to a local OpenAI-compatible endpoint, expose that endpoint on your LAN and use its LAN URL in app settings instead of `127.0.0.1`.

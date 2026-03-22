@@ -20,29 +20,26 @@ class AdaptiveSettingsStorage implements SettingsStorage {
   final SettingsPreferencesDataSource _preferencesDataSource;
 
   @override
-  Future<ProviderScopedSettings> loadProviderScopedSettings() async {
+  Future<AiSettings> loadAiSettings() async {
     await _database.ensureReady();
     if (_database.backend == StorageBackend.isar) {
       final isar = await _database.isar;
-      final ProviderScopedSettings? settings = await _isarDataSource
-          .loadProviderScopedSettings(isar);
+      final AiSettings? settings = await _isarDataSource.loadAiSettings(isar);
       if (settings != null) {
         return settings;
       }
     }
-    return _preferencesDataSource.loadProviderScopedSettings();
+    return _preferencesDataSource.loadAiSettings();
   }
 
   @override
-  Future<void> saveProviderScopedSettings(
-    final ProviderScopedSettings settings,
-  ) async {
+  Future<void> saveAiSettings(final AiSettings settings) async {
     await _database.ensureReady();
     if (_database.backend == StorageBackend.isar) {
       final isar = await _database.isar;
-      await _isarDataSource.saveProviderScopedSettings(isar, settings);
+      await _isarDataSource.saveAiSettings(isar, settings);
     }
-    await _preferencesDataSource.saveProviderScopedSettings(settings);
+    await _preferencesDataSource.saveAiSettings(settings);
   }
 
   @override

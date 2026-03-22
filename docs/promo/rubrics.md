@@ -10,7 +10,7 @@
 
 **Фокус:**
 - Devlog: что сделали за спринт
-- Технические решения (Flutter, LM Studio, structured AI)
+- Технические решения (Flutter, OpenAI-compatible APIs, structured AI)
 - Честные сложности и как их решаем
 
 **Форматы:** devlog-посты, короткие заметки о прогрессе.

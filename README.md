@@ -11,7 +11,7 @@ The project has already moved beyond the original MVP baseline. The current code
   - `SharedPreferences` on web as the browser-safe local backend;
 - `Riverpod`-driven app orchestration instead of UI-owned service location;
 - campaign creation, saves, chat, and settings flows managed through controllers/providers;
-- provider-scoped AI settings and runtime controls for `max response tokens`, `context window`, and quick profiles;
+- unified OpenAI-compatible AI settings with runtime controls for `max response tokens`, `context window`, and quick profiles;
 - OpenAI-compatible turn generation with resilient streaming transport, automatic fallback to standard completions, and token-limit retries for the final answer;
 - deduplicated AI turn generation so streaming and fallback no longer produce double requests or rewritten final answers;
 - calmer chat rendering that keeps a stable pending-response bubble while the model works, then reveals the final narrator message with a soft fade/slide entrance and smoother autoscroll;
@@ -23,7 +23,6 @@ The project has already moved beyond the original MVP baseline. The current code
 - a streamlined custom campaign wizard with a single story input, AI prompt expansion, and top-bar step navigation instead of bottom action buttons;
 - resilient story prompt generation in custom setup, with automatic enrichment into a more vivid hook when the model returns an empty, too-short, or unchanged response;
 - a cleaner in-game sidebar with compact module icons, a portrait card, and no exposed technical activation reasons;
-- automatic AI-generated character portraits through the local Sber proxy, with placeholder fallback when image generation is unavailable;
 - shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
 - adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
 - a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
@@ -83,38 +82,22 @@ flutter analyze
 flutter test
 ```
 
-## Sber GigaChat proxy
+## AI setup
 
-`Sber GigaChat` now uses a local proxy so the Flutter client never stores Sber secrets directly. The same proxy also exposes portrait image generation for the campaign creator.
+The app now uses a single `OpenAI-compatible` configuration path. In settings, provide:
 
-1. Create `.env` from `.env.example`.
-2. Fill in `SBER_AUTH_KEY`, `SBER_CLIENT_ID`, and `SBER_CLIENT_SECRET`.
-3. Optionally adjust `SBER_IMAGE_MODEL` if you want a different Sber model for portrait generation. The tested default is `GigaChat-2-Pro`; `GigaChat-2-Max` is also a reasonable option if your account has access.
-4. Start the proxy:
+- `Base URL` for your endpoint
+- `Model` id
+- `API Key` if the endpoint requires one
+- runtime controls for response length and context size
 
-```bash
-dart run tool/sber_proxy.dart
-```
-
-The app expects the proxy at `http://127.0.0.1:8787/v1` by default and uses:
-
-- `SBER_MODEL` for story/chat generation;
-- `SBER_IMAGE_MODEL` for portrait generation;
-- a spec-based image flow through `chat/completions` with Sber `text2image`, followed by file download from `/files/{id}/content`.
-
-For local-network testing from another device on the same Wi-Fi:
-
-- set `SBER_PROXY_HOST=0.0.0.0` in `.env` before starting the proxy;
-- start Flutter web with `flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080`;
-- on the phone, open `http://<your-pc-lan-ip>:8080/?autostart=1`;
-- in app settings, use `http://<your-pc-lan-ip>:8787/v1` instead of `127.0.0.1`, otherwise the phone will try to call itself.
+Examples of compatible endpoints include local servers and hosted APIs that follow the OpenAI chat-completions style.
 
 Current limitations:
 
-- `Sber GigaChat` uses standard completions only; other OpenAI-compatible providers may still use streaming transport internally, but the UI now waits for a stable final answer instead of exposing speculative partial text.
-- Some Sber-family models may ignore strict JSON instructions. The app now includes tolerant recovery for plain text and partially structured responses, but the most stable path is still a model that reliably follows structured output.
-- The local proxy is required for `Sber GigaChat` on all platforms because Sber credentials are read from `.env` by the proxy, not by the Flutter client.
-- Portrait generation is independent from the selected story provider. If Sber portrait generation fails or is not configured, the app keeps the default placeholder portrait.
+- The app expects a working OpenAI-compatible `/models` and `/chat/completions` flow.
+- Automatic portrait generation through provider-specific integrations has been removed.
+- The UI waits for a stable final answer instead of exposing speculative intermediate stream text.
 
 ## Web build
 
@@ -156,5 +139,5 @@ See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobil
 - the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
 - widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.
 - custom prompt generation now has a tested local fallback that prevents silent no-op behavior when AI prompt expansion fails.
-- `Sber GigaChat` now runs through a local proxy, disables streaming for turn generation, and includes broader fallback parsing for plain text, broken JSON-like output, alternate narration fields, alternate state containers, alternate location fields, and object-shaped choices.
+- OpenAI-compatible turn handling includes broader fallback parsing for plain text, broken JSON-like output, alternate narration fields, alternate state containers, alternate location fields, and object-shaped choices.
 - the gameplay screen no longer keeps a persistent `turn completed` status card above the chat; transient feedback now uses snackbars so the story gets more vertical space.

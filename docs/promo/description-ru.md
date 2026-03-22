@@ -2,13 +2,13 @@
 
 ## Для соцсетей и лендинга
 
-**AI RPG Platform** — narrative RPG, где AI пишет историю, а движок гарантирует честную игру. Создай кампанию в fantasy, detective или sci-fi, подключи свою модель через LM Studio — и играй локально, без облака. Сохранения стабильны, контекст не теряется. ru/en.
+**AI RPG Platform** — narrative RPG, где AI пишет историю, а движок гарантирует честную игру. Создай кампанию в fantasy, detective или sci-fi, подключи свою модель через OpenAI-compatible endpoint — и играй через совместимый API. Сохранения стабильны, контекст не теряется. ru/en.
 
 ---
 
 ### Вариант покороче (до 280 символов)
 
-Narrative RPG с AI: модель пишет историю, движок валидирует состояние. LM Studio, локально, ru/en. Fantasy, detective, sci-fi. Сохранения не ломаются.
+Narrative RPG с AI: модель пишет историю, движок валидирует состояние. OpenAI-compatible endpoint, ru/en. Fantasy, detective, sci-fi. Сохранения не ломаются.
 
 ---
 

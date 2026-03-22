@@ -10,38 +10,22 @@ class SettingsPreferencesDataSource {
   static const String _aiSettingsKey = 'settings.ai';
   static const String _appLanguageKey = 'settings.app_language';
 
-  Future<ProviderScopedSettings> loadProviderScopedSettings() async {
+  Future<AiSettings> loadAiSettings() async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final String raw = preferences.getString(_aiSettingsKey) ?? '';
     if (raw.isEmpty) {
-      return ProviderScopedSettings(
-        activeProvider: AiProviderType.lmStudio,
-        profiles: <AiProviderType, ProviderProfile>{
-          for (final AiProviderType p in AiProviderType.values)
-            p: ProviderProfile.defaultsFor(p),
-        },
-        fastResponses: true,
-      );
+      return const AiSettings.defaults();
     }
 
     final Object? decoded = jsonDecode(raw);
     if (decoded is! Map<String, Object?>) {
-      return ProviderScopedSettings(
-        activeProvider: AiProviderType.lmStudio,
-        profiles: <AiProviderType, ProviderProfile>{
-          for (final AiProviderType p in AiProviderType.values)
-            p: ProviderProfile.defaultsFor(p),
-        },
-        fastResponses: true,
-      );
+      return const AiSettings.defaults();
     }
 
-    return ProviderScopedSettings.fromJson(decoded);
+    return AiSettings.fromJson(decoded);
   }
 
-  Future<void> saveProviderScopedSettings(
-    final ProviderScopedSettings settings,
-  ) async {
+  Future<void> saveAiSettings(final AiSettings settings) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     await preferences.setString(_aiSettingsKey, jsonEncode(settings.toJson()));
   }

@@ -7,7 +7,6 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
-import 'package:ai_prg/src/core/services/character_portrait_prompt_builder.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
@@ -18,8 +17,6 @@ class OpenAiCompatibleAiClient implements AiClient {
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
   static const TurnPromptBuilder _turnPromptBuilder = TurnPromptBuilder();
-  static const CharacterPortraitPromptBuilder _portraitPromptBuilder =
-      CharacterPortraitPromptBuilder();
   static const int _truncationRetryMultiplier = 2;
 
   Map<String, Object?> _jsonMap(final Object? value) {
@@ -200,76 +197,7 @@ Reply only with JSON, no markdown.
     required final String storyPrompt,
     required final CharacterProfile character,
     final CancelToken? cancelToken,
-  }) async {
-    if (settings.provider != AiProviderType.sberGigaChat) {
-      return null;
-    }
-
-    final String prompt = _portraitPromptBuilder.build(
-      language: language,
-      setting: setting,
-      storyPrompt: storyPrompt,
-      character: character,
-    );
-    final Uri uri = Uri.parse(
-      '${_normalizedBaseUrl(settings.baseUrl)}/images/generations',
-    );
-    final Map<String, Object?> requestBody = <String, Object?>{
-      'model': settings.model,
-      'prompt': prompt,
-      'size': '1024x1024',
-      'response_format': 'b64_json',
-    };
-
-    try {
-      final Future<http.Response> requestFuture = http
-          .post(uri, headers: _headers(settings), body: jsonEncode(requestBody))
-          .timeout(Duration(seconds: _effectiveTimeoutSeconds(settings)));
-
-      final http.Response response = cancelToken != null
-          ? await Future.any(<Future<http.Response>>[
-              requestFuture,
-              cancelToken.whenCancelled.then(
-                (_) => throw const AiCancelException(),
-              ),
-            ])
-          : await requestFuture;
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return null;
-      }
-
-      final Object? decoded = _safeJsonDecode(_responseText(response));
-      if (decoded is! Map) {
-        return null;
-      }
-
-      final Map<String, Object?> map = _jsonMap(decoded);
-      final List<Object?> data = _jsonList(map['data']);
-      if (data.isEmpty) {
-        return null;
-      }
-
-      final Map<String, Object?> first = _jsonMap(data.first);
-      final String bytesBase64 = _stringValue(
-        first['b64_json'] ?? first['base64'] ?? first['image_base64'],
-      ).trim();
-      if (bytesBase64.isEmpty) {
-        return null;
-      }
-
-      return GeneratedPortrait(
-        bytesBase64: bytesBase64,
-        mimeType: _stringValue(first['mime_type']).trim().isEmpty
-            ? 'image/png'
-            : _stringValue(first['mime_type']).trim(),
-        promptUsed: prompt,
-      );
-    } catch (error) {
-      debugPrint('generateCharacterPortrait failed: $error');
-      return null;
-    }
-  }
+  }) async => null;
 
   @override
   Future<TurnResult> generateTurn({
@@ -900,11 +828,9 @@ Reply only with JSON, no markdown.
     return result;
   }
 
-  bool _shouldUseFastMode(final AiSettings settings) =>
-      settings.provider == AiProviderType.lmStudio && settings.fastResponses;
+  bool _shouldUseFastMode(final AiSettings settings) => false;
 
-  bool _supportsStreaming(final AiSettings settings) =>
-      settings.provider != AiProviderType.sberGigaChat;
+  bool _supportsStreaming(final AiSettings settings) => true;
 
   bool _shouldRetryWithoutFastMode(
     final AiSettings settings,
@@ -975,13 +901,8 @@ Reply only with JSON, no markdown.
     ],
   };
 
-  int _effectiveTimeoutSeconds(final AiSettings settings) {
-    if (settings.provider == AiProviderType.openRouter &&
-        settings.timeoutSeconds < 120) {
-      return 120;
-    }
-    return settings.timeoutSeconds;
-  }
+  int _effectiveTimeoutSeconds(final AiSettings settings) =>
+      settings.timeoutSeconds;
 
   Map<String, String> _headers(final AiSettings settings) {
     final Map<String, String> headers = <String, String>{
@@ -989,10 +910,6 @@ Reply only with JSON, no markdown.
     };
     if (settings.apiKey.trim().isNotEmpty) {
       headers['Authorization'] = 'Bearer ${settings.apiKey.trim()}';
-    }
-    if (settings.provider == AiProviderType.openRouter) {
-      headers['HTTP-Referer'] = 'https://ai-prg.local';
-      headers['X-Title'] = 'AI PRG';
     }
     return headers;
   }
@@ -1029,14 +946,7 @@ Reply only with JSON, no markdown.
   String _providerLabel(
     final AiSettings settings,
     final AppLanguage language,
-  ) => switch ((settings.provider, language)) {
-    (AiProviderType.deepSeek, _) => 'DeepSeek',
-    (AiProviderType.openRouter, _) => 'OpenRouter',
-    (AiProviderType.sberGigaChat, _) => 'Sber GigaChat',
-    (AiProviderType.lmStudio, _) => 'LM Studio',
-    (AiProviderType.openAiCompatible, AppLanguage.ru) => 'AI endpoint',
-    (AiProviderType.openAiCompatible, AppLanguage.en) => 'AI endpoint',
-  };
+  ) => 'AI endpoint';
 
   String _friendlyAiEndpointError({
     required final AiSettings settings,
@@ -1046,25 +956,16 @@ Reply only with JSON, no markdown.
   }) {
     final String provider = _providerLabel(settings, language);
     final String suffix = switch (language) {
-      AppLanguage.ru => 'Состояние кампании не изменено.',
+      AppLanguage.ru => '?????????????????? ???????????????? ???? ????????????????.',
       AppLanguage.en => 'The campaign state was not changed.',
     };
     final String detailText = detail == null || detail.isEmpty
         ? ''
         : ' $detail';
 
-    if (settings.provider == AiProviderType.deepSeek && statusCode == 402) {
-      return switch (language) {
-        AppLanguage.ru =>
-          '$provider вернул 402. Обычно это означает, что на аккаунте нет баланса или не включён биллинг.$detailText $suffix',
-        AppLanguage.en =>
-          '$provider returned 402. This usually means your account has no balance or billing is not enabled.$detailText $suffix',
-      };
-    }
-
     return switch (language) {
       AppLanguage.ru =>
-        '$provider вернул ошибку $statusCode.$detailText $suffix',
+        '$provider ???????????? ???????????? $statusCode.$detailText $suffix',
       AppLanguage.en =>
         '$provider returned error $statusCode.$detailText $suffix',
     };
@@ -1077,18 +978,9 @@ Reply only with JSON, no markdown.
     final String provider = _providerLabel(settings, language);
     final int seconds = _effectiveTimeoutSeconds(settings);
 
-    if (settings.provider == AiProviderType.openRouter) {
-      return switch (language) {
-        AppLanguage.ru =>
-          '$provider не ответил за $seconds сек. У OpenRouter бесплатные модели часто отвечают медленно или стоят в очереди. Попробуй подождать, увеличить таймаут в настройках или выбрать другую модель.',
-        AppLanguage.en =>
-          '$provider did not respond within $seconds seconds. Free OpenRouter models are often slow or queued. Try waiting longer, increasing the timeout, or choosing another model.',
-      };
-    }
-
     return switch (language) {
       AppLanguage.ru =>
-        '$provider не ответил за $seconds сек. Попробуй увеличить таймаут в настройках.',
+        '$provider ???? ?????????????? ???? $seconds ??????. ???????????????? ?????????????????? ?????????????? ?? ????????????????????.',
       AppLanguage.en =>
         '$provider did not respond within $seconds seconds. Try increasing the timeout in settings.',
     };

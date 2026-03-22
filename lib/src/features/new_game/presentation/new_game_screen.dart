@@ -244,9 +244,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Icon(
-                      isLastStep && state.isGeneratingPortrait
-                          ? Icons.image_outlined
-                          : isLastStep
+                      isLastStep
                           ? Icons.check_rounded
                           : Icons.arrow_forward_rounded,
                     ),
@@ -678,9 +676,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         ],
         SizedBox(height: context.responsive.blockSpacing),
         Text(
-          state.isGeneratingPortrait
-              ? l10n.generatingPortrait
-              : l10n.readyToStart,
+          l10n.readyToStart,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AetherPalette.textMuted,
           ),

@@ -7,18 +7,16 @@ class SettingsLocalDataSource {
   Never _unsupported() =>
       throw UnsupportedError('SettingsLocalDataSource is not used on web.');
 
-  Future<ProviderScopedSettings?> loadProviderScopedSettings(
+  Future<AiSettings?> loadAiSettings(final Object isar) async => _unsupported();
+
+  Future<void> saveAiSettings(
     final Object isar,
+    final AiSettings settings,
   ) async => _unsupported();
 
-  Future<void> saveProviderScopedSettings(
+  Future<void> saveAiSettingsInTxn(
     final Object isar,
-    final ProviderScopedSettings settings,
-  ) async => _unsupported();
-
-  Future<void> saveProviderScopedSettingsInTxn(
-    final Object isar,
-    final ProviderScopedSettings settings,
+    final AiSettings settings,
   ) async => _unsupported();
 
   Future<AppLanguage?> loadAppLanguage(final Object isar) async =>

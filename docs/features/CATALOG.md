@@ -22,7 +22,6 @@
 - статус: implemented-with-backfill
 - папка: [docs/features/no-think-fast-mode](D:/AI_PRG/docs/features/no-think-fast-mode)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
-- цель: ускорение ответов LM Studio через `/no_think` и strict JSON
 
 ### `summary-memory`
 

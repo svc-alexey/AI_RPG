@@ -174,9 +174,9 @@ class AppDatabase {
       if (rawAiSettings != null && rawAiSettings.trim().isNotEmpty) {
         final Object? decoded = jsonDecode(rawAiSettings);
         if (decoded is Map<String, Object?>) {
-          await _settingsLocal.saveProviderScopedSettingsInTxn(
+          await _settingsLocal.saveAiSettingsInTxn(
             isar,
-            ProviderScopedSettings.fromJson(decoded),
+            AiSettings.fromJson(decoded),
           );
         }
       }
@@ -190,8 +190,7 @@ class AppDatabase {
   }
 
   Future<void> _migrateStructuredStorage(final Isar isar) async {
-    final ProviderScopedSettings? typedSettings = await _settingsLocal
-        .loadProviderScopedSettings(isar);
+    final AiSettings? typedSettings = await _settingsLocal.loadAiSettings(isar);
     if (typedSettings == null) {
       final AppSettingRecord? legacySettings = await isar.appSettingRecords
           .filter()
@@ -200,10 +199,7 @@ class AppDatabase {
       if (legacySettings?.jsonValue != null) {
         final Object? decoded = jsonDecode(legacySettings!.jsonValue!);
         if (decoded is Map<String, Object?>) {
-          await _settingsLocal.saveProviderScopedSettings(
-            isar,
-            ProviderScopedSettings.fromJson(decoded),
-          );
+          await _settingsLocal.saveAiSettings(isar, AiSettings.fromJson(decoded));
         }
       }
     }
