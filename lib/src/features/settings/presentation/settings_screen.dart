@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
@@ -37,6 +38,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
     final SettingsViewState settingsState = ref.watch(
       settingsControllerProvider,
     );
@@ -65,17 +67,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.dialogMaxWidth,
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(responsive.pagePadding),
                     child: AetherPageReveal(
                       child: ListView(
                         children: <Widget>[
                           Text(
                             l10n.aiSettings,
                             style: Theme.of(context).textTheme.headlineLarge,
+                            maxLines: 2,
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: responsive.blockSpacing - 4),
                           _SettingsSection(
                             title: l10n.contentRatingTitle,
                             child: SwitchListTile(
@@ -86,7 +91,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               onChanged: controller.setConfirmed18Plus,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: l10n.languageTitle,
                             child: SegmentedButton<AppLanguage>(
@@ -107,62 +112,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   controller.setAppLanguage(selection.first),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
-                            title: 'AI Provider',
+                            title: l10n.openAiCompatible,
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                _ProviderTile(
-                                  title: 'LM Studio',
-                                  subtitle: 'Local server',
-                                  selected:
-                                      settingsState.provider ==
-                                      AiProviderType.lmStudio,
-                                  onTap: () => controller.changeProvider(
-                                    AiProviderType.lmStudio,
-                                  ),
+                                Text(
+                                  'Configure any OpenAI-compatible endpoint.',
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-                                const SizedBox(height: 8),
-                                _ProviderTile(
-                                  title: l10n.openAiCompatible,
-                                  subtitle: 'OpenAI-compatible API',
-                                  selected:
-                                      settingsState.provider ==
-                                      AiProviderType.openAiCompatible,
-                                  onTap: () => controller.changeProvider(
-                                    AiProviderType.openAiCompatible,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                _ProviderTile(
-                                  title: l10n.openRouter,
-                                  subtitle: 'Unified gateway for many models',
-                                  selected:
-                                      settingsState.provider ==
-                                      AiProviderType.openRouter,
-                                  onTap: () => controller.changeProvider(
-                                    AiProviderType.openRouter,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                _ProviderTile(
-                                  title: l10n.deepSeek,
-                                  subtitle: 'Official DeepSeek API',
-                                  selected:
-                                      settingsState.provider ==
-                                      AiProviderType.deepSeek,
-                                  onTap: () => controller.changeProvider(
-                                    AiProviderType.deepSeek,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _SettingsSection(
-                            title: 'Connection',
-                            child: Column(
-                              children: <Widget>[
+                                const SizedBox(height: 12),
                                 TextField(
                                   controller: _baseUrlController,
                                   onChanged: controller.setBaseUrl,
@@ -196,23 +156,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     labelText: l10n.timeoutSeconds,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                                SwitchListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(l10n.fastModeTitle),
-                                  subtitle: Text(l10n.fastModeSubtitle),
-                                  value: settingsState.fastResponses,
-                                  onChanged:
-                                      settingsState
-                                          .provider
-                                          .supportsFastResponses
-                                      ? controller.setFastResponses
-                                      : null,
-                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: l10n.runtimeControlsTitle,
                             child: Column(
@@ -288,13 +235,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                           if (settingsState.status != null) ...<Widget>[
-                            const SizedBox(height: 16),
+                            SizedBox(height: responsive.sectionSpacing),
                             Row(
                               children: <Widget>[
                                 Icon(
-                                  settingsState.status!.contains(
-                                            'СѓСЃРїРµС€РЅРѕ',
-                                          ) ||
+                                  settingsState.status!.contains('успешно') ||
                                           settingsState.status!.contains(
                                             'successful',
                                           )
@@ -303,11 +248,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   size: 18,
                                   color:
                                       settingsState.status!.contains(
-                                            'СѓСЃРїРµС€РЅРѕ',
-                                          ) ||
-                                          settingsState.status!.contains(
-                                            'successful',
-                                          )
+                                                'успешно',
+                                              ) ||
+                                              settingsState.status!.contains(
+                                                'successful',
+                                              )
                                       ? Colors.green
                                       : AetherPalette.textMuted,
                                 ),
@@ -323,7 +268,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ],
                             ),
                           ],
-                          const SizedBox(height: 24),
+                          SizedBox(height: responsive.blockSpacing),
                           FilledButton(
                             onPressed: settingsState.isSaving
                                 ? null
@@ -339,41 +284,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 : Text(l10n.saveSettings),
                           ),
                           const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: <Widget>[
-                              OutlinedButton(
-                                onPressed: settingsState.isChecking
-                                    ? null
-                                    : () => controller.checkConnection(
-                                        l10n: l10n,
-                                      ),
-                                child: settingsState.isChecking
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Text(l10n.checkConnection),
-                              ),
-                              OutlinedButton(
-                                onPressed:
-                                    !settingsState
-                                            .provider
-                                            .supportsModelAutoDetect ||
-                                        settingsState.isDetectingModel
-                                    ? null
-                                    : controller.detectAndApplyLmStudioModel,
-                                child: Text(
-                                  settingsState.isDetectingModel
-                                      ? l10n.detectingModel
-                                      : l10n.detectModel,
-                                ),
-                              ),
-                            ],
+                          OutlinedButton(
+                            onPressed: settingsState.isChecking
+                                ? null
+                                : () => controller.checkConnection(l10n: l10n),
+                            child: settingsState.isChecking
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(l10n.checkConnection),
                           ),
                         ],
                       ),
@@ -394,6 +317,7 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => AetherCard(
+    padding: EdgeInsets.all(context.responsive.cardPadding),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -401,68 +325,12 @@ class _SettingsSection extends StatelessWidget {
           title.toUpperCase(),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: AetherPalette.textMuted,
-            letterSpacing: 3,
+            letterSpacing: context.responsive.scaleLetterSpacing(3),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         child,
       ],
-    ),
-  );
-}
-
-class _ProviderTile extends StatelessWidget {
-  const _ProviderTile({
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(final BuildContext context) => AetherCard(
-    highlight: selected,
-    child: SizedBox(
-      width: double.infinity,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
-          child: Row(
-            children: <Widget>[
-              Icon(
-                selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: selected
-                    ? AetherPalette.accent
-                    : AetherPalette.textMuted,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     ),
   );
 }

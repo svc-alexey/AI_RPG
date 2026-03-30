@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
@@ -16,8 +17,7 @@ class NewGameScreen extends ConsumerStatefulWidget {
 
 class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   final TextEditingController _heroController = TextEditingController();
-  final TextEditingController _storyWishController = TextEditingController();
-  final TextEditingController _customStoryController = TextEditingController();
+  final TextEditingController _storyPromptController = TextEditingController();
   final TextEditingController _characterPromptController =
       TextEditingController();
   final TextEditingController _personalityController = TextEditingController();
@@ -28,8 +28,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   @override
   void dispose() {
     _heroController.dispose();
-    _storyWishController.dispose();
-    _customStoryController.dispose();
+    _storyPromptController.dispose();
     _characterPromptController.dispose();
     _personalityController.dispose();
     super.dispose();
@@ -39,6 +38,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
     final ThemeData theme = Theme.of(context);
+    final AppResponsiveData responsive = context.responsive;
     final NewGameViewState gameState = ref.watch(newGameControllerProvider);
     final NewGameController controller = ref.read(
       newGameControllerProvider.notifier,
@@ -50,8 +50,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     ) {
       if (next.formRevision != (previous?.formRevision ?? 0)) {
         _heroController.text = next.heroName;
-        _storyWishController.text = next.storyWish;
-        _customStoryController.text = next.customStoryPrompt;
+        _storyPromptController.text = next.customStoryPrompt.trim().isEmpty
+            ? next.storyWish
+            : next.customStoryPrompt;
         _characterPromptController.text = next.characterPrompt;
         _personalityController.text = next.personality;
       }
@@ -62,9 +63,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       body: AetherBackdrop(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: BoxConstraints(maxWidth: responsive.dialogMaxWidth),
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(responsive.pagePadding),
               child: AetherPageReveal(
                 child: switch (gameState.mode) {
                   NewGameWizardMode.modeSelection => _buildModeSelection(
@@ -103,8 +104,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         l10n.howToStart,
         style: theme.textTheme.headlineMedium,
         textAlign: TextAlign.center,
+        maxLines: 3,
       ),
-      const SizedBox(height: 32),
+      SizedBox(height: context.responsive.blockSpacing + 8),
       _ModeCard(
         icon: Icons.flash_on_rounded,
         title: l10n.quickStart,
@@ -129,6 +131,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   }) => ListView(
     children: <Widget>[
       Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           IconButton(
             onPressed: controller.setModeSelection,
@@ -140,6 +143,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         ],
       ),
       const SizedBox(height: 24),
+      SizedBox(height: context.responsive.blockSpacing),
       _SectionLabel(title: l10n.settingTitle),
       const SizedBox(height: 12),
       Wrap(
@@ -160,7 +164,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             )
             .toList(),
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: context.responsive.blockSpacing),
       TextField(
         controller: _heroController,
         onChanged: controller.setHeroName,
@@ -169,7 +173,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           hintText: l10n.heroNameHint,
         ),
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: context.responsive.blockSpacing),
       _SectionLabel(title: l10n.characterGenderTitle),
       const SizedBox(height: 12),
       Wrap(
@@ -185,7 +189,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             )
             .toList(),
       ),
-      const SizedBox(height: 32),
+      SizedBox(height: context.responsive.blockSpacing + 8),
       if (MediaQuery.of(context).viewInsets.bottom == 0)
         FilledButton(
           onPressed: state.isSaving ? null : _createQuickCampaign,
@@ -205,67 +209,90 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     required final AppLocalizations l10n,
     required final NewGameViewState state,
     required final NewGameController controller,
-  }) => Column(
-    children: <Widget>[
-      Row(
-        children: <Widget>[
-          IconButton(
-            onPressed: state.currentStep == NewGameCustomSetupStep.foundation
-                ? controller.setModeSelection
-                : null,
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          Expanded(
-            child: Text(
-              l10n.customSetup,
-              style: theme.textTheme.headlineMedium,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _StepIndicator(currentIndex: state.currentStep.index),
-      const SizedBox(height: 8),
-      Text(
-        l10n.stepXOfY(state.currentStep.index + 1, 4),
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: AetherPalette.textMuted,
-        ),
-      ),
-      const SizedBox(height: 24),
-      Expanded(
-        child: ListView(
+  }) {
+    final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
+    final VoidCallback onBack =
+        state.currentStep == NewGameCustomSetupStep.foundation
+        ? controller.setModeSelection
+        : controller.previousStep;
+
+    return Column(
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            switch (state.currentStep) {
-              NewGameCustomSetupStep.foundation => _buildFoundationStep(
-                l10n: l10n,
-                state: state,
-                controller: controller,
+            IconButton(
+              onPressed: onBack,
+              tooltip: l10n.backButton,
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            Expanded(
+              child: Text(
+                l10n.customSetup,
+                style: theme.textTheme.headlineMedium,
               ),
-              NewGameCustomSetupStep.story => _buildStoryStep(
-                l10n: l10n,
-                theme: theme,
-                state: state,
-                controller: controller,
-              ),
-              NewGameCustomSetupStep.character => _buildCharacterStep(
-                l10n: l10n,
-                state: state,
-                controller: controller,
-              ),
-              NewGameCustomSetupStep.review => _buildReviewStep(
-                l10n: l10n,
-                theme: theme,
-                state: state,
-              ),
-            },
+            ),
+            IconButton(
+              onPressed: state.isSaving || state.isGenerating
+                  ? null
+                  : (isLastStep ? _createCampaign : controller.nextStep),
+              tooltip: isLastStep ? l10n.createCampaignButton : l10n.nextButton,
+              icon: state.isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      isLastStep
+                          ? Icons.check_rounded
+                          : Icons.arrow_forward_rounded,
+                    ),
+            ),
           ],
         ),
-      ),
-      const SizedBox(height: 16),
-      _buildWizardNavigation(l10n: l10n, state: state, controller: controller),
-    ],
-  );
+        SizedBox(height: context.responsive.sectionSpacing),
+        _StepIndicator(currentIndex: state.currentStep.index),
+        const SizedBox(height: 8),
+        Text(
+          l10n.stepXOfY(state.currentStep.index + 1, 4),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+        SizedBox(height: context.responsive.blockSpacing),
+        Expanded(
+          child: ListView(
+            children: <Widget>[
+              switch (state.currentStep) {
+                NewGameCustomSetupStep.foundation => _buildFoundationStep(
+                  l10n: l10n,
+                  state: state,
+                  controller: controller,
+                ),
+                NewGameCustomSetupStep.story => _buildStoryStep(
+                  l10n: l10n,
+                  theme: theme,
+                  state: state,
+                  controller: controller,
+                ),
+                NewGameCustomSetupStep.character => _buildCharacterStep(
+                  l10n: l10n,
+                  state: state,
+                  controller: controller,
+                ),
+                NewGameCustomSetupStep.review => _buildReviewStep(
+                  l10n: l10n,
+                  theme: theme,
+                  state: state,
+                ),
+              },
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildFoundationStep({
     required final AppLocalizations l10n,
@@ -289,7 +316,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             )
             .toList(),
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: context.responsive.blockSpacing),
       _SectionLabel(title: l10n.storyModeTitle),
       const SizedBox(height: 12),
       DropdownButtonFormField<StoryMode>(
@@ -312,7 +339,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           }
         },
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: context.responsive.blockSpacing),
       _SectionLabel(title: l10n.difficultyTitle),
       const SizedBox(height: 12),
       DropdownButtonFormField<DifficultyLevel>(
@@ -335,7 +362,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           }
         },
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: context.responsive.blockSpacing),
       TextField(
         controller: _heroController,
         onChanged: controller.setHeroName,
@@ -365,31 +392,38 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       ),
       const SizedBox(height: 12),
       TextField(
-        controller: _storyWishController,
-        onChanged: controller.setStoryWish,
-        maxLines: 3,
-        decoration: InputDecoration(hintText: l10n.storyWishHint),
+        controller: _storyPromptController,
+        onChanged: controller.setStoryInput,
+        maxLines: 6,
+        decoration: InputDecoration(
+          hintText: l10n.storyWishHint,
+          alignLabelWithHint: true,
+        ),
+      ),
+      const SizedBox(height: 12),
+      if (!state.aiConfigured) ...<Widget>[
+        const SizedBox(height: 12),
+        Text(
+          l10n.configureAiFirst,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+      ],
+      const SizedBox(height: 12),
+      Text(
+        l10n.portraitAutoGenerateHint,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: AetherPalette.textMuted,
+        ),
       ),
       const SizedBox(height: 12),
       Wrap(
         spacing: 12,
         runSpacing: 12,
         children: <Widget>[
-          OutlinedButton(
-            onPressed: () {
-              final String text = _storyWishController.text.trim();
-              if (text.isNotEmpty) {
-                _customStoryController.text = text;
-                controller.setCustomStoryPrompt(text);
-              }
-            },
-            child: Text(l10n.insertTextPrompt),
-          ),
           FilledButton(
-            onPressed:
-                state.aiConfigured &&
-                    !state.isGenerating &&
-                    state.storyWish.trim().isNotEmpty
+            onPressed: state.aiConfigured && !state.isGenerating
                 ? _generatePrompts
                 : null,
             child: state.isGenerating
@@ -406,24 +440,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
               child: Text(l10n.cancel),
             ),
         ],
-      ),
-      if (!state.aiConfigured) ...<Widget>[
-        const SizedBox(height: 12),
-        Text(
-          l10n.configureAiFirst,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AetherPalette.textMuted,
-          ),
-        ),
-      ],
-      const SizedBox(height: 24),
-      _SectionLabel(title: l10n.customStoryPromptTitle),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _customStoryController,
-        onChanged: controller.setCustomStoryPrompt,
-        maxLines: 4,
-        decoration: const InputDecoration(hintText: ''),
       ),
     ],
   );
@@ -451,7 +467,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             context,
           ).textTheme.bodySmall?.copyWith(color: AetherPalette.textMuted),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         DropdownButtonFormField<CharacterClass>(
           initialValue: classes.contains(profile.characterClass)
               ? profile.characterClass
@@ -475,7 +491,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             }
           },
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         DropdownButtonFormField<String>(
           initialValue: profile.race.isEmpty || !races.contains(profile.race)
               ? races.first
@@ -499,7 +515,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             }
           },
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         DropdownButtonFormField<CharacterGender>(
           initialValue: profile.gender,
           decoration: InputDecoration(
@@ -521,7 +537,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             }
           },
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         TextField(
           controller: _personalityController,
           onChanged: controller.setPersonality,
@@ -529,13 +545,13 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
             labelText: l10n.characterPersonalityTitle,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         OutlinedButton.icon(
           onPressed: controller.randomizeCharacter,
           icon: const Icon(Icons.shuffle_rounded, size: 18),
           label: Text(l10n.randomCharacter),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         TextField(
           controller: _characterPromptController,
           onChanged: controller.setCharacterPrompt,
@@ -558,8 +574,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _SectionLabel(title: l10n.reviewTitle),
-        const SizedBox(height: 16),
+        SizedBox(height: context.responsive.sectionSpacing),
         AetherCard(
+          padding: EdgeInsets.all(context.responsive.cardPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -623,7 +640,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           ),
         ),
         if (plannedModules.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 16),
+          SizedBox(height: context.responsive.sectionSpacing),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: plannedModules
@@ -657,60 +674,12 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                 .toList(),
           ),
         ],
-        const SizedBox(height: 24),
+        SizedBox(height: context.responsive.blockSpacing),
         Text(
           l10n.readyToStart,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AetherPalette.textMuted,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWizardNavigation({
-    required final AppLocalizations l10n,
-    required final NewGameViewState state,
-    required final NewGameController controller,
-  }) {
-    final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
-    final bool canGoBack =
-        state.currentStep != NewGameCustomSetupStep.foundation;
-    if (MediaQuery.of(context).viewInsets.bottom > 0) {
-      return const SizedBox.shrink();
-    }
-
-    return Row(
-      children: <Widget>[
-        if (canGoBack)
-          OutlinedButton.icon(
-            onPressed: controller.previousStep,
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
-            label: Text(l10n.backButton),
-          ),
-        const Spacer(),
-        FilledButton(
-          onPressed: state.isSaving
-              ? null
-              : (isLastStep ? _createCampaign : controller.nextStep),
-          child: state.isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      isLastStep ? l10n.createCampaignButton : l10n.nextButton,
-                    ),
-                    if (!isLastStep) ...<Widget>[
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded, size: 18),
-                    ],
-                  ],
-                ),
         ),
       ],
     );
@@ -757,7 +726,7 @@ class _SectionLabel extends StatelessWidget {
     title.toUpperCase(),
     style: Theme.of(context).textTheme.labelLarge?.copyWith(
       color: AetherPalette.textMuted,
-      letterSpacing: 2,
+      letterSpacing: context.responsive.scaleLetterSpacing(2),
     ),
   );
 }
@@ -777,18 +746,25 @@ class _ModeCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => AetherCard(
+    padding: EdgeInsets.all(context.responsive.cardPadding),
     child: SizedBox(
       width: double.infinity,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 100),
+          constraints: BoxConstraints(
+            minHeight: context.responsive.isCompact ? 82 : 100,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(icon, color: AetherPalette.accent, size: 32),
-              const SizedBox(height: 12),
+              Icon(
+                icon,
+                color: AetherPalette.accent,
+                size: context.responsive.isCompact ? 28 : 32,
+              ),
+              SizedBox(height: context.responsive.sectionSpacing),
               Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),
               Text(
@@ -816,9 +792,10 @@ class _StepIndicator extends StatelessWidget {
     children: List<Widget>.generate(4, (final index) {
       final bool isCurrent = index == currentIndex;
       final bool isPast = index < currentIndex;
+      final AppResponsiveData responsive = context.responsive;
       return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        width: isCurrent ? 32 : 8,
+        margin: EdgeInsets.symmetric(horizontal: responsive.isCompact ? 3 : 4),
+        width: isCurrent ? (responsive.isCompact ? 24 : 32) : 8,
         height: 8,
         decoration: BoxDecoration(
           color: isCurrent || isPast
@@ -843,26 +820,30 @@ class _ReviewItem extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(final BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      Icon(icon, size: 18, color: AetherPalette.textMuted),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: AetherPalette.textMuted),
-            ),
-            const SizedBox(height: 2),
-            Text(value, style: Theme.of(context).textTheme.bodyLarge),
-          ],
+  Widget build(final BuildContext context) {
+    final AppResponsiveData responsive = context.responsive;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: 18, color: AetherPalette.textMuted),
+        SizedBox(width: responsive.isCompact ? 10 : 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AetherPalette.textMuted,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(value, style: Theme.of(context).textTheme.bodyLarge),
+            ],
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }

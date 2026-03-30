@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:flutter/material.dart';
 
 class AetherPalette {
@@ -153,6 +154,7 @@ class AetherCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final AppResponsiveData responsive = context.responsive;
     final Color resolvedBorder =
         borderColor ??
         (highlight ? AetherPalette.accent : AetherPalette.panelBorder);
@@ -163,7 +165,7 @@ class AetherCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: AetherPalette.panel.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(responsive.cardRadius),
         border: Border.all(color: resolvedBorder.withValues(alpha: 0.68)),
         boxShadow: highlight
             ? const <BoxShadow>[

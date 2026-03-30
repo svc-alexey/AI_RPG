@@ -523,19 +523,23 @@ class StateChanges {
 }
 
 class TurnResult {
-  factory TurnResult.fromJson(final Map<String, Object?> json) => TurnResult(
-    narration: _jsonString(
-      json['narration'],
+  factory TurnResult.fromJson(final Map<String, Object?> json) {
+    final String narration = _resolveTurnNarration(
+      json,
       fallback: 'Мир ненадолго замирает в тишине.',
-    ),
-    choices: _jsonList(
-      json['choices'],
-    ).map((final item) => item.toString()).toList(),
-    stateChanges: StateChanges.fromJson(
-      _jsonMap(json['state_changes'] ?? json['stateChanges']),
-    ),
-    memoryEntry: _jsonString(json['memory_entry'] ?? json['memoryEntry']),
-  );
+    );
+    final List<String> choices = _resolveTurnChoices(json);
+    final Map<String, Object?> stateChangesJson = _resolveTurnStateChanges(
+      json,
+    );
+
+    return TurnResult(
+      narration: narration,
+      choices: choices,
+      stateChanges: StateChanges.fromJson(stateChangesJson),
+      memoryEntry: _resolveTurnMemoryEntry(json, fallback: narration),
+    );
+  }
 
   const TurnResult({
     required this.narration,
@@ -548,6 +552,158 @@ class TurnResult {
   final List<String> choices;
   final StateChanges stateChanges;
   final String memoryEntry;
+}
+
+String _choiceLabel(final Object? item) {
+  if (item is String) {
+    return item.trim();
+  }
+  final Map<String, Object?> map = _jsonMap(item);
+  for (final String key in const <String>[
+    'label',
+    'title',
+    'text',
+    'choice',
+    'name',
+  ]) {
+    final String value = _jsonString(map[key]).trim();
+    if (value.isNotEmpty) {
+      return value;
+    }
+  }
+  return item?.toString().trim() ?? '';
+}
+
+Object? _jsonPathValue(final Object? root, final String path) {
+  Object? current = root;
+  for (final String segment in path.split('.')) {
+    final Map<String, Object?> currentMap = _jsonMap(current);
+    if (currentMap.isEmpty || !currentMap.containsKey(segment)) {
+      return null;
+    }
+    current = currentMap[segment];
+  }
+  return current;
+}
+
+String _firstNonEmptyStringPath(final Object? root, final List<String> paths) {
+  for (final String path in paths) {
+    final Object? rawValue = _jsonPathValue(root, path);
+    if (rawValue is Map || rawValue is List) {
+      continue;
+    }
+    final String value = _jsonString(rawValue).trim();
+    if (value.isNotEmpty) {
+      return value;
+    }
+  }
+  return '';
+}
+
+List<String> _resolveTurnChoices(final Map<String, Object?> json) {
+  final List<Object?> rawChoices = _jsonList(
+    json['choices'] ??
+        json['options'] ??
+        json['actions'] ??
+        json['variants'] ??
+        _jsonPathValue(json, 'result.choices') ??
+        _jsonPathValue(json, 'result.options') ??
+        _jsonPathValue(json, 'result.actions'),
+  );
+  return rawChoices
+      .map((final item) => _choiceLabel(item))
+      .where((final item) => item.isNotEmpty)
+      .toList();
+}
+
+String _resolveTurnLocation(final Map<String, Object?> json) =>
+    _firstNonEmptyStringPath(json, const <String>[
+      'state_changes.location',
+      'stateChanges.location',
+      'state.location',
+      'state.current_location',
+      'state.place',
+      'state.scene_location',
+      'game_state.location',
+      'game_state.current_location',
+      'game_state.place',
+      'game_state.scene_location',
+      'updates.location',
+      'updates.current_location',
+      'updates.place',
+      'updates.scene_location',
+      'result.state_changes.location',
+      'result.stateChanges.location',
+      'result.state.location',
+      'result.location',
+      'current_location',
+      'location',
+      'place',
+      'scene_location',
+    ]);
+
+Map<String, Object?> _resolveTurnStateChanges(final Map<String, Object?> json) {
+  final Map<String, Object?> resolved = <String, Object?>{
+    ..._jsonMap(
+      json['state_changes'] ??
+          json['stateChanges'] ??
+          json['state'] ??
+          json['game_state'] ??
+          json['updates'] ??
+          _jsonPathValue(json, 'result.state_changes') ??
+          _jsonPathValue(json, 'result.stateChanges') ??
+          _jsonPathValue(json, 'result.state') ??
+          _jsonPathValue(json, 'result.game_state') ??
+          _jsonPathValue(json, 'result.updates'),
+    ),
+  };
+  final String location = _resolveTurnLocation(json);
+  if (location.isNotEmpty && _jsonString(resolved['location']).trim().isEmpty) {
+    resolved['location'] = location;
+  }
+  return resolved;
+}
+
+String _resolveTurnMemoryEntry(
+  final Map<String, Object?> json, {
+  required final String fallback,
+}) {
+  final String resolved = _firstNonEmptyStringPath(json, const <String>[
+    'memory_entry',
+    'memoryEntry',
+    'memory_entry.text',
+    'memoryEntry.text',
+    'result.memory_entry',
+    'result.memoryEntry',
+    'result.memory_entry.text',
+    'result.memoryEntry.text',
+  ]);
+  return resolved.isNotEmpty ? resolved : fallback;
+}
+
+String _resolveTurnNarration(
+  final Object? value, {
+  required final String fallback,
+}) {
+  final String resolved = _firstNonEmptyStringPath(value, const <String>[
+    'narration',
+    'scene',
+    'story',
+    'description',
+    'text',
+    'response',
+    'memory_entry.text',
+    'memoryEntry.text',
+    'result.narration',
+    'result.scene',
+    'result.story',
+    'result.description',
+    'result.text',
+    'result.response',
+    'result.memory_entry.text',
+    'result.memoryEntry.text',
+  ]);
+  return resolved.isNotEmpty ? resolved : fallback;
 }
 
 enum StateChangeNotificationKind {
@@ -672,13 +828,16 @@ class CampaignState {
       messages: messagesJson
           .map((final item) => ChatMessage.fromJson(_jsonMap(item)))
           .toList(),
-      choices: _jsonList(
-        json['choices'],
-      ).map((final item) => item.toString()).toList(),
+      choices: _jsonList(json['choices'])
+          .map((final item) => _choiceLabel(item))
+          .where((final item) => item.isNotEmpty)
+          .toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
       customStoryPrompt: _jsonString(json['customStoryPrompt']),
       characterPrompt: _jsonString(json['characterPrompt']),
+      portraitPath: _jsonString(json['portraitPath']),
+      portraitPrompt: _jsonString(json['portraitPrompt']),
     );
   }
 
@@ -706,6 +865,8 @@ class CampaignState {
     this.checks = const <CampaignCheck>[],
     this.customStoryPrompt = '',
     this.characterPrompt = '',
+    this.portraitPath = '',
+    this.portraitPrompt = '',
   });
 
   final String id;
@@ -731,6 +892,8 @@ class CampaignState {
   final DateTime updatedAt;
   final String customStoryPrompt;
   final String characterPrompt;
+  final String portraitPath;
+  final String portraitPrompt;
 
   String get summary => memory.rollingSummary;
   String get activeGoal => memory.activeGoal;
@@ -774,6 +937,8 @@ class CampaignState {
     final DateTime? updatedAt,
     final String? customStoryPrompt,
     final String? characterPrompt,
+    final String? portraitPath,
+    final String? portraitPrompt,
   }) => CampaignState(
     id: id,
     schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -798,6 +963,8 @@ class CampaignState {
     updatedAt: updatedAt ?? this.updatedAt,
     customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
     characterPrompt: characterPrompt ?? this.characterPrompt,
+    portraitPath: portraitPath ?? this.portraitPath,
+    portraitPrompt: portraitPrompt ?? this.portraitPrompt,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -826,6 +993,8 @@ class CampaignState {
     'updatedAt': updatedAt.toIso8601String(),
     'customStoryPrompt': customStoryPrompt,
     'characterPrompt': characterPrompt,
+    'portraitPath': portraitPath,
+    'portraitPrompt': portraitPrompt,
   };
 
   static List<CampaignModuleState> inferLegacyModules({
@@ -886,11 +1055,15 @@ class CampaignDraft {
     required this.mode,
     required this.difficulty,
     required this.heroName,
+    this.id,
     this.storyWish = '',
     this.customStoryPrompt = '',
     this.characterProfile,
+    this.portraitPath = '',
+    this.portraitPrompt = '',
   });
 
+  final String? id;
   final CampaignSetting setting;
   final StoryMode mode;
   final DifficultyLevel difficulty;
@@ -898,6 +1071,8 @@ class CampaignDraft {
   final String storyWish;
   final String customStoryPrompt;
   final CharacterProfile? characterProfile;
+  final String portraitPath;
+  final String portraitPrompt;
 }
 
 /// Result of AI-generated prompts from story wish.
@@ -909,4 +1084,16 @@ class GeneratedPrompts {
 
   final String storyPrompt;
   final String characterPrompt;
+}
+
+class GeneratedPortrait {
+  const GeneratedPortrait({
+    required this.bytesBase64,
+    required this.mimeType,
+    required this.promptUsed,
+  });
+
+  final String bytesBase64;
+  final String mimeType;
+  final String promptUsed;
 }

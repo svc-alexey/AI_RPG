@@ -1,19 +1,63 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:flutter/foundation.dart';
 
-/// Централизованный логгер приложения для отладки AI запросов и ответов.
-///
-/// ПРИМЕЧАНИЕ: Для полноценного логирования добавьте пакет logger в pubspec.yaml:
-/// dependencies:
-///   logger: ^2.0.0
-///
-/// Текущая версия использует debugPrint для временного логирования.
+class AppDiagnosticEvent {
+  const AppDiagnosticEvent({
+    required this.timestamp,
+    required this.level,
+    required this.event,
+    required this.message,
+    this.flowId,
+    this.campaignId,
+    this.triggerSource,
+    this.attempt,
+    this.requestMode,
+    this.screenMounted,
+    this.statusCode,
+  });
+
+  final DateTime timestamp;
+  final String level;
+  final String event;
+  final String message;
+  final String? flowId;
+  final String? campaignId;
+  final String? triggerSource;
+  final int? attempt;
+  final String? requestMode;
+  final bool? screenMounted;
+  final int? statusCode;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'timestamp': timestamp.toIso8601String(),
+    'level': level,
+    'event': event,
+    'message': message,
+    'flowId': flowId,
+    'campaignId': campaignId,
+    'triggerSource': triggerSource,
+    'attempt': attempt,
+    'requestMode': requestMode,
+    'screenMounted': screenMounted,
+    'statusCode': statusCode,
+  };
+}
+
 class AppLogger {
   AppLogger._();
 
-  /// Простой логгер для отладки (без пакета logger).
-  static void _log(String level, String message, {Object? error}) {
+  static const int _maxDiagnosticEvents = 60;
+  static final ValueNotifier<List<AppDiagnosticEvent>> _diagnostics =
+      ValueNotifier<List<AppDiagnosticEvent>>(const <AppDiagnosticEvent>[]);
+
+  static ValueListenable<List<AppDiagnosticEvent>> get diagnosticsListenable =>
+      _diagnostics;
+
+  static void _log(final String level, final String message, {Object? error}) {
     if (kDebugMode) {
       final String errorStr = error != null ? '\n  Error: $error' : '';
       debugPrint('[$level] $message$errorStr');
@@ -22,28 +66,91 @@ class AppLogger {
 
   static AppLoggerInstance get instance => AppLoggerInstance();
 
-  /// Логирует AI запрос перед отправкой.
+  static void logDiagnostic({
+    required final String level,
+    required final String event,
+    required final String message,
+    final String? flowId,
+    final String? campaignId,
+    final String? triggerSource,
+    final int? attempt,
+    final String? requestMode,
+    final bool? screenMounted,
+    final int? statusCode,
+  }) {
+    final AppDiagnosticEvent entry = AppDiagnosticEvent(
+      timestamp: DateTime.now(),
+      level: level,
+      event: event,
+      message: message,
+      flowId: flowId,
+      campaignId: campaignId,
+      triggerSource: triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: screenMounted,
+      statusCode: statusCode,
+    );
+
+    final List<AppDiagnosticEvent> next = <AppDiagnosticEvent>[
+      ..._diagnostics.value,
+      entry,
+    ];
+    if (next.length > _maxDiagnosticEvents) {
+      next.removeRange(0, next.length - _maxDiagnosticEvents);
+    }
+    _diagnostics.value = List<AppDiagnosticEvent>.unmodifiable(next);
+
+    final String payload = jsonEncode(entry.toJson());
+    developer.log(payload, name: 'AI_PRG_DIAG');
+    if (kDebugMode || kIsWeb) {
+      debugPrint('[AI_PRG_DIAG] $payload');
+    }
+  }
+
   static void logAiRequest({
-    required String endpoint,
-    required Map<String, dynamic> requestBody,
-    required AiSettings settings,
+    required final String endpoint,
+    required final Map<String, dynamic> requestBody,
+    required final AiSettings settings,
+    final String? flowId,
+    final String? campaignId,
+    final String? triggerSource,
+    final int? attempt,
+    final String? requestMode,
+    final bool? screenMounted,
   }) {
     _log(
       'DEBUG',
       'AI Request to $endpoint',
-      error: {
+      error: <String, Object?>{
         'provider': settings.provider.name,
         'model': settings.model,
         'body': requestBody,
       },
     );
+    logDiagnostic(
+      level: 'DEBUG',
+      event: 'ai_request',
+      message: 'POST $endpoint',
+      flowId: flowId,
+      campaignId: campaignId,
+      triggerSource: triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: screenMounted,
+    );
   }
 
-  /// Логирует AI ответ после получения.
   static void logAiResponse({
-    required String endpoint,
-    required int statusCode,
-    required String rawResponse,
+    required final String endpoint,
+    required final int statusCode,
+    required final String rawResponse,
+    final String? flowId,
+    final String? campaignId,
+    final String? triggerSource,
+    final int? attempt,
+    final String? requestMode,
+    final bool? screenMounted,
   }) {
     final String truncated = rawResponse.length > 500
         ? '${rawResponse.substring(0, 500)}...[truncated ${rawResponse.length} chars]'
@@ -54,17 +161,35 @@ class AppLogger {
       'AI Response from $endpoint (status: $statusCode)',
       error: truncated,
     );
+    logDiagnostic(
+      level: 'DEBUG',
+      event: 'ai_response',
+      message: 'Response from $endpoint',
+      flowId: flowId,
+      campaignId: campaignId,
+      triggerSource: triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: screenMounted,
+      statusCode: statusCode,
+    );
   }
 
-  /// Логирует AI ошибку с деталями.
   static void logAiError({
-    required String message,
-    required AiTurnException exception,
+    required final String message,
+    required final AiTurnException exception,
+    final String? flowId,
+    final String? campaignId,
+    final String? triggerSource,
+    final int? attempt,
+    final String? requestMode,
+    final bool? screenMounted,
+    final int? statusCode,
   }) {
     _log(
       'ERROR',
       'AI Error: $message',
-      error: {
+      error: <String, Object?>{
         'userMessage': exception.userMessage,
         'recoverable': exception.recoverable,
         'rawResponse': exception.rawResponse != null
@@ -74,24 +199,51 @@ class AppLogger {
             : null,
       },
     );
+    logDiagnostic(
+      level: 'ERROR',
+      event: 'ai_error',
+      message: message,
+      flowId: flowId,
+      campaignId: campaignId,
+      triggerSource: triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: screenMounted,
+      statusCode: statusCode,
+    );
   }
 }
 
-/// Простая заглушка для instance методов (i, w, e, d).
 class AppLoggerInstance {
-  void d(String message, {Object? error, StackTrace? stackTrace}) {
+  void d(
+    final String message, {
+    final Object? error,
+    final StackTrace? stackTrace,
+  }) {
     AppLogger._log('DEBUG', message, error: error);
   }
 
-  void i(String message, {Object? error, StackTrace? stackTrace}) {
+  void i(
+    final String message, {
+    final Object? error,
+    final StackTrace? stackTrace,
+  }) {
     AppLogger._log('INFO', message, error: error);
   }
 
-  void w(String message, {Object? error, StackTrace? stackTrace}) {
+  void w(
+    final String message, {
+    final Object? error,
+    final StackTrace? stackTrace,
+  }) {
     AppLogger._log('WARN', message, error: error);
   }
 
-  void e(String message, {Object? error, StackTrace? stackTrace}) {
+  void e(
+    final String message, {
+    final Object? error,
+    final StackTrace? stackTrace,
+  }) {
     AppLogger._log('ERROR', message, error: error);
   }
 }

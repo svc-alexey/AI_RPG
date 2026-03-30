@@ -19,13 +19,14 @@ This feature package tracks the transition from a basic AI chat MVP to a local-f
 - runtime controls for `max response tokens`, `context window`, and quick profiles
 - real streaming for OpenAI-compatible chat completions with fallback to non-streaming requests
 - hybrid context assembly with `static header`, `dynamic summary`, `recent buffer`, and cadence-based summary refresh
+- module-aware campaign state, adaptive gameplay sidebar, and transient overlays
+- client-resolved deterministic checks through a local `DiceEngine`
 
 ## Still pending
 
-- modular world state for genre-flexible gameplay state
-- extraction pipeline for active modules such as inventory, companions, notes, vitality, and resources
-- dice engine and deterministic gameplay checks as opt-in systems
-- adaptive gameplay UI over active campaign modules
+- broader long-session validation and remaining Stage 8 cleanup
+- final settings/runtime UX validation
+- analyzer debt reduction for the next implementation layer
 - isolates for heavy background processing
 
 ## Documents
@@ -36,6 +37,6 @@ This feature package tracks the transition from a basic AI chat MVP to a local-f
 
 ## Next planned slice
 
-The next stage for this package is `Stage 6: modular world state and extraction`.
+The next stage for this package is the remaining Stage 8 validation layer.
 
-That work will start promoting genre-appropriate game entities into structured state on top of the new compact context pipeline.
+That work now focuses on long-session coherence, runtime/settings confidence, and next-layer technical readiness rather than the deterministic core itself.

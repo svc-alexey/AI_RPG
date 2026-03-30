@@ -14,16 +14,92 @@ class AppLocalizations {
     return scope!.localizations;
   }
 
-  String get appTitle => switch (language) {
-    AppLanguage.ru => 'ИИ RPG',
-    AppLanguage.en => 'AI RPG',
+  String get appTitle => brandName;
+
+  String get brandName => switch (language) {
+    AppLanguage.ru => 'Стирая Грань',
+    AppLanguage.en => 'Beyond the Verge',
+  };
+
+  String get homeHeroTitle => switch (language) {
+    AppLanguage.ru => 'История отвечает на твой выбор',
+    AppLanguage.en => 'Where choice reshapes the story',
   };
 
   String get homeDescription => switch (language) {
     AppLanguage.ru =>
-      'Минимальный desktop-first клиент: чат, настройки провайдера, локальные сохранения и интеграция с LM Studio.',
+      'Нарративная ролевая игра, где ИИ ведет сцену, а мир помнит последствия.',
     AppLanguage.en =>
-      'A minimal desktop-first client with chat, provider settings, local saves, and LM Studio integration.',
+      'A narrative RPG where AI guides the scene and the world remembers what you do.',
+  };
+
+  String get homePrimaryCta => switch (language) {
+    AppLanguage.ru => 'Начать историю',
+    AppLanguage.en => 'Begin Your Story',
+  };
+
+  String get homeSecondaryCta => switch (language) {
+    AppLanguage.ru => 'Продолжить',
+    AppLanguage.en => 'Continue',
+  };
+
+  String get homeTertiaryCta => switch (language) {
+    AppLanguage.ru => 'Настройки',
+    AppLanguage.en => 'Settings',
+  };
+
+  String get appLoadingTitle => switch (language) {
+    AppLanguage.ru => 'Приложение загружается, подождите',
+    AppLanguage.en => 'The app is loading, please wait',
+  };
+
+  List<String> get appLoadingStages => switch (language) {
+    AppLanguage.ru => const <String>[
+      'Подготавливаем запуск',
+      'Загружаем движок истории',
+      'Запускаем приложение',
+      'Готовим мир и настройки',
+    ],
+    AppLanguage.en => const <String>[
+      'Preparing the launch',
+      'Loading the story engine',
+      'Starting the application',
+      'Warming up your world and settings',
+    ],
+  };
+
+  String get appLoadingEtaShort => switch (language) {
+    AppLanguage.ru => 'Обычно это занимает несколько секунд',
+    AppLanguage.en => 'This usually takes a few seconds',
+  };
+
+  String get appLoadingSlow => switch (language) {
+    AppLanguage.ru =>
+      'Запуск идет дольше обычного. Еще немного, мы почти на месте.',
+    AppLanguage.en =>
+      'Startup is taking a bit longer than usual. Hang on, we are almost there.',
+  };
+
+  String get appLoadingRetry => switch (language) {
+    AppLanguage.ru => 'Не удалось запустить приложение. Попробуйте еще раз.',
+    AppLanguage.en => 'The app could not start. Please try again.',
+  };
+
+  List<String> get appLoadingFlavorLines => switch (language) {
+    AppLanguage.ru => const <String>[
+      'Загружаем миры',
+      'Собираем ИИ-модели',
+      'Разворачиваем сюжетные узлы',
+      'Настраиваем атмосферу приключения',
+      'Полируем первый ход героя',
+    ],
+    AppLanguage.en => const <String>[
+      'Loading new worlds',
+      'Assembling the AI models',
+      'Threading story branches together',
+      'Tuning the mood of the adventure',
+      'Polishing your first move',
+    ],
   };
 
   String get newCampaign => switch (language) {
@@ -48,16 +124,14 @@ class AppLocalizations {
 
   List<String> get homeFeatureLines => switch (language) {
     AppLanguage.ru => const <String>[
-      'Локальная история кампаний',
-      'Один полный игровой ход через ИИ',
-      'Демо-режим без модели',
-      'Совместимый с OpenAI endpoint для LM Studio',
+      'Живой рассказчик',
+      'Выбор с последствиями',
+      'Миры на грани жанров',
     ],
     AppLanguage.en => const <String>[
-      'Local campaign history',
-      'One complete AI-driven turn',
-      'Demo mode without a model',
-      'OpenAI-compatible endpoint for LM Studio',
+      'Living narrator',
+      'Choices that leave a mark',
+      'Worlds beyond a single genre',
     ],
   };
 
@@ -104,34 +178,34 @@ class AppLocalizations {
   };
 
   String get storyWishTitle => switch (language) {
-    AppLanguage.ru => 'Опиши, какую историю хочешь',
-    AppLanguage.en => 'Describe the story you want',
+    AppLanguage.ru =>
+      '\u041e\u043f\u0438\u0448\u0438 \u0437\u0430\u0432\u044f\u0437\u043a\u0443 \u0438\u043b\u0438 \u0436\u0435\u043b\u0430\u0435\u043c\u0443\u044e \u0438\u0441\u0442\u043e\u0440\u0438\u044e',
+    AppLanguage.en => 'Describe the story you want to play',
   };
 
   String get storyWishHint => switch (language) {
     AppLanguage.ru =>
-      'Например: мрачный детектив в стиле нуар, эпическое фэнтези с драконами...',
-    AppLanguage.en => 'E.g.: dark detective noir, epic fantasy with dragons...',
-  };
-
-  String get insertTextPrompt => switch (language) {
-    AppLanguage.ru => 'Подставить текст',
-    AppLanguage.en => 'Insert text',
+      '\u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: \u043c\u0440\u0430\u0447\u043d\u044b\u0439 \u0434\u0435\u0442\u0435\u043a\u0442\u0438\u0432 \u0443 \u043c\u043e\u0440\u044f, \u043f\u043e\u0445\u043e\u0434 \u0447\u0435\u0440\u0435\u0437 \u043f\u0440\u043e\u043a\u043b\u044f\u0442\u044b\u0439 \u043b\u0435\u0441 \u0438\u043b\u0438 \u043f\u0435\u0440\u0432\u044b\u0439 \u043a\u043e\u043d\u0442\u0430\u043a\u0442 \u0441 \u0447\u0443\u0436\u043e\u0439 \u0446\u0438\u0432\u0438\u043b\u0438\u0437\u0430\u0446\u0438\u0435\u0439...',
+    AppLanguage.en =>
+      'For example: a grim harbor mystery, a cursed forest expedition, or first contact with an alien civilization...',
   };
 
   String get generatePrompts => switch (language) {
-    AppLanguage.ru => 'Сгенерировать промпты',
-    AppLanguage.en => 'Generate prompts',
+    AppLanguage.ru =>
+      '\u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u043e\u043c\u043f\u0442',
+    AppLanguage.en => 'Generate prompt',
   };
 
   String get generatingPrompts => switch (language) {
-    AppLanguage.ru => 'Генерация...',
+    AppLanguage.ru =>
+      '\u0413\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f...',
     AppLanguage.en => 'Generating...',
   };
 
   String get customStoryPromptTitle => switch (language) {
-    AppLanguage.ru => 'Промпт истории (редактируемый)',
-    AppLanguage.en => 'Story prompt (editable)',
+    AppLanguage.ru =>
+      '\u041f\u0440\u043e\u043c\u043f\u0442 \u0438\u0441\u0442\u043e\u0440\u0438\u0438',
+    AppLanguage.en => 'Story prompt',
   };
 
   String get characterSectionTitle => switch (language) {
@@ -392,6 +466,29 @@ class AppLocalizations {
     AppLanguage.en => 'Active Systems',
   };
 
+  String get portraitPlaceholderLabel => switch (language) {
+    AppLanguage.ru => 'Портрет героя',
+    AppLanguage.en => 'Hero portrait',
+  };
+
+  String get portraitAiHint => switch (language) {
+    AppLanguage.ru => 'В будущем здесь появится сгенерированный ИИ-портрет.',
+    AppLanguage.en =>
+      'An AI-generated portrait will appear here in a future update.',
+  };
+
+  String get portraitAiReadyHint => switch (language) {
+    AppLanguage.ru => 'Портрет сгенерирован на основе истории и персонажа.',
+    AppLanguage.en => 'Portrait generated from the story and character.',
+  };
+
+  String get portraitAutoGenerateHint => switch (language) {
+    AppLanguage.ru =>
+      'Автоматическая генерация портрета временно отключена.',
+    AppLanguage.en =>
+      'Automatic portrait generation is currently disabled.',
+  };
+
   String campaignModuleLabel(final CampaignModule value) =>
       switch ((language, value)) {
         (AppLanguage.ru, CampaignModule.inventory) => 'Инвентарь',
@@ -543,6 +640,11 @@ class AppLocalizations {
     AppLanguage.en => 'Generating response...',
   };
 
+  String get generatingPortrait => switch (language) {
+    AppLanguage.ru => 'Генерируется портрет...',
+    AppLanguage.en => 'Generating portrait...',
+  };
+
   String get creatingCampaign => switch (language) {
     AppLanguage.ru => 'Создание кампании...',
     AppLanguage.en => 'Creating campaign...',
@@ -588,7 +690,7 @@ class AppLocalizations {
 
   String get contentRatingSubtitle => switch (language) {
     AppLanguage.ru =>
-      'Без подтверждения ИИ избегает сексуального контента. Подходит для общих аудиторий.',
+      'Без подтверждения ИИ избегает сексуального контента.',
     AppLanguage.en =>
       'Without confirmation, AI avoids sexual content. Suitable for general audiences.',
   };
@@ -602,30 +704,20 @@ class AppLocalizations {
   String get english => 'English';
 
   String get aiSettingsTitle => switch (language) {
-    AppLanguage.ru => 'LM Studio и OpenAI-compatible endpoint',
-    AppLanguage.en => 'LM Studio and OpenAI-compatible endpoint',
+    AppLanguage.ru => 'OpenAI-compatible endpoint',
+    AppLanguage.en => 'OpenAI-compatible endpoint',
   };
 
   String get aiSettingsDescription => switch (language) {
     AppLanguage.ru =>
-      'Для LM Studio по умолчанию используется http://127.0.0.1:1234/v1. Если локальный сервер LM Studio запущен, приложение само подберет подходящую загруженную модель.',
+      'Настройте любой OpenAI-compatible endpoint, модель и API-ключ, если он нужен.',
     AppLanguage.en =>
-      'LM Studio uses http://127.0.0.1:1234/v1 by default. If the local LM Studio server is running, the app will pick a suitable loaded model automatically.',
+      'Configure any OpenAI-compatible endpoint, model, and API key if needed.',
   };
 
   String get openAiCompatible => switch (language) {
     AppLanguage.ru => 'Совместимый с OpenAI',
     AppLanguage.en => 'OpenAI Compatible',
-  };
-
-  String get openRouter => switch (language) {
-    AppLanguage.ru => 'OpenRouter',
-    AppLanguage.en => 'OpenRouter',
-  };
-
-  String get deepSeek => switch (language) {
-    AppLanguage.ru => 'DeepSeek',
-    AppLanguage.en => 'DeepSeek',
   };
 
   String get baseUrl => switch (language) {
@@ -644,25 +736,13 @@ class AppLocalizations {
   };
 
   String get apiKeyHint => switch (language) {
-    AppLanguage.ru => 'Для LM Studio обычно не нужен',
-    AppLanguage.en => 'Usually not needed for LM Studio',
+    AppLanguage.ru => 'Оставьте пустым, если endpoint не требует ключ',
+    AppLanguage.en => 'Leave empty if the endpoint does not require a key',
   };
 
   String get timeoutSeconds => switch (language) {
     AppLanguage.ru => 'Таймаут в секундах',
     AppLanguage.en => 'Timeout in Seconds',
-  };
-
-  String get fastModeTitle => switch (language) {
-    AppLanguage.ru => 'Быстрый режим LM Studio',
-    AppLanguage.en => 'LM Studio Fast Mode',
-  };
-
-  String get fastModeSubtitle => switch (language) {
-    AppLanguage.ru =>
-      'Добавляет /no_think и строгий JSON-формат для более быстрых ответов.',
-    AppLanguage.en =>
-      'Adds /no_think and strict JSON formatting for faster responses.',
   };
 
   String get runtimeControlsTitle => switch (language) {
@@ -717,16 +797,6 @@ class AppLocalizations {
     AppLanguage.en => 'Check Connection',
   };
 
-  String get detectModel => switch (language) {
-    AppLanguage.ru => 'Подобрать модель автоматически',
-    AppLanguage.en => 'Detect Model Automatically',
-  };
-
-  String get detectingModel => switch (language) {
-    AppLanguage.ru => 'Подбираю модель...',
-    AppLanguage.en => 'Detecting model...',
-  };
-
   String get settingsSaved => switch (language) {
     AppLanguage.ru => 'Настройки сохранены.',
     AppLanguage.en => 'Settings saved.',
@@ -738,25 +808,8 @@ class AppLocalizations {
   };
 
   String connectionFailed(final Object error) => switch (language) {
-    AppLanguage.ru => 'Не удалось подключиться: $error',
-    AppLanguage.en => 'Connection failed: $error',
-  };
-
-  String get noLmStudioModel => switch (language) {
-    AppLanguage.ru => 'LM Studio ответил, но подходящая модель не найдена.',
-    AppLanguage.en => 'LM Studio responded, but no suitable model was found.',
-  };
-
-  String selectedLmStudioModel(final String modelId) => switch (language) {
-    AppLanguage.ru => 'Автоматически выбрана модель LM Studio: $modelId',
-    AppLanguage.en => 'LM Studio model selected automatically: $modelId',
-  };
-
-  String detectLmStudioFailed(final Object error) => switch (language) {
-    AppLanguage.ru =>
-      'Не удалось автоматически определить модель LM Studio. Убедись, что локальный сервер запущен: $error',
-    AppLanguage.en =>
-      'Could not detect an LM Studio model automatically. Make sure the local server is running: $error',
+    AppLanguage.ru => 'Не удалось проверить подключение: $error',
+    AppLanguage.en => 'Failed to check connection: $error',
   };
 
   String serverReturned(final int statusCode) => switch (language) {
@@ -875,8 +928,10 @@ class AppLocalizations {
   };
 
   String get storyWishOptional => switch (language) {
-    AppLanguage.ru => 'Опционально: опишите желаемую историю для генерации',
-    AppLanguage.en => 'Optional: describe your desired story for generation',
+    AppLanguage.ru =>
+      '\u041d\u0430\u043f\u0438\u0448\u0438 \u0441\u0432\u043e\u044e \u0438\u0434\u0435\u044e, \u0430 \u0435\u0441\u043b\u0438 \u043e\u0441\u0442\u0430\u0432\u0438\u0448\u044c \u043f\u043e\u043b\u0435 \u043f\u0443\u0441\u0442\u044b\u043c, \u043c\u044b \u043f\u0440\u0438\u0434\u0443\u043c\u0430\u0435\u043c \u043d\u0435\u043e\u0436\u0438\u0434\u0430\u043d\u043d\u0443\u044e \u0437\u0430\u0432\u044f\u0437\u043a\u0443.',
+    AppLanguage.en =>
+      'Write your idea, or leave it empty and we will come up with a fresh story hook for you.',
   };
 
   String get characterOptional => switch (language) {

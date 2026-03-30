@@ -29,6 +29,7 @@ class CampaignMemoryManager {
     required final TurnResult result,
     required final String playerAction,
     required final int contextWindowSize,
+    final CampaignCheck? resolvedCheck,
   }) {
     final String action = playerAction.trim().isEmpty
         ? switch (language) {
@@ -42,7 +43,11 @@ class CampaignMemoryManager {
           RecentTurnSummary(
             playerAction: action,
             outcome: _compact(result.narration, 180),
-            stateHint: _buildStateHint(language, result),
+            stateHint: _buildStateHint(
+              language,
+              result,
+              resolvedCheck: resolvedCheck,
+            ),
           ),
         );
 
@@ -50,7 +55,11 @@ class CampaignMemoryManager {
       recentTurns.removeRange(0, recentTurns.length - _maxRecentTurns);
     }
 
-    final String stateHint = _buildStateHint(language, result);
+    final String stateHint = _buildStateHint(
+      language,
+      result,
+      resolvedCheck: resolvedCheck,
+    );
     final int nextTurnNumber = previousState.turnNumber + 1;
     final int summaryCadenceTurns = summaryCadenceForContextWindow(
       mode: previousState.mode,
@@ -61,6 +70,7 @@ class CampaignMemoryManager {
       result: result,
       nextTurnNumber: nextTurnNumber,
       summaryCadenceTurns: summaryCadenceTurns,
+      resolvedCheck: resolvedCheck,
     );
 
     return previousState.memory.copyWith(
@@ -108,7 +118,11 @@ class CampaignMemoryManager {
     contextWindowSize: contextWindowSize,
   );
 
-  String _buildStateHint(final AppLanguage language, final TurnResult result) {
+  String _buildStateHint(
+    final AppLanguage language,
+    final TurnResult result, {
+    final CampaignCheck? resolvedCheck,
+  }) {
     final List<String> hints = <String>[];
     if (result.stateChanges.hpDelta != 0) {
       hints.add(
@@ -138,6 +152,9 @@ class CampaignMemoryManager {
     if (result.stateChanges.questNote.trim().isNotEmpty) {
       hints.add(result.stateChanges.questNote.trim());
     }
+    if (resolvedCheck != null) {
+      hints.add(resolvedCheck.summary);
+    }
 
     return hints.isEmpty
         ? switch (language) {
@@ -152,8 +169,12 @@ class CampaignMemoryManager {
     required final TurnResult result,
     required final int nextTurnNumber,
     required final int summaryCadenceTurns,
+    final CampaignCheck? resolvedCheck,
   }) {
     if (previousState.memory.rollingSummary.trim().isEmpty) {
+      return true;
+    }
+    if (resolvedCheck != null) {
       return true;
     }
     if (_isMajorTurn(result: result)) {

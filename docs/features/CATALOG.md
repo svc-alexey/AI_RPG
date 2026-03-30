@@ -22,7 +22,6 @@
 - статус: implemented-with-backfill
 - папка: [docs/features/no-think-fast-mode](D:/AI_PRG/docs/features/no-think-fast-mode)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
-- цель: ускорение ответов LM Studio через `/no_think` и strict JSON
 
 ### `summary-memory`
 
@@ -65,3 +64,10 @@
 - папка: [docs/features/campaign-modules](D:/AI_PRG/docs/features/campaign-modules)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: сделать состояние кампании модульным, чтобы `Inventory`, `Companions`, `Resources`, `Progression`, `Vitality`, `Notes` и deterministic systems подключались по сеттингу, prompt и развитию истории, а UI адаптировался через ненавязчивые уведомления и динамический sidebar
+
+### `deterministic-systems`
+
+- статус: implemented
+- папка: [docs/features/deterministic-systems](D:/AI_PRG/docs/features/deterministic-systems)
+- источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
+- цель: сделать client-resolved deterministic checks через локальный `DiceEngine`, передавать результат модели как known state и сохранять outcome в memory/UI/save слое

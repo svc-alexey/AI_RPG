@@ -1,95 +1,831 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta
+    name="description"
+    content="Beyond the Verge is a narrative RPG where AI guides the scene and the world remembers your choices."
+  >
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17121F">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ai_prg">
+  <meta name="apple-mobile-web-app-title" content="Beyond the Verge">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>ai_prg</title>
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
+  <title>Beyond the Verge</title>
 
   <style>
-    /* Splash screen — AetherPalette.background (#17121F), виден до монтирования Flutter */
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      min-height: 100vh;
-      overflow: hidden;
-      background: #17121F;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, -apple-system, sans-serif;
+    :root {
+      --app-height: 100vh;
+      --bg: #17121f;
+      --bg-top: #241a31;
+      --panel: rgba(33, 26, 44, 0.92);
+      --panel-border: rgba(107, 84, 136, 0.68);
+      --text: #e9e2d7;
+      --muted: rgba(233, 226, 215, 0.72);
+      --accent: #b463ff;
+      --accent-soft: rgba(180, 99, 255, 0.2);
+      --gold: #e0b35b;
+      --danger: #ffb4ab;
+      color-scheme: dark;
+      font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: var(--app-height);
+      background:
+        radial-gradient(circle at top left, rgba(180, 99, 255, 0.16), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(93, 59, 121, 0.26), transparent 30%),
+        linear-gradient(180deg, var(--bg-top), var(--bg));
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body {
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      border-radius: 999px;
+      pointer-events: none;
+      filter: blur(18px);
+      opacity: 0.8;
+      animation: drift 14s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      top: 5%;
+      left: -120px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(180, 99, 255, 0.32), transparent 72%);
+    }
+
+    body::after {
+      right: -90px;
+      bottom: 10%;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(224, 179, 91, 0.18), transparent 68%);
+      animation-duration: 17s;
+    }
+
     #loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2rem;
       position: relative;
       z-index: 1;
+      min-height: var(--app-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 18px 32px;
+      opacity: 1;
+      transition: opacity 420ms ease, transform 420ms ease;
     }
-    .loader {
-      width: 52px;
-      height: 52px;
-      border: 3px solid rgba(58, 47, 73, 0.5);
-      border-top-color: #B463FF;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+
+    #loading-container.is-exiting {
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
     }
-    .loader-label {
-      color: #E9E2D7;
-      font-size: 1rem;
+
+    .landing-shell {
+      width: min(1120px, 100%);
+      display: grid;
+      gap: 28px;
+      align-items: center;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    }
+
+    .hero-panel,
+    .detail-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 28px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-panel {
+      padding: 42px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 44px;
+      height: 1px;
+      background: rgba(224, 179, 91, 0.55);
+    }
+
+    h1 {
+      margin: 22px 0 14px;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(52px, 7vw, 88px);
+      line-height: 0.95;
+      letter-spacing: 0.04em;
       font-weight: 500;
-      letter-spacing: 0.05em;
     }
+
+    .hero-title {
+      max-width: 620px;
+      margin: 0 0 16px;
+      font-size: clamp(24px, 3vw, 36px);
+      line-height: 1.12;
+      color: rgba(233, 226, 215, 0.94);
+    }
+
+    .hero-subtitle {
+      max-width: 580px;
+      margin: 0 0 24px;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .hero-pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(107, 84, 136, 0.72);
+      background: rgba(38, 31, 51, 0.92);
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .launch-shell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .cta-button,
+    .secondary-button {
+      appearance: none;
+      border: 0;
+      border-radius: 18px;
+      padding: 16px 22px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, rgba(180, 99, 255, 0.34), rgba(93, 59, 121, 0.8));
+      color: var(--text);
+      box-shadow: 0 20px 48px rgba(180, 99, 255, 0.18);
+    }
+
+    .secondary-button {
+      background: rgba(38, 31, 51, 0.88);
+      color: var(--text);
+      border: 1px solid rgba(107, 84, 136, 0.72);
+    }
+
+    .cta-button:hover,
+    .secondary-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .cta-button:disabled,
+    .secondary-button:disabled {
+      cursor: progress;
+      opacity: 0.75;
+      transform: none;
+    }
+
+    .loading-shell {
+      width: min(420px, 100%);
+      display: none;
+      gap: 14px;
+      padding: 18px 18px 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(107, 84, 136, 0.5);
+      background: rgba(20, 15, 29, 0.84);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .loading-shell.is-visible {
+      display: grid;
+    }
+
+    .loading-shell.is-error {
+      border-color: rgba(255, 180, 171, 0.6);
+    }
+
+    .loading-shell-top {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 2px solid rgba(180, 99, 255, 0.22);
+      border-top-color: var(--accent);
+      animation: spin 900ms linear infinite;
+      flex: 0 0 auto;
+    }
+
+    .loading-copy {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    .loading-title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      color: var(--text);
+    }
+
+    .loading-stage {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .loading-progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(233, 226, 215, 0.08);
+      overflow: hidden;
+    }
+
+    .loading-progress-fill {
+      height: 100%;
+      width: 12%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(224, 179, 91, 0.9), rgba(180, 99, 255, 0.96));
+      box-shadow: 0 0 24px rgba(180, 99, 255, 0.3);
+      transition: width 500ms ease;
+    }
+
+    .loading-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .loading-flavor {
+      margin: 0;
+      min-height: 22px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--gold);
+      letter-spacing: 0.02em;
+    }
+
+    .launch-note {
+      min-height: 24px;
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .launch-note.is-error {
+      color: var(--danger);
+    }
+
+    .detail-panel {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .detail-card {
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(23, 18, 31, 0.5);
+      border: 1px solid rgba(107, 84, 136, 0.38);
+    }
+
+    .detail-label {
+      margin: 0 0 6px;
+      font-size: 13px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .detail-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .detail-copy strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .hidden-anchor {
+      position: relative;
+      top: -24px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @keyframes drift {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to { transform: translate3d(18px, -16px, 0) scale(1.08); }
+    }
+
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 880px) {
+      .landing-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel {
+        padding: 30px 24px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      #loading-container {
+        align-items: stretch;
+      }
+
+      .hero-panel,
+      .detail-panel {
+        border-radius: 22px;
+      }
+
+      .launch-shell {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .cta-button,
+      .secondary-button,
+      .loading-shell {
+        width: 100%;
+      }
+
+      .loading-meta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
 <body>
   <div id="loading-container">
-    <div class="loader" aria-hidden="true"></div>
-    <span class="loader-label">AI RPG</span>
-  </div>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+    <main class="landing-shell">
+      <section class="hero-panel">
+        <div id="landing-eyebrow" class="eyebrow"></div>
+        <h1 id="landing-brand"></h1>
+        <p id="landing-title" class="hero-title"></p>
+        <p id="landing-subtitle" class="hero-subtitle"></p>
+        <div id="landing-pills" class="hero-pills"></div>
+        <div class="hero-actions">
+          <div id="launch-shell" class="launch-shell">
+            <button id="launch-button" class="cta-button" type="button"></button>
+            <button id="how-button" class="secondary-button" type="button"></button>
+          </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+          <section id="loading-shell" class="loading-shell" aria-live="polite" hidden>
+            <div class="loading-shell-top">
+              <div class="loading-spinner" aria-hidden="true"></div>
+              <div class="loading-copy">
+                <p id="loading-title" class="loading-title"></p>
+                <p id="loading-stage" class="loading-stage"></p>
+              </div>
+            </div>
+            <div class="loading-progress-track" aria-hidden="true">
+              <div id="loading-progress-fill" class="loading-progress-fill"></div>
+            </div>
+            <div class="loading-meta">
+              <span id="loading-progress-label"></span>
+              <span id="loading-eta"></span>
+            </div>
+            <p id="loading-flavor" class="loading-flavor"></p>
+          </section>
+        </div>
+        <div id="loading-note" class="launch-note" aria-live="polite"></div>
+      </section>
+
+      <aside class="detail-panel">
+        <span id="how-anchor" class="hidden-anchor" aria-hidden="true"></span>
+        <section class="detail-card">
+          <p id="detail-label-1" class="detail-label"></p>
+          <p id="detail-copy-1" class="detail-copy"></p>
+        </section>
+        <section class="detail-card">
+          <p id="detail-label-2" class="detail-label"></p>
+          <p id="detail-copy-2" class="detail-copy"></p>
+        </section>
+        <section class="detail-card">
+          <p id="detail-label-3" class="detail-label"></p>
+          <p id="detail-copy-3" class="detail-copy"></p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+
+    (function () {
+      const copy = {
+        ru: {
+          eyebrow: 'Нарративная ИИ ролевая игра',
+          brand: 'Стирая Грань',
+          heroTitle: 'История отвечает на твой выбор',
+          heroSubtitle: 'Нарративная ролевая игра, где ИИ ведет сцену, а мир помнит последствия.',
+          pills: ['Живой рассказчик', 'Выбор с последствиями', 'Миры на грани жанров'],
+          launch: 'Играть',
+          how: 'Как это работает',
+          loadingTitle: 'Приложение загружается, подождите',
+          loadingStages: [
+            'Подготавливаем запуск',
+            'Загружаем движок истории',
+            'Запускаем приложение',
+            'Готовим мир и настройки',
+            'Открываем мир приключения',
+          ],
+          loadingEtaShort: 'Обычно это занимает несколько секунд',
+          loadingEtaLong: 'Еще немного, запуск почти готов',
+          loadingSlow: 'Запуск идет дольше обычного. Если вы на телефоне, подождите еще чуть-чуть.',
+          loadingRetry: 'Не удалось запустить приложение. Попробуйте еще раз или обновите страницу.',
+          startupError: 'Во время запуска произошла ошибка. Попробуйте еще раз.',
+          loadingFlavorLines: [
+            'Загружаем миры',
+            'Собираем ИИ-модели',
+            'Разворачиваем сюжетные узлы',
+            'Настраиваем атмосферу приключения',
+            'Полируем первый ход героя',
+          ],
+          detail1Label: 'Рассказчик',
+          detail1Copy: 'ИИ ведет сцену, но сохраняет логику мира и последствия ваших решений.',
+          detail2Label: 'Темп',
+          detail2Copy: 'Развивайте историю в реальном времени, создавайте новые миры и пути.',
+          detail3Label: 'Путь героя',
+          detail3Copy: 'Начинайте новую историю, продолжайте сохранение и возвращайтесь в мир.',
+        },
+        en: {
+          eyebrow: 'Narrative AI RPG',
+          brand: 'Beyond the Verge',
+          heroTitle: 'Where choice reshapes the story',
+          heroSubtitle: 'A narrative RPG where AI guides the scene and the world remembers what you do.',
+          pills: ['Living narrator', 'Choices that leave a mark', 'Worlds beyond a single genre'],
+          launch: 'Play Now',
+          how: 'How it works',
+          loadingTitle: 'The app is loading, please wait',
+          loadingStages: [
+            'Preparing the launch',
+            'Loading the story engine',
+            'Starting the application',
+            'Warming up your world and settings',
+            'Opening the adventure',
+          ],
+          loadingEtaShort: 'This usually takes a few seconds',
+          loadingEtaLong: 'Almost there, the launch is nearly ready',
+          loadingSlow: 'Startup is taking a little longer than usual. If you are on a phone, give it a few more seconds.',
+          loadingRetry: 'The app could not start. Please try again or reload the page.',
+          startupError: 'A startup error occurred. Please try again.',
+          loadingFlavorLines: [
+            'Loading new worlds',
+            'Assembling the AI models',
+            'Threading story branches together',
+            'Tuning the mood of the adventure',
+            'Polishing your first move',
+          ],
+          detail1Label: 'Narrator',
+          detail1Copy: 'AI drives the scene while the world still keeps track of rules, state, and consequences.',
+          detail2Label: 'Pace',
+          detail2Copy: 'Develop the story early on, create new worlds and paths.',
+          detail3Label: 'Hero path',
+          detail3Copy: 'Start a new story, continue saving and return to the world.',
+        },
+      };
+
+      const stageProgress = [0.12, 0.34, 0.58, 0.8, 1];
+
+      const language = (navigator.language || '').toLowerCase().startsWith('ru')
+        ? 'ru'
+        : 'en';
+      const text = copy[language];
+
+      const loadingContainer = document.getElementById('loading-container');
+      const launchShell = document.getElementById('launch-shell');
+      const loadingShell = document.getElementById('loading-shell');
+      const loadingTitle = document.getElementById('loading-title');
+      const loadingStage = document.getElementById('loading-stage');
+      const loadingEta = document.getElementById('loading-eta');
+      const loadingFlavor = document.getElementById('loading-flavor');
+      const loadingProgressFill = document.getElementById('loading-progress-fill');
+      const loadingProgressLabel = document.getElementById('loading-progress-label');
+      const loadingNote = document.getElementById('loading-note');
+      const launchButton = document.getElementById('launch-button');
+      const howButton = document.getElementById('how-button');
+      const howAnchor = document.getElementById('how-anchor');
+      const urlParams = new URLSearchParams(window.location.search);
+      const shouldAutoLaunch = urlParams.get('autostart') === '1';
+
+      let launchInFlight = false;
+      let launchCompleted = false;
+      let flavorTimer = null;
+      let slowLoadTimer = null;
+      let currentStageIndex = 0;
+      let currentFlavorIndex = 0;
+      let launchStartedAt = 0;
+
+      function setText(id, value) {
+        const node = document.getElementById(id);
+        if (node) {
+          node.textContent = value;
+        }
+      }
+
+      function renderLanding() {
+        document.documentElement.lang = language;
+        setText('landing-eyebrow', text.eyebrow);
+        setText('landing-brand', text.brand);
+        setText('landing-title', text.heroTitle);
+        setText('landing-subtitle', text.heroSubtitle);
+        setText('detail-label-1', text.detail1Label);
+        setText('detail-label-2', text.detail2Label);
+        setText('detail-label-3', text.detail3Label);
+        setText('detail-copy-1', text.detail1Copy);
+        setText('detail-copy-2', text.detail2Copy);
+        setText('detail-copy-3', text.detail3Copy);
+        document.title = text.brand;
+        launchButton.textContent = text.launch;
+        howButton.textContent = text.how;
+
+        const pillHost = document.getElementById('landing-pills');
+        pillHost.innerHTML = '';
+        text.pills.forEach((entry) => {
+          const pill = document.createElement('span');
+          pill.className = 'hero-pill';
+          pill.textContent = entry;
+          pillHost.appendChild(pill);
+        });
+      }
+
+      function setLoadingNote(message, isError) {
+        if (!loadingNote) {
+          return;
+        }
+        loadingNote.textContent = message || '';
+        loadingNote.classList.toggle('is-error', Boolean(isError));
+      }
+
+      function syncViewportHeight() {
+        const viewport = window.visualViewport;
+        const nextHeight = viewport ? viewport.height : window.innerHeight;
+        const height = `${Math.round(nextHeight)}px`;
+        document.documentElement.style.setProperty('--app-height', height);
+        document.documentElement.style.height = height;
+        document.body.style.minHeight = height;
+      }
+
+      function refreshViewportMetrics() {
+        syncViewportHeight();
+        window.dispatchEvent(new Event('resize'));
+      }
+
+      function clearLaunchTimers() {
+        if (flavorTimer !== null) {
+          window.clearInterval(flavorTimer);
+          flavorTimer = null;
+        }
+        if (slowLoadTimer !== null) {
+          window.clearTimeout(slowLoadTimer);
+          slowLoadTimer = null;
+        }
+      }
+
+      function showLoadingShell() {
+        launchShell.hidden = true;
+        loadingShell.hidden = false;
+        loadingShell.classList.add('is-visible');
+      }
+
+      function showLaunchButtons() {
+        launchShell.hidden = false;
+        loadingShell.hidden = true;
+        loadingShell.classList.remove('is-visible');
+        loadingShell.classList.remove('is-error');
+      }
+
+      function setStage(stageIndex, options) {
+        currentStageIndex = Math.max(0, Math.min(stageIndex, text.loadingStages.length - 1));
+        const progress = stageProgress[Math.min(currentStageIndex, stageProgress.length - 1)];
+        loadingTitle.textContent = text.loadingTitle;
+        loadingStage.textContent = text.loadingStages[currentStageIndex];
+        loadingEta.textContent = options && options.longEta ? text.loadingEtaLong : text.loadingEtaShort;
+        loadingProgressFill.style.width = `${Math.round(progress * 100)}%`;
+        loadingProgressLabel.textContent = `${Math.round(progress * 100)}%`;
+      }
+
+      function startFlavorRotation() {
+        currentFlavorIndex = 0;
+        loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex];
+        flavorTimer = window.setInterval(() => {
+          currentFlavorIndex = (currentFlavorIndex + 1) % text.loadingFlavorLines.length;
+          loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex];
+        }, 2200);
+      }
+
+      function enterLaunchState() {
+        launchStartedAt = Date.now();
+        showLoadingShell();
+        launchButton.disabled = true;
+        howButton.disabled = true;
+        loadingShell.classList.remove('is-error');
+        setLoadingNote('', false);
+        setStage(0);
+        startFlavorRotation();
+        slowLoadTimer = window.setTimeout(() => {
+          if (!launchInFlight || launchCompleted) {
+            return;
+          }
+          loadingEta.textContent = text.loadingEtaLong;
+          setLoadingNote(text.loadingSlow, false);
+        }, 8000);
+      }
+
+      function resetLaunchState(message) {
+        clearLaunchTimers();
+        launchInFlight = false;
+        launchCompleted = false;
+        launchButton.disabled = false;
+        howButton.disabled = false;
+        showLaunchButtons();
+        if (message) {
+          setLoadingNote(message, true);
+        }
+      }
+
+      function finishLaunchTransition() {
+        if (launchCompleted) {
+          return;
+        }
+        launchCompleted = true;
+        clearLaunchTimers();
+        setStage(text.loadingStages.length - 1, { longEta: true });
+        loadingFlavor.textContent = text.loadingFlavorLines[currentFlavorIndex % text.loadingFlavorLines.length];
+        setLoadingNote('', false);
+        const elapsed = Date.now() - launchStartedAt;
+        const remaining = Math.max(0, 650 - elapsed);
+        window.setTimeout(() => {
+          if (loadingContainer) {
+            loadingContainer.classList.add('is-exiting');
+            window.setTimeout(() => {
+              loadingContainer.remove();
+            }, 460);
+          }
+        }, remaining);
+      }
+
+      async function launchFlutter() {
+        if (launchInFlight) {
+          return;
+        }
+
+        launchInFlight = true;
+        enterLaunchState();
+
+        try {
+          const start = window.__codexLaunchFlutterApp || (window._flutter && window._flutter.loader
+              ? function () {
+                  return window._flutter.loader.load({
+                    onEntrypointLoaded: async function (engineInitializer) {
+                      if (launchInFlight && !launchCompleted) {
+                        setStage(1);
+                      }
+                      const appRunner = await engineInitializer.initializeEngine();
+                      if (launchInFlight && !launchCompleted) {
+                        setStage(2);
+                      }
+                      const runResult = await appRunner.runApp();
+                      if (launchInFlight && !launchCompleted) {
+                        setStage(3, { longEta: true });
+                      }
+                      return runResult;
+                    },
+                  });
+                }
+            : null);
+
+          if (!start) {
+            throw new Error('Flutter loader is unavailable');
+          }
+
+          await start();
+        } catch (error) {
+          console.error('Flutter web bootstrap failed', error);
+          resetLaunchState(text.loadingRetry);
+        }
+      }
+
+      renderLanding();
+      syncViewportHeight();
+
+      launchButton.addEventListener('click', launchFlutter);
+      howButton.addEventListener('click', function () {
+        if (launchInFlight) {
+          return;
+        }
+        if (howAnchor) {
+          howAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      window.addEventListener('codex:flutter-first-frame', finishLaunchTransition);
+      window.addEventListener('codex:flutter-ready', finishLaunchTransition);
+      window.addEventListener('resize', syncViewportHeight);
+      window.addEventListener('orientationchange', refreshViewportMetrics);
+      window.addEventListener('focus', refreshViewportMetrics);
+      window.addEventListener('pageshow', refreshViewportMetrics);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+          window.setTimeout(refreshViewportMetrics, 0);
+          window.setTimeout(refreshViewportMetrics, 180);
+        }
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncViewportHeight);
+        window.visualViewport.addEventListener('scroll', syncViewportHeight);
+      }
+
+      window.addEventListener('error', function () {
+        if (launchInFlight && !launchCompleted) {
+          resetLaunchState(text.startupError);
+        }
+      });
+
+      if (shouldAutoLaunch) {
+        window.setTimeout(launchFlutter, 0);
+      }
+
+      window.__codexHideLanding = function () {
+        if (loadingContainer) {
+          loadingContainer.remove();
+        }
+      };
+    })();
+  </script>
 </body>
 </html>

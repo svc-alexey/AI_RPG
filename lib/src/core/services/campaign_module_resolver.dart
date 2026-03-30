@@ -52,6 +52,7 @@ class CampaignModuleResolver {
           CampaignModule.inventory,
           CampaignModule.notes,
           CampaignModule.vitality,
+          CampaignModule.checks,
         ],
         CampaignSetting.detective => const <CampaignModule>[
           CampaignModule.notes,
@@ -61,6 +62,7 @@ class CampaignModuleResolver {
           CampaignModule.notes,
           CampaignModule.vitality,
           CampaignModule.resources,
+          CampaignModule.checks,
         ],
       };
 

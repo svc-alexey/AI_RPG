@@ -7,6 +7,8 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -14,6 +16,8 @@ class OpenAiCompatibleAiClient implements AiClient {
   OpenAiCompatibleAiClient();
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
+  static const TurnPromptBuilder _turnPromptBuilder = TurnPromptBuilder();
+  static const int _truncationRetryMultiplier = 2;
 
   Map<String, Object?> _jsonMap(final Object? value) {
     if (value is Map) {
@@ -24,6 +28,8 @@ class OpenAiCompatibleAiClient implements AiClient {
 
   List<Object?> _jsonList(final Object? value) =>
       value is List ? List<Object?>.from(value) : const <Object?>[];
+
+  String _stringValue(final Object? value) => value == null ? '' : '$value';
 
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {
@@ -148,7 +154,7 @@ Reply only with JSON, no markdown.
 
       final Map<String, Object?> choice = _jsonMap(choices.first);
       final Map<String, Object?> message = _jsonMap(choice['message']);
-      final String content = (message['content'] as String?) ?? '';
+      final String content = _stringValue(message['content']);
       final String jsonStr = content.trim();
       final int start = jsonStr.indexOf('{');
       final int end = jsonStr.lastIndexOf('}');
@@ -162,12 +168,13 @@ Reply only with JSON, no markdown.
       }
 
       final Map<String, Object?> parsedMap = _jsonMap(parsed);
-      String storyPrompt = ((parsedMap['storyPrompt'] as String?) ?? '').trim();
+      String storyPrompt = _stringValue(parsedMap['storyPrompt']).trim();
       if (storyPrompt.length > _maxCustomPromptLength) {
         storyPrompt = storyPrompt.substring(0, _maxCustomPromptLength);
       }
-      String characterPrompt = ((parsedMap['characterPrompt'] as String?) ?? '')
-          .trim();
+      String characterPrompt = _stringValue(
+        parsedMap['characterPrompt'],
+      ).trim();
       if (characterPrompt.length > _maxCustomPromptLength) {
         characterPrompt = characterPrompt.substring(0, _maxCustomPromptLength);
       }
@@ -183,12 +190,24 @@ Reply only with JSON, no markdown.
   }
 
   @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
+
+  @override
   Future<TurnResult> generateTurn({
     required final AiSettings settings,
     required final AppLanguage language,
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -196,6 +215,7 @@ Reply only with JSON, no markdown.
     const List<int> backoffMs = [0, 2000, 5000]; // 0s, 2s, 5s
 
     int attemptCount = 0;
+    final bool fastMode = _shouldUseFastMode(settings);
 
     while (attemptCount < maxAttempts) {
       try {
@@ -204,22 +224,26 @@ Reply only with JSON, no markdown.
           AppLogger.instance.i(
             'Retry attempt $attemptCount/$maxAttempts after ${backoffMs[attemptCount]}ms',
           );
+          AppLogger.logDiagnostic(
+            level: 'WARN',
+            event: 'ai_retry_scheduled',
+            message:
+                'Retry attempt $attemptCount/$maxAttempts after ${backoffMs[attemptCount]}ms.',
+            flowId: metadata?.flowId,
+            campaignId: metadata?.campaignId,
+            triggerSource: metadata?.triggerSource,
+            attempt: attemptCount,
+            requestMode: 'retry',
+            screenMounted: metadata?.screenMounted,
+          );
           await Future<void>.delayed(
             Duration(milliseconds: backoffMs[attemptCount]),
           );
         }
 
-        final Future<TurnResult> turnFuture = _requestTurn(
-          settings: settings,
-          language: language,
-          state: state,
-          playerAction: playerAction,
-          suggestionsOnly: suggestionsOnly,
-          fastMode: _shouldUseFastMode(settings),
-          onNarrationDelta: onNarrationDelta,
-        );
-
-        if (!suggestionsOnly && onNarrationDelta != null) {
+        if (!suggestionsOnly &&
+            onNarrationDelta != null &&
+            _supportsStreaming(settings)) {
           try {
             final Future<TurnResult> streamFuture = _requestTurnStreaming(
               settings: settings,
@@ -227,7 +251,9 @@ Reply only with JSON, no markdown.
               state: state,
               playerAction: playerAction,
               suggestionsOnly: suggestionsOnly,
-              fastMode: _shouldUseFastMode(settings),
+              deterministicContext: deterministicContext,
+              metadata: metadata,
+              fastMode: fastMode,
               onNarrationDelta: onNarrationDelta,
               cancelToken: cancelToken,
             );
@@ -248,12 +274,50 @@ Reply only with JSON, no markdown.
             AppLogger.instance.w(
               'Streaming failed, falling back to standard response: ${error.userMessage}',
             );
+            AppLogger.logDiagnostic(
+              level: 'WARN',
+              event: 'streaming_fallback',
+              message:
+                  'Streaming failed, falling back to standard response: ${error.userMessage}',
+              flowId: metadata?.flowId,
+              campaignId: metadata?.campaignId,
+              triggerSource: metadata?.triggerSource,
+              attempt: attemptCount,
+              requestMode: 'stream-fallback',
+              screenMounted: metadata?.screenMounted,
+            );
           } catch (error) {
             AppLogger.instance.w(
               'Streaming failed, falling back to standard response: $error',
             );
+            AppLogger.logDiagnostic(
+              level: 'WARN',
+              event: 'streaming_fallback',
+              message:
+                  'Streaming failed, falling back to standard response: $error',
+              flowId: metadata?.flowId,
+              campaignId: metadata?.campaignId,
+              triggerSource: metadata?.triggerSource,
+              attempt: attemptCount,
+              requestMode: 'stream-fallback',
+              screenMounted: metadata?.screenMounted,
+            );
           }
         }
+
+        final Future<TurnResult> turnFuture = _requestTurn(
+          settings: settings,
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
+          metadata: metadata,
+          attempt: attemptCount,
+          requestMode: attemptCount == 0 ? 'standard' : 'retry',
+          fastMode: fastMode,
+          onNarrationDelta: onNarrationDelta,
+        );
 
         if (cancelToken != null) {
           return await Future.any(<Future<TurnResult>>[
@@ -276,6 +340,10 @@ Reply only with JSON, no markdown.
             state: state,
             playerAction: playerAction,
             suggestionsOnly: suggestionsOnly,
+            deterministicContext: deterministicContext,
+            metadata: metadata,
+            attempt: attemptCount,
+            requestMode: 'retry',
             fastMode: false,
             onNarrationDelta: onNarrationDelta,
           );
@@ -295,12 +363,29 @@ Reply only with JSON, no markdown.
           AppLogger.logAiError(
             message: 'Failed after $attemptCount attempts',
             exception: error,
+            flowId: metadata?.flowId,
+            campaignId: metadata?.campaignId,
+            triggerSource: metadata?.triggerSource,
+            attempt: attemptCount,
+            requestMode: 'retry',
+            screenMounted: metadata?.screenMounted,
           );
           rethrow;
         }
 
         AppLogger.instance.w(
           'Recoverable error, will retry: ${error.userMessage}',
+        );
+        AppLogger.logDiagnostic(
+          level: 'WARN',
+          event: 'recoverable_ai_error',
+          message: error.userMessage,
+          flowId: metadata?.flowId,
+          campaignId: metadata?.campaignId,
+          triggerSource: metadata?.triggerSource,
+          attempt: attemptCount,
+          requestMode: 'retry',
+          screenMounted: metadata?.screenMounted,
         );
       }
     }
@@ -316,7 +401,13 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    required final AiRequestMetadata? metadata,
+    required final int attempt,
+    required final String requestMode,
     required final bool fastMode,
+    final int? maxTokensOverride,
+    final bool allowTruncationRetry = true,
     final NarrationDeltaCallback? onNarrationDelta,
   }) async {
     final Uri uri = Uri.parse(
@@ -328,13 +419,21 @@ Reply only with JSON, no markdown.
       state: state,
       playerAction: playerAction,
       suggestionsOnly: suggestionsOnly,
+      deterministicContext: deterministicContext,
       fastMode: fastMode,
+      maxTokensOverride: maxTokensOverride,
     );
 
     AppLogger.logAiRequest(
       endpoint: uri.toString(),
       requestBody: requestBody,
       settings: settings,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: metadata?.screenMounted,
     );
 
     final http.Response response;
@@ -350,6 +449,12 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Timeout after ${_effectiveTimeoutSeconds(settings)}s',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: attempt,
+        requestMode: requestMode,
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }
@@ -360,6 +465,12 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       statusCode: response.statusCode,
       rawResponse: rawResponse,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: attempt,
+      requestMode: requestMode,
+      screenMounted: metadata?.screenMounted,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -376,6 +487,13 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'HTTP ${response.statusCode} error',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: attempt,
+        requestMode: requestMode,
+        screenMounted: metadata?.screenMounted,
+        statusCode: response.statusCode,
       );
       throw exception;
     }
@@ -390,13 +508,55 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Provider returned unexpected format (not a JSON map)',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: attempt,
+        requestMode: requestMode,
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }
 
+    final Map<String, Object?> responseMap = _jsonMap(decoded);
+    if (allowTruncationRetry && _responseHitTokenLimit(responseMap)) {
+      final int currentMaxTokens =
+          maxTokensOverride ?? settings.maxResponseTokens;
+      final int nextMaxTokens = _expandedMaxTokens(currentMaxTokens);
+      if (nextMaxTokens > currentMaxTokens) {
+        AppLogger.logDiagnostic(
+          level: 'WARN',
+          event: 'ai_truncation_retry',
+          message:
+              'Model response hit token limit, retrying with max_tokens=$nextMaxTokens.',
+          flowId: metadata?.flowId,
+          campaignId: metadata?.campaignId,
+          triggerSource: metadata?.triggerSource,
+          attempt: attempt,
+          requestMode: requestMode,
+          screenMounted: metadata?.screenMounted,
+        );
+        return _requestTurn(
+          settings: settings,
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
+          metadata: metadata,
+          attempt: attempt,
+          requestMode: '$requestMode-token-retry',
+          fastMode: fastMode,
+          maxTokensOverride: nextMaxTokens,
+          allowTruncationRetry: false,
+          onNarrationDelta: onNarrationDelta,
+        );
+      }
+    }
+
     final TurnResult result = _parseTurnResponse(
       rawResponse: rawResponse,
-      responseMap: _jsonMap(decoded),
+      responseMap: responseMap,
       language: language,
     );
     onNarrationDelta?.call(result.narration);
@@ -409,8 +569,12 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    required final AiRequestMetadata? metadata,
     required final bool fastMode,
     required final NarrationDeltaCallback onNarrationDelta,
+    final int? maxTokensOverride,
+    final bool allowTruncationRetry = true,
     final CancelToken? cancelToken,
   }) async {
     final Uri uri = Uri.parse(
@@ -422,7 +586,9 @@ Reply only with JSON, no markdown.
       state: state,
       playerAction: playerAction,
       suggestionsOnly: suggestionsOnly,
+      deterministicContext: deterministicContext,
       fastMode: fastMode,
+      maxTokensOverride: maxTokensOverride,
       stream: true,
     );
 
@@ -430,6 +596,12 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       requestBody: requestBody,
       settings: settings,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: 0,
+      requestMode: 'streaming',
+      screenMounted: metadata?.screenMounted,
     );
 
     final http.Request request = http.Request('POST', uri)
@@ -452,6 +624,12 @@ Reply only with JSON, no markdown.
         message:
             'Streaming timeout after ${_effectiveTimeoutSeconds(settings)}s',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
       );
       throw exception;
     }
@@ -464,6 +642,12 @@ Reply only with JSON, no markdown.
         endpoint: uri.toString(),
         statusCode: response.statusCode,
         rawResponse: rawResponse,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
       );
       final AiTurnException exception = AiTurnException(
         userMessage: _friendlyAiEndpointError(
@@ -478,6 +662,13 @@ Reply only with JSON, no markdown.
       AppLogger.logAiError(
         message: 'Streaming HTTP ${response.statusCode} error',
         exception: exception,
+        flowId: metadata?.flowId,
+        campaignId: metadata?.campaignId,
+        triggerSource: metadata?.triggerSource,
+        attempt: 0,
+        requestMode: 'streaming',
+        screenMounted: metadata?.screenMounted,
+        statusCode: response.statusCode,
       );
       client.close();
       throw exception;
@@ -486,8 +677,9 @@ Reply only with JSON, no markdown.
     final StringBuffer rawContent = StringBuffer();
     final StringBuffer eventBuffer = StringBuffer();
     bool cancelled = false;
+    bool responseHitTokenLimit = false;
     String? lastPreview;
-    cancelToken?.whenCancelled.then((_) => cancelled = true);
+    unawaited(cancelToken?.whenCancelled.then((_) => cancelled = true));
 
     Future<void> processEvent() async {
       if (eventBuffer.isEmpty) {
@@ -509,14 +701,23 @@ Reply only with JSON, no markdown.
         );
       }
 
-      final String chunk = _extractStreamChunk(_jsonMap(decoded));
+      final Map<String, Object?> decodedMap = _jsonMap(decoded);
+      responseHitTokenLimit =
+          responseHitTokenLimit || _responseHitTokenLimit(decodedMap);
+      final String chunk = _extractStreamChunk(decodedMap);
       if (chunk.isEmpty) {
         return;
       }
 
-      rawContent.write(chunk);
+      final String mergedContent = _mergeStreamChunk(
+        existing: rawContent.toString(),
+        incoming: chunk,
+      );
+      rawContent
+        ..clear()
+        ..write(mergedContent);
       final String? preview = extractNarrationPreview(
-        rawContent.toString(),
+        mergedContent,
       )?.trimRight();
       if (preview != null && preview.isNotEmpty && preview != lastPreview) {
         lastPreview = preview;
@@ -574,32 +775,62 @@ Reply only with JSON, no markdown.
       endpoint: uri.toString(),
       statusCode: response.statusCode,
       rawResponse: rawResponse,
+      flowId: metadata?.flowId,
+      campaignId: metadata?.campaignId,
+      triggerSource: metadata?.triggerSource,
+      attempt: 0,
+      requestMode: 'streaming',
+      screenMounted: metadata?.screenMounted,
     );
 
-    final String jsonString = _extractJson(rawResponse, language);
-    final Object? turnDecoded = _safeJsonDecode(jsonString);
-    if (turnDecoded is! Map) {
-      final AiTurnException exception = AiTurnException(
-        userMessage: _invalidJson(language),
-        rawResponse: rawResponse,
-        recoverable: true,
-      );
-      AppLogger.logAiError(
-        message: 'Streamed model output was not valid JSON',
-        exception: exception,
-      );
-      throw exception;
+    if (allowTruncationRetry && responseHitTokenLimit) {
+      final int currentMaxTokens =
+          maxTokensOverride ?? settings.maxResponseTokens;
+      final int nextMaxTokens = _expandedMaxTokens(currentMaxTokens);
+      if (nextMaxTokens > currentMaxTokens) {
+        AppLogger.logDiagnostic(
+          level: 'WARN',
+          event: 'ai_stream_truncation_retry',
+          message:
+              'Streaming response hit token limit, retrying standard request with max_tokens=$nextMaxTokens.',
+          flowId: metadata?.flowId,
+          campaignId: metadata?.campaignId,
+          triggerSource: metadata?.triggerSource,
+          attempt: 0,
+          requestMode: 'streaming',
+          screenMounted: metadata?.screenMounted,
+        );
+        return _requestTurn(
+          settings: settings,
+          language: language,
+          state: state,
+          playerAction: playerAction,
+          suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
+          metadata: metadata,
+          attempt: 0,
+          requestMode: 'streaming-token-retry',
+          fastMode: fastMode,
+          maxTokensOverride: nextMaxTokens,
+          allowTruncationRetry: false,
+          onNarrationDelta: onNarrationDelta,
+        );
+      }
     }
 
-    final TurnResult result = TurnResult.fromJson(_jsonMap(turnDecoded));
+    final TurnResult result = _parseRawTurnContent(
+      rawContent: rawResponse,
+      language: language,
+    );
     if (result.narration.trim().isNotEmpty && result.narration != lastPreview) {
       onNarrationDelta(result.narration);
     }
     return result;
   }
 
-  bool _shouldUseFastMode(final AiSettings settings) =>
-      settings.provider == AiProviderType.lmStudio && settings.fastResponses;
+  bool _shouldUseFastMode(final AiSettings settings) => false;
+
+  bool _supportsStreaming(final AiSettings settings) => true;
 
   bool _shouldRetryWithoutFastMode(
     final AiSettings settings,
@@ -611,10 +842,11 @@ Reply only with JSON, no markdown.
     required final AiSettings settings,
     required final AppLanguage language,
     required final String metaPrompt,
+    final int? maxTokensOverride,
   }) => <String, Object?>{
     'model': settings.model,
     'temperature': 0.5,
-    'max_tokens': settings.maxResponseTokens,
+    'max_tokens': maxTokensOverride ?? settings.maxResponseTokens,
     'messages': <Map<String, String>>[
       <String, String>{
         'role': 'system',
@@ -634,30 +866,34 @@ Reply only with JSON, no markdown.
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
+    final int? maxTokensOverride,
     final bool stream = false,
   }) => <String, Object?>{
     'model': settings.model,
     'temperature': fastMode ? 0.2 : 0.7,
-    'max_tokens': settings.maxResponseTokens,
+    'max_tokens': maxTokensOverride ?? settings.maxResponseTokens,
     if (stream) 'stream': true,
     'messages': <Map<String, String>>[
       <String, String>{
         'role': 'system',
-        'content': _systemPrompt(
+        'content': _turnPromptBuilder.buildSystemPrompt(
           language: language,
           state: state,
           suggestionsOnly: suggestionsOnly,
+          deterministicContext: deterministicContext,
           fastMode: fastMode,
           confirmed18Plus: settings.confirmed18Plus,
         ),
       },
       <String, String>{
         'role': 'user',
-        'content': _userPrompt(
+        'content': _turnPromptBuilder.buildUserPrompt(
           language: language,
           state: state,
           playerAction: playerAction,
+          deterministicContext: deterministicContext,
           fastMode: fastMode,
           contextWindowSize: settings.contextWindowSize,
         ),
@@ -665,13 +901,8 @@ Reply only with JSON, no markdown.
     ],
   };
 
-  int _effectiveTimeoutSeconds(final AiSettings settings) {
-    if (settings.provider == AiProviderType.openRouter &&
-        settings.timeoutSeconds < 120) {
-      return 120;
-    }
-    return settings.timeoutSeconds;
-  }
+  int _effectiveTimeoutSeconds(final AiSettings settings) =>
+      settings.timeoutSeconds;
 
   Map<String, String> _headers(final AiSettings settings) {
     final Map<String, String> headers = <String, String>{
@@ -679,10 +910,6 @@ Reply only with JSON, no markdown.
     };
     if (settings.apiKey.trim().isNotEmpty) {
       headers['Authorization'] = 'Bearer ${settings.apiKey.trim()}';
-    }
-    if (settings.provider == AiProviderType.openRouter) {
-      headers['HTTP-Referer'] = 'https://ai-prg.local';
-      headers['X-Title'] = 'AI PRG';
     }
     return headers;
   }
@@ -702,11 +929,10 @@ Reply only with JSON, no markdown.
 
     final Map<String, Object?> map = _jsonMap(decoded);
     final Map<String, Object?> error = _jsonMap(map['error']);
-    final String message =
-        (error['message'] as String?)?.trim() ??
-        (map['message'] as String?)?.trim() ??
-        '';
-    final String code = (error['code'] as String?)?.trim() ?? '';
+    final String message = _stringValue(error['message']).trim().isNotEmpty
+        ? _stringValue(error['message']).trim()
+        : _stringValue(map['message']).trim();
+    final String code = _stringValue(error['code']).trim();
 
     if (message.isEmpty && code.isEmpty) {
       return null;
@@ -720,13 +946,7 @@ Reply only with JSON, no markdown.
   String _providerLabel(
     final AiSettings settings,
     final AppLanguage language,
-  ) => switch ((settings.provider, language)) {
-    (AiProviderType.deepSeek, _) => 'DeepSeek',
-    (AiProviderType.openRouter, _) => 'OpenRouter',
-    (AiProviderType.lmStudio, _) => 'LM Studio',
-    (AiProviderType.openAiCompatible, AppLanguage.ru) => 'AI endpoint',
-    (AiProviderType.openAiCompatible, AppLanguage.en) => 'AI endpoint',
-  };
+  ) => 'AI endpoint';
 
   String _friendlyAiEndpointError({
     required final AiSettings settings,
@@ -736,25 +956,16 @@ Reply only with JSON, no markdown.
   }) {
     final String provider = _providerLabel(settings, language);
     final String suffix = switch (language) {
-      AppLanguage.ru => 'Состояние кампании не изменено.',
+      AppLanguage.ru => '?????????????????? ???????????????? ???? ????????????????.',
       AppLanguage.en => 'The campaign state was not changed.',
     };
     final String detailText = detail == null || detail.isEmpty
         ? ''
         : ' $detail';
 
-    if (settings.provider == AiProviderType.deepSeek && statusCode == 402) {
-      return switch (language) {
-        AppLanguage.ru =>
-          '$provider вернул 402. Обычно это означает, что на аккаунте нет баланса или не включён биллинг.$detailText $suffix',
-        AppLanguage.en =>
-          '$provider returned 402. This usually means your account has no balance or billing is not enabled.$detailText $suffix',
-      };
-    }
-
     return switch (language) {
       AppLanguage.ru =>
-        '$provider вернул ошибку $statusCode.$detailText $suffix',
+        '$provider ???????????? ???????????? $statusCode.$detailText $suffix',
       AppLanguage.en =>
         '$provider returned error $statusCode.$detailText $suffix',
     };
@@ -767,27 +978,20 @@ Reply only with JSON, no markdown.
     final String provider = _providerLabel(settings, language);
     final int seconds = _effectiveTimeoutSeconds(settings);
 
-    if (settings.provider == AiProviderType.openRouter) {
-      return switch (language) {
-        AppLanguage.ru =>
-          '$provider не ответил за $seconds сек. У OpenRouter бесплатные модели часто отвечают медленно или стоят в очереди. Попробуй подождать, увеличить таймаут в настройках или выбрать другую модель.',
-        AppLanguage.en =>
-          '$provider did not respond within $seconds seconds. Free OpenRouter models are often slow or queued. Try waiting longer, increasing the timeout, or choosing another model.',
-      };
-    }
-
     return switch (language) {
       AppLanguage.ru =>
-        '$provider не ответил за $seconds сек. Попробуй увеличить таймаут в настройках.',
+        '$provider ???? ?????????????? ???? $seconds ??????. ???????????????? ?????????????????? ?????????????? ?? ????????????????????.',
       AppLanguage.en =>
         '$provider did not respond within $seconds seconds. Try increasing the timeout in settings.',
     };
   }
 
+  // ignore: unused_element
   String _systemPrompt({
     required final AppLanguage language,
     required final CampaignState state,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     required final bool confirmed18Plus,
   }) {
@@ -800,6 +1004,15 @@ Reply only with JSON, no markdown.
             AppLanguage.en =>
               '\nImportant: avoid sexual or explicit adult content. Keep narration suitable for general audiences.\n',
           };
+    final String deterministicRule =
+        !suggestionsOnly && deterministicContext.hasResolvedCheck
+        ? switch (language) {
+            AppLanguage.ru =>
+              '\nВ контексте может прийти deterministic_resolution. Это уже разрешённый на клиенте исход проверки. Не перебрасывай кубик, не меняй и не оспаривай этот результат.\n',
+            AppLanguage.en =>
+              '\nIf deterministic_resolution appears in the campaign context, it was already resolved on the client. Do not reroll it, change it, or contradict it.\n',
+          }
+        : '';
 
     String base = '';
     if (suggestionsOnly) {
@@ -854,15 +1067,17 @@ Rules:
 - narration: 1-2 paragraphs. Include scene atmosphere, character emotions, short in-flow dialogues, sensory details (sound, light, smell) in moderation.
 - choices: up to 3 options, each 2–3 words max
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string, "location": string }
+- choices must be plain visible button labels only
 - location in state_changes: specify current location (especially important on first turn). If location doesn't change, leave empty "".
 - changes must stay moderate for the MVP
 - do not break world continuity
+- if deterministic_resolution is present in the campaign context, it is already resolved on the client; do not reroll it or contradict it
 - do not add markdown fences
 ''',
       };
     }
 
-    final List<String> parts = <String>[base, contentRule];
+    final List<String> parts = <String>[base, contentRule, deterministicRule];
     if (state.customStoryPrompt.trim().isNotEmpty) {
       parts.add(
         '\n\n--- Story context ---\n${state.customStoryPrompt.trim()}\n',
@@ -874,10 +1089,12 @@ Rules:
     return parts.join();
   }
 
+  // ignore: unused_element
   String _userPrompt({
     required final AppLanguage language,
     required final CampaignState state,
     required final String playerAction,
+    required final DeterministicTurnContext deterministicContext,
     required final bool fastMode,
     required final int contextWindowSize,
   }) {
@@ -890,6 +1107,10 @@ Rules:
             state,
             contextWindowSize: contextWindowSize,
           );
+    if (deterministicContext.hasResolvedCheck) {
+      contextPayload['deterministic_resolution'] = deterministicContext
+          .toJson();
+    }
 
     final String actionText = playerAction.trim().isEmpty
         ? switch (language) {
@@ -967,24 +1188,642 @@ $actionText
     }
 
     final Map<String, Object?> choice = _jsonMap(choices.first);
-    final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String content = (message['content'] as String?) ?? '';
-    final String jsonString = _extractJson(content, language);
-    final Object? turnDecoded = _safeJsonDecode(jsonString);
-    if (turnDecoded is! Map) {
-      final AiTurnException exception = AiTurnException(
-        userMessage: _invalidJson(language),
-        rawResponse: content,
-        recoverable: true,
-      );
-      AppLogger.logAiError(
-        message: 'Model returned invalid JSON structure',
-        exception: exception,
-      );
-      throw exception;
+    final String content = _extractChoiceContent(choice).trim();
+    if (content.isEmpty) {
+      final String nestedText = _extractResponseLevelText(responseMap).trim();
+      if (nestedText.isNotEmpty) {
+        return _parseRawTurnContent(rawContent: nestedText, language: language);
+      }
+    }
+    return _parseRawTurnContent(rawContent: content, language: language);
+  }
+
+  TurnResult _parseRawTurnContent({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) {
+    try {
+      final String jsonString = _extractJson(rawContent, language);
+      final Object? turnDecoded = _safeJsonDecode(jsonString);
+      if (turnDecoded is Map) {
+        final Map<String, Object?> turnMap = _jsonMap(turnDecoded);
+        if (_hasMeaningfulTurnPayload(turnMap)) {
+          return TurnResult.fromJson(turnMap);
+        }
+      }
+    } on AiTurnException {
+      // Fall back to heuristic parsing for providers that ignore structured output.
     }
 
-    return TurnResult.fromJson(_jsonMap(turnDecoded));
+    final TurnResult? structuredRecovery = _recoverTurnResultFromStructuredText(
+      rawContent: rawContent,
+      language: language,
+    );
+    if (structuredRecovery != null) {
+      return structuredRecovery;
+    }
+
+    final TurnResult? recovered = _recoverTurnResultFromPlainText(
+      rawContent: rawContent,
+      language: language,
+    );
+    if (recovered != null) {
+      return recovered;
+    }
+
+    final AiTurnException exception = AiTurnException(
+      userMessage: _invalidJson(language),
+      rawResponse: rawContent,
+      recoverable: true,
+    );
+    AppLogger.logAiError(
+      message: 'Model returned invalid JSON structure',
+      exception: exception,
+    );
+    throw exception;
+  }
+
+  TurnResult? _recoverTurnResultFromPlainText({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) {
+    final String cleaned = rawContent
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+    if (cleaned.isEmpty) {
+      return null;
+    }
+    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+      return null;
+    }
+
+    final List<String> lines = cleaned
+        .split(RegExp(r'\r?\n'))
+        .map((final item) => item.trim())
+        .where((final item) => item.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) {
+      return null;
+    }
+
+    final List<String> narrationParts = <String>[];
+    final List<String> recoveredChoices = <String>[];
+    bool readingChoices = false;
+
+    for (final String line in lines) {
+      final String lower = line.toLowerCase();
+      final bool isChoicesHeader =
+          lower == 'choices:' ||
+          lower == 'options:' ||
+          lower == 'actions:' ||
+          lower == 'варианты:' ||
+          lower == 'выбор:' ||
+          lower == 'действия:';
+      if (isChoicesHeader) {
+        readingChoices = true;
+        continue;
+      }
+
+      final String? normalizedChoice = _normalizeChoiceLine(line);
+      if (normalizedChoice != null) {
+        recoveredChoices.add(normalizedChoice);
+        readingChoices = true;
+        continue;
+      }
+
+      if (!readingChoices) {
+        narrationParts.add(line);
+      }
+    }
+
+    final String narration = narrationParts.join('\n\n').trim();
+    final List<String> choices = recoveredChoices.take(3).toList();
+    if (narration.isEmpty && choices.isEmpty) {
+      return null;
+    }
+
+    final List<String> fallbackChoices = choices.isNotEmpty
+        ? choices
+        : switch (language) {
+            AppLanguage.ru => const <String>[
+              'Осмотреться',
+              'Действовать осторожно',
+              'Сделать шаг',
+            ],
+            AppLanguage.en => const <String>[
+              'Look around',
+              'Move carefully',
+              'Take action',
+            ],
+          };
+
+    final String resolvedNarration = narration.isNotEmpty
+        ? narration
+        : switch (language) {
+            AppLanguage.ru => 'История продолжается.',
+            AppLanguage.en => 'The story continues.',
+          };
+
+    return TurnResult(
+      narration: resolvedNarration,
+      choices: fallbackChoices,
+      stateChanges: const StateChanges.empty(),
+      memoryEntry: resolvedNarration,
+    );
+  }
+
+  TurnResult? _recoverTurnResultFromStructuredText({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) {
+    final String cleaned = rawContent
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+    if (cleaned.isEmpty) {
+      return null;
+    }
+
+    final String narration = _firstMatchedValue(cleaned, <String>[
+      'narration',
+      'scene',
+      'story',
+      'description',
+      'text',
+      'response',
+      'memory_entry',
+    ]);
+    final String incompleteNarration = _firstTruncatedStringValue(
+      cleaned,
+      const <String>[
+        'narration',
+        'scene',
+        'story',
+        'description',
+        'text',
+        'response',
+      ],
+    );
+    final String location = _firstMatchedValue(cleaned, <String>[
+      'location',
+      'current_location',
+      'place',
+      'scene_location',
+    ]);
+    final String incompleteLocation = _firstTruncatedStringValue(
+      cleaned,
+      const <String>['location', 'current_location', 'place', 'scene_location'],
+    );
+    final List<String> choices = _extractStructuredChoices(cleaned);
+    final String resolvedStructuredNarration = narration.isNotEmpty
+        ? narration
+        : incompleteNarration;
+    final String resolvedStructuredLocation = location.isNotEmpty
+        ? location
+        : incompleteLocation;
+    if (resolvedStructuredNarration.isEmpty &&
+        resolvedStructuredLocation.isEmpty) {
+      return null;
+    }
+
+    final List<String> fallbackChoices = choices.isNotEmpty
+        ? choices.take(3).toList()
+        : switch (language) {
+            AppLanguage.ru => const <String>[
+              'Осмотреться',
+              'Действовать осторожно',
+              'Сделать шаг',
+            ],
+            AppLanguage.en => const <String>[
+              'Look around',
+              'Move carefully',
+              'Take action',
+            ],
+          };
+
+    final String resolvedNarration = resolvedStructuredNarration.isNotEmpty
+        ? resolvedStructuredNarration
+        : switch (language) {
+            AppLanguage.ru => 'История продолжается.',
+            AppLanguage.en => 'The story continues.',
+          };
+
+    return TurnResult.fromJson(<String, Object?>{
+      'narration': resolvedNarration,
+      'choices': fallbackChoices,
+      'state_changes': <String, Object?>{
+        'location': resolvedStructuredLocation,
+      },
+      'memory_entry': resolvedNarration,
+    });
+  }
+
+  List<String> _extractStructuredChoices(final String rawContent) {
+    final RegExp arrayPattern = RegExp(
+      r'"(?:choices|options|actions|variants)"\s*:\s*\[(.*?)\]',
+      dotAll: true,
+    );
+    final Match? match = arrayPattern.firstMatch(rawContent);
+    if (match == null) {
+      return const <String>[];
+    }
+
+    final String body = match.group(1) ?? '';
+    final RegExp stringPattern = RegExp(r'"((?:\\.|[^"\\])*)"');
+    final List<String> directStrings = stringPattern
+        .allMatches(body)
+        .map((final item) => _unescapeJsonString(item.group(1) ?? ''))
+        .where((final item) => item.trim().isNotEmpty)
+        .toList();
+
+    final List<String> labels = <String>[];
+    for (int i = 0; i < directStrings.length; i++) {
+      final String current = directStrings[i];
+      if (current == 'label' ||
+          current == 'title' ||
+          current == 'text' ||
+          current == 'choice' ||
+          current == 'name') {
+        if (i + 1 < directStrings.length) {
+          labels.add(directStrings[i + 1].trim());
+        }
+      }
+    }
+
+    if (labels.isNotEmpty) {
+      return labels;
+    }
+    return directStrings;
+  }
+
+  String _firstMatchedValue(final String rawContent, final List<String> keys) {
+    for (final String key in keys) {
+      final RegExp pattern = RegExp(
+        '"${RegExp.escape(key)}"\\s*:\\s*(?:"((?:\\\\.|[^"\\\\])*)"|\\{[^\\}]*"text"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)")',
+        dotAll: true,
+      );
+      final Match? match = pattern.firstMatch(rawContent);
+      if (match == null) {
+        continue;
+      }
+      final String resolved = _unescapeJsonString(
+        match.group(1) ?? match.group(2) ?? '',
+      ).trim();
+      if (resolved.isNotEmpty) {
+        return resolved;
+      }
+    }
+    return '';
+  }
+
+  String _firstTruncatedStringValue(
+    final String rawContent,
+    final List<String> keys,
+  ) {
+    for (final String key in keys) {
+      final String resolved = _extractTruncatedStringField(rawContent, key);
+      if (resolved.trim().isNotEmpty) {
+        return resolved.trimRight();
+      }
+    }
+    return '';
+  }
+
+  String _extractTruncatedStringField(
+    final String rawContent,
+    final String key,
+  ) {
+    final int fieldStart = rawContent.indexOf('"$key"');
+    if (fieldStart == -1) {
+      return '';
+    }
+
+    int index = fieldStart + key.length + 2;
+    while (index < rawContent.length &&
+        _isWhitespace(rawContent.codeUnitAt(index))) {
+      index++;
+    }
+    if (index >= rawContent.length || rawContent[index] != ':') {
+      return '';
+    }
+    index++;
+    while (index < rawContent.length &&
+        _isWhitespace(rawContent.codeUnitAt(index))) {
+      index++;
+    }
+    if (index >= rawContent.length || rawContent[index] != '"') {
+      return '';
+    }
+    index++;
+
+    final StringBuffer buffer = StringBuffer();
+    while (index < rawContent.length) {
+      final String char = rawContent[index];
+      if (char == '"') {
+        return buffer.toString();
+      }
+      if (char == r'\') {
+        if (index + 1 >= rawContent.length) {
+          return buffer.toString();
+        }
+        final String escape = rawContent[index + 1];
+        switch (escape) {
+          case '"':
+          case r'\':
+          case '/':
+            buffer.write(escape);
+            break;
+          case 'b':
+            buffer.write('\b');
+            break;
+          case 'f':
+            buffer.write('\f');
+            break;
+          case 'n':
+            buffer.write('\n');
+            break;
+          case 'r':
+            buffer.write('\r');
+            break;
+          case 't':
+            buffer.write('\t');
+            break;
+          case 'u':
+            if (index + 5 >= rawContent.length) {
+              return buffer.toString();
+            }
+            final String codeUnit = rawContent.substring(index + 2, index + 6);
+            final int? parsed = int.tryParse(codeUnit, radix: 16);
+            if (parsed != null) {
+              buffer.writeCharCode(parsed);
+              index += 4;
+            }
+            break;
+          default:
+            buffer.write(escape);
+            break;
+        }
+        index += 2;
+        continue;
+      }
+      buffer.write(char);
+      index++;
+    }
+    return buffer.toString();
+  }
+
+  String _unescapeJsonString(final String value) {
+    try {
+      return jsonDecode('"$value"') as String;
+    } catch (_) {
+      return value
+          .replaceAll(r'\"', '"')
+          .replaceAll(r'\n', '\n')
+          .replaceAll(r'\r', '\r')
+          .replaceAll(r'\t', '\t');
+    }
+  }
+
+  String? _normalizeChoiceLine(final String line) {
+    final RegExp prefixPattern = RegExp(
+      r'^(?:[-*•]|\d+[.)]|[A-Za-zА-Яа-я][.)])\s+',
+    );
+    if (!prefixPattern.hasMatch(line)) {
+      return null;
+    }
+    final String normalized = line.replaceFirst(prefixPattern, '').trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  @visibleForTesting
+  TurnResult parseTurnContentForTesting({
+    required final String rawContent,
+    required final AppLanguage language,
+  }) => _parseRawTurnContent(rawContent: rawContent, language: language);
+
+  @visibleForTesting
+  bool supportsStreamingForTesting(final AiSettings settings) =>
+      _supportsStreaming(settings);
+
+  @visibleForTesting
+  bool responseHitTokenLimitForTesting(final Map<String, Object?> responseMap) =>
+      _responseHitTokenLimit(responseMap);
+
+  @visibleForTesting
+  int expandedMaxTokensForTesting(final int currentMaxTokens) =>
+      _expandedMaxTokens(currentMaxTokens);
+
+  @visibleForTesting
+  String extractChoiceContentForTesting(final Map<String, Object?> choice) =>
+      _extractChoiceContent(choice);
+
+  @visibleForTesting
+  String mergeStreamChunkForTesting({
+    required final String existing,
+    required final String incoming,
+  }) => _mergeStreamChunk(existing: existing, incoming: incoming);
+
+  bool _responseHitTokenLimit(final Map<String, Object?> responseMap) {
+    final List<Object?> choices = _jsonList(responseMap['choices']);
+    if (choices.isEmpty) {
+      return false;
+    }
+
+    for (final Object? rawChoice in choices) {
+      final Map<String, Object?> choice = _jsonMap(rawChoice);
+      final String finishReason = _normalizedFinishReason(
+        choice['finish_reason'] ?? choice['finishReason'],
+      );
+      if (_isTokenLimitFinishReason(finishReason)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int _expandedMaxTokens(final int currentMaxTokens) {
+    final int cappedCurrent = currentMaxTokens.clamp(
+      ModelRuntimeSettings.minMaxResponseTokens,
+      ModelRuntimeSettings.maxMaxResponseTokens,
+    );
+    final int expanded = cappedCurrent * _truncationRetryMultiplier;
+    return expanded.clamp(
+      ModelRuntimeSettings.minMaxResponseTokens,
+      ModelRuntimeSettings.maxMaxResponseTokens,
+    );
+  }
+
+  String _normalizedFinishReason(final Object? value) =>
+      _stringValue(value).trim().toLowerCase();
+
+  bool _isTokenLimitFinishReason(final String finishReason) =>
+      finishReason == 'length' ||
+      finishReason == 'max_tokens' ||
+      finishReason == 'max_output_tokens' ||
+      finishReason == 'token_limit' ||
+      finishReason == 'model_length';
+
+  bool _hasMeaningfulTurnPayload(final Map<String, Object?> turnMap) {
+    final String narration = _extractResponseLevelText(turnMap).trim();
+    if (narration.isNotEmpty) {
+      return true;
+    }
+    final String location = _firstMatchedValue(jsonEncode(turnMap), <String>[
+      'location',
+      'current_location',
+      'place',
+      'scene_location',
+    ]).trim();
+    return location.isNotEmpty;
+  }
+
+  String _extractResponseLevelText(final Map<String, Object?> map) {
+    final String direct = _firstNonEmptyJsonString(map, const <String>[
+      'narration',
+      'scene',
+      'story',
+      'description',
+      'text',
+      'response',
+      'memory_entry',
+      'memoryEntry',
+      'output_text',
+      'content',
+    ]);
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+
+    final Map<String, Object?> message = _jsonMap(map['message']);
+    final String messageContent = _extractMessageContent(message);
+    if (messageContent.isNotEmpty) {
+      return messageContent;
+    }
+
+    final List<Object?> output = _jsonList(map['output']);
+    for (final Object? item in output) {
+      final Map<String, Object?> outputItem = _jsonMap(item);
+      final String itemText = _firstNonEmptyJsonString(outputItem, const <String>[
+        'text',
+        'content',
+        'output_text',
+      ]);
+      if (itemText.isNotEmpty) {
+        return itemText;
+      }
+      final List<Object?> content = _jsonList(outputItem['content']);
+      for (final Object? contentItem in content) {
+        final Map<String, Object?> contentMap = _jsonMap(contentItem);
+        final String contentText = _firstNonEmptyJsonString(
+          contentMap,
+          const <String>['text', 'content', 'output_text'],
+        );
+        if (contentText.isNotEmpty) {
+          return contentText;
+        }
+      }
+    }
+    return '';
+  }
+
+  String _extractChoiceContent(final Map<String, Object?> choice) {
+    final Map<String, Object?> message = _jsonMap(choice['message']);
+    final String messageContent = _extractMessageContent(message);
+    if (messageContent.isNotEmpty) {
+      return messageContent;
+    }
+
+    final String text = _stringValue(choice['text']).trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+
+    return _extractResponseLevelText(choice);
+  }
+
+  String _extractMessageContent(final Map<String, Object?> message) {
+    final List<Object?> contentItems = _jsonList(message['content']);
+    if (contentItems.isNotEmpty) {
+      final List<String> textParts = <String>[];
+      for (final Object? item in contentItems) {
+        if (item is String) {
+          final String value = item.trim();
+          if (value.isNotEmpty) {
+            textParts.add(value);
+          }
+          continue;
+        }
+        final Map<String, Object?> contentMap = _jsonMap(item);
+        final String text = _firstNonEmptyJsonString(
+          contentMap,
+          const <String>['text', 'content', 'output_text'],
+        );
+        if (text.isNotEmpty) {
+          textParts.add(text);
+        }
+      }
+      return textParts.join('\n').trim();
+    }
+
+    final Object? rawContent = message['content'];
+    if (rawContent is Map || rawContent is List) {
+      return '';
+    }
+
+    final String direct = _stringValue(rawContent).trim();
+    if (direct.isNotEmpty && direct != '[]' && direct != '{}') {
+      return direct;
+    }
+    return '';
+  }
+
+  String _mergeStreamChunk({
+    required final String existing,
+    required final String incoming,
+  }) {
+    if (incoming.isEmpty) {
+      return existing;
+    }
+    if (existing.isEmpty) {
+      return incoming;
+    }
+    if (incoming == existing) {
+      return existing;
+    }
+    if (incoming.startsWith(existing)) {
+      return incoming;
+    }
+    if (existing.startsWith(incoming)) {
+      return existing;
+    }
+
+    final int maxOverlap = existing.length < incoming.length
+        ? existing.length
+        : incoming.length;
+    for (int overlap = maxOverlap; overlap > 0; overlap -= 1) {
+      if (existing.endsWith(incoming.substring(0, overlap))) {
+        return '$existing${incoming.substring(overlap)}';
+      }
+    }
+    return '$existing$incoming';
+  }
+
+  String _firstNonEmptyJsonString(
+    final Map<String, Object?> map,
+    final List<String> keys,
+  ) {
+    for (final String key in keys) {
+      final Object? value = map[key];
+      if (value is Map || value is List) {
+        continue;
+      }
+      final String text = _stringValue(value).trim();
+      if (text.isNotEmpty) {
+        return text;
+      }
+    }
+    return '';
   }
 
   String _extractStreamChunk(final Map<String, Object?> event) {
@@ -995,18 +1834,18 @@ $actionText
 
     final Map<String, Object?> choice = _jsonMap(choices.first);
     final Map<String, Object?> delta = _jsonMap(choice['delta']);
-    final String deltaContent = (delta['content'] as String?) ?? '';
+    final String deltaContent = _stringValue(delta['content']);
     if (deltaContent.isNotEmpty) {
       return deltaContent;
     }
 
     final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String messageContent = (message['content'] as String?) ?? '';
+    final String messageContent = _stringValue(message['content']);
     if (messageContent.isNotEmpty) {
       return messageContent;
     }
 
-    return (choice['text'] as String?) ?? '';
+    return _stringValue(choice['text']);
   }
 
   @visibleForTesting

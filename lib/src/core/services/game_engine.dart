@@ -3,6 +3,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 
 class GameEngine {
@@ -12,6 +13,8 @@ class GameEngine {
   static const CampaignModuleResolver _moduleResolver =
       CampaignModuleResolver();
   static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
+  static const DeterministicCheckService _deterministicCheckService =
+      DeterministicCheckService();
   static const EntityExtractionService _entityExtractionService =
       EntityExtractionService();
 
@@ -20,7 +23,9 @@ class GameEngine {
     required final AppLanguage language,
   }) {
     final DateTime now = DateTime.now();
-    final String id = now.microsecondsSinceEpoch.toString();
+    final String id = draft.id?.trim().isNotEmpty == true
+        ? draft.id!.trim()
+        : now.microsecondsSinceEpoch.toString();
     final List<CampaignModuleState> modules = _moduleResolver
         .resolveInitialModules(draft: draft);
     final bool inventoryActive = _isModuleActive(
@@ -100,7 +105,7 @@ class GameEngine {
 
     return CampaignState(
       id: id,
-      schemaVersion: 3,
+      schemaVersion: 4,
       title: '${character.name} - $settingLabel',
       setting: draft.setting,
       mode: draft.mode,
@@ -125,6 +130,8 @@ class GameEngine {
       updatedAt: now,
       customStoryPrompt: draft.customStoryPrompt,
       characterPrompt: characterPrompt,
+      portraitPath: draft.portraitPath,
+      portraitPrompt: draft.portraitPrompt,
     );
   }
 
@@ -134,10 +141,17 @@ class GameEngine {
     required final String playerAction,
     required final TurnResult result,
     required final int contextWindowSize,
+    final DeterministicTurnContext deterministicContext =
+        const DeterministicTurnContext.none(),
   }) {
     final DateTime now = DateTime.now();
     final ReconciliationResult reconciliation = _entityExtractionService
-        .reconcile(state: state, result: result, language: language);
+        .reconcile(
+          state: state,
+          result: result,
+          language: language,
+          resolvedCheck: deterministicContext.resolvedCheck,
+        );
 
     final String location = result.stateChanges.location.trim().isNotEmpty
         ? result.stateChanges.location.trim()
@@ -164,7 +178,7 @@ class GameEngine {
     );
 
     final CampaignState nextState = state.copyWith(
-      schemaVersion: 3,
+      schemaVersion: 4,
       character: reconciliation.character,
       location: location,
       turnNumber: state.turnNumber + 1,
@@ -193,6 +207,7 @@ class GameEngine {
         result: result,
         playerAction: playerAction,
         contextWindowSize: contextWindowSize,
+        resolvedCheck: deterministicContext.resolvedCheck,
       ),
       updatedAt: now,
     );
@@ -220,6 +235,16 @@ class GameEngine {
 
     return state.copyWith(messages: messages, updatedAt: now);
   }
+
+  DeterministicTurnContext resolveDeterministicTurn({
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+  }) => _deterministicCheckService.resolve(
+    state: state,
+    playerAction: playerAction,
+    language: language,
+  );
 
   static bool _isModuleActive(
     final List<CampaignModuleState> modules,

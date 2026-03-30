@@ -2,6 +2,7 @@ import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/openai_compatible_ai_client.dart';
 
 class AiServiceFactory {
@@ -30,6 +31,8 @@ class _DemoAiClient implements AiClient {
     required final CampaignState state,
     required final String playerAction,
     required final bool suggestionsOnly,
+    required final DeterministicTurnContext deterministicContext,
+    final AiRequestMetadata? metadata,
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
@@ -39,6 +42,7 @@ class _DemoAiClient implements AiClient {
             AppLanguage.en => 'pause and look around',
           }
         : playerAction.trim();
+    final CampaignCheck? resolvedCheck = deterministicContext.resolvedCheck;
     final String narration = suggestionsOnly
         ? switch (language) {
             AppLanguage.ru =>
@@ -50,7 +54,9 @@ class _DemoAiClient implements AiClient {
             AppLanguage.ru =>
               'Без настроенной модели игра работает в демо-режиме. ${state.character.name} решает: $action. Сцена меняется ровно настолько, чтобы история продолжала двигаться вперед.',
             AppLanguage.en =>
-              'Without a configured model, the game runs in demo mode. ${state.character.name} decides to: $action. The scene changes just enough to keep the story moving forward.',
+              resolvedCheck == null
+                  ? 'Without a configured model, the game runs in demo mode. ${state.character.name} decides to: $action. The scene changes just enough to keep the story moving forward.'
+                  : 'Without a configured model, the game runs in demo mode. ${state.character.name} attempts to: $action. ${resolvedCheck.summary}. The scene now follows that known outcome.',
           };
 
     final TurnResult result = TurnResult(
@@ -59,12 +65,12 @@ class _DemoAiClient implements AiClient {
         AppLanguage.ru => const <String>[
           'Осмотреться внимательнее',
           'Сделать решительный шаг к цели',
-          'Открыть настройки и подключить LM Studio',
+          'Открыть настройки и настроить endpoint',
         ],
         AppLanguage.en => const <String>[
           'Look around more carefully',
           'Take a decisive step toward the goal',
-          'Open settings and connect LM Studio',
+          'Open settings and configure endpoint',
         ],
       },
       stateChanges: suggestionsOnly
@@ -82,7 +88,10 @@ class _DemoAiClient implements AiClient {
             ),
       memoryEntry: switch (language) {
         AppLanguage.ru => 'Использован демо-ответ для действия: $action',
-        AppLanguage.en => 'A demo answer was used for action: $action',
+        AppLanguage.en =>
+          resolvedCheck == null
+              ? 'A demo answer was used for action: $action'
+              : 'A demo answer was used for action: $action. ${resolvedCheck.summary}',
       },
     );
     if (!suggestionsOnly) {
@@ -99,4 +108,14 @@ class _DemoAiClient implements AiClient {
     required final CampaignSetting setting,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
+
+  @override
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required final AiSettings settings,
+    required final AppLanguage language,
+    required final CampaignSetting setting,
+    required final String storyPrompt,
+    required final CharacterProfile character,
+    final CancelToken? cancelToken,
+  }) async => null;
 }

@@ -162,51 +162,28 @@
 - [x] Интерфейс ощущается более премиальным и атмосферным
 - [x] Анимации улучшают UX и не мешают сценарию игры
 
-## Этап 8. Запуск промо-кампании
+## Stage 8. Deterministic Systems and Implementation Finish
 
-Цель: перевести промо из общей идеи в последовательный, управляемый запуск без рекламного бюджета.
+Goal: finish the remaining technical implementation work before any future growth layer and make the client the source of truth for core gameplay outcomes.
 
-Подготовительные задачи:
+Tasks:
 
-- [ ] Зафиксировать одно основное позиционирование проекта
-- [ ] Подготовить короткое описание проекта на `ru`
-- [ ] Подготовить короткое описание проекта на `en`
-- [ ] Подготовить 5-7 скриншотов или визуальных сцен из игры
-- [ ] Подготовить 3-5 сильных примеров прохождений
-- [ ] Подготовить короткий CTA для набора тестеров
-- [ ] Определить один основной канал для `ru`
-- [ ] Определить один основной канал для `en`
+- [x] Add local `DiceEngine` for deterministic checks when the active `Checks` module requires it
+- [x] Resolve check outcomes on the client before AI narration and pass the result to the model as known state
+- [x] Connect deterministic resolution to overlays, side panels, save payloads, and campaign memory updates
+- [x] Add widget/unit coverage for deterministic checks, module-aware narrative campaigns, and long-session state stability
+- [x] Verify that pure narrative and detective campaigns keep non-relevant RPG chrome hidden even after long play
+- [x] Re-validate settings UX for speed, quality, and token controls so the remaining expected-result items are explicitly covered
+- [x] Prepare the architecture for the next product layer without returning to baseline infrastructure work
+- [x] Review remaining analyzer warnings and close the ones that now block the next implementation layer
 
-Операционный запуск:
+Expected result:
 
-- [ ] Выбрать 3 контент-рубрики для первых 3 недель
-- [ ] Составить контент-план на 2 недели вперед
-- [ ] Подготовить шаблон devlog-поста
-- [ ] Подготовить шаблон поста с игровой сценой
-- [ ] Подготовить шаблон поста с фейлом или неожиданной развилкой
-- [ ] Подготовить сообщение-приглашение для первых тестеров на `ru`
-- [ ] Подготовить сообщение-приглашение для первых тестеров на `en`
-- [ ] Подготовить короткую форму сбора фидбека
-- [ ] Запустить `Telegram` как основной `ru` канал
-- [ ] Запустить `Reddit` как основной `en` канал
-- [ ] Запустить один короткий видео-канал
-
-Пилот и масштабирование:
-
-- [ ] Сделать минимум 3 публикации в основном `ru` канале
-- [ ] Сделать минимум 2 публикации в основном `en` канале
-- [ ] Сделать минимум 2 коротких видео
-- [ ] Привести первые 5-10 тестеров
-- [ ] Собрать первые 3-5 содержательных отзывов
-- [ ] Зафиксировать 5+ сильных игровых историй для публикации
-- [ ] Выбрать 1 основной канал роста по фактическому отклику
-- [ ] Выбрать 2 лучших формата контента
-
-Результат:
-
-- [ ] У проекта есть повторяемый промо-цикл без рекламного бюджета
-- [ ] Появился постоянный поток контента из самой игры и историй игроков
-- [ ] Есть первые тестеры, первые отзывы и раннее комьюнити
+- [x] The client, not the model, is the source of truth for gameplay checks and their outcomes
+- [x] Long campaigns stay coherent without requiring full chat history on every turn
+- [x] Detective and pure narrative stories stay free of irrelevant RPG systems throughout the campaign
+- [x] Users can tune speed, quality, and token usage confidently from the settings UI
+- [x] The architecture is ready for the next product layer across Desktop, Android, iOS, and Web
 
 ## Рекомендуемый порядок
 
@@ -216,7 +193,7 @@
 - [x] Этап 4: документация и кодировка
 - [x] Этап 5: quality pass и стабилизация
 - [x] Этап 7: визуальный редизайн по референсам
-- [ ] Этап 8: запуск промо-кампании
+- [x] Stage 8: deterministic systems and implementation finish
 - [ ] Этап 6: следующий продуктовый слой (перенесён в конец)
 
 ## Definition of Done для этого плана
@@ -226,17 +203,17 @@
 - [x] Кампания имеет понятную систему summary/memory
 - [x] Документы проекта читаемы и синхронизированы
 - [x] Основные user flow покрыты проверками и стабилизированы
-- [ ] Команда может переходить к следующему product layer без возврата к базовой инфраструктуре
+- [x] Команда может переходить к следующему product layer без возврата к базовой инфраструктуре
 - [x] Ключевые экраны приведены к единому целевому визуальному стилю
-- [ ] Есть минимально работающий промо-процесс для набора первых тестеров и сбора раннего фидбека
+- [x] Deterministic checks and the remaining implementation-validation layer are completed
 
 ## Status Update (2026-03-20)
 
 - [x] `Stage 7` is implemented in code and visually completed for all key screens.
 - [x] Desktop parity is now in place for the redesigned `Home` and `Saves` screens.
 - [x] Soft `Aether` animations now run on desktop runtime and stay disabled in widget-test bindings for stability.
-- [ ] `Stage 8: promo campaign launch` remains the main open stage in this plan.
-- [ ] Deterministic checks remain open in the engine-related backlogs: local `DiceEngine`, client-resolved gameplay outcomes, and the linked expected-result items.
+- [x] `Stage 8: deterministic systems and implementation finish` is implemented and validated.
+- [ ] `Stage 6: next product layer` is now the main open stage in this plan.
 
 ## Backlog: Provider-scoped AI Settings
 

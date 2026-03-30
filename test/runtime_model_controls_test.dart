@@ -3,6 +3,8 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/context_assembly_service.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/openai_compatible_ai_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -99,6 +101,7 @@ void main() {
       state: _sampleCampaign(),
       playerAction: 'Inspect the shrine',
       suggestionsOnly: false,
+      deterministicContext: const DeterministicTurnContext.none(),
       fastMode: false,
       stream: true,
     );
@@ -134,6 +137,142 @@ void main() {
       'Line one\nLine two',
     );
     expect(client.extractNarrationPreview('{"choices":["Wait"]}'), isNull);
+  });
+
+  test('Client detects token-limit finish reasons across response formats', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(
+      client.responseHitTokenLimitForTesting(<String, Object?>{
+        'choices': <Object?>[
+          <String, Object?>{'finish_reason': 'length'},
+        ],
+      }),
+      isTrue,
+    );
+    expect(
+      client.responseHitTokenLimitForTesting(<String, Object?>{
+        'choices': <Object?>[
+          <String, Object?>{'finishReason': 'max_output_tokens'},
+        ],
+      }),
+      isTrue,
+    );
+    expect(
+      client.responseHitTokenLimitForTesting(<String, Object?>{
+        'choices': <Object?>[
+          <String, Object?>{'finish_reason': 'stop'},
+        ],
+      }),
+      isFalse,
+    );
+  });
+
+  test('Client expands max tokens conservatively and caps at provider limit', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(client.expandedMaxTokensForTesting(256), 512);
+    expect(
+      client.expandedMaxTokensForTesting(ModelRuntimeSettings.maxMaxResponseTokens),
+      ModelRuntimeSettings.maxMaxResponseTokens,
+    );
+  });
+
+  test('Client extracts content from message content arrays', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    final String content = client.extractChoiceContentForTesting(<String, Object?>{
+      'message': <String, Object?>{
+        'content': <Object?>[
+          <String, Object?>{'type': 'text', 'text': '{"narration":"Scene"}'},
+        ],
+      },
+    });
+
+    expect(content, '{"narration":"Scene"}');
+  });
+
+  test('Stream chunk merge avoids duplicating cumulative provider output', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+
+    expect(
+      client.mergeStreamChunkForTesting(
+        existing: '{"narration":"You enter',
+        incoming: '{"narration":"You enter the room',
+      ),
+      '{"narration":"You enter the room',
+    );
+    expect(
+      client.mergeStreamChunkForTesting(
+        existing: '{"narration":"You enter',
+        incoming: ' the room',
+      ),
+      '{"narration":"You enter the room',
+    );
+  });
+
+  test('Deterministic check context is embedded into AI requests', () {
+    final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
+    const GameEngine engine = GameEngine();
+    final CampaignState campaign = _sampleCampaign().copyWith(
+      modules: const <CampaignModuleState>[
+        CampaignModuleState(
+          module: CampaignModule.inventory,
+          isActive: true,
+          activationReason: 'test',
+        ),
+        CampaignModuleState(
+          module: CampaignModule.notes,
+          isActive: true,
+          activationReason: 'test',
+        ),
+        CampaignModuleState(
+          module: CampaignModule.vitality,
+          isActive: true,
+          activationReason: 'test',
+        ),
+        CampaignModuleState(
+          module: CampaignModule.checks,
+          isActive: true,
+          activationReason: 'test',
+        ),
+      ],
+    );
+    final DeterministicTurnContext deterministicContext = engine
+        .resolveDeterministicTurn(
+          language: AppLanguage.en,
+          state: campaign,
+          playerAction: 'Inspect the sealed lock carefully',
+        );
+
+    expect(deterministicContext.resolvedCheck, isNotNull);
+
+    final Map<String, Object?> requestBody = client.buildTurnRequestBody(
+      settings: const AiSettings(
+        provider: AiProviderType.openAiCompatible,
+        baseUrl: 'http://127.0.0.1:1234/v1',
+        model: 'test-model',
+        apiKey: '',
+        timeoutSeconds: 30,
+        fastResponses: false,
+        runtimeSettings: ModelRuntimeSettings.smartPreset,
+      ),
+      language: AppLanguage.en,
+      state: campaign,
+      playerAction: 'Inspect the sealed lock carefully',
+      suggestionsOnly: false,
+      deterministicContext: deterministicContext,
+      fastMode: false,
+    );
+
+    final List<Object?> messages =
+        requestBody['messages'] as List<Object?>? ?? const <Object?>[];
+    final Map<String, Object?> userMessage =
+        messages[1] as Map<String, Object?>? ?? const <String, Object?>{};
+    final String content = userMessage['content'] as String? ?? '';
+
+    expect(content, contains('"deterministic_resolution"'));
+    expect(content, contains(deterministicContext.resolvedCheck!.summary));
   });
 }
 

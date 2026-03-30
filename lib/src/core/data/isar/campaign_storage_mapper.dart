@@ -28,6 +28,8 @@ class CampaignStorageMapper {
       ..choicesJson = jsonEncode(state.choices)
       ..customStoryPrompt = state.customStoryPrompt
       ..characterPrompt = state.characterPrompt
+      ..portraitPath = state.portraitPath
+      ..portraitPrompt = state.portraitPrompt
       ..summary = state.summary
       ..activeGoal = state.activeGoal
       ..activeSituation = state.activeSituation;
@@ -276,6 +278,8 @@ class CampaignStorageMapper {
       updatedAt: updatedAt,
       customStoryPrompt: campaign.customStoryPrompt,
       characterPrompt: campaign.characterPrompt,
+      portraitPath: campaign.portraitPath,
+      portraitPrompt: campaign.portraitPrompt,
     );
   }
 

@@ -6,7 +6,7 @@
 
 Hey! I'm building **AI RPG** — a narrative RPG where the story unfolds through chat with AI. You pick a setting (fantasy, detective, sci-fi), create a hero, and play via text. The game state is deterministic: the AI generates narrative and choices, while the engine validates and saves everything correctly.
 
-I'm looking for **5–10 early testers** to get honest feedback before a public release. Runs on Windows (Flutter desktop), supports LM Studio and other OpenAI-compatible APIs.
+I'm looking for **5–10 early testers** to get honest feedback before a public release. Runs on Windows (Flutter desktop), supports OpenAI-compatible APIs.
 
 **What I need from testers:**
 - Download the build / build from source

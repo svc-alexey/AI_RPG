@@ -151,20 +151,20 @@ Exit criteria:
 
 ## Stage 7. Dice engine and deterministic checks
 
-Status: backlog
+Status: implemented foundation, with follow-up validation remaining in Stage 8
 
 Tasks:
 
-- [ ] Add `DiceEngine`
-- [ ] Define at least `might`, `wit`, and `spirit` checks
-- [ ] Add thresholds, modifiers, and crit logic
-- [ ] Gate deterministic checks behind active gameplay modules instead of making them universal
-- [ ] Change prompt contract so AI narrates known outcomes instead of deciding them
-- [ ] Restrict state mutation paths around deterministic checks
+- [x] Add `DiceEngine`
+- [x] Define at least `might`, `wit`, and `spirit` checks
+- [x] Add thresholds, modifiers, and crit logic
+- [x] Gate deterministic checks behind active gameplay modules instead of making them universal
+- [x] Change prompt contract so AI narrates known outcomes instead of deciding them
+- [x] Restrict state mutation paths around deterministic checks
 
 ## Stage 8. Adaptive UI expansion
 
-Status: backlog
+Status: partially implemented, with validation/polish still open
 
 Tasks:
 
@@ -180,8 +180,8 @@ Tasks:
 
 The next clean implementation slice is:
 
-1. add a local `DiceEngine` behind the active `Checks` module
-2. define deterministic `might`, `wit`, and `spirit` roll contracts
-3. pass resolved roll outcomes to the model as narration inputs instead of delegating check resolution
+1. re-validate long-session coherence with deterministic checks enabled
+2. close the remaining settings/runtime UX validation items
+3. reduce analyzer debt that blocks the next product layer
 
-This is the best next step because Stage 6 already established a module-aware source of truth; the remaining high-leverage move is making checks deterministic rather than purely narrative.
+This is the best next step because the deterministic core is now in place; the remaining leverage is in validation, UX confidence, and next-layer readiness.

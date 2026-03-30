@@ -12,6 +12,7 @@ import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/random_story_prompt_generator.dart';
+import 'package:ai_prg/src/core/services/story_prompt_enricher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum NewGameWizardMode { modeSelection, quickStart, customSetup }
@@ -132,6 +133,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       CampaignModuleResolver();
   static const RandomStoryPromptGenerator _storyPromptGenerator =
       RandomStoryPromptGenerator();
+  static const StoryPromptEnricher _storyPromptEnricher = StoryPromptEnricher();
 
   CancelToken? _cancelToken;
   bool _didLoad = false;
@@ -191,6 +193,11 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   void setStoryWish(final String value) {
     state = state.copyWith(storyWish: value);
+    _refreshPlannedModules();
+  }
+
+  void setStoryInput(final String value) {
+    state = state.copyWith(storyWish: value, customStoryPrompt: value);
     _refreshPlannedModules();
   }
 
@@ -286,6 +293,17 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   }
 
   Future<void> generatePrompts() async {
+    final AppLanguage currentLanguage = language;
+    final String currentInput = state.customStoryPrompt.trim().isNotEmpty
+        ? state.customStoryPrompt.trim()
+        : state.storyWish.trim();
+    final String generationSeed = currentInput.isNotEmpty
+        ? currentInput
+        : _storyPromptGenerator.generateForSetting(
+            setting: state.setting,
+            language: currentLanguage,
+          );
+
     final CancelToken cancelToken = CancelToken();
     _cancelToken = cancelToken;
     state = state.copyWith(isGenerating: true);
@@ -295,23 +313,44 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     try {
       final GeneratedPrompts result = await client.generatePromptsFromStoryWish(
         settings: settings,
-        language: language,
-        storyWish: state.storyWish.trim(),
+        language: currentLanguage,
+        storyWish: generationSeed,
         setting: state.setting,
         cancelToken: cancelToken,
       );
 
+      final GeneratedPrompts resolvedPrompts = _resolvePrompts(
+        generationSeed: generationSeed,
+        generated: result,
+        language: currentLanguage,
+      );
+
       state = state.copyWith(
-        customStoryPrompt: result.storyPrompt,
-        characterPrompt:
-            result.characterPrompt.isNotEmpty && state.characterProfile == null
-            ? result.characterPrompt
-            : state.characterPrompt,
+        storyWish: resolvedPrompts.storyPrompt,
+        customStoryPrompt: resolvedPrompts.storyPrompt,
+        characterPrompt: resolvedPrompts.characterPrompt,
         formRevision: state.formRevision + 1,
       );
       _refreshPlannedModules();
     } catch (_) {
-      // Intentionally keep the screen quiet on generation errors for now.
+      final GeneratedPrompts fallback = _storyPromptEnricher.expand(
+        storyWish: generationSeed,
+        setting: state.setting,
+        language: currentLanguage,
+      );
+      state = state.copyWith(
+        storyWish: fallback.storyPrompt.isEmpty
+            ? generationSeed
+            : fallback.storyPrompt,
+        customStoryPrompt: fallback.storyPrompt.isEmpty
+            ? generationSeed
+            : fallback.storyPrompt,
+        characterPrompt: fallback.characterPrompt.trim().isNotEmpty
+            ? fallback.characterPrompt.trim()
+            : state.characterPrompt,
+        formRevision: state.formRevision + 1,
+      );
+      _refreshPlannedModules();
     } finally {
       _cancelToken = null;
       state = state.copyWith(isGenerating: false);
@@ -320,74 +359,121 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   void cancelGeneration() => _cancelToken?.cancel();
 
+  GeneratedPrompts _resolvePrompts({
+    required final String generationSeed,
+    required final GeneratedPrompts generated,
+    required final AppLanguage language,
+  }) {
+    final String rawStoryPrompt = generated.storyPrompt.trim();
+    final String rawCharacterPrompt = generated.characterPrompt.trim();
+    final bool storyPromptWeak =
+        rawStoryPrompt.isEmpty ||
+        _normalized(rawStoryPrompt) == _normalized(generationSeed) ||
+        rawStoryPrompt.length <= generationSeed.trim().length + 24;
+
+    if (!storyPromptWeak && rawCharacterPrompt.isNotEmpty) {
+      return GeneratedPrompts(
+        storyPrompt: rawStoryPrompt,
+        characterPrompt: rawCharacterPrompt,
+      );
+    }
+
+    final GeneratedPrompts enriched = _storyPromptEnricher.expand(
+      storyWish: rawStoryPrompt.isEmpty ? generationSeed : rawStoryPrompt,
+      setting: state.setting,
+      language: language,
+    );
+
+    return GeneratedPrompts(
+      storyPrompt: storyPromptWeak && enriched.storyPrompt.trim().isNotEmpty
+          ? enriched.storyPrompt.trim()
+          : (rawStoryPrompt.isEmpty ? generationSeed : rawStoryPrompt),
+      characterPrompt: rawCharacterPrompt.isNotEmpty
+          ? rawCharacterPrompt
+          : enriched.characterPrompt.trim().isNotEmpty
+          ? enriched.characterPrompt.trim()
+          : state.characterPrompt,
+    );
+  }
+
+  String _normalized(final String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+
   Future<CampaignState> createQuickCampaign() async {
     state = state.copyWith(isSaving: true);
-
-    final AppLanguage currentLanguage = language;
-    final CharacterProfile charProfile = _defaultCharacterProfile();
-    final String randomPrompt = _storyPromptGenerator.generateForSetting(
-      setting: state.setting,
-      language: currentLanguage,
-    );
-
-    final CampaignState campaign = _gameEngine.createCampaign(
-      draft: CampaignDraft(
+    try {
+      final AppLanguage currentLanguage = language;
+      final CharacterProfile charProfile = _defaultCharacterProfile();
+      final String randomPrompt = _storyPromptGenerator.generateForSetting(
         setting: state.setting,
-        mode: StoryMode.shortStory,
-        difficulty: DifficultyLevel.easy,
-        heroName: _resolvedHeroName(currentLanguage),
-        customStoryPrompt: randomPrompt,
-        characterProfile: charProfile,
-      ),
-      language: currentLanguage,
-    );
+        language: currentLanguage,
+      );
 
-    await _campaignRepository.saveCampaign(campaign);
-    state = state.copyWith(isSaving: false);
-    return campaign;
+      final CampaignState campaign = _gameEngine.createCampaign(
+        draft: CampaignDraft(
+          setting: state.setting,
+          mode: StoryMode.shortStory,
+          difficulty: DifficultyLevel.easy,
+          heroName: _resolvedHeroName(currentLanguage),
+          customStoryPrompt: randomPrompt,
+          characterProfile: charProfile,
+        ),
+        language: currentLanguage,
+      );
+
+      await _campaignRepository.saveCampaign(campaign);
+      return campaign;
+    } finally {
+      state = state.copyWith(isSaving: false);
+    }
   }
 
   Future<CampaignState> createCampaign() async {
     state = state.copyWith(isSaving: true);
-
-    final AppLanguage currentLanguage = language;
-    CharacterProfile charProfile =
-        state.characterProfile ?? _defaultCharacterProfile();
-    if (state.characterPrompt.trim().isNotEmpty) {
+    try {
+      final AppLanguage currentLanguage = language;
+      CharacterProfile charProfile =
+          state.characterProfile ?? _defaultCharacterProfile();
+      if (state.characterPrompt.trim().isNotEmpty) {
+        charProfile = charProfile.copyWith(
+          promptFragment: state.characterPrompt.trim(),
+        );
+      }
+      if (state.personality.trim().isNotEmpty) {
+        charProfile = charProfile.copyWith(
+          personality: state.personality.trim(),
+        );
+      }
       charProfile = charProfile.copyWith(
-        promptFragment: state.characterPrompt.trim(),
+        name: _resolvedHeroName(currentLanguage),
       );
+
+      final String storyPrompt = state.customStoryPrompt.trim().isEmpty
+          ? _storyPromptGenerator.generateForSetting(
+              setting: state.setting,
+              language: currentLanguage,
+            )
+          : state.customStoryPrompt.trim();
+
+      final CampaignState campaign = _gameEngine.createCampaign(
+        draft: CampaignDraft(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          setting: state.setting,
+          mode: state.storyMode,
+          difficulty: state.difficulty,
+          heroName: _resolvedHeroName(currentLanguage),
+          storyWish: state.storyWish.trim(),
+          customStoryPrompt: storyPrompt,
+          characterProfile: charProfile,
+        ),
+        language: currentLanguage,
+      );
+
+      await _campaignRepository.saveCampaign(campaign);
+      return campaign;
+    } finally {
+      state = state.copyWith(isSaving: false);
     }
-    if (state.personality.trim().isNotEmpty) {
-      charProfile = charProfile.copyWith(personality: state.personality.trim());
-    }
-    charProfile = charProfile.copyWith(
-      name: _resolvedHeroName(currentLanguage),
-    );
-
-    final String storyPrompt = state.customStoryPrompt.trim().isEmpty
-        ? _storyPromptGenerator.generateForSetting(
-            setting: state.setting,
-            language: currentLanguage,
-          )
-        : state.customStoryPrompt.trim();
-
-    final CampaignState campaign = _gameEngine.createCampaign(
-      draft: CampaignDraft(
-        setting: state.setting,
-        mode: state.storyMode,
-        difficulty: state.difficulty,
-        heroName: _resolvedHeroName(currentLanguage),
-        storyWish: state.storyWish.trim(),
-        customStoryPrompt: storyPrompt,
-        characterProfile: charProfile,
-      ),
-      language: currentLanguage,
-    );
-
-    await _campaignRepository.saveCampaign(campaign);
-    state = state.copyWith(isSaving: false);
-    return campaign;
   }
 
   CharacterProfile _defaultCharacterProfile() {

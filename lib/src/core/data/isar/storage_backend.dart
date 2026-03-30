@@ -1,0 +1,1 @@
+enum StorageBackend { isar, sharedPreferences }

@@ -1,6 +1,7 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
@@ -33,6 +34,7 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
+    final AppResponsiveData responsive = context.responsive;
 
     return Scaffold(
       appBar: AppBar(
@@ -63,9 +65,15 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
             : _campaigns.isEmpty
             ? Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.isMobile ? 400 : 440,
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(32),
+                    padding: EdgeInsets.all(
+                      responsive.isCompact
+                          ? 20
+                          : (responsive.isMobile ? 24 : 32),
+                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
@@ -109,9 +117,10 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1040),
                   child: ListView.separated(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(responsive.pagePadding),
                     itemCount: _campaigns.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 16),
+                    separatorBuilder: (_, _) =>
+                        SizedBox(height: responsive.sectionSpacing),
                     itemBuilder: (context, index) {
                       final CampaignState campaign = _campaigns[index];
                       return AetherPageReveal(
@@ -187,12 +196,12 @@ class _SaveCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isNarrow = screenWidth < 360;
-    final bool isMobile = screenWidth < 600;
+    final AppResponsiveData responsive = context.responsive;
+    final bool isNarrow = responsive.isCompact;
+    final bool isMobile = responsive.isMobile;
 
     return AetherCard(
-      padding: EdgeInsets.all(isNarrow ? 12 : (isMobile ? 16 : 20)),
+      padding: EdgeInsets.all(responsive.cardPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -247,7 +256,7 @@ class _SaveCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: responsive.sectionSpacing),
           Text(
             campaign.summary.isEmpty ? campaign.objective : campaign.summary,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -257,7 +266,7 @@ class _SaveCard extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: isNarrow ? 12 : 16),
+          SizedBox(height: responsive.sectionSpacing),
           if (isMobile)
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -311,11 +320,13 @@ class _SavesToolbarButton extends StatelessWidget {
     behavior: HitTestBehavior.opaque,
     onTap: onTap,
     child: Container(
-      width: 44,
-      height: 44,
+      width: context.responsive.isCompact ? 40 : 44,
+      height: context.responsive.isCompact ? 40 : 44,
       decoration: BoxDecoration(
         color: AetherPalette.panelSoft.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(
+          context.responsive.isCompact ? 12 : 14,
+        ),
         border: Border.all(
           color: AetherPalette.panelBorder.withValues(alpha: 0.72),
         ),
@@ -336,15 +347,24 @@ class _SavesActionButton extends StatelessWidget {
     behavior: HitTestBehavior.opaque,
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive.isCompact ? 16 : 18,
+        vertical: context.responsive.isCompact ? 10 : 12,
+      ),
       decoration: BoxDecoration(
         color: AetherPalette.accentSoft.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          context.responsive.isCompact ? 14 : 16,
+        ),
         border: Border.all(
           color: AetherPalette.panelBorder.withValues(alpha: 0.7),
         ),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge,
+        textAlign: TextAlign.center,
+      ),
     ),
   );
 }

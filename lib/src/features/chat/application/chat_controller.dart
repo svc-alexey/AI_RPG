@@ -8,8 +8,15 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart'
-    show AiCancelException, AiClient, AiTurnException, CancelToken;
+    show
+        AiCancelException,
+        AiClient,
+        AiRequestMetadata,
+        AiTurnException,
+        CancelToken;
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/services/app_logger.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -109,11 +116,17 @@ class ChatController extends StateNotifier<ChatViewState> {
   ChatController(this._ref, this._campaignId)
     : super(const ChatViewState.initial());
 
+  static const Duration _streamUpdateInterval = Duration(milliseconds: 48);
+
   final Ref _ref;
   final String _campaignId;
 
   CancelToken? _cancelToken;
   Timer? _notificationTimer;
+  Timer? _narrationTimer;
+  DateTime? _lastNarrationUpdateAt;
+  String? _bufferedNarration;
+  String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
 
@@ -132,9 +145,18 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   @override
   void dispose() {
+    AppLogger.logDiagnostic(
+      level: 'INFO',
+      event: 'chat_controller_dispose',
+      message: 'ChatController disposed',
+      flowId: _activeFlowId,
+      campaignId: _campaignId,
+      screenMounted: false,
+    );
     _disposed = true;
     _cancelToken?.cancel();
     _notificationTimer?.cancel();
+    _narrationTimer?.cancel();
     super.dispose();
   }
 
@@ -181,9 +203,24 @@ class ChatController extends StateNotifier<ChatViewState> {
     required final String action,
     required final bool suggestionsOnly,
     final bool isIntro = false,
+    final String triggerSource = 'manual',
   }) async {
     final CampaignState? campaign = state.campaign;
     if (campaign == null) {
+      return;
+    }
+
+    if (state.isSending || _cancelToken != null) {
+      AppLogger.logDiagnostic(
+        level: 'WARN',
+        event: 'turn_reentry_blocked',
+        message: 'Ignored duplicate runTurn while another turn is active.',
+        flowId: _activeFlowId,
+        campaignId: campaign.id,
+        triggerSource: triggerSource,
+        requestMode: 'controller',
+        screenMounted: !_disposed,
+      );
       return;
     }
 
@@ -195,9 +232,31 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
+    final AppLanguage language = _appLanguage;
+    final DeterministicTurnContext deterministicContext =
+        suggestionsOnly || isIntro
+        ? const DeterministicTurnContext.none()
+        : _gameEngine.resolveDeterministicTurn(
+            language: language,
+            state: campaign,
+            playerAction: trimmedAction,
+          );
+
     final CancelToken cancelToken = CancelToken();
     final DateTime now = DateTime.now();
+    final String flowId = '${campaign.id}-${now.microsecondsSinceEpoch}';
+    final AiRequestMetadata metadata = AiRequestMetadata(
+      flowId: flowId,
+      campaignId: campaign.id,
+      triggerSource: triggerSource,
+      screenMounted: !_disposed,
+    );
     _cancelToken = cancelToken;
+    _activeFlowId = flowId;
+    _narrationTimer?.cancel();
+    _narrationTimer = null;
+    _lastNarrationUpdateAt = null;
+    _bufferedNarration = null;
 
     state = state.copyWith(
       isSending: true,
@@ -219,9 +278,18 @@ class ChatController extends StateNotifier<ChatViewState> {
             )
           : null,
     );
+    AppLogger.logDiagnostic(
+      level: 'INFO',
+      event: 'turn_started',
+      message: 'Turn generation started.',
+      flowId: flowId,
+      campaignId: campaign.id,
+      triggerSource: triggerSource,
+      requestMode: suggestionsOnly ? 'suggestions' : 'controller',
+      screenMounted: !_disposed,
+    );
 
     try {
-      final AppLanguage language = _appLanguage;
       final AiSettings settings = await _settingsRepository.loadAiSettings();
       final AiClient client = _aiServiceFactory.create(settings);
       final TurnResult result = await client.generateTurn(
@@ -230,6 +298,8 @@ class ChatController extends StateNotifier<ChatViewState> {
         state: campaign,
         playerAction: trimmedAction,
         suggestionsOnly: suggestionsOnly,
+        deterministicContext: deterministicContext,
+        metadata: metadata,
         onNarrationDelta: suggestionsOnly
             ? null
             : (final narration) =>
@@ -255,6 +325,7 @@ class ChatController extends StateNotifier<ChatViewState> {
           playerAction: trimmedAction,
           result: result,
           contextWindowSize: settings.contextWindowSize,
+          deterministicContext: deterministicContext,
         );
       }
 
@@ -269,6 +340,10 @@ class ChatController extends StateNotifier<ChatViewState> {
         previousCampaign: campaign,
         nextCampaign: turnApplication.state,
       );
+      _narrationTimer?.cancel();
+      _narrationTimer = null;
+      _lastNarrationUpdateAt = null;
+      _bufferedNarration = null;
       state = state.copyWith(
         campaign: turnApplication.state,
         settings: settings,
@@ -284,16 +359,49 @@ class ChatController extends StateNotifier<ChatViewState> {
             ? state.clearInputRevision
             : state.clearInputRevision + 1,
       );
+      AppLogger.logDiagnostic(
+        level: 'INFO',
+        event: 'turn_completed',
+        message: 'Turn generation completed.',
+        flowId: flowId,
+        campaignId: campaign.id,
+        triggerSource: triggerSource,
+        requestMode: suggestionsOnly ? 'suggestions' : 'controller',
+        screenMounted: !_disposed,
+      );
       _cancelToken = null;
+      _activeFlowId = null;
     } on AiTurnException catch (error) {
       _clearPendingMessages();
+      AppLogger.logDiagnostic(
+        level: 'ERROR',
+        event: 'turn_failed',
+        message: error.userMessage,
+        flowId: flowId,
+        campaignId: campaign.id,
+        triggerSource: triggerSource,
+        requestMode: suggestionsOnly ? 'suggestions' : 'controller',
+        screenMounted: !_disposed,
+      );
       await _handleAiTurnException(error, l10n);
+      _activeFlowId = null;
     } catch (error) {
       if (_disposed) {
         return;
       }
       final bool wasCancelled = error is AiCancelException;
+      AppLogger.logDiagnostic(
+        level: wasCancelled ? 'INFO' : 'ERROR',
+        event: wasCancelled ? 'turn_cancelled' : 'turn_unexpected_error',
+        message: wasCancelled ? 'Generation cancelled.' : error.toString(),
+        flowId: flowId,
+        campaignId: campaign.id,
+        triggerSource: triggerSource,
+        requestMode: suggestionsOnly ? 'suggestions' : 'controller',
+        screenMounted: !_disposed,
+      );
       _cancelToken = null;
+      _activeFlowId = null;
       state = state.copyWith(
         isSending: false,
         pendingPlayerMessage: null,
@@ -351,18 +459,11 @@ class ChatController extends StateNotifier<ChatViewState> {
     required final String narration,
     required final DateTime createdAt,
   }) {
+    // Some providers stream speculative text that gets revised mid-generation.
+    // Keep the UI on a stable "generating" placeholder until the final turn lands.
     if (_disposed || narration.trim().isEmpty) {
       return;
     }
-
-    state = state.copyWith(
-      pendingNarratorMessage: ChatMessage(
-        id: 'pending_narrator',
-        role: ChatRole.narrator,
-        text: narration,
-        createdAt: state.pendingNarratorMessage?.createdAt ?? createdAt,
-      ),
-    );
   }
 
   void _clearPendingMessages() {
@@ -370,6 +471,10 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
+    _narrationTimer?.cancel();
+    _narrationTimer = null;
+    _lastNarrationUpdateAt = null;
+    _bufferedNarration = null;
     state = state.copyWith(
       pendingPlayerMessage: null,
       pendingNarratorMessage: null,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 
 /// Token for cancelling an in-flight AI request.
 class CancelToken {
@@ -31,6 +32,20 @@ class AiCancelException implements Exception {
 
 typedef NarrationDeltaCallback = void Function(String narration);
 
+class AiRequestMetadata {
+  const AiRequestMetadata({
+    required this.flowId,
+    required this.campaignId,
+    required this.triggerSource,
+    required this.screenMounted,
+  });
+
+  final String flowId;
+  final String campaignId;
+  final String triggerSource;
+  final bool screenMounted;
+}
+
 abstract class AiClient {
   Future<void> checkConnection({required AiSettings settings});
 
@@ -40,6 +55,8 @@ abstract class AiClient {
     required CampaignState state,
     required String playerAction,
     required bool suggestionsOnly,
+    required DeterministicTurnContext deterministicContext,
+    AiRequestMetadata? metadata,
     NarrationDeltaCallback? onNarrationDelta,
     CancelToken? cancelToken,
   });
@@ -51,6 +68,15 @@ abstract class AiClient {
     required AppLanguage language,
     required String storyWish,
     required CampaignSetting setting,
+    CancelToken? cancelToken,
+  });
+
+  Future<GeneratedPortrait?> generateCharacterPortrait({
+    required AiSettings settings,
+    required AppLanguage language,
+    required CampaignSetting setting,
+    required String storyPrompt,
+    required CharacterProfile character,
     CancelToken? cancelToken,
   });
 }

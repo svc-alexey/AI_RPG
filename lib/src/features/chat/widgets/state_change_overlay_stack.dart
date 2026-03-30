@@ -1,4 +1,5 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
+import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:flutter/material.dart';
 
@@ -50,44 +51,53 @@ class _NotificationCard extends StatelessWidget {
   final StateChangeNotification notification;
 
   @override
-  Widget build(final BuildContext context) => Container(
-    constraints: const BoxConstraints(maxWidth: 280),
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    decoration: BoxDecoration(
-      color: _backgroundColor(notification.kind),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: _accentColor(notification.kind).withValues(alpha: 0.55),
+  Widget build(final BuildContext context) {
+    final AppResponsiveData responsive = context.responsive;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: responsive.isCompact ? responsive.width * 0.78 : 280,
       ),
-      boxShadow: const <BoxShadow>[
-        BoxShadow(
-          color: Color(0x22000000),
-          blurRadius: 18,
-          offset: Offset(0, 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.isCompact ? 12 : 14,
+        vertical: responsive.isCompact ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: _backgroundColor(notification.kind),
+        borderRadius: BorderRadius.circular(responsive.isCompact ? 14 : 16),
+        border: Border.all(
+          color: _accentColor(notification.kind).withValues(alpha: 0.55),
         ),
-      ],
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(
-          _icon(notification.kind),
-          size: 18,
-          color: _accentColor(notification.kind),
-        ),
-        const SizedBox(width: 10),
-        Flexible(
-          child: Text(
-            notification.message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AetherPalette.textPrimary,
-              fontWeight: FontWeight.w600,
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            _icon(notification.kind),
+            size: responsive.isCompact ? 16 : 18,
+            color: _accentColor(notification.kind),
+          ),
+          SizedBox(width: responsive.isCompact ? 8 : 10),
+          Flexible(
+            child: Text(
+              notification.message,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AetherPalette.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   Color _backgroundColor(final StateChangeNotificationKind kind) =>
       switch (kind) {
