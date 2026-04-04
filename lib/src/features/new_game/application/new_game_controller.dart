@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
@@ -11,13 +13,18 @@ import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
-import 'package:ai_prg/src/core/services/random_story_prompt_generator.dart';
-import 'package:ai_prg/src/core/services/story_prompt_enricher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum NewGameWizardMode { modeSelection, quickStart, customSetup }
 
-enum NewGameCustomSetupStep { foundation, story, character, review }
+enum NewGameCustomSetupStep {
+  literaryGenre,
+  worldSetting,
+  foundation,
+  story,
+  character,
+  review,
+}
 
 final newGameControllerProvider =
     StateNotifierProvider.autoDispose<NewGameController, NewGameViewState>(
@@ -34,6 +41,7 @@ class NewGameViewState {
     required this.mode,
     required this.currentStep,
     required this.setting,
+    required this.literaryGenre,
     required this.storyMode,
     required this.difficulty,
     required this.gender,
@@ -52,8 +60,9 @@ class NewGameViewState {
       characterPrompt = '',
       personality = '',
       mode = NewGameWizardMode.modeSelection,
-      currentStep = NewGameCustomSetupStep.foundation,
-      setting = CampaignSetting.fantasy,
+      currentStep = NewGameCustomSetupStep.literaryGenre,
+      setting = CampaignSetting.romantasy,
+      literaryGenre = LiteraryGenre.fantasyGenre,
       storyMode = StoryMode.shortStory,
       difficulty = DifficultyLevel.easy,
       gender = CharacterGender.other,
@@ -72,6 +81,7 @@ class NewGameViewState {
   final NewGameWizardMode mode;
   final NewGameCustomSetupStep currentStep;
   final CampaignSetting setting;
+  final LiteraryGenre literaryGenre;
   final StoryMode storyMode;
   final DifficultyLevel difficulty;
   final CharacterGender gender;
@@ -91,6 +101,7 @@ class NewGameViewState {
     final NewGameWizardMode? mode,
     final NewGameCustomSetupStep? currentStep,
     final CampaignSetting? setting,
+    final LiteraryGenre? literaryGenre,
     final StoryMode? storyMode,
     final DifficultyLevel? difficulty,
     final CharacterGender? gender,
@@ -109,6 +120,7 @@ class NewGameViewState {
     mode: mode ?? this.mode,
     currentStep: currentStep ?? this.currentStep,
     setting: setting ?? this.setting,
+    literaryGenre: literaryGenre ?? this.literaryGenre,
     storyMode: storyMode ?? this.storyMode,
     difficulty: difficulty ?? this.difficulty,
     gender: gender ?? this.gender,
@@ -128,12 +140,10 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   final Ref _ref;
 
+  static final Random _random = Random();
   static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
   static const CampaignModuleResolver _moduleResolver =
       CampaignModuleResolver();
-  static const RandomStoryPromptGenerator _storyPromptGenerator =
-      RandomStoryPromptGenerator();
-  static const StoryPromptEnricher _storyPromptEnricher = StoryPromptEnricher();
 
   CancelToken? _cancelToken;
   bool _didLoad = false;
@@ -165,7 +175,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   void setCustomSetupMode() {
     state = state.copyWith(
       mode: NewGameWizardMode.customSetup,
-      currentStep: NewGameCustomSetupStep.foundation,
+      currentStep: NewGameCustomSetupStep.literaryGenre,
     );
   }
 
@@ -184,6 +194,25 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     }
     state = state.copyWith(
       currentStep: NewGameCustomSetupStep.values[state.currentStep.index + 1],
+    );
+  }
+
+  void setLiteraryGenre(final LiteraryGenre value) {
+    state = state.copyWith(literaryGenre: value);
+    _refreshPlannedModules();
+  }
+
+  void randomizeLiteraryGenre() {
+    state = state.copyWith(
+      literaryGenre:
+          LiteraryGenre.values[_random.nextInt(LiteraryGenre.values.length)],
+    );
+    _refreshPlannedModules();
+  }
+
+  void randomizeSetting() {
+    setSetting(
+      CampaignSetting.values[_random.nextInt(CampaignSetting.values.length)],
     );
   }
 
@@ -228,13 +257,13 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   void setSetting(final CampaignSetting newSetting) {
     CharacterProfile? profile = state.characterProfile;
-    final List<CharacterClass> classes =
-        classesBySetting[newSetting] ??
-        <CharacterClass>[CharacterClass.warrior];
+    final List<CharacterClass> classes = classesBySetting[newSetting]!;
     final List<String> races = racesBySetting[newSetting] ?? <String>['human'];
 
     if (profile != null) {
-      if (!classes.contains(profile.characterClass)) {
+      if (classes.isEmpty) {
+        profile = profile.copyWith(characterClass: CharacterClass.unspecified);
+      } else if (!classes.contains(profile.characterClass)) {
         profile = profile.copyWith(characterClass: classes.first);
       }
       if (!races.contains(profile.race)) {
@@ -243,7 +272,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     }
 
     state = state.copyWith(setting: newSetting, characterProfile: profile);
-    _refreshPlannedModules();
+    _rebuildCharacterPromptFromCurrentProfile();
   }
 
   void setStoryMode(final StoryMode value) {
@@ -259,6 +288,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       gender: value,
       characterProfile: state.characterProfile?.copyWith(gender: value),
     );
+    _rebuildCharacterPromptFromCurrentProfile();
   }
 
   void setCharacterClass(final CharacterClass value) {
@@ -267,12 +297,14 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         characterClass: value,
       ),
     );
+    _rebuildCharacterPromptFromCurrentProfile();
   }
 
   void setRace(final String value) {
     state = state.copyWith(
       characterProfile: effectiveCharacterProfile().copyWith(race: value),
     );
+    _rebuildCharacterPromptFromCurrentProfile();
   }
 
   void randomizeCharacter() {
@@ -297,12 +329,6 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     final String currentInput = state.customStoryPrompt.trim().isNotEmpty
         ? state.customStoryPrompt.trim()
         : state.storyWish.trim();
-    final String generationSeed = currentInput.isNotEmpty
-        ? currentInput
-        : _storyPromptGenerator.generateForSetting(
-            setting: state.setting,
-            language: currentLanguage,
-          );
 
     final CancelToken cancelToken = CancelToken();
     _cancelToken = cancelToken;
@@ -311,43 +337,27 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     final AiSettings settings = await _settingsRepository.loadAiSettings();
     final AiClient client = _aiServiceFactory.create(settings);
     try {
-      final GeneratedPrompts result = await client.generatePromptsFromStoryWish(
+      final GeneratedPrompts result = await client.generateCampaignPrompts(
         settings: settings,
         language: currentLanguage,
-        storyWish: generationSeed,
-        setting: state.setting,
+        request: CampaignPromptGenerationRequest(
+          setting: state.setting,
+          literaryGenre: state.literaryGenre,
+          difficulty: state.difficulty,
+          storyWish: currentInput,
+        ),
         cancelToken: cancelToken,
       );
 
-      final GeneratedPrompts resolvedPrompts = _resolvePrompts(
-        generationSeed: generationSeed,
+      final GeneratedPrompts resolved = _resolvePrompts(
+        generationSeed: currentInput,
         generated: result,
-        language: currentLanguage,
       );
 
       state = state.copyWith(
-        storyWish: resolvedPrompts.storyPrompt,
-        customStoryPrompt: resolvedPrompts.storyPrompt,
-        characterPrompt: resolvedPrompts.characterPrompt,
-        formRevision: state.formRevision + 1,
-      );
-      _refreshPlannedModules();
-    } catch (_) {
-      final GeneratedPrompts fallback = _storyPromptEnricher.expand(
-        storyWish: generationSeed,
-        setting: state.setting,
-        language: currentLanguage,
-      );
-      state = state.copyWith(
-        storyWish: fallback.storyPrompt.isEmpty
-            ? generationSeed
-            : fallback.storyPrompt,
-        customStoryPrompt: fallback.storyPrompt.isEmpty
-            ? generationSeed
-            : fallback.storyPrompt,
-        characterPrompt: fallback.characterPrompt.trim().isNotEmpty
-            ? fallback.characterPrompt.trim()
-            : state.characterPrompt,
+        storyWish: resolved.storyPrompt,
+        customStoryPrompt: resolved.storyPrompt,
+        characterPrompt: resolved.characterPrompt,
         formRevision: state.formRevision + 1,
       );
       _refreshPlannedModules();
@@ -362,60 +372,68 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   GeneratedPrompts _resolvePrompts({
     required final String generationSeed,
     required final GeneratedPrompts generated,
-    required final AppLanguage language,
   }) {
     final String rawStoryPrompt = generated.storyPrompt.trim();
     final String rawCharacterPrompt = generated.characterPrompt.trim();
-    final bool storyPromptWeak =
-        rawStoryPrompt.isEmpty ||
-        _normalized(rawStoryPrompt) == _normalized(generationSeed) ||
-        rawStoryPrompt.length <= generationSeed.trim().length + 24;
-
-    if (!storyPromptWeak && rawCharacterPrompt.isNotEmpty) {
+    if (rawStoryPrompt.isNotEmpty && rawCharacterPrompt.isNotEmpty) {
       return GeneratedPrompts(
         storyPrompt: rawStoryPrompt,
         characterPrompt: rawCharacterPrompt,
       );
     }
-
-    final GeneratedPrompts enriched = _storyPromptEnricher.expand(
-      storyWish: rawStoryPrompt.isEmpty ? generationSeed : rawStoryPrompt,
-      setting: state.setting,
-      language: language,
-    );
-
+    if (rawStoryPrompt.isNotEmpty) {
+      return GeneratedPrompts(
+        storyPrompt: rawStoryPrompt,
+        characterPrompt: rawCharacterPrompt.isNotEmpty
+            ? rawCharacterPrompt
+            : state.characterPrompt.trim(),
+      );
+    }
+    final String seed = generationSeed.trim();
     return GeneratedPrompts(
-      storyPrompt: storyPromptWeak && enriched.storyPrompt.trim().isNotEmpty
-          ? enriched.storyPrompt.trim()
-          : (rawStoryPrompt.isEmpty ? generationSeed : rawStoryPrompt),
-      characterPrompt: rawCharacterPrompt.isNotEmpty
-          ? rawCharacterPrompt
-          : enriched.characterPrompt.trim().isNotEmpty
-          ? enriched.characterPrompt.trim()
-          : state.characterPrompt,
+      storyPrompt: seed,
+      characterPrompt: state.characterPrompt.trim(),
     );
   }
-
-  String _normalized(final String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
 
   Future<CampaignState> createQuickCampaign() async {
     state = state.copyWith(isSaving: true);
     try {
+      if (!state.aiConfigured) {
+        throw StateError('ai_not_configured');
+      }
       final AppLanguage currentLanguage = language;
-      final CharacterProfile charProfile = _defaultCharacterProfile();
-      final String randomPrompt = _storyPromptGenerator.generateForSetting(
-        setting: state.setting,
+      final AiSettings settings = await _settingsRepository.loadAiSettings();
+      final AiClient client = _aiServiceFactory.create(settings);
+      final CampaignSetting rolledSetting = CampaignSetting
+          .values[_random.nextInt(CampaignSetting.values.length)];
+      final LiteraryGenre rolledGenre =
+          LiteraryGenre.values[_random.nextInt(LiteraryGenre.values.length)];
+      final GeneratedPrompts prompts = await client.generateCampaignPrompts(
+        settings: settings,
         language: currentLanguage,
+        request: CampaignPromptGenerationRequest(
+          setting: rolledSetting,
+          literaryGenre: rolledGenre,
+          difficulty: DifficultyLevel.easy,
+        ),
       );
-
+      final String storyText = prompts.storyPrompt.trim();
+      if (storyText.isEmpty) {
+        throw StateError('prompt_generation_failed');
+      }
+      final CharacterProfile charProfile = _defaultCharacterProfile().copyWith(
+        name: _resolvedHeroName(currentLanguage),
+        promptFragment: prompts.characterPrompt.trim(),
+      );
       final CampaignState campaign = _gameEngine.createCampaign(
         draft: CampaignDraft(
-          setting: state.setting,
+          setting: rolledSetting,
+          literaryGenre: rolledGenre,
           mode: StoryMode.shortStory,
           difficulty: DifficultyLevel.easy,
           heroName: _resolvedHeroName(currentLanguage),
-          customStoryPrompt: randomPrompt,
+          customStoryPrompt: storyText,
           characterProfile: charProfile,
         ),
         language: currentLanguage,
@@ -432,6 +450,10 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     state = state.copyWith(isSaving: true);
     try {
       final AppLanguage currentLanguage = language;
+      final String storyPrompt = state.customStoryPrompt.trim();
+      if (storyPrompt.isEmpty) {
+        throw StateError('story_prompt_required');
+      }
       CharacterProfile charProfile =
           state.characterProfile ?? _defaultCharacterProfile();
       if (state.characterPrompt.trim().isNotEmpty) {
@@ -448,17 +470,11 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         name: _resolvedHeroName(currentLanguage),
       );
 
-      final String storyPrompt = state.customStoryPrompt.trim().isEmpty
-          ? _storyPromptGenerator.generateForSetting(
-              setting: state.setting,
-              language: currentLanguage,
-            )
-          : state.customStoryPrompt.trim();
-
       final CampaignState campaign = _gameEngine.createCampaign(
         draft: CampaignDraft(
           id: DateTime.now().microsecondsSinceEpoch.toString(),
           setting: state.setting,
+          literaryGenre: state.literaryGenre,
           mode: state.storyMode,
           difficulty: state.difficulty,
           heroName: _resolvedHeroName(currentLanguage),
@@ -477,16 +493,17 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   }
 
   CharacterProfile _defaultCharacterProfile() {
-    final List<CharacterClass> classes =
-        classesBySetting[state.setting] ??
-        <CharacterClass>[CharacterClass.warrior];
+    final List<CharacterClass> classes = classesBySetting[state.setting]!;
     final List<String> races =
         racesBySetting[state.setting] ?? <String>['human'];
+    final CharacterClass charClass = classes.isEmpty
+        ? CharacterClass.unspecified
+        : classes.first;
     return CharacterProfile(
       name: _resolvedHeroName(language),
       gender: state.gender,
       race: races.first,
-      characterClass: classes.first,
+      characterClass: charClass,
       skills: <String>[],
       personality: '',
       perks: <String>[],
@@ -496,8 +513,26 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   String _resolvedHeroName(final AppLanguage language) =>
       state.heroName.trim().isEmpty
-      ? (language == AppLanguage.ru ? 'РЎС‚СЂР°РЅРЅРёРє' : 'Wayfarer')
+      ? (language == AppLanguage.ru ? 'Странник' : 'Wayfarer')
       : state.heroName.trim();
+
+  /// Syncs stored character prompt text and profile fragment with race, class,
+  /// gender, personality, etc. Call after structural profile changes.
+  void _rebuildCharacterPromptFromCurrentProfile() {
+    final CharacterProfile cleared =
+        effectiveCharacterProfile().copyWith(promptFragment: '');
+    final String rebuilt = _charBuilder.buildPrompt(
+      profile: cleared,
+      setting: state.setting,
+      language: language,
+    );
+    state = state.copyWith(
+      characterProfile: cleared.copyWith(promptFragment: rebuilt),
+      characterPrompt: rebuilt,
+      formRevision: state.formRevision + 1,
+    );
+    _refreshPlannedModules();
+  }
 
   void _refreshPlannedModules() {
     final CharacterProfile profile =
@@ -509,6 +544,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         .resolveInitialModules(
           draft: CampaignDraft(
             setting: state.setting,
+            literaryGenre: state.literaryGenre,
             mode: state.storyMode,
             difficulty: state.difficulty,
             heroName: state.heroName.trim(),

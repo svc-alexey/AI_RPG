@@ -4,11 +4,13 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/narrative_nudge_service.dart';
 
 class TurnPromptBuilder {
   const TurnPromptBuilder();
 
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
+  static const NarrativeNudgeService _narrativeNudge = NarrativeNudgeService();
 
   String buildSystemPrompt({
     required final AppLanguage language,
@@ -76,8 +78,8 @@ $fastPrefixТы повествовательный ИИ для детермин�
 - narration: 1-2 абзаца. Включай атмосферу сцены, эмоции персонажей, короткие диалоги в потоке, сенсорные детали (звук, свет, запах) в меру.
 - choices: не более 3 вариантов, каждый 2-3 слова
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string, "location": string }
-- location в state_changes: укажи текущую локацию (особенно важно в первом ходе). Если локация не меняется, оставь пустым "".
-- изменения должны быть умеренными для MVP
+- location и questNote: заполняй, когда уместно для сцены и активных модулей (см. activeModules в контексте). Для чистого диалога или романтики можно оставить "".
+- изменения состояния согласуй с повествованием; не обязательны инвентарь или бои, если история о другом.
 - не ломай целостность мира
 - не добавляй markdown fences
 ''',
@@ -90,8 +92,8 @@ Rules:
 - narration: 1-2 paragraphs. Include scene atmosphere, character emotions, short in-flow dialogues, sensory details (sound, light, smell) in moderation.
 - choices: up to 3 options, each 2-3 words max
 - state_changes: { "hpDelta": int, "energyDelta": int, "inventoryAdd": [string], "inventoryRemove": [string], "questNote": string, "location": string }
-- location in state_changes: specify current location (especially important on first turn). If location doesn't change, leave empty "".
-- changes must stay moderate for the MVP
+- location and questNote: fill when the scene and active modules warrant it (see activeModules in context). Pure dialogue or romance may use "".
+- align mechanical changes with the story; inventory or combat need not appear if the tale does not call for them.
 - do not break world continuity
 - if deterministic_resolution is present in the campaign context, it is already resolved on the client; do not reroll it or contradict it
 - do not add markdown fences
@@ -108,6 +110,9 @@ Rules:
     if (state.characterPrompt.trim().isNotEmpty) {
       parts.add('\n\n--- Character ---\n${state.characterPrompt.trim()}\n');
     }
+    parts.add(
+      '\n\n--- Narrative anchors (soft) ---\n${_narrativeNudge.buildHiddenBlock(setting: state.setting, genre: state.literaryGenre, language: language, confirmed18Plus: confirmed18Plus, difficulty: state.difficulty)}\n',
+    );
     return parts.join();
   }
 
@@ -136,9 +141,9 @@ Rules:
     final String actionText = playerAction.trim().isEmpty
         ? switch (language) {
             AppLanguage.ru =>
-              '(Начало игры. Придумай интересную стартовую локацию, завязку и цель в рамках текущего сеттинга. Начни повествование.)',
+              '(Начало истории. Открой сцену в духе Story context и активных модулей. Локация и лут не обязательны — уместны роман, детектив или линейная цель. Начни повествование.)',
             AppLanguage.en =>
-              '(Game start. Invent an interesting starting location, hook, and objective within the current setting. Begin the narration.)',
+              '(Story start. Open a scene aligned with Story context and active modules. Location and loot are optional—romance, mystery, or a linear goal are fine. Begin the narration.)',
           }
         : playerAction;
 

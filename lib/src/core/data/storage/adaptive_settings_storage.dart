@@ -19,8 +19,7 @@ class AdaptiveSettingsStorage implements SettingsStorage {
   final SettingsLocalDataSource _isarDataSource;
   final SettingsPreferencesDataSource _preferencesDataSource;
 
-  @override
-  Future<AiSettings> loadAiSettings() async {
+  Future<AiSettings> _loadAiSettingsPersistedBody() async {
     await _database.ensureReady();
     if (_database.backend == StorageBackend.isar) {
       final isar = await _database.isar;
@@ -31,6 +30,14 @@ class AdaptiveSettingsStorage implements SettingsStorage {
     }
     return _preferencesDataSource.loadAiSettings();
   }
+
+  @override
+  Future<AiSettings> loadAiSettingsPersisted() async =>
+      _loadAiSettingsPersistedBody();
+
+  @override
+  Future<AiSettings> loadAiSettings() async =>
+      AiSettings.withEnvFallbacks(await _loadAiSettingsPersistedBody());
 
   @override
   Future<void> saveAiSettings(final AiSettings settings) async {

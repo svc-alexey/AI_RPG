@@ -18,6 +18,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
+  bool _apiKeyObscured = true;
   final TextEditingController _timeoutController = TextEditingController();
   final TextEditingController _maxResponseTokensController =
       TextEditingController();
@@ -139,12 +140,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
+                                if (settingsState.showApiKeyFromBuildHint) ...<Widget>[
+                                  Text(
+                                    l10n.apiKeyBuildTimeHiddenHint,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: AetherPalette.textMuted),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
                                 TextField(
                                   controller: _apiKeyController,
+                                  obscureText: _apiKeyObscured,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  keyboardType: TextInputType.visiblePassword,
                                   onChanged: controller.setApiKey,
                                   decoration: InputDecoration(
                                     labelText: l10n.apiKey,
                                     hintText: l10n.apiKeyHint,
+                                    suffixIcon: IconButton(
+                                      tooltip: _apiKeyObscured
+                                          ? l10n.showApiKey
+                                          : l10n.hideApiKey,
+                                      icon: Icon(
+                                        _apiKeyObscured
+                                            ? Icons.visibility_outlined
+                                            : Icons.visibility_off_outlined,
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _apiKeyObscured = !_apiKeyObscured,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 12),

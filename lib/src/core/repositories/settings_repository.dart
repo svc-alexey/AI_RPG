@@ -27,6 +27,9 @@ class SettingsRepository {
 
   Future<AiSettings> loadAiSettings() => _storage.loadAiSettings();
 
+  Future<AiSettings> loadAiSettingsPersisted() =>
+      _storage.loadAiSettingsPersisted();
+
   Future<void> saveAiSettings(final AiSettings settings) =>
       _storage.saveAiSettings(settings);
 

@@ -276,7 +276,7 @@ CampaignState _sampleCampaign() => CampaignState(
   id: 'runtime-campaign',
   schemaVersion: 3,
   title: 'Whispers Under Glass',
-  setting: CampaignSetting.detective,
+  setting: CampaignSetting.cozyCrime,
   mode: StoryMode.longCampaign,
   difficulty: DifficultyLevel.medium,
   character: const CharacterStats(

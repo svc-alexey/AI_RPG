@@ -16,6 +16,12 @@ flutter test
 3. Language affects both UI and AI behavior
 4. A UX-facing feature is incomplete if it works correctly in only one language
 
+## 2a. Source Encoding (Cyrillic and UTF-8)
+
+1. All project text files that contain Cyrillic (`.dart`, `.md`, `.arb`, `.yaml`, and others) must be saved as **UTF-8 without BOM**.
+2. Do not commit mojibake (garbled Cyrillic such as sequences starting with `РЎ` / `Р` where readable Russian was intended). If a string looks wrong, fix the bytes to UTF-8 or take the wording from `AppLocalizations` / the English counterpart.
+3. After editing localized or Russian-literal strings, prefer `flutter analyze` to catch accidental encoding issues where the toolchain reports them.
+
 ## 3. Feature Pipeline
 
 1. If a task is not a bugfix, it starts with an architecture step.

@@ -10,6 +10,7 @@ import 'package:ai_prg/src/features/chat/widgets/state_change_overlay_stack.dart
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputController = TextEditingController();
+  late final FocusNode _composerFocusNode;
   final ScrollController _scrollController = ScrollController();
 
   bool _didTriggerIntro = false;
@@ -34,6 +36,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   @override
   void initState() {
     super.initState();
+    _composerFocusNode = FocusNode(onKeyEvent: _onComposerFocusKeyEvent);
     _didTriggerIntro = _introTriggeredCampaignIds.contains(widget.campaignId);
     WidgetsBinding.instance.addObserver(this);
   }
@@ -49,6 +52,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
     WidgetsBinding.instance.removeObserver(this);
     _inputController.dispose();
+    _composerFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -436,14 +440,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    TextField(
-                      controller: _inputController,
-                      minLines: 1,
+                    _buildChatComposerTextField(
+                      controller: controller,
                       maxLines: compactMobileComposer ? 3 : 4,
-                      onSubmitted: (_) => _submitAction(
-                        controller: controller,
-                        action: _inputController.text,
-                      ),
                       decoration: const InputDecoration(
                         hintText: '',
                         border: InputBorder.none,
@@ -479,14 +478,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: <Widget>[
                     Expanded(
-                      child: TextField(
-                        controller: _inputController,
-                        minLines: 1,
+                      child: _buildChatComposerTextField(
+                        controller: controller,
                         maxLines: 4,
-                        onSubmitted: (_) => _submitAction(
-                          controller: controller,
-                          action: _inputController.text,
-                        ),
                         decoration: InputDecoration(
                           hintText: l10n.chatInputHint,
                           border: InputBorder.none,
@@ -526,6 +520,63 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         ),
       ],
     );
+  }
+
+  Widget _buildChatComposerTextField({
+    required final ChatController controller,
+    required final int maxLines,
+    required final InputDecoration decoration,
+  }) =>
+      TextField(
+        controller: _inputController,
+        focusNode: _composerFocusNode,
+        minLines: 1,
+        maxLines: maxLines,
+        textInputAction: TextInputAction.newline,
+        onSubmitted: (_) => _submitAction(
+          controller: controller,
+          action: _inputController.text,
+        ),
+        decoration: decoration,
+      );
+
+  KeyEventResult _onComposerFocusKeyEvent(final FocusNode node, final KeyEvent event) {
+    if (!mounted) {
+      return KeyEventResult.ignored;
+    }
+    final ChatController controller =
+        ref.read(chatControllerProvider(widget.campaignId).notifier);
+    final ChatViewState chatState =
+        ref.read(chatControllerProvider(widget.campaignId));
+    return _handleComposerKeyEvent(
+      controller: controller,
+      isSending: chatState.isSending,
+      event: event,
+    );
+  }
+
+  KeyEventResult _handleComposerKeyEvent({
+    required final ChatController controller,
+    required final bool isSending,
+    required final KeyEvent event,
+  }) {
+    if (isSending) {
+      return KeyEventResult.ignored;
+    }
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final bool isPlainEnter =
+        event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter;
+    if (!isPlainEnter) {
+      return KeyEventResult.ignored;
+    }
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    _submitAction(controller: controller, action: _inputController.text);
+    return KeyEventResult.handled;
   }
 
   Future<void> _showCompactCampaignSheet({
@@ -589,7 +640,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ],
           _SidebarInfoLine(label: l10n.location, value: campaign.location),
           SizedBox(height: responsive.isCompact ? 8 : 6),
-          _SidebarInfoLine(label: l10n.objective, value: campaign.objective),
+          if (campaign.hasDisplayObjective) ...<Widget>[
+            _SidebarInfoLine(
+              label: l10n.objective,
+              value: campaign.displayObjectiveLine,
+            ),
+            SizedBox(height: responsive.isCompact ? 8 : 6),
+          ],
           SizedBox(height: responsive.sectionSpacing),
           if (campaign.isModuleActive(CampaignModule.vitality)) ...<Widget>[
             _SidebarSectionTitle(
@@ -674,13 +731,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           Text(l10n.summary, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(campaign.summary),
-          const SizedBox(height: 16),
-          Text(
-            l10n.activeGoalTitle,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(campaign.activeGoal),
           const SizedBox(height: 16),
           Text(
             l10n.recentEventsTitle,
@@ -1130,10 +1180,12 @@ class _SidebarInfoLine extends StatelessWidget {
 
 String _portraitAssetForCampaign(final CampaignState campaign) =>
     switch (campaign.setting) {
-      CampaignSetting.fantasy => 'assets/images/portraits/fantasy_guardian.png',
-      CampaignSetting.detective =>
+      CampaignSetting.cozyCrime =>
         'assets/images/portraits/detective_shadow.png',
-      CampaignSetting.sciFi => 'assets/images/portraits/scifi_oracle.png',
+      CampaignSetting.postApocalypse ||
+      CampaignSetting.nearFutureSciFi =>
+        'assets/images/portraits/scifi_oracle.png',
+      _ => 'assets/images/portraits/fantasy_guardian.png',
     };
 
 IconData _iconForModule(final CampaignModule module) => switch (module) {

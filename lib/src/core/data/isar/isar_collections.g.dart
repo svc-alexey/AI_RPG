@@ -62,73 +62,78 @@ const CampaignRecordSchema = CollectionSchema(
       name: r'inventoryJson',
       type: IsarType.string,
     ),
-    r'location': PropertySchema(
+    r'literaryGenre': PropertySchema(
       id: 9,
+      name: r'literaryGenre',
+      type: IsarType.string,
+    ),
+    r'location': PropertySchema(
+      id: 10,
       name: r'location',
       type: IsarType.string,
     ),
     r'memoryJson': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'memoryJson',
       type: IsarType.string,
     ),
     r'mode': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'mode',
       type: IsarType.string,
     ),
     r'modulesJson': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'modulesJson',
       type: IsarType.string,
     ),
     r'objective': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'objective',
       type: IsarType.string,
     ),
     r'portraitPath': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'portraitPath',
       type: IsarType.string,
     ),
     r'portraitPrompt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'portraitPrompt',
       type: IsarType.string,
     ),
     r'questLogJson': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'questLogJson',
       type: IsarType.string,
     ),
     r'schemaVersion': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'schemaVersion',
       type: IsarType.long,
     ),
     r'setting': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'setting',
       type: IsarType.string,
     ),
     r'summary': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'summary',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'title',
       type: IsarType.string,
     ),
     r'turnNumber': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'turnNumber',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -176,6 +181,12 @@ int _campaignRecordEstimateSize(
   bytesCount += 3 + object.customStoryPrompt.length * 3;
   bytesCount += 3 + object.difficulty.length * 3;
   bytesCount += 3 + object.inventoryJson.length * 3;
+  {
+    final value = object.literaryGenre;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.location.length * 3;
   bytesCount += 3 + object.memoryJson.length * 3;
   bytesCount += 3 + object.mode.length * 3;
@@ -205,20 +216,21 @@ void _campaignRecordSerialize(
   writer.writeString(offsets[6], object.customStoryPrompt);
   writer.writeString(offsets[7], object.difficulty);
   writer.writeString(offsets[8], object.inventoryJson);
-  writer.writeString(offsets[9], object.location);
-  writer.writeString(offsets[10], object.memoryJson);
-  writer.writeString(offsets[11], object.mode);
-  writer.writeString(offsets[12], object.modulesJson);
-  writer.writeString(offsets[13], object.objective);
-  writer.writeString(offsets[14], object.portraitPath);
-  writer.writeString(offsets[15], object.portraitPrompt);
-  writer.writeString(offsets[16], object.questLogJson);
-  writer.writeLong(offsets[17], object.schemaVersion);
-  writer.writeString(offsets[18], object.setting);
-  writer.writeString(offsets[19], object.summary);
-  writer.writeString(offsets[20], object.title);
-  writer.writeLong(offsets[21], object.turnNumber);
-  writer.writeDateTime(offsets[22], object.updatedAt);
+  writer.writeString(offsets[9], object.literaryGenre);
+  writer.writeString(offsets[10], object.location);
+  writer.writeString(offsets[11], object.memoryJson);
+  writer.writeString(offsets[12], object.mode);
+  writer.writeString(offsets[13], object.modulesJson);
+  writer.writeString(offsets[14], object.objective);
+  writer.writeString(offsets[15], object.portraitPath);
+  writer.writeString(offsets[16], object.portraitPrompt);
+  writer.writeString(offsets[17], object.questLogJson);
+  writer.writeLong(offsets[18], object.schemaVersion);
+  writer.writeString(offsets[19], object.setting);
+  writer.writeString(offsets[20], object.summary);
+  writer.writeString(offsets[21], object.title);
+  writer.writeLong(offsets[22], object.turnNumber);
+  writer.writeDateTime(offsets[23], object.updatedAt);
 }
 
 CampaignRecord _campaignRecordDeserialize(
@@ -238,20 +250,21 @@ CampaignRecord _campaignRecordDeserialize(
   object.difficulty = reader.readString(offsets[7]);
   object.id = id;
   object.inventoryJson = reader.readString(offsets[8]);
-  object.location = reader.readString(offsets[9]);
-  object.memoryJson = reader.readString(offsets[10]);
-  object.mode = reader.readString(offsets[11]);
-  object.modulesJson = reader.readString(offsets[12]);
-  object.objective = reader.readString(offsets[13]);
-  object.portraitPath = reader.readString(offsets[14]);
-  object.portraitPrompt = reader.readString(offsets[15]);
-  object.questLogJson = reader.readString(offsets[16]);
-  object.schemaVersion = reader.readLong(offsets[17]);
-  object.setting = reader.readString(offsets[18]);
-  object.summary = reader.readString(offsets[19]);
-  object.title = reader.readString(offsets[20]);
-  object.turnNumber = reader.readLong(offsets[21]);
-  object.updatedAt = reader.readDateTime(offsets[22]);
+  object.literaryGenre = reader.readStringOrNull(offsets[9]);
+  object.location = reader.readString(offsets[10]);
+  object.memoryJson = reader.readString(offsets[11]);
+  object.mode = reader.readString(offsets[12]);
+  object.modulesJson = reader.readString(offsets[13]);
+  object.objective = reader.readString(offsets[14]);
+  object.portraitPath = reader.readString(offsets[15]);
+  object.portraitPrompt = reader.readString(offsets[16]);
+  object.questLogJson = reader.readString(offsets[17]);
+  object.schemaVersion = reader.readLong(offsets[18]);
+  object.setting = reader.readString(offsets[19]);
+  object.summary = reader.readString(offsets[20]);
+  object.title = reader.readString(offsets[21]);
+  object.turnNumber = reader.readLong(offsets[22]);
+  object.updatedAt = reader.readDateTime(offsets[23]);
   return object;
 }
 
@@ -281,7 +294,7 @@ P _campaignRecordDeserializeProp<P>(
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readString(offset)) as P;
     case 11:
@@ -297,16 +310,18 @@ P _campaignRecordDeserializeProp<P>(
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readLong(offset)) as P;
-    case 18:
       return (reader.readString(offset)) as P;
+    case 18:
+      return (reader.readLong(offset)) as P;
     case 19:
       return (reader.readString(offset)) as P;
     case 20:
       return (reader.readString(offset)) as P;
     case 21:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 22:
+      return (reader.readLong(offset)) as P;
+    case 23:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1784,6 +1799,160 @@ extension CampaignRecordQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'inventoryJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'literaryGenre',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'literaryGenre',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'literaryGenre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'literaryGenre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'literaryGenre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'literaryGenre',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'literaryGenre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'literaryGenre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'literaryGenre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'literaryGenre',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'literaryGenre',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterFilterCondition>
+      literaryGenreIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'literaryGenre',
         value: '',
       ));
     });
@@ -3588,6 +3757,20 @@ extension CampaignRecordQuerySortBy
     });
   }
 
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByLiteraryGenre() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'literaryGenre', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      sortByLiteraryGenreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'literaryGenre', Sort.desc);
+    });
+  }
+
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy> sortByLocation() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'location', Sort.asc);
@@ -3916,6 +4099,20 @@ extension CampaignRecordQuerySortThenBy
     });
   }
 
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByLiteraryGenre() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'literaryGenre', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy>
+      thenByLiteraryGenreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'literaryGenre', Sort.desc);
+    });
+  }
+
   QueryBuilder<CampaignRecord, CampaignRecord, QAfterSortBy> thenByLocation() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'location', Sort.asc);
@@ -4174,6 +4371,14 @@ extension CampaignRecordQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CampaignRecord, CampaignRecord, QDistinct>
+      distinctByLiteraryGenre({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'literaryGenre',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CampaignRecord, CampaignRecord, QDistinct> distinctByLocation(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4338,6 +4543,13 @@ extension CampaignRecordQueryProperty
       inventoryJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'inventoryJson');
+    });
+  }
+
+  QueryBuilder<CampaignRecord, String?, QQueryOperations>
+      literaryGenreProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'literaryGenre');
     });
   }
 

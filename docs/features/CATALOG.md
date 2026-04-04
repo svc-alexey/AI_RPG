@@ -71,3 +71,9 @@
 - папка: [docs/features/deterministic-systems](D:/AI_PRG/docs/features/deterministic-systems)
 - источник в плане: [ImplementationPlan.md](D:/AI_PRG/ImplementationPlan.md)
 - цель: сделать client-resolved deterministic checks через локальный `DiceEngine`, передавать результат модели как known state и сохранять outcome в memory/UI/save слое
+
+### `narrative-settings-genres`
+
+- статус: implemented
+- папка: [docs/features/narrative-settings-genres](D:/AI_PRG/docs/features/narrative-settings-genres)
+- цель: 10 сеттингов и 10 литературных жанров, порядок мастера, RO-RO генерация кампанийных промптов, нейтральный старт, legacy-маппинг сеттингов и поле `literaryGenre` в сохранениях; опциональный шаг «Класс» по сеттингу (`classesBySetting`, `CharacterClass.unspecified`); пересборка текста промпта персонажа при смене расы/пола/класса/сеттинга в мастере

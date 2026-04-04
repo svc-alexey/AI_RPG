@@ -16,7 +16,7 @@ Use when the user asks to restart, reload, or re-run the Flutter application. Al
 ## Default Action (Always)
 
 1. **Stop** any processes on ports 8080, 8081, 8765 (frees the port).
-2. **Start** `flutter run` in project root (`d:\AI_PRG`).
+2. **Start** `flutter run` in project root (`d:\AI_PRG`). If `tool/ai_local_defines.json` exists, the script passes `--dart-define-from-file` so the API key is baked in at compile time without committing secrets (see `tool/ai_local_defines.example.json`).
 
 ## How to Execute
 

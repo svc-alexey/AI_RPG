@@ -119,7 +119,7 @@ CampaignState _initialFantasyCampaign() => CampaignState(
   id: 'fantasy-stage8-long-session',
   schemaVersion: 3,
   title: 'The Vault of Glass Rain',
-  setting: CampaignSetting.fantasy,
+  setting: CampaignSetting.romantasy,
   mode: StoryMode.longCampaign,
   difficulty: DifficultyLevel.medium,
   character: const CharacterStats(

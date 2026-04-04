@@ -12,7 +12,7 @@ void main() {
 
       final String prompt = builder.build(
         language: AppLanguage.en,
-        setting: CampaignSetting.detective,
+        setting: CampaignSetting.cozyCrime,
         storyPrompt: 'A stormbound city mystery with occult undertones.',
         character: const CharacterProfile(
           name: 'Iris',

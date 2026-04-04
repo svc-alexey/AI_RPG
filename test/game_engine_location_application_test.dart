@@ -10,7 +10,7 @@ void main() {
       id: 'campaign-location',
       schemaVersion: 4,
       title: 'Signal in the Dark',
-      setting: CampaignSetting.sciFi,
+      setting: CampaignSetting.nearFutureSciFi,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(

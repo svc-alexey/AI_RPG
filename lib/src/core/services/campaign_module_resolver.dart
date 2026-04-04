@@ -31,6 +31,7 @@ class CampaignModuleResolver {
       draft.customStoryPrompt,
       draft.characterProfile?.promptFragment ?? '',
       draft.characterProfile?.personality ?? '',
+      draft.literaryGenre?.name ?? '',
     ].join(' ').toLowerCase();
 
     for (final MapEntry<CampaignModule, List<String>> entry
@@ -48,16 +49,24 @@ class CampaignModuleResolver {
 
   List<CampaignModule> _presetModules(final CampaignSetting setting) =>
       switch (setting) {
-        CampaignSetting.fantasy => const <CampaignModule>[
-          CampaignModule.inventory,
+        CampaignSetting.romantasy ||
+        CampaignSetting.cozyFantasy ||
+        CampaignSetting.darkAcademia ||
+        CampaignSetting.grimdarkFantasy ||
+        CampaignSetting.litRpgProgression ||
+        CampaignSetting.horrorWeird ||
+        CampaignSetting.altHistorySecret =>
+          const <CampaignModule>[
+            CampaignModule.inventory,
+            CampaignModule.notes,
+            CampaignModule.vitality,
+            CampaignModule.checks,
+          ],
+        CampaignSetting.cozyCrime => const <CampaignModule>[
           CampaignModule.notes,
-          CampaignModule.vitality,
-          CampaignModule.checks,
         ],
-        CampaignSetting.detective => const <CampaignModule>[
-          CampaignModule.notes,
-        ],
-        CampaignSetting.sciFi => const <CampaignModule>[
+        CampaignSetting.postApocalypse ||
+        CampaignSetting.nearFutureSciFi => const <CampaignModule>[
           CampaignModule.inventory,
           CampaignModule.notes,
           CampaignModule.vitality,

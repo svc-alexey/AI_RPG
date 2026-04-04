@@ -8,7 +8,7 @@
 - **Сейвы:** local-first; на **native (IO)** основной бэкенд — **Isar**, на **web** — **SharedPreferences** (адаптивный слой в репозиториях). Один билд — web / Android / iOS / desktop; **у каждой установки свой локальный прогресс**. Синхронизация между устройствами **не реализована** (отдельная фича, если понадобится).
 - **AI:** OpenAI-compatible gateway (`baseUrl`, `model`, ключ, runtime token/window).
 - **Языки:** UI и AI-слой — **ru** (по умолчанию) и **en**; фича не считается готовой, если затронут UX только на одном языке.
-- **UX:** mobile-first (узкие экраны — эталон); чат — главная область экрана; до трёх suggestion chips над вводом; «Отправить» / «Подсказать» в композере.
+- **UX:** mobile-first (узкие экраны — эталон); чат — главная область экрана; до трёх suggestion chips над вводом; «Отправить» / «Подсказать» в композере; в многострочном вводе чата **Enter** отправляет ход (как кнопка), **Shift+Enter** — новая строка (клавиатура desktop/web).
 - **Статус:** pre-prod; **нет** обязательной миграции данных из старого SharedPreferences в Isar при первом открытии (свежая Isar — только версия схемы). **Портреты персонажа:** генерация изображений **заглушка** (`generateCharacterPortrait` → `null`); `CharacterPortraitPromptBuilder` держится для будущего пайплайна и тестов — не удалять как мёртвый код.
 
 ## Стек
@@ -43,6 +43,7 @@
 | `engine-mechanics-token-control` | in-progress | Isar, Riverpod, streaming, token controls, детерминизм |
 | `campaign-modules` | analysis-ready | модули кампании, сайдбар, `CampaignModule` |
 | `deterministic-systems` | implemented | `DiceEngine`, `DeterministicCheckService`, чекы в UI |
+| `narrative-settings-genres` | implemented | `CampaignSetting`, `LiteraryGenre`, мастер новой игры; класс персонажа только если `classesBySetting[setting]` непустой (`character_templates.dart`); на шаге персонажа смена расы/пола/класса или сеттинга пересобирает текст промпта через `CharacterPromptBuilder` (`new_game_controller.dart`) |
 
 Документы фич: `docs/features/<slug>/` (`01-Architecture.md`, `02-PRD.md`, … по шаблону процесса).
 

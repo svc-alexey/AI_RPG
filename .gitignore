@@ -49,6 +49,7 @@ app.*.map.json
 .env.*
 !.env.example
 !.env.template
+tool/ai_local_defines.json
 *.pem
 *.key
 *.p12

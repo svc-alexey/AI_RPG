@@ -57,10 +57,16 @@ class AppLogger {
   static ValueListenable<List<AppDiagnosticEvent>> get diagnosticsListenable =>
       _diagnostics;
 
-  static void _log(final String level, final String message, {Object? error}) {
+  static void _log(
+    final String level,
+    final String message, {
+    Object? error,
+    Object? detail,
+  }) {
     if (kDebugMode) {
       final String errorStr = error != null ? '\n  Error: $error' : '';
-      debugPrint('[$level] $message$errorStr');
+      final String detailStr = detail != null ? '\n  Detail: $detail' : '';
+      debugPrint('[$level] $message$errorStr$detailStr');
     }
   }
 
@@ -122,7 +128,7 @@ class AppLogger {
     _log(
       'DEBUG',
       'AI Request to $endpoint',
-      error: <String, Object?>{
+      detail: <String, Object?>{
         'provider': settings.provider.name,
         'model': settings.model,
         'body': requestBody,
@@ -159,7 +165,7 @@ class AppLogger {
     _log(
       'DEBUG',
       'AI Response from $endpoint (status: $statusCode)',
-      error: truncated,
+      detail: truncated,
     );
     logDiagnostic(
       level: 'DEBUG',

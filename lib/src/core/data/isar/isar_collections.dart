@@ -12,6 +12,7 @@ class CampaignRecord {
   late int schemaVersion;
   late String title;
   late String setting;
+  String? literaryGenre;
   late String mode;
   late String difficulty;
   late String location;

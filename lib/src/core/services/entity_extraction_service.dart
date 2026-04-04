@@ -567,19 +567,27 @@ class EntityExtractionService {
     }
 
     final Set<CampaignModule> allowed = switch (state.setting) {
-      CampaignSetting.fantasy => <CampaignModule>{
-        CampaignModule.inventory,
-        CampaignModule.companions,
+      CampaignSetting.romantasy ||
+      CampaignSetting.cozyFantasy ||
+      CampaignSetting.darkAcademia ||
+      CampaignSetting.grimdarkFantasy ||
+      CampaignSetting.litRpgProgression ||
+      CampaignSetting.horrorWeird ||
+      CampaignSetting.altHistorySecret =>
+        <CampaignModule>{
+          CampaignModule.inventory,
+          CampaignModule.companions,
+          CampaignModule.notes,
+          CampaignModule.vitality,
+          CampaignModule.resources,
+          CampaignModule.progression,
+        },
+      CampaignSetting.cozyCrime => <CampaignModule>{
         CampaignModule.notes,
-        CampaignModule.vitality,
-        CampaignModule.resources,
-        CampaignModule.progression,
-      },
-      CampaignSetting.detective => <CampaignModule>{
-        CampaignModule.notes,
         CampaignModule.companions,
       },
-      CampaignSetting.sciFi => <CampaignModule>{
+      CampaignSetting.postApocalypse ||
+      CampaignSetting.nearFutureSciFi => <CampaignModule>{
         CampaignModule.inventory,
         CampaignModule.companions,
         CampaignModule.notes,

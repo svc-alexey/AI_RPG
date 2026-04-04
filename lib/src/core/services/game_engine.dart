@@ -78,29 +78,13 @@ class GameEngine {
       AppLanguage.en => '...',
     };
 
-    // Цель будет определена ИИ на основе промпта
-    final String objective = switch (language) {
-      AppLanguage.ru => 'Выжить и найти свой путь',
-      AppLanguage.en => 'Survive and find your path',
-    };
+    const String objective = '';
 
-    final String settingLabel = switch (draft.setting) {
-      CampaignSetting.fantasy => switch (language) {
-        AppLanguage.ru => 'Фэнтези',
-        AppLanguage.en => 'Fantasy',
-      },
-      CampaignSetting.detective => switch (language) {
-        AppLanguage.ru => 'Детектив',
-        AppLanguage.en => 'Detective',
-      },
-      CampaignSetting.sciFi => 'Sci-fi',
-    };
+    final String settingLabel = _settingTitle(draft.setting, language);
 
     final String introText = switch (language) {
-      AppLanguage.ru =>
-        '${character.name} начинает свой путь. Следующий шаг определит судьбу.',
-      AppLanguage.en =>
-        '${character.name} begins their journey. The next step will determine their fate.',
+      AppLanguage.ru => 'История начинается.',
+      AppLanguage.en => 'The story opens.',
     };
 
     return CampaignState(
@@ -108,6 +92,7 @@ class GameEngine {
       schemaVersion: 4,
       title: '${character.name} - $settingLabel',
       setting: draft.setting,
+      literaryGenre: draft.literaryGenre,
       mode: draft.mode,
       difficulty: draft.difficulty,
       character: character,
@@ -122,7 +107,9 @@ class GameEngine {
       modules: modules,
       inventory: inventory,
       companions: const <CampaignCompanion>[],
-      notes: notesActive ? <String>[objective] : const <String>[],
+      notes: notesActive && objective.trim().isNotEmpty
+          ? <String>[objective]
+          : const <String>[],
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
@@ -250,4 +237,31 @@ class GameEngine {
     final List<CampaignModuleState> modules,
     final CampaignModule module,
   ) => modules.any((final item) => item.module == module && item.isActive);
+
+  static String _settingTitle(
+    final CampaignSetting setting,
+    final AppLanguage language,
+  ) =>
+      switch ((setting, language)) {
+        (CampaignSetting.romantasy, AppLanguage.ru) => 'Романтическое фэнтези',
+        (CampaignSetting.romantasy, AppLanguage.en) => 'Romantasy',
+        (CampaignSetting.cozyFantasy, AppLanguage.ru) => 'Уютное фэнтези',
+        (CampaignSetting.cozyFantasy, AppLanguage.en) => 'Cozy fantasy',
+        (CampaignSetting.darkAcademia, AppLanguage.ru) => 'Тёмная академия',
+        (CampaignSetting.darkAcademia, AppLanguage.en) => 'Dark academia',
+        (CampaignSetting.postApocalypse, AppLanguage.ru) => 'Постапокалипсис',
+        (CampaignSetting.postApocalypse, AppLanguage.en) => 'Post-apocalypse',
+        (CampaignSetting.litRpgProgression, AppLanguage.ru) => 'LitRPG',
+        (CampaignSetting.litRpgProgression, AppLanguage.en) => 'LitRPG',
+        (CampaignSetting.grimdarkFantasy, AppLanguage.ru) => 'Гримдарк',
+        (CampaignSetting.grimdarkFantasy, AppLanguage.en) => 'Grimdark',
+        (CampaignSetting.nearFutureSciFi, AppLanguage.ru) => 'НФ близкого будущего',
+        (CampaignSetting.nearFutureSciFi, AppLanguage.en) => 'Near-future SF',
+        (CampaignSetting.horrorWeird, AppLanguage.ru) => 'Хоррор',
+        (CampaignSetting.horrorWeird, AppLanguage.en) => 'Horror',
+        (CampaignSetting.cozyCrime, AppLanguage.ru) => 'Cozy crime',
+        (CampaignSetting.cozyCrime, AppLanguage.en) => 'Cozy crime',
+        (CampaignSetting.altHistorySecret, AppLanguage.ru) => 'Альт-история',
+        (CampaignSetting.altHistorySecret, AppLanguage.en) => 'Alt history',
+      };
 }

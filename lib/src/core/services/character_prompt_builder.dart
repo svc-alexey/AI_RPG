@@ -4,6 +4,16 @@ import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 
+enum _CharacterPerkVibe { fantasy, detective, sciFi }
+
+_CharacterPerkVibe _characterPerkVibe(final CampaignSetting setting) =>
+    switch (setting) {
+      CampaignSetting.cozyCrime => _CharacterPerkVibe.detective,
+      CampaignSetting.postApocalypse ||
+      CampaignSetting.nearFutureSciFi => _CharacterPerkVibe.sciFi,
+      _ => _CharacterPerkVibe.fantasy,
+    };
+
 /// Builds character prompt fragments for AI context.
 class CharacterPromptBuilder {
   const CharacterPromptBuilder();
@@ -31,10 +41,13 @@ class CharacterPromptBuilder {
       final String raceLabel = _raceLabel(profile.race, setting, language);
       parts.add(_label('race', language) + raceLabel);
     }
-    parts.addAll(<String>[
-      _label('class', language) + _classLabel(profile.characterClass, language),
-      _label('gender', language) + _genderLabel(profile.gender, language),
-    ]);
+    if (profile.characterClass != CharacterClass.unspecified) {
+      parts.add(
+        _label('class', language) +
+            _classLabel(profile.characterClass, language),
+      );
+    }
+    parts.add(_label('gender', language) + _genderLabel(profile.gender, language));
     if (profile.personality.isNotEmpty) {
       parts.add(_label('personality', language) + profile.personality);
     }
@@ -87,6 +100,8 @@ class CharacterPromptBuilder {
         (CharacterClass.pilot, AppLanguage.en) => 'pilot',
         (CharacterClass.medic, AppLanguage.ru) => 'медик',
         (CharacterClass.medic, AppLanguage.en) => 'medic',
+        (CharacterClass.unspecified, AppLanguage.ru) => '',
+        (CharacterClass.unspecified, AppLanguage.en) => '',
       };
 
   String _genderLabel(final CharacterGender g, final AppLanguage language) =>
@@ -152,10 +167,8 @@ class CharacterPromptBuilder {
     required final AppLanguage language,
     required final String baseName,
   }) {
-    final List<CharacterClass> classes =
-        classesBySetting[setting] ?? <CharacterClass>[CharacterClass.warrior];
+    final List<CharacterClass> classes = classesBySetting[setting]!;
     final List<String> races = racesBySetting[setting] ?? <String>['human'];
-    final CharacterClass charClass = classes[_random.nextInt(classes.length)];
     final String raceId = races[_random.nextInt(races.length)];
     final CharacterGender gender =
         CharacterGender.values[_random.nextInt(CharacterGender.values.length)];
@@ -163,6 +176,33 @@ class CharacterPromptBuilder {
         personalityTemplates[_random.nextInt(personalityTemplates.length)];
 
     final String personalityLabel = _personalityLabel(personalityId, language);
+    final String resolvedName =
+        baseName.isEmpty ? _defaultName(language) : baseName;
+
+    if (classes.isEmpty) {
+      final String promptFragment = _buildRandomPromptFragment(
+        name: resolvedName,
+        race: _raceLabel(raceId, setting, language),
+        classLabel: '',
+        gender: _genderLabel(gender, language),
+        personality: personalityLabel,
+        skills: const <String>[],
+        perks: const <String>[],
+        language: language,
+      );
+      return CharacterProfile(
+        name: resolvedName,
+        gender: gender,
+        race: raceId,
+        characterClass: CharacterClass.unspecified,
+        skills: const <String>[],
+        personality: personalityLabel,
+        perks: const <String>[],
+        promptFragment: promptFragment,
+      );
+    }
+
+    final CharacterClass charClass = classes[_random.nextInt(classes.length)];
     final String classLabel = _classLabel(charClass, language);
 
     final List<String> defaultSkills = _defaultSkillsForClass(
@@ -176,9 +216,9 @@ class CharacterPromptBuilder {
     );
 
     final String promptFragment = _buildRandomPromptFragment(
-      name: baseName.isEmpty ? _defaultName(language) : baseName,
+      name: resolvedName,
       race: _raceLabel(raceId, setting, language),
-      characterClass: classLabel,
+      classLabel: classLabel,
       gender: _genderLabel(gender, language),
       personality: personalityLabel,
       skills: defaultSkills,
@@ -187,7 +227,7 @@ class CharacterPromptBuilder {
     );
 
     return CharacterProfile(
-      name: baseName.isEmpty ? _defaultName(language) : baseName,
+      name: resolvedName,
       gender: gender,
       race: raceId,
       characterClass: charClass,
@@ -261,55 +301,58 @@ class CharacterPromptBuilder {
       'Medicine',
       'Diagnostics',
     ],
+    (CharacterClass.unspecified, _) => <String>[],
   };
 
   List<String> _defaultPerksForClass(
     final CharacterClass c,
     final CampaignSetting setting,
     final AppLanguage language,
-  ) => switch ((c, setting, language)) {
-    (CharacterClass.warrior, CampaignSetting.fantasy, AppLanguage.ru) =>
+  ) => switch ((c, _characterPerkVibe(setting), language)) {
+    (CharacterClass.warrior, _CharacterPerkVibe.fantasy, AppLanguage.ru) =>
       <String>['Закалённый щит'],
-    (CharacterClass.warrior, CampaignSetting.fantasy, AppLanguage.en) =>
+    (CharacterClass.warrior, _CharacterPerkVibe.fantasy, AppLanguage.en) =>
       <String>['Tempered shield'],
-    (CharacterClass.mage, CampaignSetting.fantasy, AppLanguage.ru) => <String>[
+    (CharacterClass.mage, _CharacterPerkVibe.fantasy, AppLanguage.ru) => <String>[
       'Кристалл фокуса',
     ],
-    (CharacterClass.mage, CampaignSetting.fantasy, AppLanguage.en) => <String>[
+    (CharacterClass.mage, _CharacterPerkVibe.fantasy, AppLanguage.en) => <String>[
       'Focus crystal',
     ],
-    (CharacterClass.rogue, CampaignSetting.fantasy, AppLanguage.ru) => <String>[
-      'Набор отмычек',
-    ],
-    (CharacterClass.rogue, CampaignSetting.fantasy, AppLanguage.en) => <String>[
-      'Lockpick set',
-    ],
-    (CharacterClass.detective, CampaignSetting.detective, AppLanguage.ru) =>
-      <String>['Блокнот'],
-    (CharacterClass.detective, CampaignSetting.detective, AppLanguage.en) =>
-      <String>['Notebook'],
-    (CharacterClass.journalist, CampaignSetting.detective, AppLanguage.ru) =>
-      <String>['Диктофон'],
-    (CharacterClass.journalist, CampaignSetting.detective, AppLanguage.en) =>
-      <String>['Recorder'],
-    (CharacterClass.smuggler, CampaignSetting.detective, AppLanguage.ru) =>
-      <String>['Фальшивые документы'],
-    (CharacterClass.smuggler, CampaignSetting.detective, AppLanguage.en) =>
-      <String>['Fake papers'],
-    (CharacterClass.engineer, CampaignSetting.sciFi, AppLanguage.ru) =>
-      <String>['Мультитул'],
-    (CharacterClass.engineer, CampaignSetting.sciFi, AppLanguage.en) =>
-      <String>['Multitool'],
-    (CharacterClass.pilot, CampaignSetting.sciFi, AppLanguage.ru) => <String>[
+    (CharacterClass.rogue, _CharacterPerkVibe.fantasy, AppLanguage.ru) =>
+        <String>[
+          'Набор отмычек',
+        ],
+    (CharacterClass.rogue, _CharacterPerkVibe.fantasy, AppLanguage.en) =>
+        <String>[
+          'Lockpick set',
+        ],
+    (CharacterClass.detective, _CharacterPerkVibe.detective, AppLanguage.ru) =>
+        <String>['Блокнот'],
+    (CharacterClass.detective, _CharacterPerkVibe.detective, AppLanguage.en) =>
+        <String>['Notebook'],
+    (CharacterClass.journalist, _CharacterPerkVibe.detective, AppLanguage.ru) =>
+        <String>['Диктофон'],
+    (CharacterClass.journalist, _CharacterPerkVibe.detective, AppLanguage.en) =>
+        <String>['Recorder'],
+    (CharacterClass.smuggler, _CharacterPerkVibe.detective, AppLanguage.ru) =>
+        <String>['Фальшивые документы'],
+    (CharacterClass.smuggler, _CharacterPerkVibe.detective, AppLanguage.en) =>
+        <String>['Fake papers'],
+    (CharacterClass.engineer, _CharacterPerkVibe.sciFi, AppLanguage.ru) =>
+        <String>['Мультитул'],
+    (CharacterClass.engineer, _CharacterPerkVibe.sciFi, AppLanguage.en) =>
+        <String>['Multitool'],
+    (CharacterClass.pilot, _CharacterPerkVibe.sciFi, AppLanguage.ru) => <String>[
       'Навигационный чип',
     ],
-    (CharacterClass.pilot, CampaignSetting.sciFi, AppLanguage.en) => <String>[
+    (CharacterClass.pilot, _CharacterPerkVibe.sciFi, AppLanguage.en) => <String>[
       'Nav chip',
     ],
-    (CharacterClass.medic, CampaignSetting.sciFi, AppLanguage.ru) => <String>[
+    (CharacterClass.medic, _CharacterPerkVibe.sciFi, AppLanguage.ru) => <String>[
       'Медпакет',
     ],
-    (CharacterClass.medic, CampaignSetting.sciFi, AppLanguage.en) => <String>[
+    (CharacterClass.medic, _CharacterPerkVibe.sciFi, AppLanguage.en) => <String>[
       'Medkit',
     ],
     _ => <String>[],
@@ -318,15 +361,18 @@ class CharacterPromptBuilder {
   String _buildRandomPromptFragment({
     required final String name,
     required final String race,
-    required final String characterClass,
+    required final String classLabel,
     required final String gender,
     required final String personality,
     required final List<String> skills,
     required final List<String> perks,
     required final AppLanguage language,
   }) {
+    final String identity = classLabel.trim().isEmpty
+        ? '$name, $race'
+        : '$name, $race $classLabel';
     final List<String> parts = <String>[
-      '$name, $race $characterClass',
+      identity,
       _label('gender', language) + gender,
       _label('personality', language) + personality,
     ];

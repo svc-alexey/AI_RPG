@@ -144,26 +144,21 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       ),
       const SizedBox(height: 24),
       SizedBox(height: context.responsive.blockSpacing),
-      _SectionLabel(title: l10n.settingTitle),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: CampaignSetting.values
-            .map(
-              (final item) => ChoiceChip(
-                label: Text(l10n.settingLabel(item)),
-                selected: state.setting == item,
-                onSelected: (_) => controller.setSetting(item),
-                avatar: Icon(switch (item) {
-                  CampaignSetting.fantasy => Icons.auto_awesome_rounded,
-                  CampaignSetting.detective => Icons.search_rounded,
-                  CampaignSetting.sciFi => Icons.rocket_launch_outlined,
-                }, size: 18),
-              ),
-            )
-            .toList(),
+      Text(
+        l10n.quickStartAiBlurb,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: AetherPalette.textMuted,
+        ),
       ),
+      if (!state.aiConfigured) ...<Widget>[
+        SizedBox(height: context.responsive.blockSpacing),
+        Text(
+          l10n.quickStartNeedsAi,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        ),
+      ],
       SizedBox(height: context.responsive.blockSpacing),
       TextField(
         controller: _heroController,
@@ -252,10 +247,16 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           ],
         ),
         SizedBox(height: context.responsive.sectionSpacing),
-        _StepIndicator(currentIndex: state.currentStep.index),
+        _StepIndicator(
+          currentIndex: state.currentStep.index,
+          stepCount: NewGameCustomSetupStep.values.length,
+        ),
         const SizedBox(height: 8),
         Text(
-          l10n.stepXOfY(state.currentStep.index + 1, 4),
+          l10n.stepXOfY(
+            state.currentStep.index + 1,
+            NewGameCustomSetupStep.values.length,
+          ),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AetherPalette.textMuted,
           ),
@@ -265,6 +266,17 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           child: ListView(
             children: <Widget>[
               switch (state.currentStep) {
+                NewGameCustomSetupStep.literaryGenre =>
+                  _buildLiteraryGenreStep(
+                    l10n: l10n,
+                    state: state,
+                    controller: controller,
+                  ),
+                NewGameCustomSetupStep.worldSetting => _buildWorldSettingStep(
+                  l10n: l10n,
+                  state: state,
+                  controller: controller,
+                ),
                 NewGameCustomSetupStep.foundation => _buildFoundationStep(
                   l10n: l10n,
                   state: state,
@@ -294,7 +306,39 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     );
   }
 
-  Widget _buildFoundationStep({
+  Widget _buildLiteraryGenreStep({
+    required final AppLocalizations l10n,
+    required final NewGameViewState state,
+    required final NewGameController controller,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      _SectionLabel(title: l10n.literaryGenreTitle),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: LiteraryGenre.values
+            .map(
+              (final item) => ChoiceChip(
+                label: Text(l10n.literaryGenreLabel(item)),
+                selected: state.literaryGenre == item,
+                onSelected: (_) => controller.setLiteraryGenre(item),
+                avatar: const Icon(Icons.menu_book_outlined, size: 18),
+              ),
+            )
+            .toList(),
+      ),
+      SizedBox(height: context.responsive.blockSpacing),
+      OutlinedButton.icon(
+        onPressed: controller.randomizeLiteraryGenre,
+        icon: const Icon(Icons.shuffle_rounded, size: 18),
+        label: Text(l10n.randomGenreButton),
+      ),
+    ],
+  );
+
+  Widget _buildWorldSettingStep({
     required final AppLocalizations l10n,
     required final NewGameViewState state,
     required final NewGameController controller,
@@ -312,11 +356,27 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                 label: Text(l10n.settingLabel(item)),
                 selected: state.setting == item,
                 onSelected: (_) => controller.setSetting(item),
+                avatar: Icon(_settingChoiceIcon(item), size: 18),
               ),
             )
             .toList(),
       ),
       SizedBox(height: context.responsive.blockSpacing),
+      OutlinedButton.icon(
+        onPressed: controller.randomizeSetting,
+        icon: const Icon(Icons.shuffle_rounded, size: 18),
+        label: Text(l10n.randomSettingButton),
+      ),
+    ],
+  );
+
+  Widget _buildFoundationStep({
+    required final AppLocalizations l10n,
+    required final NewGameViewState state,
+    required final NewGameController controller,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
       _SectionLabel(title: l10n.storyModeTitle),
       const SizedBox(height: 12),
       DropdownButtonFormField<StoryMode>(
@@ -385,6 +445,13 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       _SectionLabel(title: l10n.storyWishTitle),
       const SizedBox(height: 8),
       Text(
+        l10n.storyPromptHelp,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: AetherPalette.textMuted,
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
         l10n.storyWishOptional,
         style: theme.textTheme.bodySmall?.copyWith(
           color: AetherPalette.textMuted,
@@ -450,11 +517,10 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     required final NewGameController controller,
   }) {
     final CharacterProfile profile = controller.effectiveCharacterProfile();
-    final List<CharacterClass> classes =
-        classesBySetting[state.setting] ??
-        <CharacterClass>[CharacterClass.warrior];
+    final List<CharacterClass> classes = classesBySetting[state.setting]!;
     final List<String> races =
         racesBySetting[state.setting] ?? <String>['human'];
+    final bool showClass = settingUsesCharacterClass(state.setting);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,30 +534,32 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           ).textTheme.bodySmall?.copyWith(color: AetherPalette.textMuted),
         ),
         SizedBox(height: context.responsive.sectionSpacing),
-        DropdownButtonFormField<CharacterClass>(
-          initialValue: classes.contains(profile.characterClass)
-              ? profile.characterClass
-              : classes.first,
-          decoration: InputDecoration(
-            labelText: l10n.characterClassTitle,
-            filled: true,
-            fillColor: AetherPalette.panelSoft.withValues(alpha: 0.3),
+        if (showClass) ...<Widget>[
+          DropdownButtonFormField<CharacterClass>(
+            initialValue: classes.contains(profile.characterClass)
+                ? profile.characterClass
+                : classes.first,
+            decoration: InputDecoration(
+              labelText: l10n.characterClassTitle,
+              filled: true,
+              fillColor: AetherPalette.panelSoft.withValues(alpha: 0.3),
+            ),
+            items: classes
+                .map(
+                  (final item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(l10n.characterClassLabel(item)),
+                  ),
+                )
+                .toList(),
+            onChanged: (final value) {
+              if (value != null) {
+                controller.setCharacterClass(value);
+              }
+            },
           ),
-          items: classes
-              .map(
-                (final item) => DropdownMenuItem(
-                  value: item,
-                  child: Text(l10n.characterClassLabel(item)),
-                ),
-              )
-              .toList(),
-          onChanged: (final value) {
-            if (value != null) {
-              controller.setCharacterClass(value);
-            }
-          },
-        ),
-        SizedBox(height: context.responsive.sectionSpacing),
+          SizedBox(height: context.responsive.sectionSpacing),
+        ],
         DropdownButtonFormField<String>(
           initialValue: profile.race.isEmpty || !races.contains(profile.race)
               ? races.first
@@ -552,6 +620,13 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           label: Text(l10n.randomCharacter),
         ),
         SizedBox(height: context.responsive.sectionSpacing),
+        Text(
+          l10n.characterPromptHelp,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AetherPalette.textMuted),
+        ),
+        const SizedBox(height: 8),
         TextField(
           controller: _characterPromptController,
           onChanged: controller.setCharacterPrompt,
@@ -580,6 +655,12 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              _ReviewItem(
+                label: l10n.literaryGenreTitle,
+                value: l10n.literaryGenreLabel(state.literaryGenre),
+                icon: Icons.menu_book_outlined,
+              ),
+              const SizedBox(height: 12),
               _ReviewItem(
                 label: l10n.settingTitle,
                 value: l10n.settingLabel(state.setting),
@@ -619,8 +700,15 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                 const SizedBox(height: 12),
                 _ReviewItem(
                   label: l10n.characterSectionTitle,
-                  value:
-                      '${l10n.characterClassLabel(profile.characterClass)} • ${l10n.raceLabel(profile.race, state.setting)} • ${l10n.characterGenderLabel(profile.gender)}',
+                  value: () {
+                    final List<String> bits = <String>[
+                      if (profile.characterClass != CharacterClass.unspecified)
+                        l10n.characterClassLabel(profile.characterClass),
+                      l10n.raceLabel(profile.race, state.setting),
+                      l10n.characterGenderLabel(profile.gender),
+                    ];
+                    return bits.join(' • ');
+                  }(),
                   icon: Icons.badge_outlined,
                 ),
               ],
@@ -690,31 +778,68 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   }
 
   Future<void> _createQuickCampaign() async {
-    final CampaignState campaign = await _controller.createQuickCampaign();
-    if (!mounted) {
-      return;
+    try {
+      final CampaignState campaign = await _controller.createQuickCampaign();
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (final context) => ChatScreen(campaignId: campaign.id),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      final AppLocalizations l10n = context.l10n;
+      final String message = e is StateError && e.message == 'ai_not_configured'
+          ? l10n.quickStartNeedsAi
+          : l10n.promptGenerationFailed;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
-
-    await Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (final context) => ChatScreen(campaignId: campaign.id),
-      ),
-    );
   }
 
   Future<void> _createCampaign() async {
-    final CampaignState campaign = await _controller.createCampaign();
-    if (!mounted) {
-      return;
+    try {
+      final CampaignState campaign = await _controller.createCampaign();
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (final context) => ChatScreen(campaignId: campaign.id),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      final AppLocalizations l10n = context.l10n;
+      final String message = e is StateError && e.message == 'story_prompt_required'
+          ? l10n.storyPromptRequired
+          : l10n.promptGenerationFailed;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
-
-    await Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (final context) => ChatScreen(campaignId: campaign.id),
-      ),
-    );
   }
 }
+
+IconData _settingChoiceIcon(final CampaignSetting item) => switch (item) {
+  CampaignSetting.romantasy => Icons.favorite_rounded,
+  CampaignSetting.cozyFantasy => Icons.local_cafe_rounded,
+  CampaignSetting.darkAcademia => Icons.school_rounded,
+  CampaignSetting.postApocalypse => Icons.warning_rounded,
+  CampaignSetting.litRpgProgression => Icons.trending_up_rounded,
+  CampaignSetting.grimdarkFantasy => Icons.dark_mode_rounded,
+  CampaignSetting.nearFutureSciFi => Icons.rocket_launch_outlined,
+  CampaignSetting.horrorWeird => Icons.visibility_off_rounded,
+  CampaignSetting.cozyCrime => Icons.search_rounded,
+  CampaignSetting.altHistorySecret => Icons.history_rounded,
+};
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.title});
@@ -782,14 +907,18 @@ class _ModeCard extends StatelessWidget {
 }
 
 class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.currentIndex});
+  const _StepIndicator({
+    required this.currentIndex,
+    required this.stepCount,
+  });
 
   final int currentIndex;
+  final int stepCount;
 
   @override
   Widget build(final BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.center,
-    children: List<Widget>.generate(4, (final index) {
+    children: List<Widget>.generate(stepCount, (final index) {
       final bool isCurrent = index == currentIndex;
       final bool isPast = index < currentIndex;
       final AppResponsiveData responsive = context.responsive;

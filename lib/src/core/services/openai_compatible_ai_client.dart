@@ -8,6 +8,7 @@ import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/narrative_nudge_service.dart';
 import 'package:ai_prg/src/core/services/openai_compatible_json_helpers.dart';
 import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
@@ -55,18 +56,15 @@ class OpenAiCompatibleAiClient implements AiClient {
 
   static const int _maxCustomPromptLength = 1000;
 
+  static const NarrativeNudgeService _promptNudge = NarrativeNudgeService();
+
   @override
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required final AiSettings settings,
     required final AppLanguage language,
-    required final String storyWish,
-    required final CampaignSetting setting,
+    required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async {
-    if (storyWish.trim().isEmpty) {
-      return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
-    }
-
     final String contentNote = settings.confirmed18Plus
         ? ''
         : switch (language) {
@@ -75,28 +73,60 @@ class OpenAiCompatibleAiClient implements AiClient {
             AppLanguage.en =>
               ' Avoid sexual content. Keep content suitable for general audiences.',
           };
+    final String anchors = _promptNudge.buildHiddenBlock(
+      setting: request.setting,
+      genre: request.literaryGenre,
+      language: language,
+      confirmed18Plus: settings.confirmed18Plus,
+      difficulty: request.difficulty,
+    );
+    final String wishLine = request.storyWish.trim().isEmpty
+        ? switch (language) {
+            AppLanguage.ru =>
+              'Пользователь не ввёл текстовое пожелание — придумай свежую завязку сам.',
+            AppLanguage.en =>
+              'The user did not type a free-form wish—invent a fresh hook.',
+          }
+        : switch (language) {
+            AppLanguage.ru =>
+              'Пожелание пользователя (развивай свободно): "${request.storyWish.trim()}"',
+            AppLanguage.en =>
+              'User wish (develop freely): "${request.storyWish.trim()}"',
+          };
     final String metaPrompt = switch (language) {
       AppLanguage.ru =>
         '''
-Пользователь описывает желаемую историю для narrative RPG: "$storyWish"
-Сеттинг: ${setting.name}.
+Ты генерируешь промпты для narrative RPG.
+Каркас мира (технический id): ${request.setting.name}
+Жанровый акцент (технический id): ${request.literaryGenre.name}
 
-ВАЖНО: Ответ должен быть полностью на русском языке для корректного отображения в русском интерфейсе.
+Мягкие ориентиры:
+$anchors
 
-Сгенерируй JSON с двумя ключами:
-- storyPrompt: инструкции на русском языке для narrative AI, как вести именно эту историю (тон, жанр, атмосфера). Максимум 300 слов.$contentNote
-- characterPrompt: краткое описание на русском языке типа персонажа, подходящего для этой истории. Максимум 100 слов.
+$wishLine
 
-Ответь только JSON, без markdown.
+ВАЖНО: Ответ полностью на русском для русского интерфейса.
+
+Сгенерируй JSON с ключами:
+- storyPrompt: инструкции narrative AI (тон, атмосфера, как вести историю). Максимум 300 слов. Не копируй длинные шаблоны — будь конкретным.$contentNote
+- characterPrompt: кратко тип героя под эту историю. Максимум 100 слов.
+
+Только JSON, без markdown.
 ''',
       AppLanguage.en =>
         '''
-User describes desired story for narrative RPG: "$storyWish"
-Setting: ${setting.name}.
+You generate prompts for a narrative RPG.
+World frame (id): ${request.setting.name}
+Genre lean (id): ${request.literaryGenre.name}
 
-Generate JSON with two keys:
-- storyPrompt: instructions for narrative AI on how to run this story (tone, genre, atmosphere). Max 300 words.$contentNote
-- characterPrompt: brief description of character type suited for this story. Max 100 words.
+Soft anchors:
+$anchors
+
+$wishLine
+
+Generate JSON with keys:
+- storyPrompt: instructions for the narrative AI (tone, atmosphere). Max 300 words. Be specific; do not paste generic templates.$contentNote
+- characterPrompt: brief protagonist type for this story. Max 100 words.
 
 Reply only with JSON, no markdown.
 ''',
@@ -173,7 +203,7 @@ Reply only with JSON, no markdown.
         characterPrompt: characterPrompt,
       );
     } catch (e) {
-      debugPrint('generatePromptsFromStoryWish failed: $e');
+      debugPrint('generateCampaignPrompts failed: $e');
       return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
     }
   }
@@ -1329,6 +1359,7 @@ $actionText
 
     final String narration = _firstMatchedValue(cleaned, <String>[
       'narration',
+      'naration',
       'scene',
       'story',
       'description',
@@ -1340,6 +1371,7 @@ $actionText
       cleaned,
       const <String>[
         'narration',
+        'naration',
         'scene',
         'story',
         'description',
@@ -1663,6 +1695,7 @@ $actionText
   String _extractResponseLevelText(final Map<String, Object?> map) {
     final String direct = _firstNonEmptyJsonString(map, const <String>[
       'narration',
+      'naration',
       'scene',
       'story',
       'description',
@@ -1832,12 +1865,29 @@ $actionText
 
   @visibleForTesting
   String? extractNarrationPreview(final String rawContent) {
-    final int fieldStart = rawContent.indexOf('"narration"');
+    for (final String key in const <String>['narration', 'naration']) {
+      final String? preview = _extractQuotedJsonStringFieldPreview(
+        rawContent,
+        key,
+      );
+      if (preview != null) {
+        return preview;
+      }
+    }
+    return null;
+  }
+
+  String? _extractQuotedJsonStringFieldPreview(
+    final String rawContent,
+    final String key,
+  ) {
+    final String quotedKey = '"$key"';
+    final int fieldStart = rawContent.indexOf(quotedKey);
     if (fieldStart == -1) {
       return null;
     }
 
-    int index = fieldStart + '"narration"'.length;
+    int index = fieldStart + quotedKey.length;
     while (index < rawContent.length &&
         _isWhitespace(rawContent.codeUnitAt(index))) {
       index++;

@@ -61,13 +61,11 @@ abstract class AiClient {
     CancelToken? cancelToken,
   });
 
-  /// Generates story and character prompts from user's story wish.
-  /// Returns empty prompts if AI is not configured or on error.
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  /// Generates story and character prompts (RO-RO). Empty on error.
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required AiSettings settings,
     required AppLanguage language,
-    required String storyWish,
-    required CampaignSetting setting,
+    required CampaignPromptGenerationRequest request,
     CancelToken? cancelToken,
   });
 

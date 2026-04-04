@@ -140,12 +140,14 @@
 - Custom Story Prompt (TextField, 4 строки)
 
 **Шаг 3/4 — Character**:
-- Character Class (DropdownButtonFormField)
+- Character Class (DropdownButtonFormField) — только если для выбранного сеттинга в `classesBySetting` задан непустой список; иначе поле скрыто, класс в данных — `unspecified`
 - Race (DropdownButtonFormField)
 - Gender (DropdownButtonFormField)
 - Personality (TextField)
 - Random Character (OutlinedButton.icon)
 - Character Prompt (TextField, 3 строки)
+
+**Синхронизация промпта персонажа:** при смене **сеттинга** (на шаге мира или ранее), **расы**, **пола** или **класса** текст в поле «промпт персонажа» пересобирается из актуального профиля через `CharacterPromptBuilder` (в контроллере `NewGameController`). Ручное редактирование этого поля затем может быть перезаписано следующей такой структурной сменой — это ожидаемое поведение привязки к реквизитам.
 
 **Шаг 4/4 — Review**:
 - Карточка с итоговым обзором всех настроек
@@ -287,6 +289,7 @@
 - Кнопка Отправить/Отменить справа в Row
 - LinearProgressIndicator сверху композера при отправке
 - Всё внутри одного Container с rounded corners
+- **Клавиатура (desktop/web):** в многострочном поле ввода **Enter** отправляет ход (эквивалент кнопки отправки), **Shift+Enter** вставляет перевод строки; при активной отправке (`isSending`) сочетания не перехватываются (`FocusNode.onKeyEvent` в `chat_screen.dart`)
 
 ```dart
 Container(

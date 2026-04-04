@@ -24,7 +24,7 @@ void main() {
 
     final CampaignState campaign = engine.createCampaign(
       draft: const CampaignDraft(
-        setting: CampaignSetting.detective,
+        setting: CampaignSetting.cozyCrime,
         mode: StoryMode.longCampaign,
         difficulty: DifficultyLevel.medium,
         heroName: 'Alex',
@@ -35,7 +35,7 @@ void main() {
     expect(campaign.isModuleActive(CampaignModule.notes), isTrue);
     expect(campaign.isModuleActive(CampaignModule.inventory), isFalse);
     expect(campaign.inventory, isEmpty);
-    expect(campaign.notes, isNotEmpty);
+    expect(campaign.notes, isEmpty);
   });
 
   test(
@@ -45,7 +45,7 @@ void main() {
 
       final List<CampaignModuleState> modules = resolver.resolveInitialModules(
         draft: const CampaignDraft(
-          setting: CampaignSetting.sciFi,
+          setting: CampaignSetting.nearFutureSciFi,
           mode: StoryMode.longCampaign,
           difficulty: DifficultyLevel.medium,
           heroName: 'Nova',
@@ -68,7 +68,7 @@ void main() {
     final CampaignState state = CampaignState.fromJson(<String, Object?>{
       'id': 'legacy-1',
       'title': 'Legacy',
-      'setting': CampaignSetting.fantasy.name,
+      'setting': 'fantasy',
       'mode': StoryMode.shortStory.name,
       'difficulty': DifficultyLevel.easy.name,
       'character': const CharacterStats(
@@ -94,6 +94,7 @@ void main() {
     expect(state.isModuleActive(CampaignModule.inventory), isTrue);
     expect(state.isModuleActive(CampaignModule.notes), isTrue);
     expect(state.isModuleActive(CampaignModule.vitality), isTrue);
+    expect(state.setting, CampaignSetting.romantasy);
   });
 
   test(
@@ -103,7 +104,7 @@ void main() {
         id: 'roundtrip-1',
         schemaVersion: 3,
         title: 'Roundtrip',
-        setting: CampaignSetting.sciFi,
+        setting: CampaignSetting.nearFutureSciFi,
         mode: StoryMode.longCampaign,
         difficulty: DifficultyLevel.medium,
         character: const CharacterStats(
@@ -178,7 +179,7 @@ void main() {
       id: 'camp-1',
       schemaVersion: 3,
       title: 'Ash Harbor',
-      setting: CampaignSetting.detective,
+      setting: CampaignSetting.cozyCrime,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -253,7 +254,7 @@ void main() {
         id: 'camp-2',
         schemaVersion: 3,
         title: 'Sky Market',
-        setting: CampaignSetting.sciFi,
+        setting: CampaignSetting.nearFutureSciFi,
         mode: StoryMode.longCampaign,
         difficulty: DifficultyLevel.medium,
         character: const CharacterStats(
@@ -332,7 +333,7 @@ void main() {
       id: 'camp-checks',
       schemaVersion: 3,
       title: 'Glass Vault',
-      setting: CampaignSetting.fantasy,
+      setting: CampaignSetting.romantasy,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -424,7 +425,7 @@ void main() {
       id: 'detective-long-play',
       schemaVersion: 3,
       title: 'Ash Ledger',
-      setting: CampaignSetting.detective,
+      setting: CampaignSetting.cozyCrime,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -506,7 +507,7 @@ void main() {
       id: 'narrative-only-long-play',
       schemaVersion: 3,
       title: 'Moonlit Letters',
-      setting: CampaignSetting.fantasy,
+      setting: CampaignSetting.romantasy,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -587,7 +588,7 @@ void main() {
       id: 'detective-ui',
       schemaVersion: 3,
       title: 'Quiet Case',
-      setting: CampaignSetting.detective,
+      setting: CampaignSetting.cozyCrime,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -663,7 +664,7 @@ void main() {
       id: 'detective-gating',
       schemaVersion: 3,
       title: 'Paper Trail',
-      setting: CampaignSetting.detective,
+      setting: CampaignSetting.cozyCrime,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -750,7 +751,7 @@ void main() {
       id: 'overlay-campaign',
       schemaVersion: 3,
       title: 'Star Run',
-      setting: CampaignSetting.sciFi,
+      setting: CampaignSetting.nearFutureSciFi,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -830,7 +831,7 @@ void main() {
       id: 'notes-highlight',
       schemaVersion: 3,
       title: 'Quiet Case',
-      setting: CampaignSetting.detective,
+      setting: CampaignSetting.cozyCrime,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -912,7 +913,7 @@ void main() {
       id: 'checks-sidebar',
       schemaVersion: 3,
       title: 'Vault Run',
-      setting: CampaignSetting.fantasy,
+      setting: CampaignSetting.romantasy,
       mode: StoryMode.longCampaign,
       difficulty: DifficultyLevel.medium,
       character: const CharacterStats(
@@ -988,6 +989,9 @@ void main() {
 class _FakeSettingsRepository extends SettingsRepository {
   @override
   Future<AiSettings> loadAiSettings() async => const AiSettings.defaults();
+
+  @override
+  Future<AiSettings> loadAiSettingsPersisted() async => loadAiSettings();
 }
 
 class _FakeConfiguredSettingsRepository extends SettingsRepository {
@@ -999,6 +1003,9 @@ class _FakeConfiguredSettingsRepository extends SettingsRepository {
     timeoutSeconds: 15,
     runtimeSettings: ModelRuntimeSettings.smartPreset,
   );
+
+  @override
+  Future<AiSettings> loadAiSettingsPersisted() async => loadAiSettings();
 }
 
 class _FakeCampaignRepository extends CampaignRepository {
@@ -1071,11 +1078,10 @@ class _OverlayAiClient implements AiClient {
   }
 
   @override
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required final AiSettings settings,
     required final AppLanguage language,
-    required final String storyWish,
-    required final CampaignSetting setting,
+    required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 
@@ -1126,11 +1132,10 @@ class _NotesOnlyAiClient implements AiClient {
   }
 
   @override
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required final AiSettings settings,
     required final AppLanguage language,
-    required final String storyWish,
-    required final CampaignSetting setting,
+    required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 
@@ -1175,11 +1180,10 @@ class _ChecksAiClient implements AiClient {
   }
 
   @override
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required final AiSettings settings,
     required final AppLanguage language,
-    required final String storyWish,
-    required final CampaignSetting setting,
+    required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 
@@ -1231,11 +1235,10 @@ class _DetectiveChromeAiClient implements AiClient {
   }
 
   @override
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required final AiSettings settings,
     required final AppLanguage language,
-    required final String storyWish,
-    required final CampaignSetting setting,
+    required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 

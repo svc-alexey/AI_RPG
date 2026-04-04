@@ -1,3 +1,5 @@
+import 'package:ai_prg/src/core/config/ai_runtime_env.dart';
+
 enum AiProviderType { openAiCompatible }
 
 enum ModelRuntimeProfile { cheap, fast, smart, custom }
@@ -185,7 +187,25 @@ class AiSettings {
 
   ModelRuntimeProfile get runtimeProfile => runtimeSettings.profile;
 
-  bool get isConfigured => baseUrl.trim().isNotEmpty && model.trim().isNotEmpty;
+  bool get isConfigured =>
+      baseUrl.trim().isNotEmpty &&
+      model.trim().isNotEmpty &&
+      apiKey.trim().isNotEmpty;
+
+  /// Fills empty [baseUrl], [model], or [apiKey] from [AiRuntimeEnv] so the app
+  /// works without prior settings; non-empty stored values win (user settings).
+  static AiSettings withEnvFallbacks(final AiSettings stored) {
+    final String base = stored.baseUrl.trim().isNotEmpty
+        ? stored.baseUrl.trim()
+        : AiRuntimeEnv.defaultBaseUrl.trim();
+    final String model = stored.model.trim().isNotEmpty
+        ? stored.model.trim()
+        : AiRuntimeEnv.defaultModel.trim();
+    final String key = stored.apiKey.trim().isNotEmpty
+        ? stored.apiKey.trim()
+        : AiRuntimeEnv.defaultApiKey.trim();
+    return stored.copyWith(baseUrl: base, model: model, apiKey: key);
+  }
 
   AiSettings copyWith({
     final String? baseUrl,

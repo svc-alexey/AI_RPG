@@ -281,6 +281,7 @@ class AppLocalizations {
         (AppLanguage.ru, CharacterClass.engineer) => 'Инженер',
         (AppLanguage.ru, CharacterClass.pilot) => 'Пилот',
         (AppLanguage.ru, CharacterClass.medic) => 'Медик',
+        (AppLanguage.ru, CharacterClass.unspecified) => 'Без класса',
         (AppLanguage.en, CharacterClass.warrior) => 'Warrior',
         (AppLanguage.en, CharacterClass.mage) => 'Mage',
         (AppLanguage.en, CharacterClass.rogue) => 'Rogue',
@@ -290,6 +291,7 @@ class AppLocalizations {
         (AppLanguage.en, CharacterClass.engineer) => 'Engineer',
         (AppLanguage.en, CharacterClass.pilot) => 'Pilot',
         (AppLanguage.en, CharacterClass.medic) => 'Medic',
+        (AppLanguage.en, CharacterClass.unspecified) => 'No class',
       };
 
   String characterGenderLabel(final CharacterGender value) =>
@@ -327,13 +329,108 @@ class AppLocalizations {
 
   String settingLabel(final CampaignSetting value) =>
       switch ((language, value)) {
-        (AppLanguage.ru, CampaignSetting.fantasy) => 'Фэнтези',
-        (AppLanguage.ru, CampaignSetting.detective) => 'Детектив',
-        (AppLanguage.ru, CampaignSetting.sciFi) => 'Sci-fi',
-        (AppLanguage.en, CampaignSetting.fantasy) => 'Fantasy',
-        (AppLanguage.en, CampaignSetting.detective) => 'Detective',
-        (AppLanguage.en, CampaignSetting.sciFi) => 'Sci-fi',
+        (AppLanguage.ru, CampaignSetting.romantasy) => 'Романтическое фэнтези',
+        (AppLanguage.ru, CampaignSetting.cozyFantasy) => 'Уютное фэнтези',
+        (AppLanguage.ru, CampaignSetting.darkAcademia) => 'Тёмная академия',
+        (AppLanguage.ru, CampaignSetting.postApocalypse) => 'Постапокалипсис',
+        (AppLanguage.ru, CampaignSetting.litRpgProgression) => 'LitRPG',
+        (AppLanguage.ru, CampaignSetting.grimdarkFantasy) => 'Гримдарк',
+        (AppLanguage.ru, CampaignSetting.nearFutureSciFi) => 'НФ близкого будущего',
+        (AppLanguage.ru, CampaignSetting.horrorWeird) => 'Хоррор',
+        (AppLanguage.ru, CampaignSetting.cozyCrime) => 'Cozy crime',
+        (AppLanguage.ru, CampaignSetting.altHistorySecret) => 'Альт-история',
+        (AppLanguage.en, CampaignSetting.romantasy) => 'Romantasy',
+        (AppLanguage.en, CampaignSetting.cozyFantasy) => 'Cozy fantasy',
+        (AppLanguage.en, CampaignSetting.darkAcademia) => 'Dark academia',
+        (AppLanguage.en, CampaignSetting.postApocalypse) => 'Post-apocalypse',
+        (AppLanguage.en, CampaignSetting.litRpgProgression) => 'LitRPG',
+        (AppLanguage.en, CampaignSetting.grimdarkFantasy) => 'Grimdark',
+        (AppLanguage.en, CampaignSetting.nearFutureSciFi) => 'Near-future SF',
+        (AppLanguage.en, CampaignSetting.horrorWeird) => 'Horror',
+        (AppLanguage.en, CampaignSetting.cozyCrime) => 'Cozy crime',
+        (AppLanguage.en, CampaignSetting.altHistorySecret) => 'Alt history',
       };
+
+  String get literaryGenreTitle => switch (language) {
+    AppLanguage.ru => 'Литературный жанр',
+    AppLanguage.en => 'Literary genre',
+  };
+
+  String literaryGenreLabel(final LiteraryGenre value) =>
+      switch ((language, value)) {
+        (AppLanguage.ru, LiteraryGenre.romance) => 'Романтика',
+        (AppLanguage.ru, LiteraryGenre.romantasyGenre) => 'Romantasy',
+        (AppLanguage.ru, LiteraryGenre.fantasyGenre) => 'Фэнтези',
+        (AppLanguage.ru, LiteraryGenre.psychologicalThriller) =>
+          'Психологический триллер',
+        (AppLanguage.ru, LiteraryGenre.mysteryCrime) => 'Детектив / crime',
+        (AppLanguage.ru, LiteraryGenre.horrorGenre) => 'Хоррор',
+        (AppLanguage.ru, LiteraryGenre.youngAdult) => 'Young Adult',
+        (AppLanguage.ru, LiteraryGenre.speculativeFiction) =>
+          'Speculative fiction',
+        (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
+        (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Cozy / feel-good',
+        (AppLanguage.en, LiteraryGenre.romance) => 'Romance',
+        (AppLanguage.en, LiteraryGenre.romantasyGenre) => 'Romantasy',
+        (AppLanguage.en, LiteraryGenre.fantasyGenre) => 'Fantasy',
+        (AppLanguage.en, LiteraryGenre.psychologicalThriller) =>
+          'Psychological thriller',
+        (AppLanguage.en, LiteraryGenre.mysteryCrime) => 'Mystery / crime',
+        (AppLanguage.en, LiteraryGenre.horrorGenre) => 'Horror',
+        (AppLanguage.en, LiteraryGenre.youngAdult) => 'Young Adult',
+        (AppLanguage.en, LiteraryGenre.speculativeFiction) =>
+          'Speculative fiction',
+        (AppLanguage.en, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
+        (AppLanguage.en, LiteraryGenre.cozyFeelGood) => 'Cozy / feel-good',
+      };
+
+  String get randomGenreButton => switch (language) {
+    AppLanguage.ru => 'Случайный жанр',
+    AppLanguage.en => 'Random genre',
+  };
+
+  String get randomSettingButton => switch (language) {
+    AppLanguage.ru => 'Случайный сеттинг',
+    AppLanguage.en => 'Random setting',
+  };
+
+  String get quickStartAiBlurb => switch (language) {
+    AppLanguage.ru =>
+      'ИИ подберёт случайный сеттинг и жанр и сгенерирует старт истории. Нужны настроенные AI и сеть.',
+    AppLanguage.en =>
+      'AI picks a random setting and genre and writes your opening. Requires configured AI.',
+  };
+
+  String get promptGenerationFailed => switch (language) {
+    AppLanguage.ru =>
+      'Не удалось сгенерировать начало истории. Проверьте AI и попробуйте снова.',
+    AppLanguage.en =>
+      'Could not generate the story start. Check AI settings and try again.',
+  };
+
+  String get quickStartNeedsAi => switch (language) {
+    AppLanguage.ru => 'Настройте AI в параметрах, чтобы использовать быстрый старт.',
+    AppLanguage.en => 'Configure AI in settings to use quick start.',
+  };
+
+  String get storyPromptHelp => switch (language) {
+    AppLanguage.ru =>
+      'Инструкция для рассказчика: тон, конфликт, что важно в мире. Можно править после генерации ИИ.',
+    AppLanguage.en =>
+      'Instructions for the narrator: tone, conflict, what matters. You can edit after AI generation.',
+  };
+
+  String get characterPromptHelp => switch (language) {
+    AppLanguage.ru =>
+      'Кратко кто герой для модели: роль, мотивация, границы характера.',
+    AppLanguage.en =>
+      'Short protagonist briefing for the model: role, drive, boundaries.',
+  };
+
+  String get storyPromptRequired => switch (language) {
+    AppLanguage.ru => 'Введите или сгенерируйте промпт истории перед созданием.',
+    AppLanguage.en => 'Enter or generate a story prompt before creating.',
+  };
 
   String storyModeLabel(final StoryMode value) => switch ((language, value)) {
     (AppLanguage.ru, StoryMode.shortStory) => 'Короткая история',
@@ -738,6 +835,25 @@ class AppLocalizations {
   String get apiKeyHint => switch (language) {
     AppLanguage.ru => 'Оставьте пустым, если endpoint не требует ключ',
     AppLanguage.en => 'Leave empty if the endpoint does not require a key',
+  };
+
+  String get showApiKey => switch (language) {
+    AppLanguage.ru => 'Показать ключ',
+    AppLanguage.en => 'Show key',
+  };
+
+  String get hideApiKey => switch (language) {
+    AppLanguage.ru => 'Скрыть ключ',
+    AppLanguage.en => 'Hide key',
+  };
+
+  String get apiKeyBuildTimeHiddenHint => switch (language) {
+    AppLanguage.ru =>
+      'Ключ из сборки (dart-define) здесь не показывается. Чтобы хранить ключ '
+          'на этом устройстве — введите его и нажмите «Сохранить».',
+    AppLanguage.en =>
+      'Build-time API keys are not shown here. Enter a key and tap Save to '
+          'store it on this device.',
   };
 
   String get timeoutSeconds => switch (language) {

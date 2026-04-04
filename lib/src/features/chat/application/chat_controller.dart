@@ -40,11 +40,11 @@ class ChatViewState {
     required this.clearInputRevision,
   });
 
-  const ChatViewState.initial()
+  ChatViewState.initial()
     : isLoading = true,
       isSending = false,
       campaign = null,
-      settings = const AiSettings.defaults(),
+      settings = AiSettings.withEnvFallbacks(const AiSettings.defaults()),
       status = null,
       pendingPlayerMessage = null,
       pendingNarratorMessage = null,
@@ -114,7 +114,7 @@ class ChatViewState {
 
 class ChatController extends StateNotifier<ChatViewState> {
   ChatController(this._ref, this._campaignId)
-    : super(const ChatViewState.initial());
+    : super(ChatViewState.initial());
 
   final Ref _ref;
   final String _campaignId;

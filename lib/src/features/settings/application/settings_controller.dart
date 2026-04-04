@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
+import 'package:ai_prg/src/core/config/ai_runtime_env.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
@@ -28,6 +29,7 @@ class SettingsViewState {
     required this.contextWindowSizeText,
     required this.status,
     required this.formRevision,
+    required this.showApiKeyFromBuildHint,
   });
 
   factory SettingsViewState.initial() => SettingsViewState(
@@ -36,8 +38,8 @@ class SettingsViewState {
     isLoading: true,
     isSaving: false,
     isChecking: false,
-    baseUrl: AiSettings.defaultBaseUrl,
-    model: AiSettings.defaultModel,
+    baseUrl: AiRuntimeEnv.defaultBaseUrl,
+    model: AiRuntimeEnv.defaultModel,
     apiKey: '',
     timeoutText: '60',
     runtimeProfile: ModelRuntimeSettings.defaults.profile,
@@ -47,6 +49,7 @@ class SettingsViewState {
         .toString(),
     status: null,
     formRevision: 0,
+    showApiKeyFromBuildHint: false,
   );
 
   static const Object _unset = Object();
@@ -65,6 +68,7 @@ class SettingsViewState {
   final String contextWindowSizeText;
   final String? status;
   final int formRevision;
+  final bool showApiKeyFromBuildHint;
 
   SettingsViewState copyWith({
     final AppLanguage? appLanguage,
@@ -81,6 +85,7 @@ class SettingsViewState {
     final String? contextWindowSizeText,
     final Object? status = _unset,
     final int? formRevision,
+    final bool? showApiKeyFromBuildHint,
   }) => SettingsViewState(
     appLanguage: appLanguage ?? this.appLanguage,
     confirmed18Plus: confirmed18Plus ?? this.confirmed18Plus,
@@ -96,6 +101,8 @@ class SettingsViewState {
     contextWindowSizeText: contextWindowSizeText ?? this.contextWindowSizeText,
     status: identical(status, _unset) ? this.status : status as String?,
     formRevision: formRevision ?? this.formRevision,
+    showApiKeyFromBuildHint:
+        showApiKeyFromBuildHint ?? this.showApiKeyFromBuildHint,
   );
 }
 
@@ -112,21 +119,24 @@ class SettingsController extends StateNotifier<SettingsViewState> {
     }
     _didLoad = true;
 
-    final AiSettings settings = await _settingsRepository.loadAiSettings();
+    final AiSettings persisted =
+        await _settingsRepository.loadAiSettingsPersisted();
+    final AiSettings effective = AiSettings.withEnvFallbacks(persisted);
     final AppLanguage appLanguage = await _settingsRepository.loadAppLanguage();
 
     state = state.copyWith(
       appLanguage: appLanguage,
-      confirmed18Plus: settings.confirmed18Plus,
+      confirmed18Plus: effective.confirmed18Plus,
       isLoading: false,
-      baseUrl: settings.baseUrl,
-      model: settings.model,
-      apiKey: settings.apiKey,
-      timeoutText: settings.timeoutSeconds.toString(),
-      runtimeProfile: settings.runtimeSettings.profile,
-      maxResponseTokensText: settings.runtimeSettings.maxResponseTokens
+      baseUrl: effective.baseUrl,
+      model: effective.model,
+      apiKey: persisted.apiKey.trim().isNotEmpty ? persisted.apiKey : '',
+      showApiKeyFromBuildHint: persisted.apiKey.trim().isEmpty,
+      timeoutText: effective.timeoutSeconds.toString(),
+      runtimeProfile: effective.runtimeSettings.profile,
+      maxResponseTokensText: effective.runtimeSettings.maxResponseTokens
           .toString(),
-      contextWindowSizeText: settings.runtimeSettings.contextWindowSize
+      contextWindowSizeText: effective.runtimeSettings.contextWindowSize
           .toString(),
       formRevision: state.formRevision + 1,
     );
@@ -206,8 +216,9 @@ class SettingsController extends StateNotifier<SettingsViewState> {
     state = state.copyWith(isChecking: true, status: null);
 
     try {
-      final AiClient client = _aiServiceFactory.create(currentSettings);
-      await client.checkConnection(settings: currentSettings);
+      final AiSettings effective = AiSettings.withEnvFallbacks(currentSettings);
+      final AiClient client = _aiServiceFactory.create(effective);
+      await client.checkConnection(settings: effective);
       state = state.copyWith(status: l10n.connectionOk);
     } catch (error) {
       state = state.copyWith(status: l10n.connectionFailed(error));

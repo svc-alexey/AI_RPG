@@ -31,6 +31,7 @@ void main() {
       'Осмотреть окрестности',
     ]);
   });
+
   test('TurnResult resolves alternate location containers', () {
     final TurnResult result = TurnResult.fromJson(<String, Object?>{
       'narration': 'Cold air rolls down the corridor.',

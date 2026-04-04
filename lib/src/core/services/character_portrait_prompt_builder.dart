@@ -13,9 +13,10 @@ class CharacterPortraitPromptBuilder {
     required final CharacterProfile character,
   }) {
     final String settingLabel = switch (setting) {
-      CampaignSetting.fantasy => 'fantasy',
-      CampaignSetting.detective => 'detective noir',
-      CampaignSetting.sciFi => 'science fiction',
+      CampaignSetting.cozyCrime => 'detective noir',
+      CampaignSetting.postApocalypse ||
+      CampaignSetting.nearFutureSciFi => 'science fiction',
+      _ => 'fantasy',
     };
     final String gender = switch (character.gender) {
       CharacterGender.male => 'male',
@@ -26,8 +27,12 @@ class CharacterPortraitPromptBuilder {
     final String fragment = character.promptFragment.trim();
     final String story = storyPrompt.trim();
 
+    final String classToken = character.characterClass ==
+            CharacterClass.unspecified
+        ? ''
+        : ' ${character.characterClass.name}';
     final List<String> details = <String>[
-      '${character.name}, a $gender ${character.race} ${character.characterClass.name}',
+      '${character.name}, a $gender ${character.race}$classToken',
       'cinematic character portrait',
       '$settingLabel atmosphere',
       'head and shoulders composition',

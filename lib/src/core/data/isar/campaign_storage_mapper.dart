@@ -12,6 +12,7 @@ class CampaignStorageMapper {
       ..schemaVersion = state.schemaVersion
       ..title = state.title
       ..setting = state.setting.name
+      ..literaryGenre = state.literaryGenre?.name
       ..mode = state.mode.name
       ..difficulty = state.difficulty.name
       ..location = state.location
@@ -228,10 +229,8 @@ class CampaignStorageMapper {
       id: campaign.campaignId,
       schemaVersion: campaign.schemaVersion,
       title: campaign.title,
-      setting: CampaignSetting.values.firstWhere(
-        (final item) => item.name == campaign.setting,
-        orElse: () => CampaignSetting.fantasy,
-      ),
+      setting: parseCampaignSetting(campaign.setting),
+      literaryGenre: parseLiteraryGenre(campaign.literaryGenre),
       mode: StoryMode.values.firstWhere(
         (final item) => item.name == campaign.mode,
         orElse: () => StoryMode.shortStory,

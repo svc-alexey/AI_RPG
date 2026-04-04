@@ -1,4 +1,58 @@
-enum CampaignSetting { fantasy, detective, sciFi }
+/// World-frame presets for narrative (soft anchors; genre mixing allowed).
+enum CampaignSetting {
+  romantasy,
+  cozyFantasy,
+  darkAcademia,
+  postApocalypse,
+  litRpgProgression,
+  grimdarkFantasy,
+  nearFutureSciFi,
+  horrorWeird,
+  cozyCrime,
+  altHistorySecret,
+}
+
+/// Literary genre emphasis (one pick in wizard; optional on saved campaigns).
+enum LiteraryGenre {
+  romance,
+  romantasyGenre,
+  fantasyGenre,
+  psychologicalThriller,
+  mysteryCrime,
+  horrorGenre,
+  youngAdult,
+  speculativeFiction,
+  darkAcademiaGenre,
+  cozyFeelGood,
+}
+
+CampaignSetting parseCampaignSetting(final String? raw) {
+  final String name = raw?.trim() ?? '';
+  for (final CampaignSetting item in CampaignSetting.values) {
+    if (item.name == name) {
+      return item;
+    }
+  }
+  return switch (name) {
+    'fantasy' => CampaignSetting.romantasy,
+    'detective' => CampaignSetting.cozyCrime,
+    'sciFi' => CampaignSetting.nearFutureSciFi,
+    _ => CampaignSetting.romantasy,
+  };
+}
+
+LiteraryGenre? parseLiteraryGenre(final String? raw) {
+  final String name = raw?.trim() ?? '';
+  if (name.isEmpty) {
+    return null;
+  }
+  for (final LiteraryGenre item in LiteraryGenre.values) {
+    if (item.name == name) {
+      return item;
+    }
+  }
+  return null;
+}
 
 enum StoryMode { shortStory, longCampaign }
 
@@ -30,6 +84,8 @@ enum CharacterClass {
   engineer,
   pilot,
   medic,
+  /// No game class for this world (romance, cozy, etc.); not shown in wizard.
+  unspecified,
 }
 
 Map<String, Object?> _jsonMap(final Object? value) {
@@ -309,7 +365,7 @@ class CharacterProfile {
         race: _jsonString(json['race']),
         characterClass: CharacterClass.values.firstWhere(
           (final item) => item.name == json['characterClass'],
-          orElse: () => CharacterClass.warrior,
+          orElse: () => CharacterClass.unspecified,
         ),
         skills: _jsonList(
           json['skills'],
@@ -687,6 +743,7 @@ String _resolveTurnNarration(
 }) {
   final String resolved = _firstNonEmptyStringPath(value, const <String>[
     'narration',
+    'naration',
     'scene',
     'story',
     'description',
@@ -695,6 +752,7 @@ String _resolveTurnNarration(
     'memory_entry.text',
     'memoryEntry.text',
     'result.narration',
+    'result.naration',
     'result.scene',
     'result.story',
     'result.description',
@@ -770,10 +828,13 @@ class CampaignState {
         ? CampaignMemory.fromJson(memoryJson)
         : CampaignMemory(
             rollingSummary: _jsonString(json['summary']),
-            activeGoal: _jsonString(
-              json['objective'],
-              fallback: 'Пережить первую сцену кампании.',
-            ),
+            activeGoal: () {
+              final String fromActiveGoal = _jsonString(json['activeGoal']);
+              if (fromActiveGoal.trim().isNotEmpty) {
+                return fromActiveGoal;
+              }
+              return _jsonString(json['objective']);
+            }(),
             activeSituation: messagesJson.isNotEmpty
                 ? _jsonString(_jsonMap(messagesJson.last)['text'])
                 : '',
@@ -798,10 +859,7 @@ class CampaignState {
       id: _jsonString(json['id']),
       schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
       title: _jsonString(json['title'], fallback: 'Кампания'),
-      setting: CampaignSetting.values.firstWhere(
-        (final item) => item.name == json['setting'],
-        orElse: () => CampaignSetting.fantasy,
-      ),
+      setting: parseCampaignSetting(json['setting']?.toString()),
       mode: StoryMode.values.firstWhere(
         (final item) => item.name == json['mode'],
         orElse: () => StoryMode.shortStory,
@@ -812,10 +870,7 @@ class CampaignState {
       ),
       character: character,
       location: _jsonString(json['location'], fallback: 'Неизвестная локация'),
-      objective: _jsonString(
-        json['objective'],
-        fallback: 'Пережить первую сцену кампании.',
-      ),
+      objective: _jsonString(json['objective']),
       turnNumber: (json['turnNumber'] as num?)?.toInt() ?? 0,
       memory: memory,
       modules: resolvedModules,
@@ -834,6 +889,7 @@ class CampaignState {
           .toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
+      literaryGenre: parseLiteraryGenre(json['literaryGenre']?.toString()),
       customStoryPrompt: _jsonString(json['customStoryPrompt']),
       characterPrompt: _jsonString(json['characterPrompt']),
       portraitPath: _jsonString(json['portraitPath']),
@@ -862,6 +918,7 @@ class CampaignState {
     required this.messages,
     required this.choices,
     required this.updatedAt,
+    this.literaryGenre,
     this.checks = const <CampaignCheck>[],
     this.customStoryPrompt = '',
     this.characterPrompt = '',
@@ -873,6 +930,7 @@ class CampaignState {
   final int schemaVersion;
   final String title;
   final CampaignSetting setting;
+  final LiteraryGenre? literaryGenre;
   final StoryMode mode;
   final DifficultyLevel difficulty;
   final CharacterStats character;
@@ -898,6 +956,17 @@ class CampaignState {
   String get summary => memory.rollingSummary;
   String get activeGoal => memory.activeGoal;
   String get activeSituation => memory.activeSituation;
+
+  /// Sidebar goal line: `memory.activeGoal` (model questNote) first, else `objective`.
+  String get displayObjectiveLine {
+    final String fromMemory = memory.activeGoal.trim();
+    if (fromMemory.isNotEmpty) {
+      return fromMemory;
+    }
+    return objective.trim();
+  }
+
+  bool get hasDisplayObjective => displayObjectiveLine.isNotEmpty;
   List<RecentTurnSummary> get recentTurns => memory.recentTurns;
   List<String> get questLog => notes;
   List<CampaignModule> get activeModules => modules
@@ -920,6 +989,7 @@ class CampaignState {
   CampaignState copyWith({
     final int? schemaVersion,
     final String? title,
+    final LiteraryGenre? literaryGenre,
     final CharacterStats? character,
     final String? location,
     final String? objective,
@@ -957,10 +1027,11 @@ class CampaignState {
     notes: notes ?? this.notes,
     resources: resources ?? this.resources,
     progression: progression ?? this.progression,
-    checks: checks ?? this.checks,
     messages: messages ?? this.messages,
     choices: choices ?? this.choices,
     updatedAt: updatedAt ?? this.updatedAt,
+    literaryGenre: literaryGenre ?? this.literaryGenre,
+    checks: checks ?? this.checks,
     customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
     characterPrompt: characterPrompt ?? this.characterPrompt,
     portraitPath: portraitPath ?? this.portraitPath,
@@ -972,6 +1043,7 @@ class CampaignState {
     'schemaVersion': schemaVersion,
     'title': title,
     'setting': setting.name,
+    if (literaryGenre != null) 'literaryGenre': literaryGenre!.name,
     'mode': mode.name,
     'difficulty': difficulty.name,
     'character': character.toJson(),
@@ -1056,6 +1128,7 @@ class CampaignDraft {
     required this.difficulty,
     required this.heroName,
     this.id,
+    this.literaryGenre,
     this.storyWish = '',
     this.customStoryPrompt = '',
     this.characterProfile,
@@ -1065,6 +1138,7 @@ class CampaignDraft {
 
   final String? id;
   final CampaignSetting setting;
+  final LiteraryGenre? literaryGenre;
   final StoryMode mode;
   final DifficultyLevel difficulty;
   final String heroName;
@@ -1084,6 +1158,21 @@ class GeneratedPrompts {
 
   final String storyPrompt;
   final String characterPrompt;
+}
+
+/// RO-RO input for campaign prompt generation via AiClient.
+class CampaignPromptGenerationRequest {
+  const CampaignPromptGenerationRequest({
+    required this.setting,
+    required this.literaryGenre,
+    required this.difficulty,
+    this.storyWish = '',
+  });
+
+  final CampaignSetting setting;
+  final LiteraryGenre literaryGenre;
+  final DifficultyLevel difficulty;
+  final String storyWish;
 }
 
 class GeneratedPortrait {

@@ -101,11 +101,10 @@ class _DemoAiClient implements AiClient {
   }
 
   @override
-  Future<GeneratedPrompts> generatePromptsFromStoryWish({
+  Future<GeneratedPrompts> generateCampaignPrompts({
     required final AiSettings settings,
     required final AppLanguage language,
-    required final String storyWish,
-    required final CampaignSetting setting,
+    required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
 
