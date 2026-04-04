@@ -21,6 +21,45 @@ class AppLocalizations {
     AppLanguage.en => 'Beyond the Verge',
   };
 
+  String get brandNameLine1 => switch (language) {
+    AppLanguage.ru => 'Стирая',
+    AppLanguage.en => 'Beyond the',
+  };
+
+  String get brandNameLine2 => switch (language) {
+    AppLanguage.ru => 'Грань',
+    AppLanguage.en => 'Verge',
+  };
+
+  String get homeTagline => switch (language) {
+    AppLanguage.ru => 'Нарративная RPG с ИИ',
+    AppLanguage.en => 'Narrative AI RPG',
+  };
+
+  String get homePrimaryCardSubtitle => switch (language) {
+    AppLanguage.ru =>
+      'ИИ станет вашим рассказчиком в мире, который помнит каждое решение',
+    AppLanguage.en =>
+      'AI becomes your narrator in a world that remembers every choice',
+  };
+
+  /// Заголовок на bento-карточке (шире, чем подпись кнопки).
+  String get homeBentoPrimaryTitle => switch (language) {
+    AppLanguage.ru => 'Начать новую историю',
+    AppLanguage.en => 'Start a new story',
+  };
+
+  /// Строка-действие под текстом на основной карточке.
+  String get homeBentoPrimaryLink => switch (language) {
+    AppLanguage.ru => 'Создать кампанию',
+    AppLanguage.en => 'Create a campaign',
+  };
+
+  String get homeSecondaryCardSubtitle => switch (language) {
+    AppLanguage.ru => 'Вернуться в сохранённый мир',
+    AppLanguage.en => 'Return to a saved world',
+  };
+
   String get homeHeroTitle => switch (language) {
     AppLanguage.ru => 'История отвечает на твой выбор',
     AppLanguage.en => 'Where choice reshapes the story',
@@ -105,6 +144,21 @@ class AppLocalizations {
   String get newCampaign => switch (language) {
     AppLanguage.ru => 'Новая кампания',
     AppLanguage.en => 'New Campaign',
+  };
+
+  String get worldCreationTitle => switch (language) {
+    AppLanguage.ru => 'Создание мира',
+    AppLanguage.en => 'World creation',
+  };
+
+  String get chooseGenreWizardTitle => switch (language) {
+    AppLanguage.ru => 'Выберите жанр',
+    AppLanguage.en => 'Choose a genre',
+  };
+
+  String get chooseSettingWizardTitle => switch (language) {
+    AppLanguage.ru => 'Выберите сеттинг',
+    AppLanguage.en => 'Choose a setting',
   };
 
   String get saves => switch (language) {
@@ -361,15 +415,13 @@ class AppLocalizations {
         (AppLanguage.ru, LiteraryGenre.romance) => 'Романтика',
         (AppLanguage.ru, LiteraryGenre.romantasyGenre) => 'Romantasy',
         (AppLanguage.ru, LiteraryGenre.fantasyGenre) => 'Фэнтези',
-        (AppLanguage.ru, LiteraryGenre.psychologicalThriller) =>
-          'Психологический триллер',
-        (AppLanguage.ru, LiteraryGenre.mysteryCrime) => 'Детектив / crime',
+        (AppLanguage.ru, LiteraryGenre.psychologicalThriller) => 'Триллер',
+        (AppLanguage.ru, LiteraryGenre.mysteryCrime) => 'Детектив',
         (AppLanguage.ru, LiteraryGenre.horrorGenre) => 'Хоррор',
         (AppLanguage.ru, LiteraryGenre.youngAdult) => 'Young Adult',
-        (AppLanguage.ru, LiteraryGenre.speculativeFiction) =>
-          'Speculative fiction',
+        (AppLanguage.ru, LiteraryGenre.speculativeFiction) => 'Sci-Fi',
         (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
-        (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Cozy / feel-good',
+        (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Cozy',
         (AppLanguage.en, LiteraryGenre.romance) => 'Romance',
         (AppLanguage.en, LiteraryGenre.romantasyGenre) => 'Romantasy',
         (AppLanguage.en, LiteraryGenre.fantasyGenre) => 'Fantasy',
@@ -854,6 +906,15 @@ class AppLocalizations {
     AppLanguage.en =>
       'Build-time API keys are not shown here. Enter a key and tap Save to '
           'store it on this device.',
+  };
+
+  String get endpointBuildDefaultsHint => switch (language) {
+    AppLanguage.ru =>
+      'Пустые поля URL и модели: подставляются значения из сборки (не '
+          'отображаются). Свой endpoint и модель — введите и нажмите «Сохранить».',
+    AppLanguage.en =>
+      'Empty URL or model: compile-time defaults apply (not shown). Enter '
+          'your own and tap Save to store them on this device.',
   };
 
   String get timeoutSeconds => switch (language) {

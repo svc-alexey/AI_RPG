@@ -12,6 +12,7 @@ import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({required this.campaignId, super.key});
@@ -153,25 +154,56 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       appBar: responsive.isPhoneSmall
           ? null
           : AppBar(
-              title: Text(
-                campaign.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    campaign.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                      color: AetherPalette.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    l10n.settingLabel(campaign.setting),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AetherPalette.textDim,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(1),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AetherPalette.panelBorderSolid,
+                ),
               ),
               leading: wide
                   ? null
-                  : IconButton(
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                      icon: const Icon(Icons.menu),
+                  : _ChatChromeIconButton(
+                      icon: Icons.menu_rounded,
                       tooltip: l10n.campaignInfo,
+                      onPressed: () =>
+                          _scaffoldKey.currentState?.openDrawer(),
                     ),
               actions: <Widget>[
-                IconButton(
-                  onPressed: () => controller.save(l10n: l10n),
-                  icon: const Icon(Icons.save_outlined),
+                _ChatChromeIconButton(
+                  icon: Icons.bookmark_add_outlined,
                   tooltip: l10n.saveTooltip,
+                  onPressed: () => controller.save(l10n: l10n),
                 ),
-                IconButton(
+                _ChatChromeIconButton(
+                  icon: Icons.tune_rounded,
+                  tooltip: l10n.aiSettings,
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -179,13 +211,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ),
                     );
                   },
-                  icon: const Icon(Icons.tune_rounded),
-                  tooltip: l10n.aiSettings,
                 ),
-                IconButton(
-                  onPressed: _exitToMainMenu,
-                  icon: const Icon(Icons.home_outlined),
+                _ChatChromeIconButton(
+                  icon: Icons.home_outlined,
                   tooltip: l10n.exitToMainMenu,
+                  onPressed: _exitToMainMenu,
                 ),
               ],
             ),
@@ -341,29 +371,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           padding: EdgeInsets.all(isNarrow ? 10 : 16),
                           decoration: BoxDecoration(
                             color: isPlayer
-                                ? AetherPalette.accentSoft.withValues(
-                                    alpha: 0.42,
-                                  )
+                                ? AetherPalette.accent.withValues(alpha: 0.10)
                                 : isSystem
                                 ? AetherPalette.panelSoft.withValues(
-                                    alpha: 0.92,
+                                    alpha: 0.95,
                                   )
                                 : isPendingNarrator
-                                ? AetherPalette.panelSoft.withValues(
+                                ? AetherPalette.backgroundElevated.withValues(
                                     alpha: 0.98,
                                   )
-                                : AetherPalette.panel.withValues(alpha: 0.96),
+                                : AetherPalette.backgroundElevated.withValues(
+                                    alpha: 0.96,
+                                  ),
                             borderRadius: BorderRadius.circular(
-                              isNarrow ? 14 : 18,
+                              isNarrow ? 14 : 16,
                             ),
                             border: Border.all(
-                              color:
-                                  (isPlayer
-                                          ? AetherPalette.accent
-                                          : isPendingNarrator
-                                          ? AetherPalette.accentSoft
-                                          : AetherPalette.panelBorder)
-                                      .withValues(alpha: 0.45),
+                              color: isPlayer
+                                  ? AetherPalette.accent.withValues(alpha: 0.32)
+                                  : isPendingNarrator
+                                  ? AetherPalette.accent.withValues(alpha: 0.22)
+                                  : AetherPalette.panelBorderSolid,
                             ),
                             boxShadow: isPendingNarrator
                                 ? <BoxShadow>[
@@ -396,6 +424,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       ?.copyWith(
                                         color: isSystem
                                             ? AetherPalette.textMuted
+                                            : isPlayer
+                                            ? AetherPalette.accentHover
                                             : AetherPalette.textPrimary,
                                         fontSize: isNarrow ? 14 : 16,
                                       ),
@@ -415,10 +445,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         SizedBox(height: compactMobileComposer ? 8 : responsive.sectionSpacing),
         Container(
           decoration: BoxDecoration(
-            color: AetherPalette.panel.withValues(alpha: 0.88),
-            borderRadius: BorderRadius.circular(isNarrow ? 14 : 18),
+            color: AetherPalette.backgroundElevated,
+            borderRadius: BorderRadius.circular(isNarrow ? 12 : 14),
             border: Border.all(
-              color: AetherPalette.panelBorder.withValues(alpha: 0.56),
+              color: AetherPalette.panelBorderSolid,
             ),
           ),
           padding: EdgeInsets.symmetric(
@@ -832,14 +862,80 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 }
 
+class _ChatChromeIconButton extends StatefulWidget {
+  const _ChatChromeIconButton({
+    required this.icon,
+    required this.onPressed,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  @override
+  State<_ChatChromeIconButton> createState() => _ChatChromeIconButtonState();
+}
+
+class _ChatChromeIconButtonState extends State<_ChatChromeIconButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.only(right: 2),
+        child: Tooltip(
+          message: widget.tooltip,
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _hover = true),
+            onExit: (_) => setState(() => _hover = false),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.onPressed,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _hover
+                          ? AetherPalette.accent.withValues(alpha: 0.35)
+                          : AetherPalette.panelBorderSolid,
+                    ),
+                    color: AetherPalette.backgroundElevated,
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    size: 18,
+                    color: _hover
+                        ? AetherPalette.accentHover
+                        : AetherPalette.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
 class _SidebarSectionTitle extends StatelessWidget {
   const _SidebarSectionTitle({required this.title});
 
   final String title;
 
   @override
-  Widget build(final BuildContext context) =>
-      Text(title, style: Theme.of(context).textTheme.titleMedium);
+  Widget build(final BuildContext context) => Text(
+        title.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          letterSpacing: 2.2,
+          color: AetherPalette.textDim,
+          fontWeight: FontWeight.w600,
+          fontSize: 10,
+        ),
+      );
 }
 
 class _CompactChatToolbar extends StatelessWidget {
@@ -923,10 +1019,10 @@ class _CompactToolbarButton extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: AetherPalette.panelSoft.withValues(alpha: 0.82),
-          borderRadius: BorderRadius.circular(14),
+          color: AetherPalette.backgroundElevated,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AetherPalette.panelBorder.withValues(alpha: 0.62),
+            color: AetherPalette.panelBorderSolid,
           ),
         ),
         child: Icon(icon, size: 18),
@@ -949,10 +1045,10 @@ class _CharacterPortraitCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AetherPalette.panelSoft.withValues(alpha: 0.82),
+        color: AetherPalette.backgroundElevated,
         borderRadius: BorderRadius.circular(responsive.isCompact ? 16 : 20),
         border: Border.all(
-          color: AetherPalette.panelBorder.withValues(alpha: 0.58),
+          color: AetherPalette.accent.withValues(alpha: 0.28),
         ),
       ),
       child: Column(
@@ -1041,7 +1137,7 @@ class _ModuleIconStrip extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: AetherPalette.panelSoft.withValues(alpha: 0.88),
+            color: AetherPalette.backgroundElevated,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: switch (highlightState) {
@@ -1050,7 +1146,7 @@ class _ModuleIconStrip extends StatelessWidget {
                 _ModuleHighlightState.updated =>
                   AetherPalette.accentSoft.withValues(alpha: 0.78),
                 _ModuleHighlightState.none =>
-                  AetherPalette.panelBorder.withValues(alpha: 0.55),
+                  AetherPalette.panelBorderSolid,
               },
             ),
             boxShadow: highlightState == _ModuleHighlightState.none
@@ -1134,10 +1230,10 @@ class _SidebarMetaChip extends StatelessWidget {
       vertical: context.responsive.isCompact ? 6 : 8,
     ),
     decoration: BoxDecoration(
-      color: AetherPalette.panelSoft.withValues(alpha: 0.82),
+      color: AetherPalette.panelSoft,
       borderRadius: BorderRadius.circular(999),
       border: Border.all(
-        color: AetherPalette.panelBorder.withValues(alpha: 0.5),
+        color: AetherPalette.panelBorderSolid,
       ),
     ),
     child: Text(
@@ -1246,13 +1342,14 @@ class _StreamingNarrationContent extends StatelessWidget {
           style: textTheme.bodyLarge?.copyWith(
             color: resolvedText.isEmpty
                 ? AetherPalette.textMuted
-                : AetherPalette.textPrimary,
-            fontSize: isNarrow ? 14 : 16,
-            height: 1.3,
+                : AetherPalette.narrativeText,
+            fontSize: isNarrow ? 15 : 17,
+            height: 1.75,
+            fontWeight: FontWeight.w400,
           ),
           strutStyle: StrutStyle(
-            fontSize: isNarrow ? 14 : 16,
-            height: 1.3,
+            fontSize: isNarrow ? 15 : 17,
+            height: 1.75,
             forceStrutHeight: true,
           ),
         ),
@@ -1301,10 +1398,14 @@ class _AnimatedNarrationMessageState extends State<_AnimatedNarrationMessage>
 
   @override
   Widget build(final BuildContext context) {
-    final TextStyle style = Theme.of(context).textTheme.bodyLarge!.copyWith(
-      color: AetherPalette.textPrimary,
-      fontSize: widget.isNarrow ? 14 : 16,
-      height: 1.3,
+    final TextTheme themeText = Theme.of(context).textTheme;
+    final TextStyle baseStyle =
+        themeText.bodyLarge ?? themeText.bodyMedium ?? const TextStyle();
+    final TextStyle style = baseStyle.copyWith(
+      color: AetherPalette.narrativeText,
+      fontSize: widget.isNarrow ? 15 : 17,
+      height: 1.75,
+      fontWeight: FontWeight.w400,
     );
 
     final Animation<double> animation = CurvedAnimation(
@@ -1326,8 +1427,8 @@ class _AnimatedNarrationMessageState extends State<_AnimatedNarrationMessage>
           widget.text,
           style: style,
           strutStyle: StrutStyle(
-            fontSize: widget.isNarrow ? 14 : 16,
-            height: 1.3,
+            fontSize: widget.isNarrow ? 15 : 17,
+            height: 1.75,
             forceStrutHeight: true,
           ),
         ),

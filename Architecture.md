@@ -85,7 +85,11 @@ sequenceDiagram
 
 ## 7. AI слой
 
-1. Поддерживается OpenAI-compatible endpoint.
+1. Поддерживается OpenAI-compatible endpoint (`/models`, `/chat/completions` относительно базового URL).
 2. LM Studio используется как локальный AI provider.
 3. Для LM Studio поддержан fast mode через `/no_think` с fallback.
 4. Невалидный AI-ответ не должен ломать state кампании.
+
+**Пресеты сборки и локальные настройки:** через `dart-define` / `String.fromEnvironment` задаются `AI_PRG_BASE_URL`, `AI_PRG_MODEL`, `AI_PRG_API_KEY` (см. `lib/src/core/config/ai_runtime_env.dart`, пример `tool/ai_local_defines.example.json`). Метод `AiSettings.withEnvFallbacks` заполняет **только пустые** поля сохранённых настроек значениями из окружения сборки. Репозиторий: `loadAiSettingsPersisted()` — как в хранилище; `loadAiSettings()` — уже с merge для рантайма (чат, генерация и т.д.). UI настроек редактирует и отображает сохранённый снимок; подсказки объясняют скрытые пресеты, не копируя секреты в поля.
+
+**Нормализация URL (DeepSeek):** если пользователь или пресет задаёт базовый URL без пути для хоста `api.deepseek.com`, HTTP-клиент дописывает суффикс `/v1` (ожидаемый префикс OpenAI-compatible API). Произвольные другие хосты и пути не изменяются.

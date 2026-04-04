@@ -1,20 +1,28 @@
 import 'dart:async';
 
 import 'package:ai_prg/src/app/responsive.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+/// Noir palette aligned with [tool/js_верстка/app/globals.css].
 class AetherPalette {
-  static const Color background = Color(0xFF17121F);
-  static const Color backgroundTop = Color(0xFF22182D);
-  static const Color panel = Color(0xFF211A2C);
-  static const Color panelSoft = Color(0xFF261F33);
-  static const Color panelBorder = Color(0xFF3A2F49);
-  static const Color panelGlow = Color(0xFF8C4DD4);
-  static const Color textPrimary = Color(0xFFE9E2D7);
-  static const Color textMuted = Color(0xFF9E93AF);
-  static const Color accent = Color(0xFFB463FF);
-  static const Color accentSoft = Color(0xFF5D3B79);
-  static const Color gold = Color(0xFFE0B35B);
+  static const Color background = Color(0xFF0A0908);
+  static const Color backgroundElevated = Color(0xFF0F0D0B);
+  static const Color backgroundTop = Color(0xFF141210);
+  static const Color panel = Color(0xF212100E);
+  static const Color panelSoft = Color(0xFF1A1816);
+  static const Color panelBorder = Color(0x26C87941);
+  static const Color panelBorderSolid = Color(0xFF1A1816);
+  static const Color panelGlow = Color(0xFFC87941);
+  static const Color textPrimary = Color(0xFFE8E4E0);
+  static const Color textMuted = Color(0xFF7A7570);
+  static const Color textDim = Color(0xFF5A5550);
+  /// Narration body (JS mockup prose-invert).
+  static const Color narrativeText = Color(0xFFC8C4C0);
+  static const Color accent = Color(0xFFC87941);
+  static const Color accentSoft = Color(0x1FC87941);
+  static const Color accentHover = Color(0xFFD4956A);
+  static const Color gold = Color(0xFFBFA76F);
   static const Color success = Color(0xFF34D399);
 }
 
@@ -31,7 +39,7 @@ class _AetherBackdropState extends State<AetherBackdrop>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 8),
+    duration: const Duration(seconds: 4),
   );
 
   late final Animation<double> _pulse = CurvedAnimation(
@@ -66,9 +74,9 @@ class _AetherBackdropState extends State<AetherBackdrop>
     animation: _pulse,
     builder: (context, _) => DecoratedBox(
       decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment.topCenter,
-          radius: 1.35,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: <Color>[
             AetherPalette.backgroundTop,
             AetherPalette.background,
@@ -78,27 +86,15 @@ class _AetherBackdropState extends State<AetherBackdrop>
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-          _AmbientGlow(
-            alignment: Alignment(-0.8 + (_pulse.value * 0.08), -0.9),
-            color: AetherPalette.accent.withValues(
-              alpha: 0.75 + (_pulse.value * 0.25),
+          CustomPaint(
+            painter: _WarmGlowPainter(pulse: _pulse.value),
+            size: Size.infinite,
+          ),
+          if (!kIsWeb)
+            const CustomPaint(
+              painter: _FilmNoisePainter(),
+              size: Size.infinite,
             ),
-            size: 300 + (_pulse.value * 60),
-          ),
-          _AmbientGlow(
-            alignment: Alignment(0.88, 0.72 - (_pulse.value * 0.06)),
-            color: AetherPalette.accentSoft.withValues(
-              alpha: 0.8 + (_pulse.value * 0.2),
-            ),
-            size: 340 + (_pulse.value * 80),
-          ),
-          _AmbientGlow(
-            alignment: Alignment(0.1, -0.1 + (_pulse.value * 0.03)),
-            color: const Color(
-              0x33432653,
-            ).withValues(alpha: 0.6 + (_pulse.value * 0.3)),
-            size: 540 + (_pulse.value * 70),
-          ),
           widget.child,
         ],
       ),
@@ -106,36 +102,61 @@ class _AetherBackdropState extends State<AetherBackdrop>
   );
 }
 
-class _AmbientGlow extends StatelessWidget {
-  const _AmbientGlow({
-    required this.alignment,
-    required this.color,
-    required this.size,
-  });
+/// Central warm radial glow; strength follows CSS `glow-pulse` (~4s).
+class _WarmGlowPainter extends CustomPainter {
+  const _WarmGlowPainter({required this.pulse});
 
-  final Alignment alignment;
-  final Color color;
-  final double size;
+  final double pulse;
 
   @override
-  Widget build(final BuildContext context) => Align(
-    alignment: alignment,
-    child: IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[
-              color.withValues(alpha: 0.28),
-              color.withValues(alpha: 0),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
+  void paint(final Canvas canvas, final Size size) {
+    final Offset center = Offset(size.width * 0.5, size.height * 0.28);
+    final double radius =
+        size.shortestSide * 0.92 * (0.94 + pulse * 0.14);
+    final Rect rect = Rect.fromCircle(center: center, radius: radius);
+    final Paint paint = Paint()
+      ..shader = RadialGradient(
+        colors: <Color>[
+          AetherPalette.accent.withValues(alpha: 0.12 + pulse * 0.14),
+          AetherPalette.accent.withValues(alpha: 0.05 + pulse * 0.06),
+          Colors.transparent,
+        ],
+        stops: const <double>[0.0, 0.4, 0.72],
+      ).createShader(rect);
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WarmGlowPainter oldDelegate) =>
+      oldDelegate.pulse != pulse;
+}
+
+/// Sparse grain (~3% opacity) similar to SVG noise overlay in the JS mockup.
+class _FilmNoisePainter extends CustomPainter {
+  const _FilmNoisePainter();
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    final Paint paint = Paint()..style = PaintingStyle.fill;
+    const double step = 5;
+    for (double y = 0; y < size.height; y += step) {
+      for (double x = 0; x < size.width; x += step) {
+        final int ix = x.round();
+        final int iy = y.round();
+        final int hash = (ix * 92837111 ^ iy * 689287499) & 0xFF;
+        if (hash < 188) {
+          continue;
+        }
+        paint.color = AetherPalette.textPrimary.withValues(
+          alpha: 0.018 + (hash & 7) * 0.002,
+        );
+        canvas.drawRect(Rect.fromLTWH(x, y, 1.4, 1.4), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class AetherCard extends StatelessWidget {
@@ -168,11 +189,11 @@ class AetherCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(responsive.cardRadius),
         border: Border.all(color: resolvedBorder.withValues(alpha: 0.68)),
         boxShadow: highlight
-            ? const <BoxShadow>[
+            ? <BoxShadow>[
                 BoxShadow(
-                  color: Color(0x2AB463FF),
-                  blurRadius: 24,
-                  spreadRadius: -6,
+                  color: AetherPalette.accent.withValues(alpha: 0.22),
+                  blurRadius: 28,
+                  spreadRadius: -8,
                 ),
               ]
             : const <BoxShadow>[],

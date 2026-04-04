@@ -6,7 +6,7 @@
 
 - **Жанр:** narrative RPG на Flutter; LLM даёт повествование и варианты действий, **источник истины** — детерминированный движок и сохранённый `CampaignState`.
 - **Сейвы:** local-first; на **native (IO)** основной бэкенд — **Isar**, на **web** — **SharedPreferences** (адаптивный слой в репозиториях). Один билд — web / Android / iOS / desktop; **у каждой установки свой локальный прогресс**. Синхронизация между устройствами **не реализована** (отдельная фича, если понадобится).
-- **AI:** OpenAI-compatible gateway (`baseUrl`, `model`, ключ, runtime token/window).
+- **AI:** OpenAI-compatible gateway (`baseUrl`, `model`, ключ, runtime token/window). **Приоритет:** непустые значения из **локального хранилища** важнее compile-time пресетов (`AI_PRG_*` / `AiRuntimeEnv`); `SettingsRepository.loadAiSettings()` применяет `AiSettings.withEnvFallbacks` только для пустых полей. Экран настроек показывает **только сохранённые пользователем** URL/модель/ключ (пресеты в поля не подставляются). Для голого `https://api.deepseek.com` клиент при запросах нормализует путь до `.../v1`; остальные endpoint’ы не меняются.
 - **Языки:** UI и AI-слой — **ru** (по умолчанию) и **en**; фича не считается готовой, если затронут UX только на одном языке.
 - **UX:** mobile-first (узкие экраны — эталон); чат — главная область экрана; до трёх suggestion chips над вводом; «Отправить» / «Подсказать» в композере; в многострочном вводе чата **Enter** отправляет ход (как кнопка), **Shift+Enter** — новая строка (клавиатура desktop/web).
 - **Статус:** pre-prod; **нет** обязательной миграции данных из старого SharedPreferences в Isar при первом открытии (свежая Isar — только версия схемы). **Портреты персонажа:** генерация изображений **заглушка** (`generateCharacterPortrait` → `null`); `CharacterPortraitPromptBuilder` держится для будущего пайплайна и тестов — не удалять как мёртвый код.
@@ -21,7 +21,7 @@
 | Зона | Путь |
 |------|------|
 | Точка входа | `lib/main.dart` |
-| Приложение, bootstrap | `lib/src/app/` (`app.dart`, `app_providers.dart`, `theme.dart`, `aether_shell.dart`, localization) |
+| Приложение, bootstrap | `lib/src/app/` (`app.dart`, `app_providers.dart`, `theme.dart`, `aether_shell.dart` — палитра Aether / фон / `AetherCard`, localization) |
 | Фичи (UI + контроллеры) | `lib/src/features/home`, `chat`, `settings`, `saves`, `new_game` |
 | Модели | `lib/src/core/models/` |
 | Репозитории | `lib/src/core/repositories/` |
@@ -29,6 +29,8 @@
 | Данные (Isar, SP, адаптеры) | `lib/src/core/data/` |
 
 Игровой цикл высокоуровнево: экран чата → AI client `generateTurn` → `GameEngine.applyTurn` → `saveCampaign`.
+
+**Типографика чата:** основной текст повествования рассказчика — `bodyLarge` темы (Inter), цвет `AetherPalette.narrativeText`; декоративный Playfair — для крупных заголовков/бренда, не для тела сообщений в ленте.
 
 ## Реестр фич (из [CATALOG.md](features/CATALOG.md))
 

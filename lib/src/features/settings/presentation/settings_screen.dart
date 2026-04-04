@@ -124,6 +124,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 const SizedBox(height: 12),
+                                if (settingsState.showEndpointBuildDefaultsHint) ...<Widget>[
+                                  Text(
+                                    l10n.endpointBuildDefaultsHint,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: AetherPalette.textMuted),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
                                 TextField(
                                   controller: _baseUrlController,
                                   onChanged: controller.setBaseUrl,

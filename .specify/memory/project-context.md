@@ -38,6 +38,7 @@ AI_PRG is a narrative RPG built with Flutter where AI generates narration and ac
 2. AI layer: provider-agnostic gateway plus adapters
 3. Local AI mode: LM Studio via OpenAI-compatible API
 4. Storage: local campaign saves and local settings
+5. Optional compile-time AI defaults (`AI_PRG_BASE_URL`, `AI_PRG_MODEL`, `AI_PRG_API_KEY`) fill **empty** persisted fields only; user-saved settings always win. The settings form displays the persisted snapshot, not merged secrets from the build.
 
 ## 6. Documentation Sync Rules
 

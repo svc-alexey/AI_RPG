@@ -4,68 +4,75 @@ import 'package:google_fonts/google_fonts.dart';
 
 ThemeData buildAppTheme() {
   final TextTheme baseText = ThemeData.dark().textTheme;
-  final TextTheme textTheme = GoogleFonts.manropeTextTheme(baseText).copyWith(
-    displayLarge: GoogleFonts.cormorantGaramond(
+  final TextTheme textTheme = GoogleFonts.interTextTheme(baseText).copyWith(
+    displayLarge: GoogleFonts.playfairDisplay(
       color: AetherPalette.textPrimary,
       fontSize: 72,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 10,
+      fontWeight: FontWeight.w300,
+      letterSpacing: -1,
+      height: 0.95,
     ),
-    displayMedium: GoogleFonts.cormorantGaramond(
+    displayMedium: GoogleFonts.playfairDisplay(
       color: AetherPalette.textPrimary,
       fontSize: 58,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 5,
+      fontWeight: FontWeight.w300,
+      letterSpacing: -0.5,
     ),
-    headlineLarge: GoogleFonts.cormorantGaramond(
+    headlineLarge: GoogleFonts.playfairDisplay(
       color: AetherPalette.textPrimary,
       fontSize: 50,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w400,
     ),
-    headlineMedium: GoogleFonts.cormorantGaramond(
+    headlineMedium: GoogleFonts.playfairDisplay(
       color: AetherPalette.textPrimary,
       fontSize: 42,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w400,
     ),
-    headlineSmall: GoogleFonts.cormorantGaramond(
+    headlineSmall: GoogleFonts.playfairDisplay(
       color: AetherPalette.textPrimary,
       fontSize: 30,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w500,
     ),
-    titleLarge: GoogleFonts.manrope(
+    titleLarge: GoogleFonts.inter(
       color: AetherPalette.textPrimary,
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      letterSpacing: 1.2,
+      letterSpacing: 0.2,
     ),
-    titleMedium: GoogleFonts.manrope(
+    titleMedium: GoogleFonts.inter(
       color: AetherPalette.textPrimary,
       fontSize: 16,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.5,
+      letterSpacing: 0.1,
     ),
-    bodyLarge: GoogleFonts.manrope(
+    bodyLarge: GoogleFonts.inter(
       color: AetherPalette.textPrimary,
       fontSize: 15,
       height: 1.6,
     ),
-    bodyMedium: GoogleFonts.manrope(
+    bodyMedium: GoogleFonts.inter(
       color: AetherPalette.textMuted,
       fontSize: 14,
       height: 1.5,
     ),
-    labelLarge: GoogleFonts.manrope(
+    bodySmall: GoogleFonts.inter(
+      color: AetherPalette.textDim,
+      fontSize: 12,
+      height: 1.4,
+    ),
+    labelLarge: GoogleFonts.inter(
       color: AetherPalette.textPrimary,
       fontSize: 14,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.8,
+      letterSpacing: 0.5,
     ),
   );
 
   final ColorScheme colorScheme = const ColorScheme.dark().copyWith(
     primary: AetherPalette.accent,
+    onPrimary: AetherPalette.background,
     secondary: AetherPalette.gold,
-    surface: AetherPalette.panel,
+    surface: AetherPalette.panelSoft,
     onSurface: AetherPalette.textPrimary,
   );
 
@@ -85,58 +92,57 @@ ThemeData buildAppTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.cormorantGaramond(
+      titleTextStyle: GoogleFonts.playfairDisplay(
         color: AetherPalette.textPrimary,
-        fontSize: 28,
-        fontWeight: FontWeight.w500,
+        fontSize: 22,
+        fontWeight: FontWeight.w400,
       ),
     ),
     cardTheme: CardThemeData(
-      color: AetherPalette.panel,
+      color: AetherPalette.backgroundElevated.withValues(alpha: 0.98),
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: AetherPalette.panelBorder.withValues(alpha: 0.7),
+          color: AetherPalette.panelBorderSolid.withValues(alpha: 0.9),
         ),
       ),
     ),
-    dividerColor: AetherPalette.panelBorder.withValues(alpha: 0.4),
+    dividerColor: AetherPalette.panelBorderSolid.withValues(alpha: 0.85),
     inputDecorationTheme: InputDecorationTheme(
       labelStyle: textTheme.bodyMedium,
-      hintStyle: textTheme.bodyMedium,
+      hintStyle: textTheme.bodyMedium?.copyWith(color: AetherPalette.textDim),
       filled: true,
-      fillColor: AetherPalette.panelSoft.withValues(alpha: 0.8),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      fillColor: AetherPalette.backgroundElevated,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AetherPalette.panelBorder.withValues(alpha: 0.5),
+          color: AetherPalette.panelBorderSolid.withValues(alpha: 0.95),
         ),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AetherPalette.panelBorder.withValues(alpha: 0.5),
+          color: AetherPalette.panelBorderSolid.withValues(alpha: 0.95),
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AetherPalette.accent, width: 1.2),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AetherPalette.accentSoft.withValues(alpha: 0.45),
-        foregroundColor: AetherPalette.textPrimary,
-        minimumSize: const Size(0, 58),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+        backgroundColor: AetherPalette.accent,
+        foregroundColor: AetherPalette.background,
+        disabledBackgroundColor: AetherPalette.panelSoft,
+        disabledForegroundColor: AetherPalette.textDim,
+        minimumSize: const Size(0, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(
-            color: AetherPalette.panelBorder.withValues(alpha: 0.7),
-          ),
+          borderRadius: BorderRadius.circular(12),
         ),
         overlayColor: Colors.transparent,
       ),
@@ -144,39 +150,48 @@ ThemeData buildAppTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AetherPalette.textPrimary,
-        minimumSize: const Size(0, 58),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+        minimumSize: const Size(0, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         side: BorderSide(
-          color: AetherPalette.panelBorder.withValues(alpha: 0.65),
+          color: AetherPalette.panelBorderSolid.withValues(alpha: 0.9),
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
         ),
         overlayColor: Colors.transparent,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: AetherPalette.textMuted,
+        foregroundColor: AetherPalette.accentHover,
         textStyle: textTheme.labelLarge,
         overlayColor: Colors.transparent,
       ),
     ),
-    iconButtonTheme: const IconButtonThemeData(
+    iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
-        foregroundColor: WidgetStatePropertyAll<Color>(
+        foregroundColor: const WidgetStatePropertyAll<Color>(
           AetherPalette.textMuted,
         ),
-        overlayColor: WidgetStatePropertyAll<Color>(Colors.transparent),
+        overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+        backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+          (states) {
+            if (states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused)) {
+              return AetherPalette.panelSoft;
+            }
+            return null;
+          },
+        ),
       ),
     ),
     chipTheme: ChipThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      backgroundColor: AetherPalette.panelSoft.withValues(alpha: 0.75),
-      selectedColor: AetherPalette.accentSoft.withValues(alpha: 0.34),
-      secondarySelectedColor: AetherPalette.accentSoft.withValues(alpha: 0.34),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      backgroundColor: AetherPalette.backgroundElevated,
+      selectedColor: AetherPalette.accentSoft,
+      secondarySelectedColor: AetherPalette.accentSoft,
       side: BorderSide(
-        color: AetherPalette.panelBorder.withValues(alpha: 0.55),
+        color: AetherPalette.panelBorderSolid.withValues(alpha: 0.85),
       ),
       labelStyle: textTheme.bodyMedium!,
       secondaryLabelStyle: textTheme.bodyLarge!,
@@ -186,22 +201,22 @@ ThemeData buildAppTheme() {
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith<Color?>(
           (states) => states.contains(WidgetState.selected)
-              ? AetherPalette.accentSoft.withValues(alpha: 0.42)
-              : AetherPalette.panelSoft.withValues(alpha: 0.7),
+              ? AetherPalette.accentSoft
+              : AetherPalette.backgroundElevated,
         ),
         foregroundColor: const WidgetStatePropertyAll<Color>(
           AetherPalette.textPrimary,
         ),
         side: WidgetStatePropertyAll<BorderSide>(
           BorderSide(
-            color: AetherPalette.panelBorder.withValues(alpha: 0.72),
+            color: AetherPalette.panelBorderSolid.withValues(alpha: 0.85),
           ),
         ),
         shape: WidgetStatePropertyAll<OutlinedBorder>(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
-          EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
     ),
@@ -209,8 +224,8 @@ ThemeData buildAppTheme() {
       thumbColor: const WidgetStatePropertyAll<Color>(AetherPalette.textPrimary),
       trackColor: WidgetStateProperty.resolveWith<Color?>(
         (states) => states.contains(WidgetState.selected)
-            ? AetherPalette.accentSoft
-            : AetherPalette.panelBorder,
+            ? AetherPalette.accent.withValues(alpha: 0.55)
+            : AetherPalette.panelBorderSolid,
       ),
     ),
     iconTheme: const IconThemeData(color: AetherPalette.textMuted),

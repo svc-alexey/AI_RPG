@@ -29,7 +29,8 @@ The project has already moved beyond the original MVP baseline. The current code
 - tighter mobile chat behavior while the keyboard is open, so the story keeps priority and the composer does not overflow on small screens;
 - a denser in-game campaign layout with reduced mobile padding, slimmer sidebar framing, and more room for readable chat text;
 - demo-mode AI fallback when no model is configured;
-- a unified `Aether` visual system across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
+- a unified `Aether` visual system (noir / copper palette, warm backdrop) across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
+- AI settings UI that shows only **persisted** endpoint fields while runtime still merges empty fields from optional build-time `AI_PRG_*` defines;
 - soft page/backdrop animations that now also run on desktop outside test mode;
 - mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content;
 - a fast web landing shell that opens before Flutter and launches the full app only after the user presses the main CTA;
@@ -87,12 +88,13 @@ flutter test
 
 ## AI setup
 
-The app now uses a single `OpenAI-compatible` configuration path. In settings, provide:
+The app uses a single **OpenAI-compatible** configuration path.
 
-- `Base URL` for your endpoint
-- `Model` id
-- `API Key` if the endpoint requires one
-- runtime controls for response length and context size
+**In-app settings (per device):** set `Base URL`, `Model`, and `API Key` (if required), plus runtime token/window controls. Whatever you **save** to local storage **overrides** compile-time defaults for that field.
+
+**Build-time presets (optional):** define `AI_PRG_BASE_URL`, `AI_PRG_MODEL`, and `AI_PRG_API_KEY` via `--dart-define` or `--dart-define-from-file` (see `tool/ai_local_defines.example.json` and `lib/src/core/config/ai_runtime_env.dart`). They apply only where the stored setting is **empty**; the settings screen does **not** copy them into the text fields (users see hints instead of hidden values).
+
+**DeepSeek:** use a base URL that ends with the API version segment, e.g. `https://api.deepseek.com/v1`. The client also auto-appends `/v1` if the host is `api.deepseek.com` and the path is empty.
 
 Examples of compatible endpoints include local servers and hosted APIs that follow the OpenAI chat-completions style.
 

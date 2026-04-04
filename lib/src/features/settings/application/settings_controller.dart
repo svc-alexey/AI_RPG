@@ -30,6 +30,7 @@ class SettingsViewState {
     required this.status,
     required this.formRevision,
     required this.showApiKeyFromBuildHint,
+    required this.showEndpointBuildDefaultsHint,
   });
 
   factory SettingsViewState.initial() => SettingsViewState(
@@ -38,8 +39,8 @@ class SettingsViewState {
     isLoading: true,
     isSaving: false,
     isChecking: false,
-    baseUrl: AiRuntimeEnv.defaultBaseUrl,
-    model: AiRuntimeEnv.defaultModel,
+    baseUrl: '',
+    model: '',
     apiKey: '',
     timeoutText: '60',
     runtimeProfile: ModelRuntimeSettings.defaults.profile,
@@ -50,6 +51,7 @@ class SettingsViewState {
     status: null,
     formRevision: 0,
     showApiKeyFromBuildHint: false,
+    showEndpointBuildDefaultsHint: false,
   );
 
   static const Object _unset = Object();
@@ -69,6 +71,7 @@ class SettingsViewState {
   final String? status;
   final int formRevision;
   final bool showApiKeyFromBuildHint;
+  final bool showEndpointBuildDefaultsHint;
 
   SettingsViewState copyWith({
     final AppLanguage? appLanguage,
@@ -86,6 +89,7 @@ class SettingsViewState {
     final Object? status = _unset,
     final int? formRevision,
     final bool? showApiKeyFromBuildHint,
+    final bool? showEndpointBuildDefaultsHint,
   }) => SettingsViewState(
     appLanguage: appLanguage ?? this.appLanguage,
     confirmed18Plus: confirmed18Plus ?? this.confirmed18Plus,
@@ -103,6 +107,8 @@ class SettingsViewState {
     formRevision: formRevision ?? this.formRevision,
     showApiKeyFromBuildHint:
         showApiKeyFromBuildHint ?? this.showApiKeyFromBuildHint,
+    showEndpointBuildDefaultsHint:
+        showEndpointBuildDefaultsHint ?? this.showEndpointBuildDefaultsHint,
   );
 }
 
@@ -121,22 +127,26 @@ class SettingsController extends StateNotifier<SettingsViewState> {
 
     final AiSettings persisted =
         await _settingsRepository.loadAiSettingsPersisted();
-    final AiSettings effective = AiSettings.withEnvFallbacks(persisted);
     final AppLanguage appLanguage = await _settingsRepository.loadAppLanguage();
 
     state = state.copyWith(
       appLanguage: appLanguage,
-      confirmed18Plus: effective.confirmed18Plus,
+      confirmed18Plus: persisted.confirmed18Plus,
       isLoading: false,
-      baseUrl: effective.baseUrl,
-      model: effective.model,
+      baseUrl: persisted.baseUrl.trim(),
+      model: persisted.model.trim(),
       apiKey: persisted.apiKey.trim().isNotEmpty ? persisted.apiKey : '',
-      showApiKeyFromBuildHint: persisted.apiKey.trim().isEmpty,
-      timeoutText: effective.timeoutSeconds.toString(),
-      runtimeProfile: effective.runtimeSettings.profile,
-      maxResponseTokensText: effective.runtimeSettings.maxResponseTokens
+      showApiKeyFromBuildHint:
+          persisted.apiKey.trim().isEmpty && AiRuntimeEnv.hasCompileTimeApiKey,
+      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(
+        persisted.baseUrl,
+        persisted.model,
+      ),
+      timeoutText: persisted.timeoutSeconds.toString(),
+      runtimeProfile: persisted.runtimeSettings.profile,
+      maxResponseTokensText: persisted.runtimeSettings.maxResponseTokens
           .toString(),
-      contextWindowSizeText: effective.runtimeSettings.contextWindowSize
+      contextWindowSizeText: persisted.runtimeSettings.contextWindowSize
           .toString(),
       formRevision: state.formRevision + 1,
     );
@@ -160,15 +170,25 @@ class SettingsController extends StateNotifier<SettingsViewState> {
   }
 
   void setBaseUrl(final String value) {
-    state = state.copyWith(baseUrl: value);
+    state = state.copyWith(
+      baseUrl: value,
+      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(value, state.model),
+    );
   }
 
   void setModel(final String value) {
-    state = state.copyWith(model: value);
+    state = state.copyWith(
+      model: value,
+      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(state.baseUrl, value),
+    );
   }
 
   void setApiKey(final String value) {
-    state = state.copyWith(apiKey: value);
+    state = state.copyWith(
+      apiKey: value,
+      showApiKeyFromBuildHint:
+          value.trim().isEmpty && AiRuntimeEnv.hasCompileTimeApiKey,
+    );
   }
 
   void setTimeoutText(final String value) {
@@ -260,4 +280,8 @@ class SettingsController extends StateNotifier<SettingsViewState> {
       _ref.read(settingsRepositoryProvider);
 
   AiServiceFactory get _aiServiceFactory => _ref.read(aiServiceFactoryProvider);
+
+  static bool _endpointBuildHintForForm(final String baseUrl, final String model) =>
+      (baseUrl.trim().isEmpty && AiRuntimeEnv.hasCompileTimeBaseUrl) ||
+      (model.trim().isEmpty && AiRuntimeEnv.hasCompileTimeModel);
 }

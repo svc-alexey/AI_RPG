@@ -1,5 +1,5 @@
 {
   "AI_PRG_API_KEY": "",
-  "AI_PRG_BASE_URL": "https://api.deepseek.com",
+  "AI_PRG_BASE_URL": "https://api.deepseek.com/v1",
   "AI_PRG_MODEL": "deepseek-chat"
 }

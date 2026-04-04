@@ -935,9 +935,22 @@ Reply only with JSON, no markdown.
     return headers;
   }
 
-  String _normalizedBaseUrl(final String baseUrl) => baseUrl.endsWith('/')
-      ? baseUrl.substring(0, baseUrl.length - 1)
-      : baseUrl;
+  /// Trims trailing slash. For **bare** `https://api.deepseek.com` only, appends
+  /// `/v1` (DeepSeek OpenAI-compatible prefix). Any other host/path is unchanged.
+  String _normalizedBaseUrl(final String baseUrl) {
+    String normalized = baseUrl.trim();
+    if (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    final Uri? parsed = Uri.tryParse(normalized);
+    if (parsed != null &&
+        parsed.hasScheme &&
+        parsed.host == 'api.deepseek.com' &&
+        (parsed.path.isEmpty || parsed.path == '/')) {
+      return '$normalized/v1';
+    }
+    return normalized;
+  }
 
   String _responseText(final http.Response response) =>
       utf8.decode(response.bodyBytes, allowMalformed: true);

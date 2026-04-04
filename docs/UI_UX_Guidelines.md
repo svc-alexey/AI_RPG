@@ -38,14 +38,15 @@
 **Компоненты Aether Design System**:
 - `AetherCard` — карточки контента
 - `AetherPageReveal` — анимация появления страниц
-- `AetherBackdrop` — фон с текстурой
-- `AetherPalette` — цветовая палитра
+- `AetherBackdrop` — тёмный вертикальный градиент + тёплое радиальное свечение (пульс); «зерно» (`_FilmNoisePainter`) на **native**; на **web** шум отключён (`kIsWeb`), чтобы не наслаиваться на канвас браузера
+- `AetherPalette` — палитра noir/copper (фон, акцент, narrative-текст и т.д.)
 
 **Типографика**:
+- `display` / крупные заголовки — Playfair Display (через тему / `google_fonts`)
 - `headlineLarge` — заголовки страниц
 - `headlineMedium` — заголовки секций
 - `titleLarge` — заголовки карточек
-- `bodyLarge` — основной текст
+- `bodyLarge` — основной текст и **тело сообщений рассказчика в чате** (Inter), цвет повествования: `AetherPalette.narrativeText`
 - `bodyMedium` — второстепенный текст
 - `labelLarge` — метки секций (uppercase, letter-spacing: 2-3)
 
@@ -66,34 +67,14 @@
 
 ### 1. Home Screen — Главный экран
 
-**Layout**:
-```
-┌─────────────────────────────┐
-│      AETHERIS (logo)        │
-│   ИИ RPG / AI RPG           │
-│         ─────               │
-│                             │
-│  Description text           │
-│                             │
-│  [chip] [chip] [chip] [chip]│
-│                             │
-│  [Новая кампания] ★         │
-│  [Сохранения]               │
-│  [Настройки ИИ]             │
-└─────────────────────────────┘
-```
+**Layout (актуально):** крупный hero (бренд, подзаголовок, описание), затем **bento-row** на широких экранах: основная карточка «новая кампания» + вторичная «Продолжить», на узких — столбик. Внизу — компактные feature-строки и повтор eyebrow-теглайна.
 
-**Изменения от предыдущей версии**:
-- Уменьшен padding с 28/36 до 24/24
-- Feature chips перемещены выше кнопок (было: внизу)
-- Spacing между элементами сокращён на ~20%
-- Feature chips стали компактнее (padding: 12/8, radius: 14)
+**Прокрутка:** контент в `SingleChildScrollView` с `ScrollConfiguration`, отключающей desktop/web `RawScrollbar` на лендинге (короткий контент не должен показывать ложную вертикальную полосу).
 
 **Ключевые значения**:
-- Max-width контейнера: 760px
-- Padding: 24px
-- SizedBox между logo и chips: 24px (было 40px)
-- SizedBox между кнопками: 10px (было 12px)
+- Max-width контента: ~920px на `tablet/desktop` (`responsive.isWide`), иначе `dialogMaxWidth`
+- Отступы из `responsive.pagePadding` / `blockSpacing`
+- Настройки — иконка в правом верхнем углу верхней строки
 
 ---
 
@@ -126,20 +107,25 @@
 
 Кнопка: "Начать приключение"
 
-#### Детальная настройка (4 шага)
+#### Детальная настройка (6 шагов)
 
-**Шаг 1/4 — Foundation**:
-- Setting (ChoiceChips)
+Общий каркас: заголовок «Создание мира», **сегментный** индикатор прогресса, подпись «Шаг X из Y», контент по центру, снизу «Назад» и основная кнопка «Далее» / «Создать кампанию».
+
+**Шаг 1 — Жанр (`literaryGenre`):** крупный заголовок «Выберите жанр», пиллы жанров (выбранный — рамка акцента + галочка), опция «Случайный жанр».
+
+**Шаг 2 — Сеттинг (`worldSetting`):** аналогично — «Выберите сеттинг», пиллы, случайный сеттинг.
+
+**Шаг 3 — Foundation**:
 - Story Mode (DropdownButtonFormField)
 - Difficulty (DropdownButtonFormField)
 - Имя героя (TextField)
 
-**Шаг 2/4 — Story**:
+**Шаг 4 — Story**:
 - Story Wish (TextField, 3 строки, опционально)
 - Генерация промптов (кнопки)
 - Custom Story Prompt (TextField, 4 строки)
 
-**Шаг 3/4 — Character**:
+**Шаг 5 — Character**:
 - Character Class (DropdownButtonFormField) — только если для выбранного сеттинга в `classesBySetting` задан непустой список; иначе поле скрыто, класс в данных — `unspecified`
 - Race (DropdownButtonFormField)
 - Gender (DropdownButtonFormField)
@@ -149,20 +135,19 @@
 
 **Синхронизация промпта персонажа:** при смене **сеттинга** (на шаге мира или ранее), **расы**, **пола** или **класса** текст в поле «промпт персонажа» пересобирается из актуального профиля через `CharacterPromptBuilder` (в контроллере `NewGameController`). Ручное редактирование этого поля затем может быть перезаписано следующей такой структурной сменой — это ожидаемое поведение привязки к реквизитам.
 
-**Шаг 4/4 — Review**:
+**Шаг 6 — Review**:
 - Карточка с итоговым обзором всех настроек
 - Иконки + лейблы для каждой настройки
 
 **Навигация**:
-- Step indicator (dots, 8px height, active: 32px width)
+- Сегментная полоса прогресса (равные сегменты по числу шагов)
 - "Шаг X из Y" под индикатором
-- Кнопки "Назад" и "Далее" / "Создать кампанию"
+- Кнопки "Назад" и "Далее" / "Создать кампанию" в нижней панели
 
 **Ключевые значения**:
-- Max-width: 600px
-- Padding: 24px
-- ChoiceChip spacing: 8px
-- Section spacing: 24px
+- Max-width контента wizard: см. `new_game_screen` (full-width layout с внутренним max)
+- Padding: через `responsive`
+- Жанр/сеттинг: пиллы, не обязательно ChoiceChip с иконками
 
 ---
 
@@ -240,6 +225,8 @@
 └─────────────────────────────┘
 ```
 
+**Поведение полей AI:** в `Base URL`, `Model` и `API Key` отображаются только значения из **локального хранилища**. Пустое поле означает «в рантайме подставится compile-time пресет, если он задан при сборке»; подсказки (`endpointBuildDefaultsHint`, `apiKeyBuildTimeHiddenHint`) объясняют это без показа секретов.
+
 **Изменения от предыдущей версии**:
 - Max-width: 640px (было: 920px) — на 30% компактнее
 - Provider tiles spacing: 8px (было: 12px)
@@ -284,6 +271,10 @@
 └─────────────────────────────┘
 ```
 
+**Сообщения в ленте:**
+- Игрок / система: `bodyLarge` темы.
+- Рассказчик (в т.ч. стриминг «ожидание ответа»): тот же **sans (Inter)** через `bodyLarge` с цветом `AetherPalette.narrativeText`, межстрочный интервал ~1.75; без Playfair в теле абзаца.
+
 **Композер (упрощённый)**:
 - Без адаптивного кода: одна версия для всех размеров
 - Кнопка Отправить/Отменить справа в Row
@@ -321,7 +312,7 @@ Container(
 - Suggestion chips вынесены из ListView (были: внутри как item)
 - Margin между chips и composer: 12px (лучшая видимость)
 - Sidebar width: 240px (было: 260px)
-- Message bubbles max-width: 640px (было: 720px)
+- Message bubbles max-width: ~680px на широких экранах (см. `chat_screen.dart`)
 - LinearProgressIndicator в composer при _isSending
 - Chips spacing: 8px (было: зависело от card padding)
 
@@ -334,7 +325,7 @@ Container(
 **Ключевые значения**:
 - Wide breakpoint: 760px
 - Sidebar width: 240px
-- Message max-width: 640px
+- Message max-width: ~680px (wide)
 - Composer border-radius: 20px
 - Suggestion chips spacing: 8px
 - Margin между chips и composer: 12px

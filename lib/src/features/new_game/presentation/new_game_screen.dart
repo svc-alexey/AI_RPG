@@ -7,6 +7,7 @@ import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/application/new_game_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class NewGameScreen extends ConsumerStatefulWidget {
   const NewGameScreen({super.key});
@@ -58,38 +59,58 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.newCampaign)),
-      body: AetherBackdrop(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: responsive.dialogMaxWidth),
-            child: Padding(
-              padding: EdgeInsets.all(responsive.pagePadding),
-              child: AetherPageReveal(
-                child: switch (gameState.mode) {
-                  NewGameWizardMode.modeSelection => _buildModeSelection(
-                    theme: theme,
-                    l10n: l10n,
-                    controller: controller,
-                  ),
-                  NewGameWizardMode.quickStart => _buildQuickStart(
-                    theme: theme,
-                    l10n: l10n,
-                    state: gameState,
-                    controller: controller,
-                  ),
-                  NewGameWizardMode.customSetup => _buildCustomSetup(
-                    theme: theme,
-                    l10n: l10n,
-                    state: gameState,
-                    controller: controller,
-                  ),
-                },
-              ),
-            ),
-          ),
+    final Widget modeChild = switch (gameState.mode) {
+      NewGameWizardMode.modeSelection => _buildModeSelection(
+          theme: theme,
+          l10n: l10n,
+          controller: controller,
         ),
+      NewGameWizardMode.quickStart => _buildQuickStart(
+          theme: theme,
+          l10n: l10n,
+          state: gameState,
+          controller: controller,
+        ),
+      NewGameWizardMode.customSetup => _buildCustomSetup(
+          theme: theme,
+          l10n: l10n,
+          state: gameState,
+          controller: controller,
+        ),
+    };
+
+    return Scaffold(
+      appBar: gameState.mode == NewGameWizardMode.customSetup
+          ? null
+          : AppBar(title: Text(l10n.newCampaign)),
+      body: AetherBackdrop(
+        child: gameState.mode == NewGameWizardMode.customSetup
+            ? SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: responsive.isWide ? 820 : double.infinity,
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsive.pagePadding,
+                      ),
+                      child: AetherPageReveal(child: modeChild),
+                    ),
+                  ),
+                ),
+              )
+            : Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.dialogMaxWidth,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(responsive.pagePadding),
+                    child: AetherPageReveal(child: modeChild),
+                  ),
+                ),
+              ),
       ),
     );
   }
@@ -205,100 +226,152 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     required final NewGameViewState state,
     required final NewGameController controller,
   }) {
+    final int stepCount = NewGameCustomSetupStep.values.length;
     final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
     final VoidCallback onBack =
         state.currentStep == NewGameCustomSetupStep.foundation
         ? controller.setModeSelection
         : controller.previousStep;
+    final bool primaryBusy = state.isSaving || state.isGenerating;
+
+    void onPrimary() {
+      if (isLastStep) {
+        _createCampaign();
+      } else {
+        controller.nextStep();
+      }
+    }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            IconButton(
-              onPressed: onBack,
+            _WizardCircleIconButton(
               tooltip: l10n.backButton,
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: Icons.arrow_back_rounded,
+              onPressed: onBack,
             ),
             Expanded(
               child: Text(
-                l10n.customSetup,
-                style: theme.textTheme.headlineMedium,
+                l10n.worldCreationTitle,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: context.responsive.isCompact ? 20 : 24,
+                  fontWeight: FontWeight.w400,
+                  color: AetherPalette.textPrimary,
+                ),
               ),
             ),
-            IconButton(
-              onPressed: state.isSaving || state.isGenerating
-                  ? null
-                  : (isLastStep ? _createCampaign : controller.nextStep),
-              tooltip: isLastStep ? l10n.createCampaignButton : l10n.nextButton,
-              icon: state.isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(
-                      isLastStep
-                          ? Icons.check_rounded
-                          : Icons.arrow_forward_rounded,
-                    ),
-            ),
+            const SizedBox(width: 44),
           ],
         ),
-        SizedBox(height: context.responsive.sectionSpacing),
-        _StepIndicator(
+        SizedBox(height: context.responsive.sectionSpacing + 4),
+        _WizardSegmentProgress(
           currentIndex: state.currentStep.index,
-          stepCount: NewGameCustomSetupStep.values.length,
+          segmentCount: stepCount,
         ),
-        const SizedBox(height: 8),
-        Text(
-          l10n.stepXOfY(
-            state.currentStep.index + 1,
-            NewGameCustomSetupStep.values.length,
-          ),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AetherPalette.textMuted,
+        const SizedBox(height: 10),
+        Center(
+          child: Text(
+            l10n.stepXOfY(state.currentStep.index + 1, stepCount),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AetherPalette.textDim,
+              fontSize: 12,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
         SizedBox(height: context.responsive.blockSpacing),
         Expanded(
-          child: ListView(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: switch (state.currentStep) {
+              NewGameCustomSetupStep.literaryGenre => _buildLiteraryGenreStep(
+                theme: theme,
+                l10n: l10n,
+                state: state,
+                controller: controller,
+              ),
+              NewGameCustomSetupStep.worldSetting => _buildWorldSettingStep(
+                theme: theme,
+                l10n: l10n,
+                state: state,
+                controller: controller,
+              ),
+              NewGameCustomSetupStep.foundation => _buildFoundationStep(
+                l10n: l10n,
+                state: state,
+                controller: controller,
+              ),
+              NewGameCustomSetupStep.story => _buildStoryStep(
+                l10n: l10n,
+                theme: theme,
+                state: state,
+                controller: controller,
+              ),
+              NewGameCustomSetupStep.character => _buildCharacterStep(
+                l10n: l10n,
+                state: state,
+                controller: controller,
+              ),
+              NewGameCustomSetupStep.review => _buildReviewStep(
+                l10n: l10n,
+                theme: theme,
+                state: state,
+              ),
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              switch (state.currentStep) {
-                NewGameCustomSetupStep.literaryGenre =>
-                  _buildLiteraryGenreStep(
-                    l10n: l10n,
-                    state: state,
-                    controller: controller,
+              TextButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: Text(l10n.backButton),
+                style: TextButton.styleFrom(
+                  foregroundColor: AetherPalette.textMuted,
+                ),
+              ),
+              FilledButton(
+                onPressed: primaryBusy ? null : onPrimary,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 26,
+                    vertical: 14,
                   ),
-                NewGameCustomSetupStep.worldSetting => _buildWorldSettingStep(
-                  l10n: l10n,
-                  state: state,
-                  controller: controller,
+                  shape: const StadiumBorder(),
                 ),
-                NewGameCustomSetupStep.foundation => _buildFoundationStep(
-                  l10n: l10n,
-                  state: state,
-                  controller: controller,
-                ),
-                NewGameCustomSetupStep.story => _buildStoryStep(
-                  l10n: l10n,
-                  theme: theme,
-                  state: state,
-                  controller: controller,
-                ),
-                NewGameCustomSetupStep.character => _buildCharacterStep(
-                  l10n: l10n,
-                  state: state,
-                  controller: controller,
-                ),
-                NewGameCustomSetupStep.review => _buildReviewStep(
-                  l10n: l10n,
-                  theme: theme,
-                  state: state,
-                ),
-              },
+                child: state.isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AetherPalette.background,
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(
+                            isLastStep
+                                ? l10n.createCampaignButton
+                                : l10n.nextButton,
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            isLastStep
+                                ? Icons.check_rounded
+                                : Icons.arrow_forward_rounded,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+              ),
             ],
           ),
         ),
@@ -307,68 +380,116 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   }
 
   Widget _buildLiteraryGenreStep({
+    required final ThemeData theme,
     required final AppLocalizations l10n,
     required final NewGameViewState state,
     required final NewGameController controller,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      _SectionLabel(title: l10n.literaryGenreTitle),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: LiteraryGenre.values
-            .map(
-              (final item) => ChoiceChip(
-                label: Text(l10n.literaryGenreLabel(item)),
-                selected: state.literaryGenre == item,
-                onSelected: (_) => controller.setLiteraryGenre(item),
-                avatar: const Icon(Icons.menu_book_outlined, size: 18),
+  }) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Center(
+            child: Text(
+              l10n.chooseGenreWizardTitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: context.responsive.isCompact ? 24 : 28,
+                fontWeight: FontWeight.w400,
+                height: 1.15,
+                color: AetherPalette.textPrimary,
               ),
-            )
-            .toList(),
-      ),
-      SizedBox(height: context.responsive.blockSpacing),
-      OutlinedButton.icon(
-        onPressed: controller.randomizeLiteraryGenre,
-        icon: const Icon(Icons.shuffle_rounded, size: 18),
-        label: Text(l10n.randomGenreButton),
-      ),
-    ],
-  );
+            ),
+          ),
+          SizedBox(height: context.responsive.blockSpacing + 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: LiteraryGenre.values
+                .map(
+                  (item) => _GenreSelectPill(
+                    label: l10n.literaryGenreLabel(item),
+                    selected: state.literaryGenre == item,
+                    onTap: () => controller.setLiteraryGenre(item),
+                  ),
+                )
+                .toList(),
+          ),
+          SizedBox(height: context.responsive.sectionSpacing + 6),
+          Center(
+            child: TextButton.icon(
+              onPressed: controller.randomizeLiteraryGenre,
+              icon: const Icon(
+                Icons.shuffle_rounded,
+                size: 20,
+                color: AetherPalette.textMuted,
+              ),
+              label: Text(
+                l10n.randomGenreButton,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AetherPalette.textMuted,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
 
   Widget _buildWorldSettingStep({
+    required final ThemeData theme,
     required final AppLocalizations l10n,
     required final NewGameViewState state,
     required final NewGameController controller,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      _SectionLabel(title: l10n.settingTitle),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: CampaignSetting.values
-            .map(
-              (final item) => ChoiceChip(
-                label: Text(l10n.settingLabel(item)),
-                selected: state.setting == item,
-                onSelected: (_) => controller.setSetting(item),
-                avatar: Icon(_settingChoiceIcon(item), size: 18),
+  }) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Center(
+            child: Text(
+              l10n.chooseSettingWizardTitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: context.responsive.isCompact ? 24 : 28,
+                fontWeight: FontWeight.w400,
+                height: 1.15,
+                color: AetherPalette.textPrimary,
               ),
-            )
-            .toList(),
-      ),
-      SizedBox(height: context.responsive.blockSpacing),
-      OutlinedButton.icon(
-        onPressed: controller.randomizeSetting,
-        icon: const Icon(Icons.shuffle_rounded, size: 18),
-        label: Text(l10n.randomSettingButton),
-      ),
-    ],
-  );
+            ),
+          ),
+          SizedBox(height: context.responsive.blockSpacing + 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: CampaignSetting.values
+                .map(
+                  (item) => _GenreSelectPill(
+                    label: l10n.settingLabel(item),
+                    selected: state.setting == item,
+                    onTap: () => controller.setSetting(item),
+                  ),
+                )
+                .toList(),
+          ),
+          SizedBox(height: context.responsive.sectionSpacing + 6),
+          Center(
+            child: TextButton.icon(
+              onPressed: controller.randomizeSetting,
+              icon: const Icon(
+                Icons.shuffle_rounded,
+                size: 20,
+                color: AetherPalette.textMuted,
+              ),
+              label: Text(
+                l10n.randomSettingButton,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AetherPalette.textMuted,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
 
   Widget _buildFoundationStep({
     required final AppLocalizations l10n,
@@ -828,19 +949,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
   }
 }
 
-IconData _settingChoiceIcon(final CampaignSetting item) => switch (item) {
-  CampaignSetting.romantasy => Icons.favorite_rounded,
-  CampaignSetting.cozyFantasy => Icons.local_cafe_rounded,
-  CampaignSetting.darkAcademia => Icons.school_rounded,
-  CampaignSetting.postApocalypse => Icons.warning_rounded,
-  CampaignSetting.litRpgProgression => Icons.trending_up_rounded,
-  CampaignSetting.grimdarkFantasy => Icons.dark_mode_rounded,
-  CampaignSetting.nearFutureSciFi => Icons.rocket_launch_outlined,
-  CampaignSetting.horrorWeird => Icons.visibility_off_rounded,
-  CampaignSetting.cozyCrime => Icons.search_rounded,
-  CampaignSetting.altHistorySecret => Icons.history_rounded,
-};
-
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.title});
 
@@ -906,35 +1014,136 @@ class _ModeCard extends StatelessWidget {
   );
 }
 
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({
+/// Горизонтальные сегменты прогресса (как в макете «Создание мира»).
+class _WizardSegmentProgress extends StatelessWidget {
+  const _WizardSegmentProgress({
     required this.currentIndex,
-    required this.stepCount,
+    required this.segmentCount,
   });
 
   final int currentIndex;
-  final int stepCount;
+  final int segmentCount;
 
   @override
   Widget build(final BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: List<Widget>.generate(stepCount, (final index) {
-      final bool isCurrent = index == currentIndex;
-      final bool isPast = index < currentIndex;
-      final AppResponsiveData responsive = context.responsive;
-      return Container(
-        margin: EdgeInsets.symmetric(horizontal: responsive.isCompact ? 3 : 4),
-        width: isCurrent ? (responsive.isCompact ? 24 : 32) : 8,
-        height: 8,
-        decoration: BoxDecoration(
-          color: isCurrent || isPast
-              ? AetherPalette.accent
-              : AetherPalette.textMuted.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(4),
+        children: List<Widget>.generate(segmentCount, (index) {
+          final bool filled = index <= currentIndex;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index == segmentCount - 1 ? 0 : 6,
+              ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                height: 5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: filled
+                      ? AetherPalette.accent
+                      : AetherPalette.panelSoft,
+                ),
+              ),
+            ),
+          );
+        }),
+      );
+}
+
+class _WizardCircleIconButton extends StatelessWidget {
+  const _WizardCircleIconButton({
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(final BuildContext context) {
+    final Widget child = Material(
+      color: AetherPalette.backgroundElevated,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(
+            icon,
+            size: 22,
+            color: AetherPalette.textPrimary,
+          ),
+        ),
+      ),
+    );
+    if (tooltip == null) {
+      return child;
+    }
+    return Tooltip(message: tooltip!, child: child);
+  }
+}
+
+class _GenreSelectPill extends StatelessWidget {
+  const _GenreSelectPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(final BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(999),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AetherPalette.backgroundElevated.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: selected
+                    ? AetherPalette.accent
+                    : AetherPalette.panelBorderSolid,
+                width: selected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (selected) ...<Widget>[
+                  const Icon(
+                    Icons.check_rounded,
+                    size: 18,
+                    color: AetherPalette.accent,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: selected
+                            ? AetherPalette.textPrimary
+                            : AetherPalette.textMuted,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
-    }),
-  );
 }
 
 class _ReviewItem extends StatelessWidget {

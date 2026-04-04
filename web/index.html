@@ -10,7 +10,7 @@
     content="Beyond the Verge is a narrative RPG where AI guides the scene and the world remembers your choices."
   >
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#17121F">
+  <meta name="theme-color" content="#0A0908">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,22 +20,27 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
   <title>Beyond the Verge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@300;400;500&display=swap" rel="stylesheet">
 
   <style>
     :root {
       --app-height: 100vh;
-      --bg: #17121f;
-      --bg-top: #241a31;
-      --panel: rgba(33, 26, 44, 0.92);
-      --panel-border: rgba(107, 84, 136, 0.68);
-      --text: #e9e2d7;
-      --muted: rgba(233, 226, 215, 0.72);
-      --accent: #b463ff;
-      --accent-soft: rgba(180, 99, 255, 0.2);
-      --gold: #e0b35b;
+      --bg: #0a0908;
+      --bg-mid: #141210;
+      --panel: rgba(18, 16, 14, 0.95);
+      --panel-border: rgba(200, 121, 65, 0.22);
+      --panel-border-solid: #1a1816;
+      --text: #e8e4e0;
+      --muted: #7a7570;
+      --accent: #c87941;
+      --accent-hover: #d4956a;
+      --accent-soft: rgba(200, 121, 65, 0.14);
+      --gold: #bfa76f;
       --danger: #ffb4ab;
       color-scheme: dark;
-      font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     * {
@@ -47,44 +52,14 @@
       margin: 0;
       min-height: var(--app-height);
       background:
-        radial-gradient(circle at top left, rgba(180, 99, 255, 0.16), transparent 34%),
-        radial-gradient(circle at bottom right, rgba(93, 59, 121, 0.26), transparent 30%),
-        linear-gradient(180deg, var(--bg-top), var(--bg));
+        radial-gradient(circle at 50% 28%, rgba(200, 121, 65, 0.12), transparent 52%),
+        linear-gradient(180deg, var(--bg-mid), var(--bg));
       color: var(--text);
       overflow-x: hidden;
     }
 
     body {
       position: relative;
-    }
-
-    body::before,
-    body::after {
-      content: "";
-      position: fixed;
-      inset: auto;
-      border-radius: 999px;
-      pointer-events: none;
-      filter: blur(18px);
-      opacity: 0.8;
-      animation: drift 14s ease-in-out infinite alternate;
-    }
-
-    body::before {
-      top: 5%;
-      left: -120px;
-      width: 320px;
-      height: 320px;
-      background: radial-gradient(circle, rgba(180, 99, 255, 0.32), transparent 72%);
-    }
-
-    body::after {
-      right: -90px;
-      bottom: 10%;
-      width: 280px;
-      height: 280px;
-      background: radial-gradient(circle, rgba(224, 179, 91, 0.18), transparent 68%);
-      animation-duration: 17s;
     }
 
     #loading-container {
@@ -116,10 +91,9 @@
     .hero-panel,
     .detail-panel {
       background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 28px;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
-      backdrop-filter: blur(10px);
+      border: 1px solid var(--panel-border-solid);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
     }
 
     .hero-panel {
@@ -140,24 +114,26 @@
       content: "";
       width: 44px;
       height: 1px;
-      background: rgba(224, 179, 91, 0.55);
+      background: rgba(200, 121, 65, 0.5);
     }
 
     h1 {
       margin: 22px 0 14px;
-      font-family: "Cormorant Garamond", Georgia, serif;
+      font-family: "Playfair Display", Georgia, serif;
       font-size: clamp(52px, 7vw, 88px);
       line-height: 0.95;
-      letter-spacing: 0.04em;
-      font-weight: 500;
+      letter-spacing: -0.02em;
+      font-weight: 300;
     }
 
     .hero-title {
       max-width: 620px;
       margin: 0 0 16px;
-      font-size: clamp(24px, 3vw, 36px);
-      line-height: 1.12;
-      color: rgba(233, 226, 215, 0.94);
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: clamp(22px, 3vw, 32px);
+      line-height: 1.2;
+      font-style: italic;
+      color: var(--muted);
     }
 
     .hero-subtitle {
@@ -178,10 +154,10 @@
     .hero-pill {
       padding: 10px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(107, 84, 136, 0.72);
-      background: rgba(38, 31, 51, 0.92);
-      font-size: 14px;
-      color: var(--text);
+      border: 1px solid var(--panel-border-solid);
+      background: rgba(15, 13, 11, 0.9);
+      font-size: 13px;
+      color: var(--muted);
     }
 
     .hero-actions {
@@ -203,7 +179,7 @@
     .secondary-button {
       appearance: none;
       border: 0;
-      border-radius: 18px;
+      border-radius: 12px;
       padding: 16px 22px;
       font-size: 15px;
       font-weight: 700;
@@ -212,15 +188,15 @@
     }
 
     .cta-button {
-      background: linear-gradient(135deg, rgba(180, 99, 255, 0.34), rgba(93, 59, 121, 0.8));
-      color: var(--text);
-      box-shadow: 0 20px 48px rgba(180, 99, 255, 0.18);
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 40px rgba(200, 121, 65, 0.2);
     }
 
     .secondary-button {
-      background: rgba(38, 31, 51, 0.88);
+      background: rgba(15, 13, 11, 0.95);
       color: var(--text);
-      border: 1px solid rgba(107, 84, 136, 0.72);
+      border: 1px solid var(--panel-border-solid);
     }
 
     .cta-button:hover,
@@ -240,10 +216,10 @@
       display: none;
       gap: 14px;
       padding: 18px 18px 16px;
-      border-radius: 22px;
-      border: 1px solid rgba(107, 84, 136, 0.5);
-      background: rgba(20, 15, 29, 0.84);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      border-radius: 14px;
+      border: 1px solid var(--panel-border-solid);
+      background: rgba(15, 13, 11, 0.92);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
     }
 
     .loading-shell.is-visible {
@@ -264,7 +240,7 @@
       width: 42px;
       height: 42px;
       border-radius: 999px;
-      border: 2px solid rgba(180, 99, 255, 0.22);
+      border: 2px solid rgba(200, 121, 65, 0.25);
       border-top-color: var(--accent);
       animation: spin 900ms linear infinite;
       flex: 0 0 auto;
@@ -302,8 +278,8 @@
       height: 100%;
       width: 12%;
       border-radius: inherit;
-      background: linear-gradient(90deg, rgba(224, 179, 91, 0.9), rgba(180, 99, 255, 0.96));
-      box-shadow: 0 0 24px rgba(180, 99, 255, 0.3);
+      background: linear-gradient(90deg, var(--accent-hover), var(--accent));
+      box-shadow: 0 0 18px rgba(200, 121, 65, 0.25);
       transition: width 500ms ease;
     }
 
@@ -346,9 +322,9 @@
 
     .detail-card {
       padding: 16px 18px;
-      border-radius: 20px;
-      background: rgba(23, 18, 31, 0.5);
-      border: 1px solid rgba(107, 84, 136, 0.38);
+      border-radius: 14px;
+      background: rgba(15, 13, 11, 0.65);
+      border: 1px solid var(--panel-border-solid);
     }
 
     .detail-label {
@@ -378,11 +354,6 @@
 
     [hidden] {
       display: none !important;
-    }
-
-    @keyframes drift {
-      from { transform: translate3d(0, 0, 0) scale(1); }
-      to { transform: translate3d(18px, -16px, 0) scale(1.08); }
     }
 
     @keyframes spin {

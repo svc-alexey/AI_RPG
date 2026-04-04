@@ -3,7 +3,7 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:flutter/material.dart';
 
 /// Стек плавающих кнопок выбора справа от текста.
-/// Кнопки отображаются с прозрачным фоном и тонкой рамкой.
+/// Стиль — pill/chip как в JS-макете; позиция внутри чата не меняется.
 class OverlayChoiceStack extends StatelessWidget {
   const OverlayChoiceStack({
     required this.choices,
@@ -17,7 +17,7 @@ class OverlayChoiceStack extends StatelessWidget {
   final bool enabled;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (choices.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -48,8 +48,7 @@ class OverlayChoiceStack extends StatelessWidget {
   }
 }
 
-/// Плавающая кнопка выбора с полупрозрачным фоном.
-class OverlayChoiceButton extends StatelessWidget {
+class OverlayChoiceButton extends StatefulWidget {
   const OverlayChoiceButton({
     required this.label,
     required this.onPressed,
@@ -61,71 +60,80 @@ class OverlayChoiceButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final int index;
 
-  static const double _buttonPadding = 12.0;
-  static const double _buttonBorderRadius = 12.0;
-  static const double _borderOpacity = 0.8;
+  @override
+  State<OverlayChoiceButton> createState() => _OverlayChoiceButtonState();
+}
+
+class _OverlayChoiceButtonState extends State<OverlayChoiceButton> {
+  bool _hover = false;
 
   @override
-  Widget build(BuildContext context) {
-    final bool isEnabled = onPressed != null;
+  Widget build(final BuildContext context) {
+    final bool isEnabled = widget.onPressed != null;
     final AppResponsiveData responsive = context.responsive;
+    final Color borderColor = !isEnabled
+        ? AetherPalette.panelBorderSolid.withValues(alpha: 0.35)
+        : _hover
+        ? AetherPalette.accent.withValues(alpha: 0.35)
+        : AetherPalette.panelBorderSolid;
+    final Color fg = !isEnabled
+        ? AetherPalette.textMuted.withValues(alpha: 0.45)
+        : _hover
+        ? AetherPalette.accentHover
+        : AetherPalette.textMuted;
+    const Color bg = AetherPalette.backgroundElevated;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: SizedBox(
         width: responsive.overlayMaxWidth,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(_buttonBorderRadius),
-            child: Container(
-              constraints: BoxConstraints(
-                minHeight: responsive.isCompact ? 36 : 40,
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: responsive.isCompact ? 10 : _buttonPadding,
-                vertical: responsive.isCompact ? 8 : 10,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(
-                  responsive.isCompact ? 10 : _buttonBorderRadius,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              borderRadius: BorderRadius.circular(999),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                constraints: BoxConstraints(
+                  minHeight: responsive.isCompact ? 38 : 42,
                 ),
-                border: Border.all(
-                  color: isEnabled
-                      ? AetherPalette.accent.withValues(alpha: _borderOpacity)
-                      : AetherPalette.panelBorder.withValues(alpha: 0.3),
-                  width: 1.5,
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.isCompact ? 14 : 16,
+                  vertical: responsive.isCompact ? 9 : 10,
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: responsive.isCompact ? 12 : 13,
-                        fontWeight: FontWeight.w500,
-                        color: isEnabled
-                            ? AetherPalette.textPrimary
-                            : AetherPalette.textMuted.withValues(alpha: 0.5),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: responsive.isCompact ? 12 : 13,
+                          fontWeight: FontWeight.w500,
+                          color: fg,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 16,
-                    color: isEnabled
-                        ? AetherPalette.accent
-                        : AetherPalette.textMuted.withValues(alpha: 0.5),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: fg,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -192,8 +192,9 @@ class AiSettings {
       model.trim().isNotEmpty &&
       apiKey.trim().isNotEmpty;
 
-  /// Fills empty [baseUrl], [model], or [apiKey] from [AiRuntimeEnv] so the app
-  /// works without prior settings; non-empty stored values win (user settings).
+  /// Fills empty [baseUrl], [model], or [apiKey] from [AiRuntimeEnv] (build
+  /// presets). Any non-empty value from persistence **always** wins — use this
+  /// for API calls; the settings screen shows persistence only, not this merge.
   static AiSettings withEnvFallbacks(final AiSettings stored) {
     final String base = stored.baseUrl.trim().isNotEmpty
         ? stored.baseUrl.trim()
