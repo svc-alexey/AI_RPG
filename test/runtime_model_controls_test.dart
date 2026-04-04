@@ -82,12 +82,10 @@ void main() {
   test('OpenAI-compatible request body uses runtime token controls', () {
     final OpenAiCompatibleAiClient client = OpenAiCompatibleAiClient();
     const AiSettings settings = AiSettings(
-      provider: AiProviderType.openAiCompatible,
       baseUrl: 'http://127.0.0.1:1234/v1',
       model: 'test-model',
       apiKey: '',
       timeoutSeconds: 30,
-      fastResponses: false,
       runtimeSettings: ModelRuntimeSettings(
         maxResponseTokens: 222,
         contextWindowSize: 1024,
@@ -249,12 +247,10 @@ void main() {
 
     final Map<String, Object?> requestBody = client.buildTurnRequestBody(
       settings: const AiSettings(
-        provider: AiProviderType.openAiCompatible,
         baseUrl: 'http://127.0.0.1:1234/v1',
         model: 'test-model',
         apiKey: '',
         timeoutSeconds: 30,
-        fastResponses: false,
         runtimeSettings: ModelRuntimeSettings.smartPreset,
       ),
       language: AppLanguage.en,

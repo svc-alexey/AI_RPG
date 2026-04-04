@@ -993,12 +993,10 @@ class _FakeSettingsRepository extends SettingsRepository {
 class _FakeConfiguredSettingsRepository extends SettingsRepository {
   @override
   Future<AiSettings> loadAiSettings() async => const AiSettings(
-    provider: AiProviderType.openAiCompatible,
     baseUrl: 'http://127.0.0.1:1234/v1',
     model: 'test-model',
     apiKey: 'test-key',
     timeoutSeconds: 15,
-    fastResponses: false,
     runtimeSettings: ModelRuntimeSettings.smartPreset,
   );
 }

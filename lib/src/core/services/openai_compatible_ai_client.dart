@@ -189,6 +189,8 @@ Reply only with JSON, no markdown.
     }
   }
 
+  /// Intentional stub: image generation pipeline not chosen yet.
+  /// `CharacterPortraitPromptBuilder` stays tested for future wiring; do not treat as dead code.
   @override
   Future<GeneratedPortrait?> generateCharacterPortrait({
     required final AiSettings settings,

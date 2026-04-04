@@ -70,3 +70,6 @@ local.properties
 # OS / editor local files
 Thumbs.db
 Desktop.ini
+
+# Ad-hoc build archives at repo root (not versioned source)
+/*.zip

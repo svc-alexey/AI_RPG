@@ -1,6 +1,8 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 
+/// Ready for when `OpenAiCompatibleAiClient.generateCharacterPortrait` is implemented.
+/// Not referenced from production flow until an image provider exists (see tests).
 class CharacterPortraitPromptBuilder {
   const CharacterPortraitPromptBuilder();
 

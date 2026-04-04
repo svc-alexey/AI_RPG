@@ -1148,7 +1148,7 @@ IconData _iconForModule(final CampaignModule module) => switch (module) {
 
 enum _ModuleHighlightState { none, updated, newlyUnlocked }
 
-enum _ScrollMode { none, jump, animate }
+enum _ScrollMode { none, animate }
 
 class _StreamingNarrationContent extends StatelessWidget {
   const _StreamingNarrationContent({

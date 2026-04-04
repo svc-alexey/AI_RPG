@@ -68,6 +68,9 @@ The next planned implementation step is the product-facing layer:
 
 ## Key documents
 
+- [Agent / AI onboarding](docs/AGENT_CONTEXT.md) — продукт, карта кода, фичи, процесс для агентов
+- [Feature catalog](docs/features/CATALOG.md)
+- [Commands protocol](docs/features/COMMANDS.md)
 - [PRD](D:/AI_PRG/docs/features/engine-mechanics-token-control/02-PRD.md)
 - [Feature README](D:/AI_PRG/docs/features/engine-mechanics-token-control/README.md)
 - [Architecture](D:/AI_PRG/docs/features/engine-mechanics-token-control/01-Architecture.md)

@@ -20,10 +20,11 @@ void writeRuntimeLog(
   buffer.writeln();
 
   try {
-    final File file = File(
+    final File output = File(
       '${Directory.current.path}${Platform.pathSeparator}runtime_errors.log',
     );
-    file.writeAsStringSync(
+    // ignore: cascade_invocations
+    output.writeAsStringSync(
       buffer.toString(),
       mode: FileMode.append,
       flush: true,

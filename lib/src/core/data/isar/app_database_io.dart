@@ -10,7 +10,6 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AppDatabase {
   AppDatabase({
@@ -23,9 +22,7 @@ class AppDatabase {
 
   static const String _schemaVersionKey = 'storage.schema_version';
   static const int _currentSchemaVersion = 6;
-  static const String _legacyCampaignIdsKey = 'campaign.ids';
   static const String _legacyAiSettingsKey = 'settings.ai';
-  static const String _legacyAppLanguageKey = 'settings.app_language';
   static const CampaignLocalDataSource _campaignLocal =
       CampaignLocalDataSource();
   static const SettingsLocalDataSource _settingsLocal =
@@ -82,7 +79,7 @@ class AppDatabase {
         .keyEqualTo(_schemaVersionKey)
         .findFirst();
     if (versionRecord == null) {
-      await _migrateLegacySharedPreferences(current);
+      await _bootstrapEmptyIsar(current);
       return;
     }
 
@@ -140,46 +137,9 @@ class AppDatabase {
     return directory.path;
   }
 
-  Future<void> _migrateLegacySharedPreferences(final Isar isar) async {
-    final SharedPreferences preferences = await SharedPreferences.getInstance();
-    final String? rawAiSettings = preferences.getString(_legacyAiSettingsKey);
-    final String? rawAppLanguage = preferences.getString(_legacyAppLanguageKey);
-    final List<String> campaignIds =
-        preferences.getStringList(_legacyCampaignIdsKey) ?? const <String>[];
-
-    final List<CampaignState> migratedCampaigns = <CampaignState>[];
-    for (final String campaignId in campaignIds) {
-      final String? rawCampaign = preferences.getString('campaign.$campaignId');
-      if (rawCampaign == null || rawCampaign.trim().isEmpty) {
-        continue;
-      }
-      final CampaignState? state = _decodeLegacyCampaign(rawCampaign);
-      if (state != null) {
-        migratedCampaigns.add(state);
-      }
-    }
-
+  /// Pre-prod: no import from legacy SharedPreferences; fresh Isar only.
+  Future<void> _bootstrapEmptyIsar(final Isar isar) async {
     await isar.writeTxn(() async {
-      if (rawAppLanguage != null && rawAppLanguage.trim().isNotEmpty) {
-        await isar.appSettingRecords.put(
-          AppSettingRecord()
-            ..key = _legacyAppLanguageKey
-            ..stringValue = rawAppLanguage
-            ..updatedAt = DateTime.now(),
-        );
-      }
-      for (final CampaignState campaign in migratedCampaigns) {
-        await _upsertCampaignTxn(isar, campaign);
-      }
-      if (rawAiSettings != null && rawAiSettings.trim().isNotEmpty) {
-        final Object? decoded = jsonDecode(rawAiSettings);
-        if (decoded is Map<String, Object?>) {
-          await _settingsLocal.saveAiSettingsInTxn(
-            isar,
-            AiSettings.fromJson(decoded),
-          );
-        }
-      }
       await isar.appSettingRecords.put(
         AppSettingRecord()
           ..key = _schemaVersionKey
@@ -206,17 +166,7 @@ class AppDatabase {
 
     final AppLanguage? language = await _settingsLocal.loadAppLanguage(isar);
     if (language == null) {
-      final SharedPreferences preferences =
-          await SharedPreferences.getInstance();
-      final String rawLanguage =
-          preferences.getString(_legacyAppLanguageKey) ?? AppLanguage.ru.code;
-      await _settingsLocal.saveAppLanguage(
-        isar,
-        AppLanguage.values.firstWhere(
-          (final item) => item.code == rawLanguage,
-          orElse: () => AppLanguage.ru,
-        ),
-      );
+      await _settingsLocal.saveAppLanguage(isar, AppLanguage.ru);
     }
 
     if ((await isar.campaignRecords.where().count()) > 0) {
@@ -244,24 +194,4 @@ class AppDatabase {
     });
   }
 
-  Future<void> _upsertCampaignTxn(
-    final Isar isar,
-    final CampaignState campaign,
-  ) async => _campaignLocal.saveCampaignInTxn(isar, campaign);
-
-  CampaignState? _decodeLegacyCampaign(final String rawCampaign) {
-    try {
-      final Object? decoded = jsonDecode(rawCampaign);
-      if (decoded is! Map) {
-        return null;
-      }
-      return CampaignState.fromJson(
-        decoded.map(
-          (final key, final value) => MapEntry(key.toString(), value),
-        ),
-      );
-    } catch (_) {
-      return null;
-    }
-  }
 }

@@ -116,16 +116,11 @@ class ChatController extends StateNotifier<ChatViewState> {
   ChatController(this._ref, this._campaignId)
     : super(const ChatViewState.initial());
 
-  static const Duration _streamUpdateInterval = Duration(milliseconds: 48);
-
   final Ref _ref;
   final String _campaignId;
 
   CancelToken? _cancelToken;
   Timer? _notificationTimer;
-  Timer? _narrationTimer;
-  DateTime? _lastNarrationUpdateAt;
-  String? _bufferedNarration;
   String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
@@ -156,7 +151,6 @@ class ChatController extends StateNotifier<ChatViewState> {
     _disposed = true;
     _cancelToken?.cancel();
     _notificationTimer?.cancel();
-    _narrationTimer?.cancel();
     super.dispose();
   }
 
@@ -253,10 +247,6 @@ class ChatController extends StateNotifier<ChatViewState> {
     );
     _cancelToken = cancelToken;
     _activeFlowId = flowId;
-    _narrationTimer?.cancel();
-    _narrationTimer = null;
-    _lastNarrationUpdateAt = null;
-    _bufferedNarration = null;
 
     state = state.copyWith(
       isSending: true,
@@ -340,10 +330,6 @@ class ChatController extends StateNotifier<ChatViewState> {
         previousCampaign: campaign,
         nextCampaign: turnApplication.state,
       );
-      _narrationTimer?.cancel();
-      _narrationTimer = null;
-      _lastNarrationUpdateAt = null;
-      _bufferedNarration = null;
       state = state.copyWith(
         campaign: turnApplication.state,
         settings: settings,
@@ -471,10 +457,6 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
-    _narrationTimer?.cancel();
-    _narrationTimer = null;
-    _lastNarrationUpdateAt = null;
-    _bufferedNarration = null;
     state = state.copyWith(
       pendingPlayerMessage: null,
       pendingNarratorMessage: null,

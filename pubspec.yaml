@@ -1,5 +1,5 @@
 name: ai_prg
-description: 'Desktop-first AI RPG MVP client.'
+description: 'Mobile-first narrative RPG client (Flutter); local saves, OpenAI-compatible AI.'
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -7,7 +7,6 @@ environment:
   sdk: ^3.11.1
 
 dependencies:
-  cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
