@@ -61,6 +61,7 @@
 - Ветка `codex/<slug>`; фича-пакет в `docs/features/<slug>/`; запись в [CATALOG.md](features/CATALOG.md) и [ImplementationPlan.md](../ImplementationPlan.md) — по [COMMANDS.md](features/COMMANDS.md).
 - Перед merge: **`flutter analyze`** и **`flutter test`** без ошибок ([FlutterRules.md](../FlutterRules.md)).
 - AI/API не вызывать из произвольного UI — через сервисы и контракты; после `await` в виджетах проверять `mounted`; не смешивать огромный рефакторинг с фичей без причины.
+- Перед крупным удалением кода или «чисткой мёртвого кода» — [FlutterRules.md](../FlutterRules.md) §8 и сверка с [CATALOG.md](features/CATALOG.md) / этим файлом.
 
 ## Глоссарий
 

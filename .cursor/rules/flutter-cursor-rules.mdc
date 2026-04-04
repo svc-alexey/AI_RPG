@@ -6,6 +6,16 @@ You are a senior Dart programmer with experience in the Flutter framework and a 
 
 Generate code, corrections, and refactorings that comply with the basic principles and nomenclature.
 
+## Project precedence (AI_PRG)
+
+When guidance in this file conflicts with repository product or architecture docs, follow the project sources first:
+
+1. `.cursorrules`, `.specify/memory/constitution.md`, `.specify/memory/project-context.md`
+2. `FlutterRules.md`, `Architecture.md`, `PRD.md`
+3. `docs/AGENT_CONTEXT.md`, `docs/features/CATALOG.md` and `docs/features/<slug>/` for feature scope — do not remove or gut documented features or intentional stubs without updating those docs.
+
+This `.mdc` is a style and patterns guide aligned with the **actual** AI_PRG stack (see *Specific to Flutter* below).
+
 ## Dart General Guidelines
 
 ### Basic Principles
@@ -68,9 +78,8 @@ Generate code, corrections, and refactorings that comply with the basic principl
 - Prefer composition over inheritance.
 - Declare interfaces to define contracts.
 - Write small classes with a single purpose.
-  - Less than 200 instructions.
-  - Less than 10 public methods.
-  - Less than 10 properties.
+  - Target less than 200 instructions, fewer than 10 public methods, fewer than 10 properties.
+  - Legacy large types should be split **incrementally** when touched (e.g. extract helpers into separate libraries), not rewritten in one huge PR unless explicitly requested.
 
 ### Exceptions
 
@@ -91,41 +100,42 @@ Generate code, corrections, and refactorings that comply with the basic principl
 - Write acceptance tests for each module.
   - Follow the Given-When-Then convention.
 
-## Specific to Flutter
+## Specific to Flutter (AI_PRG stack)
 
-### Basic Principles
+### Layers and layout
 
-- Use clean architecture
-  - see modules if you need to organize code into modules
-  - see controllers if you need to organize code into controllers
-  - see services if you need to organize code into services
-  - see repositories if you need to organize code into repositories
-  - see entities if you need to organize code into entities
-- Use repository pattern for data persistence
-  - see cache if you need to cache data
-- Use controller pattern for business logic with Riverpod
-- Use Riverpod to manage state
-  - see keepAlive if you need to keep the state alive
-- Use freezed to manage UI states
-- Controller always takes methods as input and updates the UI state that effects the UI
-- Use getIt to manage dependencies
-  - Use singleton for services and repositories
-  - Use factory for use cases
-  - Use lazy singleton for controllers
-- Use AutoRoute to manage routes
-  - Use extras to pass data between pages
-- Use extensions to manage reusable code
-- Use ThemeData to manage themes
-- Use AppLocalizations to manage translations
-- Use constants to manage constants values
-- When a widget tree becomes too deep, it can lead to longer build times and increased memory usage. Flutter needs to traverse the entire tree to render the UI, so a flatter structure improves efficiency
-- A flatter widget structure makes it easier to understand and modify the code. Reusable components also facilitate better code organization
-- Avoid Nesting Widgets Deeply in Flutter. Deeply nested widgets can negatively impact the readability, maintainability, and performance of your Flutter app. Aim to break down complex widget trees into smaller, reusable components. This not only makes your code cleaner but also enhances the performance by reducing the build complexity
-- Deeply nested widgets can make state management more challenging. By keeping the tree shallow, it becomes easier to manage state and pass data between widgets
-- Break down large widgets into smaller, focused widgets
-- Utilize const constructors wherever possible to reduce rebuilds
+- **Feature-first:** `lib/src/features/<feature>/` with `presentation/` (widgets, screens) and `application/` (Riverpod controllers, view state).
+- **Shared core:** `lib/src/core/models/`, `repositories/`, `services/`, `data/` — domain models, persistence adapters, orchestration and AI gateway code.
+- **App shell:** `lib/src/app/` — bootstrap, `ProviderScope`, theme, localization, responsive helpers.
+- Use **repository pattern** for persistence (repositories delegate to storage / local data sources).
+- **Controllers:** business and screen orchestration live in Riverpod `StateNotifier` (or similar) classes in `application/`; keep widgets mostly declarative.
+- **Domain models** live under `core/models/` (role similar to "entities" in generic clean-architecture wording).
+
+### Dependency injection (no getIt required)
+
+- **Composition root:** `AiRpgApp` constructs `AppDatabase`, repositories, `AiServiceFactory`, `GameEngine`, `PortraitStorage`, and language `ValueNotifier` as needed.
+- **Riverpod:** expose shared dependencies via `Provider` definitions in `app_providers.dart` and inject them with `ProviderScope(overrides: buildAppProviderOverrides(...))` at startup.
+- **Tests:** override the same providers in tests — do not introduce a second global service locator (e.g. get_it) unless there is a documented team decision.
+
+### State management
+
+- Use **flutter_riverpod** for app and feature state.
+- **View state:** prefer immutable `*ViewState` classes with an explicit `copyWith` (manual is fine). **freezed** is optional — use it to reduce boilerplate if the team adopts codegen, not as a mandatory architecture requirement.
+- Use `ref.keepAlive` / provider keepAlive only when a provider must survive beyond typical auto-dispose scope (document why).
+
+### Navigation
+
+- For the current app size, **imperative navigation** (`Navigator.of(context).push`, `MaterialPageRoute`) is acceptable and expected.
+- Introduce a **declarative router** (e.g. `go_router`, `auto_route`) when there is a concrete need: deep links, web URLs, auth or guard-heavy route trees, or many nested branches. Until then, avoid large router migrations that do not deliver product value.
+
+### UI and theming
+
+- Use **ThemeData** via the app theme module.
+- Use **AppLocalizations** / project l10n for user-visible strings; respect ru/en parity per project rules.
+- Use **extensions** for small reusable context helpers where appropriate.
+- Prefer **const** constructors and flatter widget trees; split large widgets into focused children.
 
 ### Testing
 
-- Use the standard widget testing for flutter
-- Use integration tests for each api module.
+- Use Flutter's **widget_test** and project test conventions.
+- Add or extend **integration / API-module tests** when changing HTTP or AI contracts.

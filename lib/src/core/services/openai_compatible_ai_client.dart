@@ -8,6 +8,7 @@ import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/openai_compatible_json_helpers.dart';
 import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -18,18 +19,6 @@ class OpenAiCompatibleAiClient implements AiClient {
   static const CampaignMemoryManager _memoryManager = CampaignMemoryManager();
   static const TurnPromptBuilder _turnPromptBuilder = TurnPromptBuilder();
   static const int _truncationRetryMultiplier = 2;
-
-  Map<String, Object?> _jsonMap(final Object? value) {
-    if (value is Map) {
-      return value.map((key, item) => MapEntry(key.toString(), item));
-    }
-    return const <String, Object?>{};
-  }
-
-  List<Object?> _jsonList(final Object? value) =>
-      value is List ? List<Object?>.from(value) : const <Object?>[];
-
-  String _stringValue(final Object? value) => value == null ? '' : '$value';
 
   @override
   Future<void> checkConnection({required final AiSettings settings}) async {
@@ -141,20 +130,20 @@ Reply only with JSON, no markdown.
       }
 
       final String rawResponse = _responseText(response);
-      final Object? decoded = _safeJsonDecode(rawResponse);
+      final Object? decoded = OpenAiCompatibleJsonHelpers.safeDecode(rawResponse);
       if (decoded is! Map) {
         return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
       }
 
-      final Map<String, Object?> map = _jsonMap(decoded);
-      final List<Object?> choices = _jsonList(map['choices']);
+      final Map<String, Object?> map = OpenAiCompatibleJsonHelpers.dynamicMap(decoded);
+      final List<Object?> choices = OpenAiCompatibleJsonHelpers.dynamicList(map['choices']);
       if (choices.isEmpty) {
         return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
       }
 
-      final Map<String, Object?> choice = _jsonMap(choices.first);
-      final Map<String, Object?> message = _jsonMap(choice['message']);
-      final String content = _stringValue(message['content']);
+      final Map<String, Object?> choice = OpenAiCompatibleJsonHelpers.dynamicMap(choices.first);
+      final Map<String, Object?> message = OpenAiCompatibleJsonHelpers.dynamicMap(choice['message']);
+      final String content = OpenAiCompatibleJsonHelpers.stringValue(message['content']);
       final String jsonStr = content.trim();
       final int start = jsonStr.indexOf('{');
       final int end = jsonStr.lastIndexOf('}');
@@ -162,17 +151,17 @@ Reply only with JSON, no markdown.
         return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
       }
 
-      final Object? parsed = _safeJsonDecode(jsonStr.substring(start, end + 1));
+      final Object? parsed = OpenAiCompatibleJsonHelpers.safeDecode(jsonStr.substring(start, end + 1));
       if (parsed is! Map) {
         return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
       }
 
-      final Map<String, Object?> parsedMap = _jsonMap(parsed);
-      String storyPrompt = _stringValue(parsedMap['storyPrompt']).trim();
+      final Map<String, Object?> parsedMap = OpenAiCompatibleJsonHelpers.dynamicMap(parsed);
+      String storyPrompt = OpenAiCompatibleJsonHelpers.stringValue(parsedMap['storyPrompt']).trim();
       if (storyPrompt.length > _maxCustomPromptLength) {
         storyPrompt = storyPrompt.substring(0, _maxCustomPromptLength);
       }
-      String characterPrompt = _stringValue(
+      String characterPrompt = OpenAiCompatibleJsonHelpers.stringValue(
         parsedMap['characterPrompt'],
       ).trim();
       if (characterPrompt.length > _maxCustomPromptLength) {
@@ -500,7 +489,7 @@ Reply only with JSON, no markdown.
       throw exception;
     }
 
-    final Object? decoded = _safeJsonDecode(rawResponse);
+    final Object? decoded = OpenAiCompatibleJsonHelpers.safeDecode(rawResponse);
     if (decoded is! Map) {
       final AiTurnException exception = AiTurnException(
         userMessage: _providerUnexpectedFormat(language),
@@ -520,7 +509,7 @@ Reply only with JSON, no markdown.
       throw exception;
     }
 
-    final Map<String, Object?> responseMap = _jsonMap(decoded);
+    final Map<String, Object?> responseMap = OpenAiCompatibleJsonHelpers.dynamicMap(decoded);
     if (allowTruncationRetry && _responseHitTokenLimit(responseMap)) {
       final int currentMaxTokens =
           maxTokensOverride ?? settings.maxResponseTokens;
@@ -694,7 +683,7 @@ Reply only with JSON, no markdown.
         return;
       }
 
-      final Object? decoded = _safeJsonDecode(payload);
+      final Object? decoded = OpenAiCompatibleJsonHelpers.safeDecode(payload);
       if (decoded is! Map) {
         throw AiTurnException(
           userMessage: _providerUnexpectedFormat(language),
@@ -703,7 +692,7 @@ Reply only with JSON, no markdown.
         );
       }
 
-      final Map<String, Object?> decodedMap = _jsonMap(decoded);
+      final Map<String, Object?> decodedMap = OpenAiCompatibleJsonHelpers.dynamicMap(decoded);
       responseHitTokenLimit =
           responseHitTokenLimit || _responseHitTokenLimit(decodedMap);
       final String chunk = _extractStreamChunk(decodedMap);
@@ -924,17 +913,17 @@ Reply only with JSON, no markdown.
       utf8.decode(response.bodyBytes, allowMalformed: true);
 
   String? _extractProviderErrorDetail(final String rawResponse) {
-    final Object? decoded = _safeJsonDecode(rawResponse);
+    final Object? decoded = OpenAiCompatibleJsonHelpers.safeDecode(rawResponse);
     if (decoded is! Map) {
       return null;
     }
 
-    final Map<String, Object?> map = _jsonMap(decoded);
-    final Map<String, Object?> error = _jsonMap(map['error']);
-    final String message = _stringValue(error['message']).trim().isNotEmpty
-        ? _stringValue(error['message']).trim()
-        : _stringValue(map['message']).trim();
-    final String code = _stringValue(error['code']).trim();
+    final Map<String, Object?> map = OpenAiCompatibleJsonHelpers.dynamicMap(decoded);
+    final Map<String, Object?> error = OpenAiCompatibleJsonHelpers.dynamicMap(map['error']);
+    final String message = OpenAiCompatibleJsonHelpers.stringValue(error['message']).trim().isNotEmpty
+        ? OpenAiCompatibleJsonHelpers.stringValue(error['message']).trim()
+        : OpenAiCompatibleJsonHelpers.stringValue(map['message']).trim();
+    final String code = OpenAiCompatibleJsonHelpers.stringValue(error['code']).trim();
 
     if (message.isEmpty && code.isEmpty) {
       return null;
@@ -1143,15 +1132,6 @@ $actionText
     };
   }
 
-  Object? _safeJsonDecode(final String raw) {
-    try {
-      return jsonDecode(raw);
-    } catch (error) {
-      debugPrint('JSON decode failed: $error');
-      return null;
-    }
-  }
-
   String _extractJson(final String raw, final AppLanguage language) {
     final String trimmed = raw.trim();
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
@@ -1175,7 +1155,7 @@ $actionText
     required final Map<String, Object?> responseMap,
     required final AppLanguage language,
   }) {
-    final List<Object?> choices = _jsonList(responseMap['choices']);
+    final List<Object?> choices = OpenAiCompatibleJsonHelpers.dynamicList(responseMap['choices']);
     if (choices.isEmpty) {
       final AiTurnException exception = AiTurnException(
         userMessage: _providerNoChoices(language),
@@ -1189,7 +1169,7 @@ $actionText
       throw exception;
     }
 
-    final Map<String, Object?> choice = _jsonMap(choices.first);
+    final Map<String, Object?> choice = OpenAiCompatibleJsonHelpers.dynamicMap(choices.first);
     final String content = _extractChoiceContent(choice).trim();
     if (content.isEmpty) {
       final String nestedText = _extractResponseLevelText(responseMap).trim();
@@ -1206,9 +1186,9 @@ $actionText
   }) {
     try {
       final String jsonString = _extractJson(rawContent, language);
-      final Object? turnDecoded = _safeJsonDecode(jsonString);
+      final Object? turnDecoded = OpenAiCompatibleJsonHelpers.safeDecode(jsonString);
       if (turnDecoded is Map) {
-        final Map<String, Object?> turnMap = _jsonMap(turnDecoded);
+        final Map<String, Object?> turnMap = OpenAiCompatibleJsonHelpers.dynamicMap(turnDecoded);
         if (_hasMeaningfulTurnPayload(turnMap)) {
           return TurnResult.fromJson(turnMap);
         }
@@ -1627,13 +1607,13 @@ $actionText
   }) => _mergeStreamChunk(existing: existing, incoming: incoming);
 
   bool _responseHitTokenLimit(final Map<String, Object?> responseMap) {
-    final List<Object?> choices = _jsonList(responseMap['choices']);
+    final List<Object?> choices = OpenAiCompatibleJsonHelpers.dynamicList(responseMap['choices']);
     if (choices.isEmpty) {
       return false;
     }
 
     for (final Object? rawChoice in choices) {
-      final Map<String, Object?> choice = _jsonMap(rawChoice);
+      final Map<String, Object?> choice = OpenAiCompatibleJsonHelpers.dynamicMap(rawChoice);
       final String finishReason = _normalizedFinishReason(
         choice['finish_reason'] ?? choice['finishReason'],
       );
@@ -1657,7 +1637,7 @@ $actionText
   }
 
   String _normalizedFinishReason(final Object? value) =>
-      _stringValue(value).trim().toLowerCase();
+      OpenAiCompatibleJsonHelpers.stringValue(value).trim().toLowerCase();
 
   bool _isTokenLimitFinishReason(final String finishReason) =>
       finishReason == 'length' ||
@@ -1697,15 +1677,15 @@ $actionText
       return direct;
     }
 
-    final Map<String, Object?> message = _jsonMap(map['message']);
+    final Map<String, Object?> message = OpenAiCompatibleJsonHelpers.dynamicMap(map['message']);
     final String messageContent = _extractMessageContent(message);
     if (messageContent.isNotEmpty) {
       return messageContent;
     }
 
-    final List<Object?> output = _jsonList(map['output']);
+    final List<Object?> output = OpenAiCompatibleJsonHelpers.dynamicList(map['output']);
     for (final Object? item in output) {
-      final Map<String, Object?> outputItem = _jsonMap(item);
+      final Map<String, Object?> outputItem = OpenAiCompatibleJsonHelpers.dynamicMap(item);
       final String itemText = _firstNonEmptyJsonString(outputItem, const <String>[
         'text',
         'content',
@@ -1714,9 +1694,9 @@ $actionText
       if (itemText.isNotEmpty) {
         return itemText;
       }
-      final List<Object?> content = _jsonList(outputItem['content']);
+      final List<Object?> content = OpenAiCompatibleJsonHelpers.dynamicList(outputItem['content']);
       for (final Object? contentItem in content) {
-        final Map<String, Object?> contentMap = _jsonMap(contentItem);
+        final Map<String, Object?> contentMap = OpenAiCompatibleJsonHelpers.dynamicMap(contentItem);
         final String contentText = _firstNonEmptyJsonString(
           contentMap,
           const <String>['text', 'content', 'output_text'],
@@ -1730,13 +1710,13 @@ $actionText
   }
 
   String _extractChoiceContent(final Map<String, Object?> choice) {
-    final Map<String, Object?> message = _jsonMap(choice['message']);
+    final Map<String, Object?> message = OpenAiCompatibleJsonHelpers.dynamicMap(choice['message']);
     final String messageContent = _extractMessageContent(message);
     if (messageContent.isNotEmpty) {
       return messageContent;
     }
 
-    final String text = _stringValue(choice['text']).trim();
+    final String text = OpenAiCompatibleJsonHelpers.stringValue(choice['text']).trim();
     if (text.isNotEmpty) {
       return text;
     }
@@ -1745,7 +1725,7 @@ $actionText
   }
 
   String _extractMessageContent(final Map<String, Object?> message) {
-    final List<Object?> contentItems = _jsonList(message['content']);
+    final List<Object?> contentItems = OpenAiCompatibleJsonHelpers.dynamicList(message['content']);
     if (contentItems.isNotEmpty) {
       final List<String> textParts = <String>[];
       for (final Object? item in contentItems) {
@@ -1756,7 +1736,7 @@ $actionText
           }
           continue;
         }
-        final Map<String, Object?> contentMap = _jsonMap(item);
+        final Map<String, Object?> contentMap = OpenAiCompatibleJsonHelpers.dynamicMap(item);
         final String text = _firstNonEmptyJsonString(
           contentMap,
           const <String>['text', 'content', 'output_text'],
@@ -1773,7 +1753,7 @@ $actionText
       return '';
     }
 
-    final String direct = _stringValue(rawContent).trim();
+    final String direct = OpenAiCompatibleJsonHelpers.stringValue(rawContent).trim();
     if (direct.isNotEmpty && direct != '[]' && direct != '{}') {
       return direct;
     }
@@ -1820,7 +1800,7 @@ $actionText
       if (value is Map || value is List) {
         continue;
       }
-      final String text = _stringValue(value).trim();
+      final String text = OpenAiCompatibleJsonHelpers.stringValue(value).trim();
       if (text.isNotEmpty) {
         return text;
       }
@@ -1829,25 +1809,25 @@ $actionText
   }
 
   String _extractStreamChunk(final Map<String, Object?> event) {
-    final List<Object?> choices = _jsonList(event['choices']);
+    final List<Object?> choices = OpenAiCompatibleJsonHelpers.dynamicList(event['choices']);
     if (choices.isEmpty) {
       return '';
     }
 
-    final Map<String, Object?> choice = _jsonMap(choices.first);
-    final Map<String, Object?> delta = _jsonMap(choice['delta']);
-    final String deltaContent = _stringValue(delta['content']);
+    final Map<String, Object?> choice = OpenAiCompatibleJsonHelpers.dynamicMap(choices.first);
+    final Map<String, Object?> delta = OpenAiCompatibleJsonHelpers.dynamicMap(choice['delta']);
+    final String deltaContent = OpenAiCompatibleJsonHelpers.stringValue(delta['content']);
     if (deltaContent.isNotEmpty) {
       return deltaContent;
     }
 
-    final Map<String, Object?> message = _jsonMap(choice['message']);
-    final String messageContent = _stringValue(message['content']);
+    final Map<String, Object?> message = OpenAiCompatibleJsonHelpers.dynamicMap(choice['message']);
+    final String messageContent = OpenAiCompatibleJsonHelpers.stringValue(message['content']);
     if (messageContent.isNotEmpty) {
       return messageContent;
     }
 
-    return _stringValue(choice['text']);
+    return OpenAiCompatibleJsonHelpers.stringValue(choice['text']);
   }
 
   @visibleForTesting
