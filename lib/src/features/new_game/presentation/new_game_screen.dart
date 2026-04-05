@@ -228,9 +228,10 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
     required final NewGameController controller,
   }) {
     final int stepCount = NewGameCustomSetupStep.values.length;
+    final bool isFirstStep =
+        state.currentStep == NewGameCustomSetupStep.literaryGenre;
     final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
-    final VoidCallback onBack =
-        state.currentStep == NewGameCustomSetupStep.foundation
+    final VoidCallback onBack = isFirstStep
         ? controller.setModeSelection
         : controller.previousStep;
     final bool primaryBusy = state.isSaving || state.isGenerating;
@@ -327,16 +328,17 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         Padding(
           padding: const EdgeInsets.only(top: 4, bottom: 4),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              TextButton.icon(
-                onPressed: onBack,
-                icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                label: Text(l10n.backButton),
-                style: TextButton.styleFrom(
-                  foregroundColor: AetherPalette.textMuted,
+              if (!isFirstStep)
+                TextButton.icon(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  label: Text(l10n.backButton),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AetherPalette.textMuted,
+                  ),
                 ),
-              ),
+              const Spacer(),
               FilledButton(
                 onPressed: primaryBusy ? null : onPrimary,
                 style: FilledButton.styleFrom(

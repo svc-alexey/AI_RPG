@@ -18,8 +18,7 @@ class _HomeLandingScrollBehavior extends MaterialScrollBehavior {
     final BuildContext context,
     final Widget child,
     final ScrollableDetails details,
-  ) =>
-      child;
+  ) => child;
 }
 
 class HomeScreen extends StatelessWidget {
@@ -77,7 +76,9 @@ class HomeScreen extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: responsive.isWide ? 920 : responsive.dialogMaxWidth,
+                      maxWidth: responsive.isWide
+                          ? 920
+                          : responsive.dialogMaxWidth,
                     ),
                     child: ScrollConfiguration(
                       behavior: const _HomeLandingScrollBehavior(),
@@ -88,34 +89,34 @@ class HomeScreen extends StatelessWidget {
                         ),
                         child: Column(
                           children: <Widget>[
-                          _HomeHeroBlock(
-                            l10n: l10n,
-                            theme: theme,
-                            responsive: responsive,
-                          ),
-                          SizedBox(height: responsive.blockSpacing + 8),
-                          _HomeBentoRow(
-                            l10n: l10n,
-                            theme: theme,
-                            responsive: responsive,
-                          ),
-                          SizedBox(height: responsive.blockSpacing + 20),
-                          _HomeFeatureTags(
-                            lines: l10n.homeFeatureLines,
-                            theme: theme,
-                            responsive: responsive,
-                          ),
-                          SizedBox(height: responsive.blockSpacing + 12),
-                          Text(
-                            l10n.homeTagline.toUpperCase(),
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              letterSpacing: 3.6,
-                              color: const Color(0xFF3A3530),
-                              fontSize: 10,
+                            _HomeHeroBlock(
+                              l10n: l10n,
+                              theme: theme,
+                              responsive: responsive,
                             ),
-                          ),
-                        ],
+                            SizedBox(height: responsive.blockSpacing + 8),
+                            _HomeBentoRow(
+                              l10n: l10n,
+                              theme: theme,
+                              responsive: responsive,
+                            ),
+                            SizedBox(height: responsive.blockSpacing + 20),
+                            _HomeFeatureTags(
+                              lines: l10n.homeFeatureLines,
+                              theme: theme,
+                              responsive: responsive,
+                            ),
+                            SizedBox(height: responsive.blockSpacing + 12),
+                            Text(
+                              l10n.homeTagline.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                letterSpacing: 3.6,
+                                color: const Color(0xFF3A3530),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -152,7 +153,9 @@ class _HomeHeroBlock extends StatelessWidget {
             l10n.brandNameLine1,
             textAlign: TextAlign.center,
             style: theme.textTheme.displayLarge?.copyWith(
-              fontSize: responsive.isCompact ? 44 : (responsive.isWide ? 88 : 64),
+              fontSize: responsive.isCompact
+                  ? 44
+                  : (responsive.isWide ? 88 : 64),
               fontWeight: FontWeight.w300,
               letterSpacing: -2,
               height: 0.92,
@@ -212,12 +215,18 @@ class _HomeHeroBlock extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              _GradientLine(alignRight: true, width: responsive.isCompact ? 40 : 56),
+              _GradientLine(
+                alignRight: true,
+                width: responsive.isCompact ? 40 : 56,
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: _WarmFlickerSparkle(),
               ),
-              _GradientLine(alignRight: false, width: responsive.isCompact ? 40 : 56),
+              _GradientLine(
+                alignRight: false,
+                width: responsive.isCompact ? 40 : 56,
+              ),
             ],
           ),
         ),
@@ -251,18 +260,18 @@ class _GradientLine extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-        width: width,
-        height: 1,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: alignRight
-                  ? const <Color>[Colors.transparent, Color(0x80C87941)]
-                  : const <Color>[Color(0x80C87941), Colors.transparent],
-            ),
-          ),
+    width: width,
+    height: 1,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: alignRight
+              ? const <Color>[Colors.transparent, Color(0x80C87941)]
+              : const <Color>[Color(0x80C87941), Colors.transparent],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _WarmFlickerSparkle extends StatefulWidget {
@@ -384,9 +393,7 @@ class _HomeBentoRow extends StatelessWidget {
           theme: theme,
           responsive: responsive,
           onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) => const SavesScreen(),
-            ),
+            MaterialPageRoute<void>(builder: (context) => const SavesScreen()),
           ),
         ),
       ],
@@ -553,9 +560,7 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
                             Text(
                               widget.l10n.homeBentoPrimaryTitle,
                               style: GoogleFonts.playfairDisplay(
-                                fontSize: widget.responsive.isCompact
-                                    ? 22
-                                    : 26,
+                                fontSize: widget.responsive.isCompact ? 22 : 26,
                                 fontWeight: FontWeight.w400,
                                 height: 1.15,
                                 color: AetherPalette.textPrimary,
@@ -564,10 +569,11 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
                             const SizedBox(height: 8),
                             Text(
                               widget.l10n.homePrimaryCardSubtitle,
-                              style: widget.theme.textTheme.bodyMedium?.copyWith(
-                                color: AetherPalette.textMuted,
-                                height: 1.45,
-                              ),
+                              style: widget.theme.textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: AetherPalette.textMuted,
+                                    height: 1.45,
+                                  ),
                             ),
                             SizedBox(
                               height: widget.responsive.isCompact ? 18 : 22,
@@ -579,21 +585,23 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
                                   widget.l10n.homeBentoPrimaryLink,
                                   style: widget.theme.textTheme.labelLarge
                                       ?.copyWith(
-                                    color: Color.lerp(
-                                          AetherPalette.accent,
-                                          AetherPalette.accentHover,
-                                          t,
-                                        ) ??
-                                        AetherPalette.accent,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
+                                        color:
+                                            Color.lerp(
+                                              AetherPalette.accent,
+                                              AetherPalette.accentHover,
+                                              t,
+                                            ) ??
+                                            AetherPalette.accent,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                 ),
                                 const SizedBox(width: 6),
                                 Icon(
                                   Icons.arrow_forward_rounded,
                                   size: 18,
-                                  color: Color.lerp(
+                                  color:
+                                      Color.lerp(
                                         AetherPalette.accent,
                                         AetherPalette.accentHover,
                                         t,

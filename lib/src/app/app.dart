@@ -86,9 +86,14 @@ class _AiRpgAppState extends State<AiRpgApp> {
   Future<void> _bootstrap() async {
     try {
       await _database.ensureReady();
+      final AppLanguage? launchLanguage = _languageOverrideFromUrl();
       final List<Future<void>> tasks = <Future<void>>[
-        _settingsRepository.loadAppLanguage().then((final language) {
-          _appLanguageListenable.value = language;
+        _settingsRepository.loadAppLanguage().then((final storedLanguage) async {
+          final AppLanguage resolvedLanguage = launchLanguage ?? storedLanguage;
+          if (launchLanguage != null && launchLanguage != storedLanguage) {
+            await _settingsRepository.saveAppLanguage(launchLanguage);
+          }
+          _appLanguageListenable.value = resolvedLanguage;
         }),
       ];
       await Future.wait(
@@ -101,6 +106,15 @@ class _AiRpgAppState extends State<AiRpgApp> {
         setState(() => _bootstrapComplete = true);
       }
     }
+  }
+
+  AppLanguage? _languageOverrideFromUrl() {
+    final String? raw = Uri.base.queryParameters['lang'];
+    return switch (raw) {
+      'ru' => AppLanguage.ru,
+      'en' => AppLanguage.en,
+      _ => null,
+    };
   }
 
   void _signalLaunchUiReady() {
