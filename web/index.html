@@ -7,40 +7,45 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta
     name="description"
-    content="Beyond the Verge is a narrative RPG where AI guides the scene and the world remembers your choices."
+    content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор."
   >
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0A0908">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Beyond the Verge">
+  <meta name="apple-mobile-web-app-title" content="Стирая Грань">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
-  <title>Beyond the Verge</title>
+  <title>Стирая Грань</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
     :root {
       --app-height: 100vh;
       --bg: #0a0908;
-      --bg-mid: #141210;
-      --panel: rgba(18, 16, 14, 0.95);
-      --panel-border: rgba(200, 121, 65, 0.22);
-      --panel-border-solid: #1a1816;
+      --bg-top: #141210;
+      --surface: rgba(16, 13, 11, 0.92);
+      --surface-soft: rgba(26, 24, 22, 0.9);
+      --surface-strong: rgba(12, 10, 9, 0.96);
+      --border: rgba(200, 121, 65, 0.22);
+      --border-soft: rgba(255, 255, 255, 0.06);
       --text: #e8e4e0;
-      --muted: #7a7570;
+      --muted: #837b74;
+      --dim: #5b5550;
       --accent: #c87941;
       --accent-hover: #d4956a;
-      --accent-soft: rgba(200, 121, 65, 0.14);
       --gold: #bfa76f;
       --danger: #ffb4ab;
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
       color-scheme: dark;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
     }
 
     * {
@@ -52,174 +57,408 @@
       margin: 0;
       min-height: var(--app-height);
       background:
-        radial-gradient(circle at 50% 28%, rgba(200, 121, 65, 0.12), transparent 52%),
-        linear-gradient(180deg, var(--bg-mid), var(--bg));
+        radial-gradient(circle at 50% 22%, rgba(200, 121, 65, 0.17), transparent 40%),
+        linear-gradient(180deg, var(--bg-top), var(--bg));
       color: var(--text);
       overflow-x: hidden;
     }
 
-    body {
-      position: relative;
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px);
+      background-size: 140px 140px;
+      mask-image: radial-gradient(circle at center, black, transparent 82%);
+      pointer-events: none;
+      opacity: 0.38;
+    }
+
+    [hidden] {
+      display: none !important;
     }
 
     #loading-container {
       position: relative;
       z-index: 1;
       min-height: var(--app-height);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 28px 18px 32px;
+      padding: 0 20px 48px;
       opacity: 1;
       transition: opacity 420ms ease, transform 420ms ease;
     }
 
     #loading-container.is-exiting {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(18px);
       pointer-events: none;
     }
 
     .landing-shell {
-      width: min(1120px, 100%);
-      display: grid;
-      gap: 28px;
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 26px 0 40px;
+    }
+
+    .landing-topbar {
+      display: flex;
       align-items: center;
-      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      justify-content: space-between;
+      gap: 16px;
+      padding: 6px 4px 22px;
     }
 
-    .hero-panel,
-    .detail-panel {
-      background: var(--panel);
-      border: 1px solid var(--panel-border-solid);
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    .landing-tagline {
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
 
-    .hero-panel {
-      padding: 42px;
+    .language-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(191, 167, 111, 0.2);
+      background: rgba(12, 10, 9, 0.78);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+    }
+
+    .language-button {
+      min-width: 72px;
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .language-button:hover {
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .language-button.is-active {
+      background: rgba(191, 167, 111, 0.14);
+      color: #f1e7d6;
+      box-shadow: inset 0 0 0 1px rgba(191, 167, 111, 0.32);
+    }
+
+    .language-button:disabled {
+      cursor: default;
+      opacity: 0.65;
+      transform: none;
+    }
+
+    .hero-section {
+      position: relative;
+      display: grid;
+      padding: 12px 0 56px;
+    }
+
+    .hero-frame {
+      position: relative;
+      min-height: 620px;
+      padding: clamp(36px, 5vw, 64px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 30px;
+      background: rgba(18, 15, 13, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-copy {
+      max-width: 720px;
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       font-size: 12px;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--gold);
     }
 
-    .eyebrow::before {
+    .eyebrow::before,
+    .eyebrow::after {
       content: "";
-      width: 44px;
+      width: 52px;
       height: 1px;
-      background: rgba(200, 121, 65, 0.5);
+      background: rgba(200, 121, 65, 0.48);
     }
 
-    h1 {
-      margin: 22px 0 14px;
-      font-family: "Playfair Display", Georgia, serif;
-      font-size: clamp(52px, 7vw, 88px);
-      line-height: 0.95;
-      letter-spacing: -0.02em;
-      font-weight: 300;
+    .brand-mark {
+      margin: 18px 0 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(56px, 10vw, 110px);
+      line-height: 0.9;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
     }
 
-    .hero-title {
-      max-width: 620px;
-      margin: 0 0 16px;
-      font-family: "Playfair Display", Georgia, serif;
-      font-size: clamp(22px, 3vw, 32px);
+    .brand-subtitle {
+      margin: 12px 0 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(22px, 3.4vw, 34px);
       line-height: 1.2;
+      color: #efe6d9;
       font-style: italic;
-      color: var(--muted);
     }
 
-    .hero-subtitle {
-      max-width: 580px;
-      margin: 0 0 24px;
+    .hero-description {
+      margin: 20px 0 0;
+      max-width: 560px;
       font-size: 16px;
-      line-height: 1.75;
+      line-height: 1.8;
       color: var(--muted);
     }
 
     .hero-pills {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 28px;
+      gap: 12px;
+      margin-top: 30px;
+      margin-bottom: 30px;
     }
 
     .hero-pill {
-      padding: 10px 14px;
+      padding: 11px 15px;
       border-radius: 999px;
-      border: 1px solid var(--panel-border-solid);
-      background: rgba(15, 13, 11, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(10, 9, 8, 0.52);
+      backdrop-filter: blur(8px);
+      color: #d7cec7;
       font-size: 13px;
-      color: var(--muted);
     }
 
     .hero-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      align-items: stretch;
+      align-items: center;
     }
 
-    .launch-shell {
+    .hero-launch-shell {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      align-items: center;
-      width: 100%;
     }
 
-    .cta-button,
-    .secondary-button {
-      appearance: none;
-      border: 0;
-      border-radius: 12px;
-      padding: 16px 22px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    .section {
+      position: relative;
+      opacity: 0;
+      transform: translateY(44px);
+      transition: opacity 560ms ease, transform 560ms ease;
     }
 
-    .cta-button {
-      background: var(--accent);
-      color: var(--bg);
-      box-shadow: 0 0 40px rgba(200, 121, 65, 0.2);
-    }
-
-    .secondary-button {
-      background: rgba(15, 13, 11, 0.95);
-      color: var(--text);
-      border: 1px solid var(--panel-border-solid);
-    }
-
-    .cta-button:hover,
-    .secondary-button:hover {
-      transform: translateY(-1px);
-    }
-
-    .cta-button:disabled,
-    .secondary-button:disabled {
-      cursor: progress;
-      opacity: 0.75;
+    .section.is-visible,
+    .section.is-hero {
+      opacity: 1;
       transform: none;
     }
 
+    .teaser-section,
+    .tech-section {
+      margin-top: 34px;
+      padding: clamp(22px, 3vw, 34px);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18, 15, 13, 0.98), rgba(10, 9, 8, 0.95));
+      box-shadow: var(--shadow);
+    }
+
+    .teaser-chat {
+      max-width: 760px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+
+    #teaser-messages {
+      display: grid;
+      gap: 18px;
+    }
+
+    .teaser-bubble {
+      padding: 20px 20px 20px 90px;
+      border-radius: 22px;
+      border: 1px solid rgba(191, 167, 111, 0.26);
+      background: var(--surface-soft);
+      position: relative;
+      min-height: 104px;
+      will-change: transform, opacity;
+    }
+
+    .teaser-bubble.is-player {
+      padding: 20px 22px;
+      margin-left: auto;
+      max-width: 84%;
+      border-color: rgba(200, 121, 65, 0.34);
+      background: rgba(200, 121, 65, 0.12);
+    }
+
+    .teaser-bubble.is-system {
+      padding: 18px 20px;
+      min-height: auto;
+      border-style: dashed;
+      border-color: rgba(191, 167, 111, 0.24);
+      background: rgba(191, 167, 111, 0.08);
+    }
+
+    .teaser-bubble.is-system .bubble-text::after {
+      content: "";
+      animation: storyDots 1.2s steps(3, end) infinite;
+    }
+
+    .teaser-avatar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 2px solid rgba(191, 167, 111, 0.44);
+      background: #0c0a09;
+      box-shadow: 0 0 0 4px rgba(191, 167, 111, 0.08);
+    }
+
+    .teaser-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 18%;
+      display: block;
+    }
+
+    .bubble-author {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    .bubble-author:empty {
+      display: none;
+    }
+
+    .bubble-text {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--text);
+      min-height: 26px;
+    }
+
+    .teaser-input-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 22px;
+      border: 1px solid rgba(191, 167, 111, 0.18);
+      background: rgba(13, 11, 10, 0.95);
+    }
+
+    .teaser-input {
+      width: 100%;
+      padding: 14px 14px 14px 16px;
+      font-size: 16px;
+      color: var(--text);
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.02);
+      user-select: none;
+    }
+
+    .teaser-input.is-placeholder {
+      color: var(--dim);
+    }
+
+    .teaser-send.is-pressed {
+      transform: translateY(1px) scale(0.98);
+      opacity: 0.88;
+    }
+
+    .typing-caret::after {
+      content: "";
+      display: inline-block;
+      width: 1px;
+      height: 1.05em;
+      margin-left: 3px;
+      background: currentColor;
+      vertical-align: -0.12em;
+      animation: caretBlink 1s step-end infinite;
+    }
+
+    .button-primary,
+    .button-secondary {
+      appearance: none;
+      border-radius: 14px;
+      padding: 16px 22px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    }
+
+    .button-primary {
+      border: 0;
+      background: linear-gradient(180deg, #d4ba7e, var(--gold));
+      color: #0c0a09;
+      box-shadow: 0 0 36px rgba(191, 167, 111, 0.24);
+    }
+
+    .button-secondary {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(14, 12, 10, 0.9);
+      color: var(--text);
+    }
+
+    .button-primary:hover,
+    .button-secondary:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary:disabled,
+    .button-secondary:disabled {
+      opacity: 0.72;
+      cursor: progress;
+      transform: none;
+    }
+
+    .teaser-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
     .loading-shell {
-      width: min(420px, 100%);
+      width: min(540px, 100%);
       display: none;
       gap: 14px;
+      margin: 18px auto 0;
       padding: 18px 18px 16px;
-      border-radius: 14px;
-      border: 1px solid var(--panel-border-solid);
-      background: rgba(15, 13, 11, 0.92);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      border-radius: 18px;
+      border: 1px solid rgba(191, 167, 111, 0.26);
+      background: rgba(14, 12, 10, 0.96);
     }
 
     .loading-shell.is-visible {
@@ -240,7 +479,7 @@
       width: 42px;
       height: 42px;
       border-radius: 999px;
-      border: 2px solid rgba(200, 121, 65, 0.25);
+      border: 2px solid rgba(200, 121, 65, 0.2);
       border-top-color: var(--accent);
       animation: spin 900ms linear infinite;
       flex: 0 0 auto;
@@ -252,17 +491,22 @@
       gap: 4px;
     }
 
-    .loading-title {
+    .loading-title,
+    .loading-stage,
+    .loading-flavor,
+    .launch-note {
       margin: 0;
-      font-size: 16px;
-      line-height: 1.35;
-      color: var(--text);
     }
 
-    .loading-stage {
-      margin: 0;
+    .loading-title {
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .loading-stage,
+    .launch-note {
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.55;
       color: var(--muted);
     }
 
@@ -294,7 +538,6 @@
     }
 
     .loading-flavor {
-      margin: 0;
       min-height: 22px;
       font-size: 14px;
       line-height: 1.5;
@@ -303,97 +546,326 @@
     }
 
     .launch-note {
+      margin-top: 14px;
       min-height: 24px;
-      margin-top: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: var(--muted);
+      text-align: center;
     }
 
     .launch-note.is-error {
       color: var(--danger);
     }
 
-    .detail-panel {
-      padding: 24px;
-      display: grid;
-      gap: 16px;
+    .gallery-section {
+      margin-top: 38px;
     }
 
-    .detail-card {
-      padding: 16px 18px;
-      border-radius: 14px;
-      background: rgba(15, 13, 11, 0.65);
-      border: 1px solid var(--panel-border-solid);
-    }
-
-    .detail-label {
-      margin: 0 0 6px;
-      font-size: 13px;
-      color: var(--gold);
+    .section-title {
+      margin: 0;
+      text-align: center;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 1;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
     }
 
-    .detail-copy {
+    .world-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .world-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid rgba(191, 167, 111, 0.18);
+      background: rgba(14, 12, 10, 0.94);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 560ms ease, transform 560ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    }
+
+    .world-card.is-visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .world-card:hover {
+      border-color: rgba(191, 167, 111, 0.38);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+    }
+
+    .world-art {
+      position: relative;
+      aspect-ratio: 0.82;
+      overflow: hidden;
+    }
+
+    .world-art img {
+      width: calc(100% + 24px);
+      height: calc(100% + 26px);
+      object-fit: cover;
+      object-position: center top;
+      transform: translate(-12px, -22px) scale(1.08);
+      transform-origin: center top;
+      display: block;
+    }
+
+    .world-art::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(10, 9, 8, 0.02), rgba(10, 9, 8, 0.82));
+    }
+
+    .world-body {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: minmax(72px, auto) minmax(104px, auto) auto;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .world-title {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: 34px;
+      line-height: 0.96;
+      text-transform: uppercase;
+    }
+
+    .world-description {
       margin: 0;
       color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .world-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .world-tag {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .tech-card {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .tech-title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+    .tech-copy {
+      margin: 10px 0 0;
+      color: var(--muted);
       line-height: 1.65;
-      font-size: 14px;
+      font-size: 15px;
     }
 
-    .detail-copy strong {
+    .landing-footer {
+      margin-top: 36px;
+      padding: 22px 8px 10px;
+      border-top: 1px solid rgba(191, 167, 111, 0.16);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .footer-brand {
+      min-width: 0;
+    }
+
+    .footer-brand-name {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(26px, 4vw, 38px);
+      line-height: 0.95;
       color: var(--text);
+    }
+
+    .footer-brand-copy {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .footer-contacts {
+      display: grid;
+      gap: 12px;
+      justify-items: start;
+    }
+
+    .footer-contacts-title {
+      margin: 0;
+      color: var(--gold);
+      font-size: 12px;
       font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
     }
 
-    .hidden-anchor {
-      position: relative;
-      top: -24px;
+    .footer-contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      text-decoration: none;
+      transition: color 180ms ease, transform 180ms ease;
     }
 
-    [hidden] {
-      display: none !important;
+    .footer-contact-link:hover {
+      color: #f0d9b7;
+      transform: translateY(-1px);
+    }
+
+    .footer-contact-icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      color: var(--accent);
+    }
+
+    .footer-contact-meta {
+      display: grid;
+      gap: 2px;
+    }
+
+    .footer-contact-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .footer-contact-value {
+      color: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.35;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
-    @media (max-width: 880px) {
+    @keyframes caretBlink {
+      50% { opacity: 0; }
+    }
+
+    @keyframes storyDots {
+      0% { content: ""; }
+      33% { content: "."; }
+      66% { content: ".."; }
+      100% { content: "..."; }
+    }
+
+    @media (max-width: 980px) {
+      .world-grid,
+      .tech-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .landing-footer {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      #loading-container {
+        padding: 0 14px 34px;
+      }
+
       .landing-shell {
+        padding-top: 18px;
+      }
+
+      .hero-section {
+        min-height: auto;
+        padding: 10px 0 28px;
+      }
+
+      .teaser-input-shell {
         grid-template-columns: 1fr;
       }
 
-      .hero-panel {
-        padding: 30px 24px;
+      .teaser-bubble.is-player {
+        max-width: 100%;
       }
     }
 
     @media (max-width: 560px) {
-      #loading-container {
-        align-items: stretch;
-      }
-
-      .hero-panel,
-      .detail-panel {
-        border-radius: 22px;
-      }
-
-      .launch-shell {
+      .landing-topbar {
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-start;
       }
 
-      .cta-button,
-      .secondary-button,
-      .loading-shell {
+      .language-toggle {
         width: 100%;
+      }
+
+      .language-button {
+        flex: 1;
+      }
+
+      .hero-frame,
+      .teaser-section,
+      .tech-section {
+        border-radius: 24px;
+      }
+
+      .hero-actions,
+      .hero-launch-shell,
+      .teaser-actions {
+        width: 100%;
+      }
+
+      .button-primary,
+      .button-secondary {
+        width: 100%;
+      }
+
+      .world-title {
+        font-size: 28px;
       }
 
       .loading-meta {
         flex-direction: column;
         align-items: flex-start;
+      }
+
+      .footer-contact-link {
+        width: 100%;
       }
     }
   </style>
@@ -401,57 +873,102 @@
 <body>
   <div id="loading-container">
     <main class="landing-shell">
-      <section class="hero-panel">
-        <div id="landing-eyebrow" class="eyebrow"></div>
-        <h1 id="landing-brand"></h1>
-        <p id="landing-title" class="hero-title"></p>
-        <p id="landing-subtitle" class="hero-subtitle"></p>
-        <div id="landing-pills" class="hero-pills"></div>
-        <div class="hero-actions">
-          <div id="launch-shell" class="launch-shell">
-            <button id="launch-button" class="cta-button" type="button"></button>
-            <button id="how-button" class="secondary-button" type="button"></button>
-          </div>
+      <header class="landing-topbar">
+        <div id="landing-tagline" class="landing-tagline"></div>
+        <div class="language-toggle" aria-label="Language switcher">
+          <button id="language-ru" class="language-button" type="button" data-language-button="ru">РУС</button>
+          <button id="language-en" class="language-button" type="button" data-language-button="en">ENG</button>
+        </div>
+      </header>
 
-          <section id="loading-shell" class="loading-shell" aria-live="polite" hidden>
-            <div class="loading-shell-top">
-              <div class="loading-spinner" aria-hidden="true"></div>
-              <div class="loading-copy">
-                <p id="loading-title" class="loading-title"></p>
-                <p id="loading-stage" class="loading-stage"></p>
+      <section class="hero-section section is-hero">
+        <div id="hero-frame" class="hero-frame">
+          <div class="hero-copy">
+            <div id="landing-eyebrow" class="eyebrow"></div>
+            <h1 id="landing-brand" class="brand-mark"></h1>
+            <p id="landing-title" class="brand-subtitle"></p>
+            <p id="landing-subtitle" class="hero-description"></p>
+            <div id="landing-pills" class="hero-pills"></div>
+            <div class="hero-actions">
+              <div id="hero-launch-shell" class="hero-launch-shell">
+                <button id="launch-button" class="button-primary" type="button"></button>
+                <button id="how-button" class="button-secondary" type="button"></button>
               </div>
             </div>
-            <div class="loading-progress-track" aria-hidden="true">
-              <div id="loading-progress-fill" class="loading-progress-fill"></div>
-            </div>
-            <div class="loading-meta">
-              <span id="loading-progress-label"></span>
-              <span id="loading-eta"></span>
-            </div>
-            <p id="loading-flavor" class="loading-flavor"></p>
-          </section>
+            <section id="loading-shell" class="loading-shell" aria-live="polite" hidden>
+              <div class="loading-shell-top">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <div class="loading-copy">
+                  <p id="loading-title" class="loading-title"></p>
+                  <p id="loading-stage" class="loading-stage"></p>
+                </div>
+              </div>
+              <div class="loading-progress-track" aria-hidden="true">
+                <div id="loading-progress-fill" class="loading-progress-fill"></div>
+              </div>
+              <div class="loading-meta">
+                <span id="loading-progress-label"></span>
+                <span id="loading-eta"></span>
+              </div>
+              <p id="loading-flavor" class="loading-flavor"></p>
+            </section>
+            <p id="loading-note" class="launch-note" aria-live="polite"></p>
+          </div>
         </div>
-        <div id="loading-note" class="launch-note" aria-live="polite"></div>
       </section>
 
-      <aside class="detail-panel">
-        <span id="how-anchor" class="hidden-anchor" aria-hidden="true"></span>
-        <section class="detail-card">
-          <p id="detail-label-1" class="detail-label"></p>
-          <p id="detail-copy-1" class="detail-copy"></p>
-        </section>
-        <section class="detail-card">
-          <p id="detail-label-2" class="detail-label"></p>
-          <p id="detail-copy-2" class="detail-copy"></p>
-        </section>
-        <section class="detail-card">
-          <p id="detail-label-3" class="detail-label"></p>
-          <p id="detail-copy-3" class="detail-copy"></p>
-        </section>
-      </aside>
+      <section class="teaser-section section" data-reveal>
+        <div class="teaser-chat">
+          <div id="teaser-messages"></div>
+
+          <div class="teaser-input-shell">
+            <div id="teaser-input" class="teaser-input is-placeholder"></div>
+            <button id="teaser-send" class="button-primary teaser-send" type="button"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="gallery-section section" data-reveal>
+        <h2 id="gallery-title" class="section-title"></h2>
+        <div id="world-grid" class="world-grid"></div>
+      </section>
+
+      <section id="how-anchor" class="tech-section section" data-reveal>
+        <h2 id="tech-title" class="section-title"></h2>
+        <div id="tech-grid" class="tech-grid"></div>
+      </section>
+
+      <footer class="landing-footer section" data-reveal>
+        <div class="footer-brand">
+          <p id="footer-brand-name" class="footer-brand-name"></p>
+          <p id="footer-brand-copy" class="footer-brand-copy"></p>
+        </div>
+        <div class="footer-contacts">
+          <p id="footer-contacts-title" class="footer-contacts-title"></p>
+          <a class="footer-contact-link" href="mailto:a@svc-code.ru">
+            <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="m4 8 8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="footer-contact-meta">
+              <span id="footer-email-label" class="footer-contact-label"></span>
+              <span class="footer-contact-value">a@svc-code.ru</span>
+            </span>
+          </a>
+          <a class="footer-contact-link" href="https://t.me/svc_alexey" target="_blank" rel="noreferrer">
+            <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 4 3.8 10.5c-.8.3-.8 1.4.1 1.6l4.4 1.4 1.7 5c.3.9 1.4 1 1.8.2l2.5-4 4.4 3.3c.7.5 1.7.1 1.9-.7L22.5 5.3C22.7 4.5 21.8 3.7 21 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+              <path d="m8.2 13.5 10.3-7.2M10 18.5l1.1-4.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="footer-contact-meta">
+              <span id="footer-telegram-label" class="footer-contact-label"></span>
+              <span class="footer-contact-value">@svc_alexey</span>
+            </span>
+          </a>
+        </div>
+      </footer>
     </main>
   </div>
-
   <script>
     {{flutter_js}}
     {{flutter_build_config}}
@@ -459,20 +976,71 @@
     (function () {
       const copy = {
         ru: {
-          eyebrow: 'Нарративная ИИ ролевая игра',
+          pageTagline: 'Нарративная ИИ RPG',
+          eyebrow: 'Нарративная и ролевая игра',
           brand: 'Стирая Грань',
           heroTitle: 'История отвечает на твой выбор',
           heroSubtitle: 'Нарративная ролевая игра, где ИИ ведет сцену, а мир помнит последствия.',
           pills: ['Живой рассказчик', 'Выбор с последствиями', 'Миры на грани жанров'],
+          teaserNarrator: 'AI Master',
+          teaserPrompt: 'Вы стоите на пороге древнего зала. За гранью тумана слышен шепот. Что сделаете?',
+          teaserPreviewInput: 'Я достаю свой святой меч!',
+          teaserGenerating: 'Генерируется сюжет',
+          teaserPlaceholder: 'НАПИШИ СВОЙ ОТВЕТ...',
+          teaserSend: 'ОТВЕТИТЬ',
+          playerLabel: 'Вы',
           launch: 'Играть',
           how: 'Как это работает',
+          galleryTitle: 'Исследуйте бесконечные миры',
+          footerContactsTitle: 'Контакты',
+          footerBrandCopy: 'Нарративная ИИ RPG',
+          footerEmailLabel: 'Почта',
+          footerTelegramLabel: 'Телеграм',
+          worlds: [
+            {
+              title: 'КИБЕР-НУАР',
+              description: 'Дождливые мегаполисы, взломанные импланты и расследования, где каждая улика пахнет неоном и предательством.',
+              tags: ['#Кибер панк', '#Мистика', '#ИИ'],
+              image: 'landing/kiber_nuar.jpg'
+            },
+            {
+              title: 'ТЕМНОЕ ФЭНТЕЗИ',
+              description: 'Проклятые замки, древняя магия и тяжелые решения, где цена силы чувствуется в каждом выборе героя.',
+              tags: ['#Фэнтези', '#РПГ', '#ПРОКЛЯТИЕ'],
+              image: 'landing/dark_fantasy.jpg'
+            },
+            {
+              title: 'РОМАНТИЧЕСКИЙ РОМАН',
+              description: 'Письма, тайные встречи и выбор между страстью, репутацией и судьбой, где каждое чувство меняет ход истории.',
+              tags: ['#Романтика', '#Драма', '#Выбор'],
+              image: 'landing/romance.jpg'
+            }
+          ],
+          techTitle: 'Как история оживает',
+          tech: [
+            {
+              index: '01',
+              title: 'Живой рассказчик',
+              copy: 'ИИ ведет сцену как мастер игры: описывает обстановку, подбрасывает риск и подхватывает ваш стиль ответа.'
+            },
+            {
+              index: '02',
+              title: 'Память о выборе',
+              copy: 'Последствия не исчезают : союзники, улики, ресурсы и сюжет меняется вместе с вами.'
+            },
+            {
+              index: '03',
+              title: 'Быстрый старт',
+              copy: 'Грань между историей и реальным миром стирается - ваша сага начинается здесь и сейчас.'
+            }
+          ],
           loadingTitle: 'Приложение загружается, подождите',
           loadingStages: [
             'Подготавливаем запуск',
             'Загружаем движок истории',
             'Запускаем приложение',
             'Готовим мир и настройки',
-            'Открываем мир приключения',
+            'Открываем мир приключения'
           ],
           loadingEtaShort: 'Обычно это занимает несколько секунд',
           loadingEtaLong: 'Еще немного, запуск почти готов',
@@ -484,30 +1052,75 @@
             'Собираем ИИ-модели',
             'Разворачиваем сюжетные узлы',
             'Настраиваем атмосферу приключения',
-            'Полируем первый ход героя',
-          ],
-          detail1Label: 'Рассказчик',
-          detail1Copy: 'ИИ ведет сцену, но сохраняет логику мира и последствия ваших решений.',
-          detail2Label: 'Темп',
-          detail2Copy: 'Развивайте историю в реальном времени, создавайте новые миры и пути.',
-          detail3Label: 'Путь героя',
-          detail3Copy: 'Начинайте новую историю, продолжайте сохранение и возвращайтесь в мир.',
+            'Полируем первый ход героя'
+          ]
         },
         en: {
-          eyebrow: 'Narrative AI RPG',
+          pageTagline: 'Narrative AI RPG',
+          eyebrow: 'Narrative roleplaying game',
           brand: 'Beyond the Verge',
           heroTitle: 'Where choice reshapes the story',
           heroSubtitle: 'A narrative RPG where AI guides the scene and the world remembers what you do.',
           pills: ['Living narrator', 'Choices that leave a mark', 'Worlds beyond a single genre'],
-          launch: 'Play Now',
+          teaserNarrator: 'AI Master',
+          teaserPrompt: 'You stand at the threshold of an ancient hall. Beyond the mist, something whispers. What do you do?',
+          teaserPreviewInput: 'I draw my holy sword!',
+          teaserGenerating: 'Generating story',
+          teaserPlaceholder: 'WRITE YOUR ANSWER...',
+          teaserSend: 'RESPOND',
+          playerLabel: 'You',
+          launch: 'Play',
           how: 'How it works',
+          galleryTitle: 'Explore endless worlds',
+          footerContactsTitle: 'Contacts',
+          footerBrandCopy: 'Narrative AI RPG',
+          footerEmailLabel: 'Email',
+          footerTelegramLabel: 'Telegram',
+          worlds: [
+            {
+              title: 'CYBER-NOIR',
+              description: 'Rain-soaked megacities, compromised implants, and investigations where every clue smells like neon and betrayal.',
+              tags: ['#Cyberpunk', '#Mystery', '#AI'],
+              image: 'landing/kiber_nuar.jpg'
+            },
+            {
+              title: 'DARK FANTASY',
+              description: 'Cursed keeps, ancient magic, and hard decisions where the cost of power stains every choice your hero makes.',
+              tags: ['#Fantasy', '#RPG', '#Curse'],
+              image: 'landing/dark_fantasy.jpg'
+            },
+            {
+              title: 'ROMANTIC NOVEL',
+              description: 'Letters, secret meetings, and choices between passion, reputation, and destiny, where every feeling can change the story.',
+              tags: ['#Romance', '#Drama', '#Choice'],
+              image: 'landing/romance.jpg'
+            }
+          ],
+          techTitle: 'How the story comes alive',
+          tech: [
+            {
+              index: '01',
+              title: 'Living narrator',
+              copy: 'AI carries the scene like a game master: describing the room, escalating the tension, and matching your voice.'
+            },
+            {
+              index: '02',
+              title: 'Memory of choice',
+              copy: 'Consequences do not vanish after one line: allies, clues, resources, and story modules shift along with you.'
+            },
+            {
+              index: '03',
+              title: 'Fast start',
+              copy: 'The line between story and the real world fades away - your saga begins here and now.'
+            }
+          ],
           loadingTitle: 'The app is loading, please wait',
           loadingStages: [
             'Preparing the launch',
             'Loading the story engine',
             'Starting the application',
             'Warming up your world and settings',
-            'Opening the adventure',
+            'Opening the adventure'
           ],
           loadingEtaShort: 'This usually takes a few seconds',
           loadingEtaLong: 'Almost there, the launch is nearly ready',
@@ -519,26 +1132,21 @@
             'Assembling the AI models',
             'Threading story branches together',
             'Tuning the mood of the adventure',
-            'Polishing your first move',
-          ],
-          detail1Label: 'Narrator',
-          detail1Copy: 'AI drives the scene while the world still keeps track of rules, state, and consequences.',
-          detail2Label: 'Pace',
-          detail2Copy: 'Develop the story early on, create new worlds and paths.',
-          detail3Label: 'Hero path',
-          detail3Copy: 'Start a new story, continue saving and return to the world.',
-        },
+            'Polishing your first move'
+          ]
+        }
       };
 
       const stageProgress = [0.12, 0.34, 0.58, 0.8, 1];
-
-      const language = (navigator.language || '').toLowerCase().startsWith('ru')
-        ? 'ru'
-        : 'en';
-      const text = copy[language];
+      const supportedLanguages = ['ru', 'en'];
+      const languageStorageKey = 'aether.landing_language';
 
       const loadingContainer = document.getElementById('loading-container');
-      const launchShell = document.getElementById('launch-shell');
+      const heroFrame = document.getElementById('hero-frame');
+      const teaserMessagesHost = document.getElementById('teaser-messages');
+      const teaserInput = document.getElementById('teaser-input');
+      const teaserSend = document.getElementById('teaser-send');
+      const heroLaunchShell = document.getElementById('hero-launch-shell');
       const loadingShell = document.getElementById('loading-shell');
       const loadingTitle = document.getElementById('loading-title');
       const loadingStage = document.getElementById('loading-stage');
@@ -550,8 +1158,14 @@
       const launchButton = document.getElementById('launch-button');
       const howButton = document.getElementById('how-button');
       const howAnchor = document.getElementById('how-anchor');
+      const languageRuButton = document.getElementById('language-ru');
+      const languageEnButton = document.getElementById('language-en');
+      const languageButtons = [languageRuButton, languageEnButton];
       const urlParams = new URLSearchParams(window.location.search);
       const shouldAutoLaunch = urlParams.get('autostart') === '1';
+
+      let currentLanguage = resolveInitialLanguage();
+      let text = copy[currentLanguage];
 
       let launchInFlight = false;
       let launchCompleted = false;
@@ -560,6 +1174,50 @@
       let currentStageIndex = 0;
       let currentFlavorIndex = 0;
       let launchStartedAt = 0;
+      let teaserSequenceStarted = false;
+      let teaserSequenceToken = 0;
+      let nextTeaserMessageId = 0;
+      let teaserMessages = [createTeaserMessage('narrator', '')];
+
+      function parseLanguage(value) {
+        return supportedLanguages.includes(value) ? value : null;
+      }
+
+      function resolveInitialLanguage() {
+        const urlLanguage = parseLanguage(urlParams.get('lang'));
+        if (urlLanguage) {
+          return urlLanguage;
+        }
+        try {
+          const storedLanguage = parseLanguage(window.localStorage.getItem(languageStorageKey));
+          if (storedLanguage) {
+            return storedLanguage;
+          }
+        } catch (_) {}
+        return 'ru';
+      }
+
+      function syncLanguageUrl() {
+        const nextParams = new URLSearchParams(window.location.search);
+        nextParams.set('lang', currentLanguage);
+        const nextQuery = nextParams.toString();
+        const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', nextUrl);
+      }
+
+      function persistLanguage() {
+        try {
+          window.localStorage.setItem(languageStorageKey, currentLanguage);
+        } catch (_) {}
+      }
+
+      function updateLanguageToggle() {
+        languageButtons.forEach((button) => {
+          const isActive = button.dataset.languageButton === currentLanguage;
+          button.classList.toggle('is-active', isActive);
+          button.setAttribute('aria-pressed', String(isActive));
+        });
+      }
 
       function setText(id, value) {
         const node = document.getElementById(id);
@@ -568,21 +1226,211 @@
         }
       }
 
-      function renderLanding() {
-        document.documentElement.lang = language;
+      function createTeaserMessage(role, textValue, extra) {
+        return {
+          id: `teaser-${nextTeaserMessageId++}`,
+          role: role,
+          text: textValue,
+          ...(extra || {})
+        };
+      }
+
+      function resetTeaserState() {
+        teaserSequenceToken += 1;
+        teaserSequenceStarted = false;
+        nextTeaserMessageId = 0;
+        teaserMessages = [createTeaserMessage('narrator', '')];
+        teaserSend.classList.remove('is-pressed');
+        teaserInput.textContent = text.teaserPlaceholder;
+        teaserInput.classList.add('is-placeholder');
+        renderTeaserMessages();
+      }
+
+      function updateTeaserBubbleNode(bubble, message) {
+        bubble.className = `teaser-bubble${message.role === 'player' ? ' is-player' : ''}${message.role === 'system' ? ' is-system' : ''}`;
+        bubble.dataset.messageId = message.id;
+
+        let avatar = bubble.querySelector('.teaser-avatar');
+        if (message.role === 'narrator') {
+          if (!avatar) {
+            avatar = document.createElement('div');
+            avatar.className = 'teaser-avatar';
+            avatar.innerHTML = '<img src="landing/master_img.jpg" alt="">';
+            bubble.appendChild(avatar);
+          }
+        } else if (avatar) {
+          avatar.remove();
+        }
+
+        let author = bubble.querySelector('.bubble-author');
+        if (!author) {
+          author = document.createElement('p');
+          author.className = 'bubble-author';
+          bubble.appendChild(author);
+        }
+        author.textContent = message.role === 'narrator'
+          ? text.teaserNarrator
+          : (message.role === 'player' ? text.playerLabel : '');
+
+        let content = bubble.querySelector('.bubble-text');
+        if (!content) {
+          content = document.createElement('p');
+          content.className = 'bubble-text';
+          bubble.appendChild(content);
+        }
+        content.textContent = message.text;
+        content.classList.toggle('typing-caret', Boolean(message.typing));
+      }
+
+      function animateTeaserEntry(node, role) {
+        const keyframes = role === 'player'
+          ? [
+              { opacity: 0, transform: 'translate3d(0, 28px, 0) scale(0.985)', filter: 'blur(10px)' },
+              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)', filter: 'blur(0)' }
+            ]
+          : [
+              { opacity: 0, transform: 'translate3d(0, 22px, 0) scale(0.99)', filter: 'blur(12px)' },
+              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)', filter: 'blur(0)' }
+            ];
+
+        node.animate(keyframes, {
+          duration: 560,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'both'
+        });
+      }
+
+      function renderTeaserMessages() {
+        const previousPositions = new Map();
+        const existingNodes = new Map();
+
+        Array.from(teaserMessagesHost.children).forEach((node) => {
+          previousPositions.set(node.dataset.messageId, node.getBoundingClientRect());
+          existingNodes.set(node.dataset.messageId, node);
+        });
+
+        const nextNodes = teaserMessages.map((message) => {
+          const bubble = existingNodes.get(message.id) || document.createElement('article');
+          updateTeaserBubbleNode(bubble, message);
+          return bubble;
+        });
+
+        Array.from(existingNodes.entries()).forEach(([messageId, node]) => {
+          if (!teaserMessages.some((message) => message.id === messageId)) {
+            node.remove();
+          }
+        });
+
+        nextNodes.forEach((node) => {
+          teaserMessagesHost.appendChild(node);
+        });
+
+        window.requestAnimationFrame(() => {
+          nextNodes.forEach((node) => {
+            const messageId = node.dataset.messageId;
+            const previousRect = previousPositions.get(messageId);
+            const nextRect = node.getBoundingClientRect();
+
+            if (!previousRect) {
+              const message = teaserMessages.find((item) => item.id === messageId);
+              animateTeaserEntry(node, message ? message.role : 'narrator');
+              return;
+            }
+
+            const deltaX = previousRect.left - nextRect.left;
+            const deltaY = previousRect.top - nextRect.top;
+
+            if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+              node.animate(
+                [
+                  { transform: `translate3d(${deltaX}px, ${deltaY}px, 0)` },
+                  { transform: 'translate3d(0, 0, 0)' }
+                ],
+                {
+                  duration: 520,
+                  easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+                }
+              );
+            }
+          });
+        });
+      }
+
+      function renderWorlds() {
+        const grid = document.getElementById('world-grid');
+        grid.innerHTML = '';
+        text.worlds.forEach((world, index) => {
+          const card = document.createElement('article');
+          card.className = 'world-card';
+          card.style.transitionDelay = `${index * 90}ms`;
+          card.innerHTML = `
+            <div class="world-art">
+              <img src="${world.image}" alt="${world.title}">
+            </div>
+            <div class="world-body">
+              <h3 class="world-title">${world.title}</h3>
+              <p class="world-description">${world.description}</p>
+              <div class="world-tags">
+                ${world.tags.map((tag) => `<span class="world-tag">${tag}</span>`).join('')}
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      function renderTechCards() {
+        const grid = document.getElementById('tech-grid');
+        grid.innerHTML = '';
+        text.tech.forEach((item) => {
+          const card = document.createElement('article');
+          card.className = 'tech-card';
+          card.innerHTML = `
+            <h3 class="tech-title">${item.title}</h3>
+            <p class="tech-copy">${item.copy}</p>
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      function syncRenderedSectionState() {
+        const teaserSection = document.querySelector('.teaser-section');
+        const gallerySection = document.querySelector('.gallery-section');
+
+        if (gallerySection && gallerySection.classList.contains('is-visible')) {
+          gallerySection.querySelectorAll('.world-card').forEach((node) => {
+            node.classList.add('is-visible');
+          });
+        }
+
+        if (
+          teaserSection &&
+          teaserSection.classList.contains('is-visible') &&
+          !launchInFlight
+        ) {
+          window.setTimeout(startTeaserSequence, 60);
+        }
+      }
+
+      function renderLanding(options) {
+        document.documentElement.lang = currentLanguage;
+        document.title = text.brand;
+        setText('landing-tagline', text.pageTagline.toUpperCase());
         setText('landing-eyebrow', text.eyebrow);
         setText('landing-brand', text.brand);
         setText('landing-title', text.heroTitle);
         setText('landing-subtitle', text.heroSubtitle);
-        setText('detail-label-1', text.detail1Label);
-        setText('detail-label-2', text.detail2Label);
-        setText('detail-label-3', text.detail3Label);
-        setText('detail-copy-1', text.detail1Copy);
-        setText('detail-copy-2', text.detail2Copy);
-        setText('detail-copy-3', text.detail3Copy);
-        document.title = text.brand;
+        setText('gallery-title', text.galleryTitle);
+        setText('tech-title', text.techTitle);
+        setText('footer-brand-name', text.brand);
+        setText('footer-brand-copy', text.footerBrandCopy);
+        setText('footer-contacts-title', text.footerContactsTitle);
+        setText('footer-email-label', text.footerEmailLabel);
+        setText('footer-telegram-label', text.footerTelegramLabel);
         launchButton.textContent = text.launch;
         howButton.textContent = text.how;
+        teaserSend.textContent = text.teaserSend;
+        updateLanguageToggle();
 
         const pillHost = document.getElementById('landing-pills');
         pillHost.innerHTML = '';
@@ -592,12 +1440,30 @@
           pill.textContent = entry;
           pillHost.appendChild(pill);
         });
+
+        if (options && options.preserveTeaser) {
+          renderTeaserMessages();
+        } else {
+          resetTeaserState();
+        }
+        renderWorlds();
+        renderTechCards();
+        syncRenderedSectionState();
+      }
+
+      function applyLanguage(language, options) {
+        const nextLanguage = parseLanguage(language);
+        if (!nextLanguage || nextLanguage === currentLanguage) {
+          return;
+        }
+        currentLanguage = nextLanguage;
+        text = copy[currentLanguage];
+        persistLanguage();
+        syncLanguageUrl();
+        renderLanding({ preserveTeaser: options && options.preserveTeaser });
       }
 
       function setLoadingNote(message, isError) {
-        if (!loadingNote) {
-          return;
-        }
         loadingNote.textContent = message || '';
         loadingNote.classList.toggle('is-error', Boolean(isError));
       }
@@ -627,14 +1493,23 @@
         }
       }
 
+      function setInteractiveState(disabled) {
+        launchButton.disabled = disabled;
+        howButton.disabled = disabled;
+        teaserSend.disabled = disabled;
+        languageButtons.forEach((button) => {
+          button.disabled = disabled;
+        });
+      }
+
       function showLoadingShell() {
-        launchShell.hidden = true;
+        heroLaunchShell.hidden = true;
         loadingShell.hidden = false;
         loadingShell.classList.add('is-visible');
       }
 
       function showLaunchButtons() {
-        launchShell.hidden = false;
+        heroLaunchShell.hidden = false;
         loadingShell.hidden = true;
         loadingShell.classList.remove('is-visible');
         loadingShell.classList.remove('is-error');
@@ -662,8 +1537,7 @@
       function enterLaunchState() {
         launchStartedAt = Date.now();
         showLoadingShell();
-        launchButton.disabled = true;
-        howButton.disabled = true;
+        setInteractiveState(true);
         loadingShell.classList.remove('is-error');
         setLoadingNote('', false);
         setStage(0);
@@ -681,8 +1555,7 @@
         clearLaunchTimers();
         launchInFlight = false;
         launchCompleted = false;
-        launchButton.disabled = false;
-        howButton.disabled = false;
+        setInteractiveState(false);
         showLaunchButtons();
         if (message) {
           setLoadingNote(message, true);
@@ -701,12 +1574,10 @@
         const elapsed = Date.now() - launchStartedAt;
         const remaining = Math.max(0, 650 - elapsed);
         window.setTimeout(() => {
-          if (loadingContainer) {
-            loadingContainer.classList.add('is-exiting');
-            window.setTimeout(() => {
-              loadingContainer.remove();
-            }, 460);
-          }
+          loadingContainer.classList.add('is-exiting');
+          window.setTimeout(() => {
+            loadingContainer.remove();
+          }, 460);
         }, remaining);
       }
 
@@ -720,24 +1591,24 @@
 
         try {
           const start = window.__codexLaunchFlutterApp || (window._flutter && window._flutter.loader
-              ? function () {
-                  return window._flutter.loader.load({
-                    onEntrypointLoaded: async function (engineInitializer) {
-                      if (launchInFlight && !launchCompleted) {
-                        setStage(1);
-                      }
-                      const appRunner = await engineInitializer.initializeEngine();
-                      if (launchInFlight && !launchCompleted) {
-                        setStage(2);
-                      }
-                      const runResult = await appRunner.runApp();
-                      if (launchInFlight && !launchCompleted) {
-                        setStage(3, { longEta: true });
-                      }
-                      return runResult;
-                    },
-                  });
-                }
+            ? function () {
+                return window._flutter.loader.load({
+                  onEntrypointLoaded: async function (engineInitializer) {
+                    if (launchInFlight && !launchCompleted) {
+                      setStage(1);
+                    }
+                    const appRunner = await engineInitializer.initializeEngine();
+                    if (launchInFlight && !launchCompleted) {
+                      setStage(2);
+                    }
+                    const runResult = await appRunner.runApp();
+                    if (launchInFlight && !launchCompleted) {
+                      setStage(3, { longEta: true });
+                    }
+                    return runResult;
+                  }
+                });
+              }
             : null);
 
           if (!start) {
@@ -751,22 +1622,162 @@
         }
       }
 
+      function typeText(target, textValue, speed, runToken) {
+        return new Promise((resolve) => {
+          let index = 0;
+          target.textContent = '';
+          target.classList.add('typing-caret');
+          const timer = window.setInterval(() => {
+            if (runToken !== teaserSequenceToken) {
+              window.clearInterval(timer);
+              target.classList.remove('typing-caret');
+              resolve(false);
+              return;
+            }
+            index += 1;
+            target.textContent = textValue.slice(0, index);
+            if (index >= textValue.length) {
+              window.clearInterval(timer);
+              target.classList.remove('typing-caret');
+              resolve(true);
+            }
+          }, speed);
+        });
+      }
+
+      function wait(ms, runToken) {
+        return new Promise((resolve) => {
+          window.setTimeout(() => {
+            resolve(runToken === teaserSequenceToken);
+          }, ms);
+        });
+      }
+
+      async function startTeaserSequence() {
+        if (teaserSequenceStarted) {
+          return;
+        }
+        teaserSequenceStarted = true;
+        const runToken = ++teaserSequenceToken;
+
+        const narratorMessage = teaserMessages[0];
+        narratorMessage.typing = true;
+        renderTeaserMessages();
+        const narratorTextNode = teaserMessagesHost.querySelector('.teaser-bubble .bubble-text');
+        if (!narratorTextNode) {
+          teaserSequenceStarted = false;
+          return;
+        }
+        if (!(await typeText(narratorTextNode, text.teaserPrompt, 28, runToken))) {
+          return;
+        }
+        if (runToken !== teaserSequenceToken) {
+          return;
+        }
+        narratorMessage.text = text.teaserPrompt;
+        narratorMessage.typing = false;
+        renderTeaserMessages();
+
+        if (!(await wait(280, runToken))) {
+          return;
+        }
+        teaserInput.classList.remove('is-placeholder');
+        if (!(await typeText(teaserInput, text.teaserPreviewInput, 36, runToken))) {
+          return;
+        }
+
+        if (!(await wait(260, runToken))) {
+          return;
+        }
+        teaserSend.classList.add('is-pressed');
+        if (!(await wait(160, runToken))) {
+          teaserSend.classList.remove('is-pressed');
+          return;
+        }
+        teaserSend.classList.remove('is-pressed');
+
+        teaserMessages.push(createTeaserMessage('player', text.teaserPreviewInput));
+        teaserInput.textContent = text.teaserPlaceholder;
+        teaserInput.classList.add('is-placeholder');
+        renderTeaserMessages();
+
+        if (!(await wait(240, runToken))) {
+          return;
+        }
+        teaserMessages.push(
+          createTeaserMessage('system', text.teaserGenerating, { typing: true })
+        );
+        renderTeaserMessages();
+      }
+
+      function wireRevealEffects() {
+        const revealNodes = Array.from(document.querySelectorAll('[data-reveal]'));
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+              return;
+            }
+            entry.target.classList.add('is-visible');
+            if (entry.target.classList.contains('gallery-section')) {
+              entry.target.querySelectorAll('.world-card').forEach((node) => {
+                node.classList.add('is-visible');
+              });
+            }
+            if (entry.target.classList.contains('teaser-section')) {
+              startTeaserSequence();
+            }
+            observer.unobserve(entry.target);
+          });
+        }, {
+          threshold: 0.16
+        });
+
+        revealNodes.forEach((node) => observer.observe(node));
+      }
+
+      function syncHeroMotion() {
+        const progress = Math.min(window.scrollY / Math.max(window.innerHeight * 0.45, 1), 1);
+        heroFrame.style.setProperty('--hero-shift', `${progress * 16}px`);
+        heroFrame.style.opacity = `${1 - progress * 0.08}`;
+      }
+
+      persistLanguage();
+      syncLanguageUrl();
       renderLanding();
       syncViewportHeight();
+      syncHeroMotion();
+      wireRevealEffects();
 
       launchButton.addEventListener('click', launchFlutter);
+      teaserSend.addEventListener('click', function () {
+        if (launchInFlight) {
+          return;
+        }
+        startTeaserSequence();
+      });
       howButton.addEventListener('click', function () {
         if (launchInFlight) {
           return;
         }
-        if (howAnchor) {
-          howAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        howAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      languageRuButton.addEventListener('click', function () {
+        if (launchInFlight) {
+          return;
         }
+        applyLanguage('ru');
+      });
+      languageEnButton.addEventListener('click', function () {
+        if (launchInFlight) {
+          return;
+        }
+        applyLanguage('en');
       });
 
       window.addEventListener('codex:flutter-first-frame', finishLaunchTransition);
       window.addEventListener('codex:flutter-ready', finishLaunchTransition);
       window.addEventListener('resize', syncViewportHeight);
+      window.addEventListener('scroll', syncHeroMotion, { passive: true });
       window.addEventListener('orientationchange', refreshViewportMetrics);
       window.addEventListener('focus', refreshViewportMetrics);
       window.addEventListener('pageshow', refreshViewportMetrics);
@@ -792,9 +1803,7 @@
       }
 
       window.__codexHideLanding = function () {
-        if (loadingContainer) {
-          loadingContainer.remove();
-        }
+        loadingContainer.remove();
       };
     })();
   </script>

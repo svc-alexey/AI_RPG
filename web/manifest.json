@@ -1,11 +1,11 @@
 {
-    "name": "ai_prg",
-    "short_name": "ai_prg",
+    "name": "Стирая Грань",
+    "short_name": "Грань",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0A0908",
     "theme_color": "#0A0908",
-    "description": "A new Flutter project.",
+    "description": "Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

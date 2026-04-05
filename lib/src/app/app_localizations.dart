@@ -73,13 +73,190 @@ class AppLocalizations {
   };
 
   String get homePrimaryCta => switch (language) {
-    AppLanguage.ru => 'Начать историю',
-    AppLanguage.en => 'Begin Your Story',
+    AppLanguage.ru => 'Играть',
+    AppLanguage.en => 'Play',
   };
 
   String get homeSecondaryCta => switch (language) {
     AppLanguage.ru => 'Продолжить',
     AppLanguage.en => 'Continue',
+  };
+
+  String get homeHowItWorksCta => switch (language) {
+    AppLanguage.ru => 'Как это работает',
+    AppLanguage.en => 'How it works',
+  };
+
+  String get homeContinueSavesCta => switch (language) {
+    AppLanguage.ru => 'Открыть сохранения',
+    AppLanguage.en => 'Open saves',
+  };
+
+  String get homeTeaserEyebrow => switch (language) {
+    AppLanguage.ru => 'Нарративная и ролевая игра',
+    AppLanguage.en => 'Narrative roleplaying experience',
+  };
+
+  String get homeTeaserLead => switch (language) {
+    AppLanguage.ru => 'История отвечает на твой выбор',
+    AppLanguage.en => 'The story answers your choice',
+  };
+
+  String get homeTeaserNarratorName => switch (language) {
+    AppLanguage.ru => 'AI Master Avatar',
+    AppLanguage.en => 'AI Master Avatar',
+  };
+
+  String get homeTeaserPrompt => switch (language) {
+    AppLanguage.ru =>
+      'Вы стоите на пороге древнего зала. За гранью тумана слышен шепот. Что сделаете?',
+    AppLanguage.en =>
+      'You stand at the threshold of an ancient hall. Beyond the mist, something whispers. What do you do?',
+  };
+
+  String get homeTeaserReply => switch (language) {
+    AppLanguage.ru =>
+      'Ваш выбор эхом расходится по залу: история уже подстраивает мир, опасности и союзников под следующий шаг.',
+    AppLanguage.en =>
+      'Your choice rolls through the hall: the story is already reshaping the world, its dangers, and its allies around your next move.',
+  };
+
+  String get homeTeaserInputHint => switch (language) {
+    AppLanguage.ru => 'Напиши свой ответ...',
+    AppLanguage.en => 'Write your answer...',
+  };
+
+  String get homeTeaserSendCta => switch (language) {
+    AppLanguage.ru => 'Ответить',
+    AppLanguage.en => 'Respond',
+  };
+
+  String get homeGalleryTitle => switch (language) {
+    AppLanguage.ru => 'Исследуйте бесконечные миры',
+    AppLanguage.en => 'Explore endless worlds',
+  };
+
+  String get homeGalleryDescription => switch (language) {
+    AppLanguage.ru =>
+      'Скролл раскрывает новые жанры и атмосферу: выберите вайб истории еще до первой сцены.',
+    AppLanguage.en =>
+      'Scroll deeper to uncover new genres and moods before your first scene even begins.',
+  };
+
+  String get homeWorldCyberNoirTitle => switch (language) {
+    AppLanguage.ru => 'Кибер-нуар',
+    AppLanguage.en => 'Cyber-noir',
+  };
+
+  String get homeWorldCyberNoirDescription => switch (language) {
+    AppLanguage.ru =>
+      'Дождливые мегаполисы, взломанные импланты и расследования, где каждая улика пахнет неоном и предательством.',
+    AppLanguage.en =>
+      'Rain-soaked megacities, compromised implants, and investigations where every clue smells like neon and betrayal.',
+  };
+
+  List<String> get homeWorldCyberNoirTags => switch (language) {
+    AppLanguage.ru => const <String>['#CYBERPUNK', '#MYSTERY', '#AI'],
+    AppLanguage.en => const <String>['#CYBERPUNK', '#MYSTERY', '#AI'],
+  };
+
+  String get homeWorldDarkFantasyTitle => switch (language) {
+    AppLanguage.ru => 'Темное фэнтези',
+    AppLanguage.en => 'Dark fantasy',
+  };
+
+  String get homeWorldDarkFantasyDescription => switch (language) {
+    AppLanguage.ru =>
+      'Проклятые замки, древняя магия и тяжелые решения, где цена силы чувствуется в каждом выборе героя.',
+    AppLanguage.en =>
+      'Cursed keeps, ancient magic, and hard decisions where the cost of power stains every choice your hero makes.',
+  };
+
+  List<String> get homeWorldDarkFantasyTags => switch (language) {
+    AppLanguage.ru => const <String>['#FANTASY', '#RPG', '#CURSE'],
+    AppLanguage.en => const <String>['#FANTASY', '#RPG', '#CURSE'],
+  };
+
+  String get homeWorldRomanceTitle => switch (language) {
+    AppLanguage.ru => 'Романтический роман',
+    AppLanguage.en => 'Romantic novel',
+  };
+
+  String get homeWorldRomanceDescription => switch (language) {
+    AppLanguage.ru =>
+      'Письма, тайные встречи и выбор между страстью, репутацией и судьбой в мире мягкого света и больших чувств.',
+    AppLanguage.en =>
+      'Letters, secret meetings, and choices between passion, reputation, and destiny in a world of soft light and dangerous feelings.',
+  };
+
+  List<String> get homeWorldRomanceTags => switch (language) {
+    AppLanguage.ru => const <String>['#ROMANCE', '#DRAMA', '#CHOICE'],
+    AppLanguage.en => const <String>['#ROMANCE', '#DRAMA', '#CHOICE'],
+  };
+
+  String get homeTechTitle => switch (language) {
+    AppLanguage.ru => 'Как история оживает',
+    AppLanguage.en => 'How the story comes alive',
+  };
+
+  String get homeTechDescription => switch (language) {
+    AppLanguage.ru =>
+      'Лендинг ведет к игре тем же языком, что и сама система: один рассказчик, память о решениях и быстрый вход в новую кампанию.',
+    AppLanguage.en =>
+      'The landing speaks the same language as the game itself: one narrator, persistent consequences, and a fast path into a new campaign.',
+  };
+
+  String get homeTechNarratorTitle => switch (language) {
+    AppLanguage.ru => 'Живой рассказчик',
+    AppLanguage.en => 'Living narrator',
+  };
+
+  String get homeTechNarratorDescription => switch (language) {
+    AppLanguage.ru =>
+      'ИИ ведет сцену как мастер игры: описывает обстановку, подбрасывает риск и подхватывает ваш стиль ответа.',
+    AppLanguage.en =>
+      'AI carries the scene like a game master: describing the room, escalating the tension, and matching your voice.',
+  };
+
+  String get homeTechMemoryTitle => switch (language) {
+    AppLanguage.ru => 'Память о выборе',
+    AppLanguage.en => 'Memory of choice',
+  };
+
+  String get homeTechMemoryDescription => switch (language) {
+    AppLanguage.ru =>
+      'Последствия не исчезают после одной реплики: союзники, улики, ресурсы и сюжетные модули меняются вместе с вами.',
+    AppLanguage.en =>
+      'Consequences do not vanish after one line: allies, clues, resources, and story modules shift along with you.',
+  };
+
+  String get homeTechStartTitle => switch (language) {
+    AppLanguage.ru => 'Быстрый старт',
+    AppLanguage.en => 'Fast start',
+  };
+
+  String get homeTechStartDescription => switch (language) {
+    AppLanguage.ru =>
+      'Выбираете сеттинг, задаете тон истории и сразу попадаете в игровой чат без лишних экранов и подготовки.',
+    AppLanguage.en =>
+      'Choose a setting, set the tone, and drop straight into the game chat without extra setup friction.',
+  };
+
+  String get homeFinalCtaTitle => switch (language) {
+    AppLanguage.ru => 'Откройте первую сцену за минуту',
+    AppLanguage.en => 'Open your first scene in a minute',
+  };
+
+  String get homeFinalCtaDescription => switch (language) {
+    AppLanguage.ru =>
+      'Запускайте новую историю, возвращайтесь в сохраненный мир и дайте рассказчику сразу ответить на ваш первый шаг.',
+    AppLanguage.en =>
+      'Launch a new story, return to a saved world, and let the narrator answer your very first move right away.',
+  };
+
+  String get youLabel => switch (language) {
+    AppLanguage.ru => 'Вы',
+    AppLanguage.en => 'You',
   };
 
   String get homeTertiaryCta => switch (language) {
@@ -381,60 +558,63 @@ class AppLocalizations {
         _ => raceId,
       };
 
-  String settingLabel(final CampaignSetting value) =>
-      switch ((language, value)) {
-        (AppLanguage.ru, CampaignSetting.romantasy) => 'Романтическое фэнтези',
-        (AppLanguage.ru, CampaignSetting.cozyFantasy) => 'Уютное фэнтези',
-        (AppLanguage.ru, CampaignSetting.darkAcademia) => 'Тёмная академия',
-        (AppLanguage.ru, CampaignSetting.postApocalypse) => 'Постапокалипсис',
-        (AppLanguage.ru, CampaignSetting.litRpgProgression) => 'LitRPG',
-        (AppLanguage.ru, CampaignSetting.grimdarkFantasy) => 'Гримдарк',
-        (AppLanguage.ru, CampaignSetting.nearFutureSciFi) => 'НФ близкого будущего',
-        (AppLanguage.ru, CampaignSetting.horrorWeird) => 'Хоррор',
-        (AppLanguage.ru, CampaignSetting.cozyCrime) => 'Cozy crime',
-        (AppLanguage.ru, CampaignSetting.altHistorySecret) => 'Альт-история',
-        (AppLanguage.en, CampaignSetting.romantasy) => 'Romantasy',
-        (AppLanguage.en, CampaignSetting.cozyFantasy) => 'Cozy fantasy',
-        (AppLanguage.en, CampaignSetting.darkAcademia) => 'Dark academia',
-        (AppLanguage.en, CampaignSetting.postApocalypse) => 'Post-apocalypse',
-        (AppLanguage.en, CampaignSetting.litRpgProgression) => 'LitRPG',
-        (AppLanguage.en, CampaignSetting.grimdarkFantasy) => 'Grimdark',
-        (AppLanguage.en, CampaignSetting.nearFutureSciFi) => 'Near-future SF',
-        (AppLanguage.en, CampaignSetting.horrorWeird) => 'Horror',
-        (AppLanguage.en, CampaignSetting.cozyCrime) => 'Cozy crime',
-        (AppLanguage.en, CampaignSetting.altHistorySecret) => 'Alt history',
-      };
+  String settingLabel(final CampaignSetting value) => switch ((
+    language,
+    value,
+  )) {
+    (AppLanguage.ru, CampaignSetting.romantasy) => 'Романтическое фэнтези',
+    (AppLanguage.ru, CampaignSetting.cozyFantasy) => 'Уютное фэнтези',
+    (AppLanguage.ru, CampaignSetting.darkAcademia) => 'Тёмная академия',
+    (AppLanguage.ru, CampaignSetting.postApocalypse) => 'Постапокалипсис',
+    (AppLanguage.ru, CampaignSetting.litRpgProgression) => 'LitRPG',
+    (AppLanguage.ru, CampaignSetting.grimdarkFantasy) => 'Гримдарк',
+    (AppLanguage.ru, CampaignSetting.nearFutureSciFi) => 'НФ близкого будущего',
+    (AppLanguage.ru, CampaignSetting.horrorWeird) => 'Хоррор',
+    (AppLanguage.ru, CampaignSetting.cozyCrime) => 'Cozy crime',
+    (AppLanguage.ru, CampaignSetting.altHistorySecret) => 'Альт-история',
+    (AppLanguage.en, CampaignSetting.romantasy) => 'Romantasy',
+    (AppLanguage.en, CampaignSetting.cozyFantasy) => 'Cozy fantasy',
+    (AppLanguage.en, CampaignSetting.darkAcademia) => 'Dark academia',
+    (AppLanguage.en, CampaignSetting.postApocalypse) => 'Post-apocalypse',
+    (AppLanguage.en, CampaignSetting.litRpgProgression) => 'LitRPG',
+    (AppLanguage.en, CampaignSetting.grimdarkFantasy) => 'Grimdark',
+    (AppLanguage.en, CampaignSetting.nearFutureSciFi) => 'Near-future SF',
+    (AppLanguage.en, CampaignSetting.horrorWeird) => 'Horror',
+    (AppLanguage.en, CampaignSetting.cozyCrime) => 'Cozy crime',
+    (AppLanguage.en, CampaignSetting.altHistorySecret) => 'Alt history',
+  };
 
   String get literaryGenreTitle => switch (language) {
     AppLanguage.ru => 'Литературный жанр',
     AppLanguage.en => 'Literary genre',
   };
 
-  String literaryGenreLabel(final LiteraryGenre value) =>
-      switch ((language, value)) {
-        (AppLanguage.ru, LiteraryGenre.romance) => 'Романтика',
-        (AppLanguage.ru, LiteraryGenre.romantasyGenre) => 'Romantasy',
-        (AppLanguage.ru, LiteraryGenre.fantasyGenre) => 'Фэнтези',
-        (AppLanguage.ru, LiteraryGenre.psychologicalThriller) => 'Триллер',
-        (AppLanguage.ru, LiteraryGenre.mysteryCrime) => 'Детектив',
-        (AppLanguage.ru, LiteraryGenre.horrorGenre) => 'Хоррор',
-        (AppLanguage.ru, LiteraryGenre.youngAdult) => 'Young Adult',
-        (AppLanguage.ru, LiteraryGenre.speculativeFiction) => 'Sci-Fi',
-        (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
-        (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Cozy',
-        (AppLanguage.en, LiteraryGenre.romance) => 'Romance',
-        (AppLanguage.en, LiteraryGenre.romantasyGenre) => 'Romantasy',
-        (AppLanguage.en, LiteraryGenre.fantasyGenre) => 'Fantasy',
-        (AppLanguage.en, LiteraryGenre.psychologicalThriller) =>
-          'Psychological thriller',
-        (AppLanguage.en, LiteraryGenre.mysteryCrime) => 'Mystery / crime',
-        (AppLanguage.en, LiteraryGenre.horrorGenre) => 'Horror',
-        (AppLanguage.en, LiteraryGenre.youngAdult) => 'Young Adult',
-        (AppLanguage.en, LiteraryGenre.speculativeFiction) =>
-          'Speculative fiction',
-        (AppLanguage.en, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
-        (AppLanguage.en, LiteraryGenre.cozyFeelGood) => 'Cozy / feel-good',
-      };
+  String literaryGenreLabel(final LiteraryGenre value) => switch ((
+    language,
+    value,
+  )) {
+    (AppLanguage.ru, LiteraryGenre.romance) => 'Романтика',
+    (AppLanguage.ru, LiteraryGenre.romantasyGenre) => 'Romantasy',
+    (AppLanguage.ru, LiteraryGenre.fantasyGenre) => 'Фэнтези',
+    (AppLanguage.ru, LiteraryGenre.psychologicalThriller) => 'Триллер',
+    (AppLanguage.ru, LiteraryGenre.mysteryCrime) => 'Детектив',
+    (AppLanguage.ru, LiteraryGenre.horrorGenre) => 'Хоррор',
+    (AppLanguage.ru, LiteraryGenre.youngAdult) => 'Young Adult',
+    (AppLanguage.ru, LiteraryGenre.speculativeFiction) => 'Sci-Fi',
+    (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
+    (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Cozy',
+    (AppLanguage.en, LiteraryGenre.romance) => 'Romance',
+    (AppLanguage.en, LiteraryGenre.romantasyGenre) => 'Romantasy',
+    (AppLanguage.en, LiteraryGenre.fantasyGenre) => 'Fantasy',
+    (AppLanguage.en, LiteraryGenre.psychologicalThriller) =>
+      'Psychological thriller',
+    (AppLanguage.en, LiteraryGenre.mysteryCrime) => 'Mystery / crime',
+    (AppLanguage.en, LiteraryGenre.horrorGenre) => 'Horror',
+    (AppLanguage.en, LiteraryGenre.youngAdult) => 'Young Adult',
+    (AppLanguage.en, LiteraryGenre.speculativeFiction) => 'Speculative fiction',
+    (AppLanguage.en, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
+    (AppLanguage.en, LiteraryGenre.cozyFeelGood) => 'Cozy / feel-good',
+  };
 
   String get randomGenreButton => switch (language) {
     AppLanguage.ru => 'Случайный жанр',
@@ -485,7 +665,8 @@ class AppLocalizations {
   };
 
   String get quickStartNeedsAi => switch (language) {
-    AppLanguage.ru => 'Настройте AI в параметрах, чтобы использовать быстрый старт.',
+    AppLanguage.ru =>
+      'Настройте AI в параметрах, чтобы использовать быстрый старт.',
     AppLanguage.en => 'Configure AI in settings to use quick start.',
   };
 
@@ -504,7 +685,8 @@ class AppLocalizations {
   };
 
   String get storyPromptRequired => switch (language) {
-    AppLanguage.ru => 'Введите или сгенерируйте промпт истории перед созданием.',
+    AppLanguage.ru =>
+      'Введите или сгенерируйте промпт истории перед созданием.',
     AppLanguage.en => 'Enter or generate a story prompt before creating.',
   };
 
@@ -656,10 +838,8 @@ class AppLocalizations {
   };
 
   String get portraitAutoGenerateHint => switch (language) {
-    AppLanguage.ru =>
-      'Автоматическая генерация портрета временно отключена.',
-    AppLanguage.en =>
-      'Automatic portrait generation is currently disabled.',
+    AppLanguage.ru => 'Автоматическая генерация портрета временно отключена.',
+    AppLanguage.en => 'Automatic portrait generation is currently disabled.',
   };
 
   String campaignModuleLabel(final CampaignModule value) =>
@@ -862,8 +1042,7 @@ class AppLocalizations {
   };
 
   String get contentRatingSubtitle => switch (language) {
-    AppLanguage.ru =>
-      'Без подтверждения ИИ избегает сексуального контента.',
+    AppLanguage.ru => 'Без подтверждения ИИ избегает сексуального контента.',
     AppLanguage.en =>
       'Without confirmation, AI avoids sexual content. Suitable for general audiences.',
   };
