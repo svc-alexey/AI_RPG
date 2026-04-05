@@ -460,6 +460,30 @@ class AppLocalizations {
       'Could not generate the story start. Check AI settings and try again.',
   };
 
+  /// Web: direct calls to provider APIs are blocked by browser CORS; use a proxy or native build.
+  String get promptGenerationFailedWeb => switch (language) {
+    AppLanguage.ru =>
+      'В веб-версии браузер часто блокирует прямые запросы к API нейросети (CORS) — '
+          'это не ошибка ключа в настройках. Решения: обратный прокси на вашем домене '
+          '(см. docs/DEPLOY_WEB.md и tool/cloudflare_worker_deepseek_proxy) или сборка '
+          'Android / iOS / desktop, где ограничения CORS нет.',
+    AppLanguage.en =>
+      'In the web build the browser often blocks direct calls to the model API (CORS)—'
+          'this is not necessarily a bad API key. Fix: run a small reverse proxy on a '
+          'domain you control (see docs/DEPLOY_WEB.md and tool/cloudflare_worker_deepseek_proxy) '
+          'or use Android / iOS / desktop builds, which are not limited by CORS.',
+  };
+
+  String get settingsWebAiCorsHint => switch (language) {
+    AppLanguage.ru =>
+      'В браузере запросы к большинству облачных API (включая DeepSeek) режутся политикой '
+          'CORS. Для публичного сайта укажите базовый URL своего прокси к тому же API '
+          'или используйте нативное приложение.',
+    AppLanguage.en =>
+      'Browsers block most cross-origin model API calls (CORS), including DeepSeek. '
+          'For a public site, point Base URL at your own proxy to the same API, or use a native build.',
+  };
+
   String get quickStartNeedsAi => switch (language) {
     AppLanguage.ru => 'Настройте AI в параметрах, чтобы использовать быстрый старт.',
     AppLanguage.en => 'Configure AI in settings to use quick start.',

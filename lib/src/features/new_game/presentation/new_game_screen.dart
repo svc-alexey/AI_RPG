@@ -5,6 +5,7 @@ import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/application/new_game_controller.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -916,10 +917,15 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       final AppLocalizations l10n = context.l10n;
       final String message = e is StateError && e.message == 'ai_not_configured'
           ? l10n.quickStartNeedsAi
-          : l10n.promptGenerationFailed;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+          : (kIsWeb
+                ? l10n.promptGenerationFailedWeb
+                : l10n.promptGenerationFailed);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: kIsWeb ? const Duration(seconds: 12) : const Duration(seconds: 4),
+        ),
+      );
     }
   }
 

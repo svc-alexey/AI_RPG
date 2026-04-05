@@ -10,6 +10,17 @@ The project now uses platform-aware local storage:
 
 This avoids pulling native `Isar` generated code into the browser build while preserving native migration behavior on supported platforms.
 
+## AI / CORS (critical for static web hosting)
+
+The web app calls your configured **Base URL** from the **browser** using `package:http`. Browsers enforce **CORS**: if the API host (e.g. `api.deepseek.com`) does not return `Access-Control-Allow-Origin` for your site’s origin, the request **fails before it reaches the model** — regardless of a correct API key or `dart-define` build presets.
+
+**What works**
+
+- **Android / iOS / desktop** builds: no browser CORS; direct `https://api.deepseek.com/v1` is fine.
+- **Web**: use a **reverse proxy on a domain you control** that forwards to the same API and adds CORS headers, then set **Base URL** to that proxy (e.g. `https://your-worker.workers.dev/v1`). See `tool/cloudflare_worker_deepseek_proxy/` for a minimal Cloudflare Worker example.
+
+Misconfigured AI in settings is a separate issue (wrong URL, revoked key, HTTP 401). CORS failures often look like “generation does nothing” or empty prompts because the client cannot read the response.
+
 ## Build command
 
 Use the project script:

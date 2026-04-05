@@ -70,34 +70,38 @@ class _AetherBackdropState extends State<AetherBackdrop>
   }
 
   @override
-  Widget build(final BuildContext context) => AnimatedBuilder(
-    animation: _pulse,
-    builder: (context, _) => DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            AetherPalette.backgroundTop,
-            AetherPalette.background,
-          ],
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          CustomPaint(
-            painter: _WarmGlowPainter(pulse: _pulse.value),
-            size: Size.infinite,
-          ),
-          if (!kIsWeb)
-            const CustomPaint(
-              painter: _FilmNoisePainter(),
-              size: Size.infinite,
-            ),
-          widget.child,
+  Widget build(final BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: <Color>[
+          AetherPalette.backgroundTop,
+          AetherPalette.background,
         ],
       ),
+    ),
+    child: Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        Positioned.fill(
+          child: RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _pulse,
+              builder: (final context, final _) => CustomPaint(
+                painter: _WarmGlowPainter(pulse: _pulse.value),
+              ),
+            ),
+          ),
+        ),
+        if (!kIsWeb)
+          const Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(painter: _FilmNoisePainter()),
+            ),
+          ),
+        widget.child,
+      ],
     ),
   );
 }

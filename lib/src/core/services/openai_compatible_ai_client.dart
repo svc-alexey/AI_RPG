@@ -156,6 +156,13 @@ Reply only with JSON, no markdown.
           : await requestFuture;
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        final String errBody = _responseText(response);
+        final String snippet = errBody.length > 280
+            ? errBody.substring(0, 280)
+            : errBody;
+        debugPrint(
+          'generateCampaignPrompts HTTP ${response.statusCode}: $snippet',
+        );
         return const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
       }
 

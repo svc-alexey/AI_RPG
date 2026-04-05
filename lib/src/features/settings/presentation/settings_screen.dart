@@ -4,6 +4,7 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -123,6 +124,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   'Configure any OpenAI-compatible endpoint.',
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
+                                if (kIsWeb) ...<Widget>[
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    l10n.settingsWebAiCorsHint,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: AetherPalette.accent),
+                                  ),
+                                ],
                                 const SizedBox(height: 12),
                                 if (settingsState.showEndpointBuildDefaultsHint) ...<Widget>[
                                   Text(
