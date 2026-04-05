@@ -3,6 +3,14 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 class DiceEngine {
   const DiceEngine();
 
+  static const int startingLootDieSides = 6;
+  static const int startingLootMinimumSuccessRoll = 4;
+
+  int rollStartingLootD6({required final String campaignId}) {
+    final int seed = _stableHash('$campaignId|starting_loot|0');
+    return (seed % startingLootDieSides) + 1;
+  }
+
   int rollD20({
     required final CampaignState state,
     required final String playerAction,

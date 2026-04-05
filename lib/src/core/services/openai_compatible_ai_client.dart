@@ -1152,6 +1152,11 @@ Rules:
       contextPayload['deterministic_resolution'] = deterministicContext
           .toJson();
     }
+    if (deterministicContext.hasStartingLootGate) {
+      contextPayload['starting_loot_gate'] = deterministicContext
+          .startingLootGate!
+          .toJson();
+    }
 
     final String actionText = playerAction.trim().isEmpty
         ? switch (language) {

@@ -121,8 +121,8 @@ class _WarmGlowPainter extends CustomPainter {
     final Paint paint = Paint()
       ..shader = RadialGradient(
         colors: <Color>[
-          AetherPalette.accent.withValues(alpha: 0.12 + pulse * 0.14),
-          AetherPalette.accent.withValues(alpha: 0.05 + pulse * 0.06),
+          AetherPalette.accent.withValues(alpha: 0.16 + pulse * 0.16),
+          AetherPalette.accent.withValues(alpha: 0.08 + pulse * 0.08),
           Colors.transparent,
         ],
         stops: const <double>[0.0, 0.4, 0.72],

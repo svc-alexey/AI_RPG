@@ -227,9 +227,16 @@ class ChatController extends StateNotifier<ChatViewState> {
     }
 
     final AppLanguage language = _appLanguage;
-    final DeterministicTurnContext deterministicContext =
-        suggestionsOnly || isIntro
+    final DeterministicTurnContext deterministicContext = suggestionsOnly
         ? const DeterministicTurnContext.none()
+        : isIntro
+        ? campaign.isModuleActive(CampaignModule.inventory)
+              ? DeterministicTurnContext(
+                  startingLootGate: _gameEngine.rollStartingLootGate(
+                    campaignId: campaign.id,
+                  ),
+                )
+              : const DeterministicTurnContext.none()
         : _gameEngine.resolveDeterministicTurn(
             language: language,
             state: campaign,

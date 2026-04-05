@@ -2,14 +2,36 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/dice_engine.dart';
 
-class DeterministicTurnContext {
-  const DeterministicTurnContext({this.resolvedCheck});
+class StartingLootGate {
+  const StartingLootGate({
+    required this.dieRoll,
+    required this.grantsStartingItem,
+  });
 
-  const DeterministicTurnContext.none() : resolvedCheck = null;
+  final int dieRoll;
+  final bool grantsStartingItem;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'dieRoll': dieRoll,
+    'dieSides': DiceEngine.startingLootDieSides,
+    'minimumRollForItem': DiceEngine.startingLootMinimumSuccessRoll,
+    'grantsStartingItem': grantsStartingItem,
+  };
+}
+
+class DeterministicTurnContext {
+  const DeterministicTurnContext({this.resolvedCheck, this.startingLootGate});
+
+  const DeterministicTurnContext.none()
+    : resolvedCheck = null,
+      startingLootGate = null;
 
   final CampaignCheck? resolvedCheck;
+  final StartingLootGate? startingLootGate;
 
   bool get hasResolvedCheck => resolvedCheck != null;
+
+  bool get hasStartingLootGate => startingLootGate != null;
 
   Map<String, Object?> toJson() {
     final CampaignCheck? check = resolvedCheck;
@@ -39,6 +61,16 @@ class DeterministicCheckService {
   const DeterministicCheckService({this.diceEngine = const DiceEngine()});
 
   final DiceEngine diceEngine;
+
+  StartingLootGate rollStartingLootGate({required final String campaignId}) {
+    final int dieRoll = diceEngine.rollStartingLootD6(campaignId: campaignId);
+    final bool grantsStartingItem =
+        dieRoll >= DiceEngine.startingLootMinimumSuccessRoll;
+    return StartingLootGate(
+      dieRoll: dieRoll,
+      grantsStartingItem: grantsStartingItem,
+    );
+  }
 
   static final List<_StatPattern> _statPatterns = <_StatPattern>[
     const _StatPattern(

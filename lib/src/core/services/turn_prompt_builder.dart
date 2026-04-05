@@ -4,6 +4,7 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/services/campaign_memory_manager.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/dice_engine.dart';
 import 'package:ai_prg/src/core/services/narrative_nudge_service.dart';
 
 class TurnPromptBuilder {
@@ -36,6 +37,15 @@ class TurnPromptBuilder {
               '\nВ контексте может прийти deterministic_resolution. Это уже разрешённый на клиенте исход проверки. Не перебрасывай кубик, не меняй и не оспаривай этот результат.\n',
             AppLanguage.en =>
               '\nIf deterministic_resolution appears in the campaign context, it was already resolved on the client. Do not reroll it, change it, or contradict it.\n',
+          }
+        : '';
+    final String startingLootRule =
+        !suggestionsOnly && deterministicContext.hasStartingLootGate
+        ? switch (language) {
+            AppLanguage.ru =>
+              '\nВ контексте может быть starting_loot_gate: бросок d6 уже выполнен на клиенте. Соблюдай grantsStartingItem: при false не добавляй новые предметы в inventoryAdd; при true добавь ровно один предмет в inventoryAdd и опиши его появление в narration.\n',
+            AppLanguage.en =>
+              '\nThe campaign context may include starting_loot_gate: the d6 roll was already resolved on the client. Honor grantsStartingItem: if false, do not add new items in inventoryAdd; if true, add exactly one item in inventoryAdd and show how it appears in narration.\n',
           }
         : '';
 
@@ -101,7 +111,12 @@ Rules:
       };
     }
 
-    final List<String> parts = <String>[base, contentRule, deterministicRule];
+    final List<String> parts = <String>[
+      base,
+      contentRule,
+      deterministicRule,
+      startingLootRule,
+    ];
     if (state.customStoryPrompt.trim().isNotEmpty) {
       parts.add(
         '\n\n--- Story context ---\n${state.customStoryPrompt.trim()}\n',
@@ -137,15 +152,18 @@ Rules:
       contextPayload['deterministic_resolution'] = deterministicContext
           .toJson();
     }
+    if (deterministicContext.hasStartingLootGate) {
+      contextPayload['starting_loot_gate'] = deterministicContext
+          .startingLootGate!
+          .toJson();
+    }
 
-    final String actionText = playerAction.trim().isEmpty
-        ? switch (language) {
-            AppLanguage.ru =>
-              '(Начало истории. Открой сцену в духе Story context и активных модулей. Локация и лут не обязательны — уместны роман, детектив или линейная цель. Начни повествование.)',
-            AppLanguage.en =>
-              '(Story start. Open a scene aligned with Story context and active modules. Location and loot are optional—romance, mystery, or a linear goal are fine. Begin the narration.)',
-          }
-        : playerAction;
+    final String actionText = _buildUserActionText(
+      language: language,
+      state: state,
+      playerAction: playerAction,
+      deterministicContext: deterministicContext,
+    );
 
     return switch (language) {
       AppLanguage.ru =>
@@ -164,6 +182,40 @@ ${jsonEncode(contextPayload)}
 Player action:
 $actionText
 ''',
+    };
+  }
+
+  String _buildUserActionText({
+    required final AppLanguage language,
+    required final CampaignState state,
+    required final String playerAction,
+    required final DeterministicTurnContext deterministicContext,
+  }) {
+    if (playerAction.trim().isNotEmpty) {
+      return playerAction;
+    }
+    if (state.turnNumber == 0 && deterministicContext.hasStartingLootGate) {
+      final StartingLootGate gate = deterministicContext.startingLootGate!;
+      return switch (language) {
+        AppLanguage.ru =>
+          '(Начало истории. Открой сцену в духе Story context, блока Character и активных модулей. Стартовый инвентарь пуст. '
+          'Клиентский бросок d${DiceEngine.startingLootDieSides}: ${gate.dieRoll} '
+          '(предмет разрешён при значении >= ${DiceEngine.startingLootMinimumSuccessRoll}). '
+          '${gate.grantsStartingItem ? "Исход успешный: добавь ровно один предмет в inventoryAdd и покажи в narration, как он у героя; имя и происхождение придумай по сеттингу и сцене; перки в Character — лишь подсказка." : "Исход неуспешный: не добавляй новые предметы в inventoryAdd (оставь пустым)."} '
+          'Начни повествование.)',
+        AppLanguage.en =>
+          '(Story start. Open a scene aligned with Story context, --- Character ---, and active modules. Starting inventory is empty. '
+          'Client d${DiceEngine.startingLootDieSides} roll: ${gate.dieRoll} '
+          '(an item is allowed at >= ${DiceEngine.startingLootMinimumSuccessRoll}). '
+          '${gate.grantsStartingItem ? "grantsStartingItem=true: add exactly one item in inventoryAdd and show in narration how the hero has it; name and origin fit the setting and scene; Character perks are hints only." : "grantsStartingItem=false: do not add new items in inventoryAdd (keep it empty)."} '
+          'Begin the narration.)',
+      };
+    }
+    return switch (language) {
+      AppLanguage.ru =>
+        '(Начало истории. Открой сцену в духе Story context и активных модулей. Локация и лут не обязательны — уместны роман, детектив или линейная цель. Начни повествование.)',
+      AppLanguage.en =>
+        '(Story start. Open a scene aligned with Story context and active modules. Location and loot are optional—romance, mystery, or a linear goal are fine. Begin the narration.)',
     };
   }
 }

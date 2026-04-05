@@ -62,14 +62,8 @@ class GameEngine {
           )
         : '';
 
-    final List<String> baseInventory = switch (language) {
-      AppLanguage.ru => const <String>['Полевые записи', 'Дорожный набор'],
-      AppLanguage.en => const <String>['Field Notes', 'Travel Kit'],
-    };
     final List<String> inventory = inventoryActive
-        ? draft.characterProfile != null
-              ? <String>[...baseInventory, ...draft.characterProfile!.perks]
-              : baseInventory
+        ? const <String>[]
         : const <String>[];
 
     // Стартовая локация будет определена ИИ на основе промпта
@@ -232,6 +226,9 @@ class GameEngine {
     playerAction: playerAction,
     language: language,
   );
+
+  StartingLootGate rollStartingLootGate({required final String campaignId}) =>
+      _deterministicCheckService.rollStartingLootGate(campaignId: campaignId);
 
   static bool _isModuleActive(
     final List<CampaignModuleState> modules,
