@@ -244,24 +244,36 @@ class _HomeHeroBlock extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final double line2Size = responsive.isCompact ? 48 : 72;
+    final double line1Size = responsive.isCompact
+        ? 44
+        : (responsive.isWide ? 88 : 64);
+    final double line2FontSize = responsive.isCompact
+        ? line2Size
+        : (responsive.isWide ? 96 : 74);
 
     return Column(
       children: <Widget>[
         AetherPageReveal(
-          child: Text(
-            l10n.brandNameLine1,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayLarge?.copyWith(
-              fontSize: responsive.isCompact
-                  ? 44
-                  : (responsive.isWide ? 88 : 64),
-              fontWeight: FontWeight.w300,
-              letterSpacing: -2,
-              height: 0.92,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: responsive.isCompact ? 4 : 6),
+            child: Text(
+              l10n.brandNameLine1,
+              textAlign: TextAlign.center,
+              strutStyle: StrutStyle(
+                fontSize: line1Size,
+                height: 1.04,
+                forceStrutHeight: true,
+              ),
+              style: theme.textTheme.displayLarge?.copyWith(
+                fontSize: line1Size,
+                fontWeight: FontWeight.w300,
+                letterSpacing: -2,
+                height: 1.04,
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         AetherPageReveal(
           delay: const Duration(milliseconds: 60),
           child: ShaderMask(
@@ -276,17 +288,25 @@ class _HomeHeroBlock extends StatelessWidget {
               ],
               stops: <double>[0.0, 0.52, 1.0],
             ).createShader(bounds),
-            child: Text(
-              l10n.brandNameLine2,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.displayLarge?.copyWith(
-                fontSize: responsive.isCompact
-                    ? line2Size
-                    : (responsive.isWide ? 96 : 74),
-                fontWeight: FontWeight.w300,
-                letterSpacing: -2,
-                height: 0.92,
-                color: Colors.white,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: responsive.isCompact ? 2 : 4,
+              ),
+              child: Text(
+                l10n.brandNameLine2,
+                textAlign: TextAlign.center,
+                strutStyle: StrutStyle(
+                  fontSize: line2FontSize,
+                  height: 1.04,
+                  forceStrutHeight: true,
+                ),
+                style: theme.textTheme.displayLarge?.copyWith(
+                  fontSize: line2FontSize,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: -2,
+                  height: 1.04,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

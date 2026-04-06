@@ -1371,6 +1371,11 @@ class AppLocalizations {
     AppLanguage.en => 'Account',
   };
 
+  String get accountSignedOutDescription => switch (language) {
+    AppLanguage.ru => 'Вы не вошли в аккаунт.',
+    AppLanguage.en => 'You are not signed in.',
+  };
+
   String get personalModelTitle => switch (language) {
     AppLanguage.ru => 'Своя ИИ-модель',
     AppLanguage.en => 'Your AI model',

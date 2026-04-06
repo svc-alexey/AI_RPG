@@ -4,7 +4,8 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
-import 'package:ai_prg/src/features/auth/presentation/auth_gate_screen.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final TextEditingController _backendUrlController = TextEditingController();
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
@@ -30,7 +30,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    _backendUrlController.dispose();
     _baseUrlController.dispose();
     _modelController.dispose();
     _apiKeyController.dispose();
@@ -40,12 +39,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
+  Future<void> _openAuthScreen() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (final routeContext) => AuthScreen(
+          onAuthenticated: () => Navigator.of(routeContext).pop(true),
+        ),
+      ),
+    );
+    ref.invalidate(symmetrySessionProvider);
+  }
+
+  Future<void> _handleAccountAction(final SymmetrySession? session) async {
+    final AppLocalizations l10n = context.l10n;
+    if (session == null || session.isGuest) {
+      await _openAuthScreen();
+      return;
+    }
+    try {
+      await ref.read(symmetryAuthRepositoryProvider).logout();
+      ref.invalidate(symmetrySessionProvider);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.signedOutStatus)));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.symmetryFriendlyError(error))),
+        );
+    }
+  }
+
   @override
   Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
     final SettingsViewState settingsState = ref.watch(
       settingsControllerProvider,
+    );
+    final AsyncValue<SymmetrySession?> sessionState = ref.watch(
+      symmetrySessionProvider,
     );
     final SettingsController controller = ref.read(
       settingsControllerProvider.notifier,
@@ -56,7 +97,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final next,
     ) {
       if (next.formRevision != (previous?.formRevision ?? 0)) {
-        _backendUrlController.text = next.backendBaseUrl;
         _baseUrlController.text = next.baseUrl;
         _modelController.text = next.model;
         _apiKeyController.text = next.apiKey;
@@ -83,7 +123,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: <Widget>[
                           Text(
                             l10n.homeTertiaryCta,
-                            style: Theme.of(context).textTheme.headlineLarge,
+                            style: theme.textTheme.headlineLarge,
                             maxLines: 2,
                           ),
                           SizedBox(height: responsive.blockSpacing - 4),
@@ -121,39 +161,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: l10n.accountTitle,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                TextField(
-                                  controller: _backendUrlController,
-                                  onChanged: controller.setBackendBaseUrl,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.serverAddressLabel,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final NavigatorState navigator =
-                                        Navigator.of(context);
-                                    await ref
-                                        .read(symmetryAuthRepositoryProvider)
-                                        .logout();
-                                    if (!mounted) {
-                                      return;
-                                    }
-                                    await navigator.pushAndRemoveUntil(
-                                      MaterialPageRoute<void>(
-                                        builder: (final context) =>
-                                            const AuthGateScreen(),
+                            child: sessionState.when(
+                              data: (final session) {
+                                final bool isSignedIn =
+                                    session != null && !session.isGuest;
+                                final String email =
+                                    session?.user.email.trim() ?? '';
+                                final String displayName =
+                                    session?.user.displayName.trim() ?? '';
+                                final String primaryIdentity =
+                                    displayName.isNotEmpty
+                                    ? displayName
+                                    : email;
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      isSignedIn
+                                          ? l10n.homeSignedInCardSubtitle(
+                                              primaryIdentity,
+                                            )
+                                          : l10n.accountSignedOutDescription,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(height: 1.3),
+                                    ),
+                                    if (isSignedIn &&
+                                        email.isNotEmpty &&
+                                        email != primaryIdentity) ...<Widget>[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        email,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: AetherPalette.textMuted,
+                                            ),
                                       ),
-                                      (final route) => false,
-                                    );
-                                  },
-                                  icon: const Icon(Icons.logout_rounded),
-                                  label: Text(l10n.signOutAction),
+                                    ],
+                                    const SizedBox(height: 16),
+                                    OutlinedButton.icon(
+                                      onPressed: () =>
+                                          _handleAccountAction(session),
+                                      icon: Icon(
+                                        isSignedIn
+                                            ? Icons.logout_rounded
+                                            : Icons.login_rounded,
+                                      ),
+                                      label: Text(
+                                        isSignedIn
+                                            ? l10n.signOutAction
+                                            : l10n.loginAction,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                              loading: () => const SizedBox(
+                                height: 32,
+                                width: 32,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                 ),
-                              ],
+                              ),
+                              error: (final error, final stackTrace) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    l10n.accountSignedOutDescription,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(height: 1.3),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  OutlinedButton.icon(
+                                    onPressed: _openAuthScreen,
+                                    icon: const Icon(Icons.login_rounded),
+                                    label: Text(l10n.loginAction),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           SizedBox(height: responsive.sectionSpacing),
