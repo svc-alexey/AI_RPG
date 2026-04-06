@@ -10,6 +10,7 @@ should not expose it unless there is a deliberate product reason.
 - `FastAPI` API for auth, campaigns, turn processing, and story templates
 - `PostgreSQL + pgvector` storage
 - local embeddings via `sentence-transformers`
+  with `intfloat/multilingual-e5-base` on the `onnx` backend
 - OpenAI-compatible LLM gateway with transient user credentials support
 - guest sessions plus account sessions for client access
 
@@ -23,6 +24,11 @@ The backend supports two local development modes:
 The default `.env` is now tuned for the first case: local Python process +
 Postgres exposed on `localhost:5432`. Docker Compose overrides the DB host and
 model directory for the container automatically.
+
+The compose stack also mounts:
+
+- `infra/postgres/postgresql.conf` for PostgreSQL tuning
+- `infra/postgres/init/01_pgvector.sql` for initial extension setup
 
 1. Copy `backend/symmetry/.env.example` to `.env` and fill secrets.
 2. Apply migrations:
@@ -53,6 +59,10 @@ Development request logs are written to `backend/symmetry/logs/symmetry-dev.log`
 4. Open docs:
 
 `http://localhost:8080/docs`
+
+If you are resetting the local vector store for the new `768`-dimensional
+embeddings, stop the stack and remove the Postgres volume before the next
+`docker compose up --build`.
 
 ## Web preview pairing
 

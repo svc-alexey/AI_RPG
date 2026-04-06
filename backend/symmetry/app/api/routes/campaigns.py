@@ -165,7 +165,7 @@ async def process_turn(
 
     current_state = snapshot.state_json
     embedding_service = get_embedding_service()
-    query_vector = embedding_service.encode(payload.player_action)
+    query_vector = embedding_service.encode_query(payload.player_action)
     chronicles = await rag_service.search_relevant_events(
         session,
         campaign_id=campaign.id,
@@ -247,7 +247,7 @@ async def _persist_chronicle_event(
     if not event_text:
         return
     embedding_service = get_embedding_service()
-    vector = embedding_service.encode(event_text)
+    vector = embedding_service.encode_document(event_text)
     async with SessionLocal() as session:
         session.add(
             WorldChronicle(

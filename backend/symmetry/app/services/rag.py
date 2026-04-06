@@ -1,8 +1,13 @@
-from sqlalchemy import select
+from time import perf_counter
+
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.logging import get_logger
 from app.db.models import WorldChronicle
+
+logger = get_logger("symmetry.rag")
 
 
 class RagService:
@@ -17,6 +22,9 @@ class RagService:
         location_slug: str,
         query_vector: list[float],
     ) -> list[WorldChronicle]:
+        started_at = perf_counter()
+        ef_search = max(1, self._settings.rag_hnsw_ef_search)
+        await session.execute(text(f"SET LOCAL hnsw.ef_search = {ef_search}"))
         stmt = (
             select(WorldChronicle)
             .where(
@@ -32,4 +40,15 @@ class RagService:
                 | (WorldChronicle.location_slug == "")
             )
         result = await session.execute(stmt)
-        return list(result.scalars().all())
+        items = list(result.scalars().all())
+        duration_ms = int((perf_counter() - started_at) * 1000)
+        logger.info(
+            "rag_search_completed campaign_id=%s location=%s results=%s ef_search=%s top_k=%s duration_ms=%s",
+            campaign_id,
+            location_slug or "-",
+            len(items),
+            ef_search,
+            max(1, self._settings.rag_top_k),
+            duration_ms,
+        )
+        return items

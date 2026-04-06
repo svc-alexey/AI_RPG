@@ -13,8 +13,10 @@ Browser-local storage remains only for:
 - app settings
 - language
 - session tokens
-- backend base URL
 - optional user-owned AI keys
+
+The backend address is deployment/runtime configuration and is not exposed as a
+user-editable field in the settings UI.
 
 ## CORS model
 

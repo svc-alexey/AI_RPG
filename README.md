@@ -33,7 +33,9 @@ processing.
 - minimal auth UI:
   - no backend URL field on the sign-in form;
   - close button returns the user to the previous screen;
-  - settings show a generic `Settings` title instead of `AI Settings`.
+  - settings show a generic `Settings` title instead of `AI Settings`;
+  - the account section shows only who is signed in and `Log in` / `Sign out`;
+  - the server address is not shown or edited in settings.
 - users can optionally provide their own AI model credentials in settings;
   those credentials stay only on the user's device and are sent transiently
   with requests when needed.
@@ -44,7 +46,7 @@ processing.
 - backend: `FastAPI`
 - db: `PostgreSQL + pgvector`
 - embeddings: `sentence-transformers` with
-  `intfloat/multilingual-e5-large`
+  `intfloat/multilingual-e5-base` on `onnx`
 - text generation: OpenAI-compatible provider access through backend gateway
 - auth/session storage on client: local settings storage only
 

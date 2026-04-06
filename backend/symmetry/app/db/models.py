@@ -181,7 +181,7 @@ class WorldChronicle(Base):
     importance: Mapped[int] = mapped_column(Integer, default=5)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
-    vector: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
+    vector: Mapped[list[float] | None] = mapped_column(Vector(768), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

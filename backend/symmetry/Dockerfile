@@ -15,6 +15,7 @@ COPY start.sh ./start.sh
 COPY .env.example ./.env.example
 
 RUN mkdir -p /app/models
+RUN sed -i 's/\r$//' /app/start.sh
 RUN chmod +x /app/start.sh
 
 EXPOSE 8080

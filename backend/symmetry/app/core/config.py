@@ -35,9 +35,15 @@ class Settings(BaseSettings):
     server_llm_api_key: str = ""
     server_llm_timeout_seconds: int = 90
 
-    embedding_model: str = "intfloat/multilingual-e5-large"
+    embedding_model: str = "intfloat/multilingual-e5-base"
+    embedding_backend: str = "onnx"
+    embedding_model_file_name: str = "onnx/model.onnx"
     embedding_model_dir: Path = Field(default=Path("models"))
+    embedding_batch_size: int = 32
+    embedding_cache_size: int = 256
+    embedding_cache_ttl_seconds: int = 300
     rag_top_k: int = 5
+    rag_hnsw_ef_search: int = 40
     memory_importance_threshold: int = 7
 
     yandex_client_id: str = ""

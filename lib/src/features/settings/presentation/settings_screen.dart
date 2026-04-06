@@ -18,7 +18,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
   bool _apiKeyObscured = true;
@@ -30,7 +29,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    _baseUrlController.dispose();
     _modelController.dispose();
     _apiKeyController.dispose();
     _timeoutController.dispose();
@@ -97,7 +95,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final next,
     ) {
       if (next.formRevision != (previous?.formRevision ?? 0)) {
-        _baseUrlController.text = next.baseUrl;
         _modelController.text = next.model;
         _apiKeyController.text = next.apiKey;
         _timeoutController.text = next.timeoutText;
@@ -250,14 +247,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 Text(
                                   l10n.personalModelHint,
                                   style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _baseUrlController,
-                                  onChanged: controller.setBaseUrl,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.baseUrl,
-                                  ),
                                 ),
                                 const SizedBox(height: 12),
                                 TextField(
