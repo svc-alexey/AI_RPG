@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: symmetry
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - symmetry_postgres_data:/var/lib/postgresql/data
+
+  symmetry-api:
+    build:
+      context: ./backend/symmetry
+    env_file:
+      - ./backend/symmetry/.env
+    environment:
+      SYMMETRY_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/symmetry
+      SYMMETRY_EMBEDDING_MODEL_DIR: /app/models
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/symmetry/app:/app/app
+      - ./backend/symmetry/models:/app/models
+
+volumes:
+  symmetry_postgres_data:

@@ -1,5 +1,9 @@
 # Feature: Deterministic Systems
 
+> Historical note: this package documents the Stage 8 deterministic gameplay
+> layer. The slice is still important product history, but the current
+> authoritative runtime now lives in the `Symmetry` backend.
+
 ## Summary
 
 This feature package tracks the Stage 8 shift where gameplay checks stop being model-decided narration and become client-resolved state.

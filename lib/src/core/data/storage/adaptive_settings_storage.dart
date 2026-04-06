@@ -5,6 +5,7 @@ import 'package:ai_prg/src/core/data/shared_preferences/settings_local_data_sour
 import 'package:ai_prg/src/core/data/storage/settings_storage.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 
 class AdaptiveSettingsStorage implements SettingsStorage {
   AdaptiveSettingsStorage({
@@ -70,5 +71,52 @@ class AdaptiveSettingsStorage implements SettingsStorage {
       await _isarDataSource.saveAppLanguage(isar, language);
     }
     await _preferencesDataSource.saveAppLanguage(language);
+  }
+
+  @override
+  Future<String?> loadSymmetryBaseUrl() async {
+    await _database.ensureReady();
+    if (_database.backend == StorageBackend.isar) {
+      final isar = await _database.isar;
+      final String? baseUrl = await _isarDataSource.loadSymmetryBaseUrl(isar);
+      if (baseUrl != null && baseUrl.trim().isNotEmpty) {
+        return baseUrl;
+      }
+    }
+    return _preferencesDataSource.loadSymmetryBaseUrl();
+  }
+
+  @override
+  Future<void> saveSymmetryBaseUrl(final String baseUrl) async {
+    await _database.ensureReady();
+    if (_database.backend == StorageBackend.isar) {
+      final isar = await _database.isar;
+      await _isarDataSource.saveSymmetryBaseUrl(isar, baseUrl);
+    }
+    await _preferencesDataSource.saveSymmetryBaseUrl(baseUrl);
+  }
+
+  @override
+  Future<SymmetrySession?> loadSymmetrySession() async {
+    await _database.ensureReady();
+    if (_database.backend == StorageBackend.isar) {
+      final isar = await _database.isar;
+      final SymmetrySession? session = await _isarDataSource
+          .loadSymmetrySession(isar);
+      if (session != null) {
+        return session;
+      }
+    }
+    return _preferencesDataSource.loadSymmetrySession();
+  }
+
+  @override
+  Future<void> saveSymmetrySession(final SymmetrySession? session) async {
+    await _database.ensureReady();
+    if (_database.backend == StorageBackend.isar) {
+      final isar = await _database.isar;
+      await _isarDataSource.saveSymmetrySession(isar, session);
+    }
+    await _preferencesDataSource.saveSymmetrySession(session);
   }
 }

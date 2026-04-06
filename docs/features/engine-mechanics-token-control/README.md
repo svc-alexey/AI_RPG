@@ -1,5 +1,10 @@
 # Feature: AI RPG Engine Core, Mechanics and Token Control
 
+> Historical note: this package documents the pre-`Symmetry` client-authoritative
+> phase. It remains useful as implementation history, but the current runtime
+> source of truth for campaigns and world state is the server-first `Symmetry`
+> backend.
+
 ## Summary
 
 This feature package tracks the transition from a basic AI chat MVP to a local-first RPG engine with:

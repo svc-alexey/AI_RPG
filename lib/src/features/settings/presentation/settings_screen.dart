@@ -1,10 +1,11 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/features/auth/presentation/auth_gate_screen.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,6 +17,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final TextEditingController _backendUrlController = TextEditingController();
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
@@ -28,6 +30,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
+    _backendUrlController.dispose();
     _baseUrlController.dispose();
     _modelController.dispose();
     _apiKeyController.dispose();
@@ -53,6 +56,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final next,
     ) {
       if (next.formRevision != (previous?.formRevision ?? 0)) {
+        _backendUrlController.text = next.backendBaseUrl;
         _baseUrlController.text = next.baseUrl;
         _modelController.text = next.model;
         _apiKeyController.text = next.apiKey;
@@ -63,7 +67,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.aiSettings)),
+      appBar: AppBar(title: Text(l10n.homeTertiaryCta)),
       body: AetherBackdrop(
         child: settingsState.isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -78,7 +82,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: ListView(
                         children: <Widget>[
                           Text(
-                            l10n.aiSettings,
+                            l10n.homeTertiaryCta,
                             style: Theme.of(context).textTheme.headlineLarge,
                             maxLines: 2,
                           ),
@@ -116,31 +120,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                           SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
-                            title: l10n.openAiCompatible,
+                            title: l10n.accountTitle,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                TextField(
+                                  controller: _backendUrlController,
+                                  onChanged: controller.setBackendBaseUrl,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.serverAddressLabel,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final NavigatorState navigator =
+                                        Navigator.of(context);
+                                    await ref
+                                        .read(symmetryAuthRepositoryProvider)
+                                        .logout();
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    await navigator.pushAndRemoveUntil(
+                                      MaterialPageRoute<void>(
+                                        builder: (final context) =>
+                                            const AuthGateScreen(),
+                                      ),
+                                      (final route) => false,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.logout_rounded),
+                                  label: Text(l10n.signOutAction),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: responsive.sectionSpacing),
+                          _SettingsSection(
+                            title: l10n.personalModelTitle,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
-                                  'Configure any OpenAI-compatible endpoint.',
+                                  l10n.personalModelHint,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-                                if (kIsWeb) ...<Widget>[
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    l10n.settingsWebAiCorsHint,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: AetherPalette.accent),
-                                  ),
-                                ],
                                 const SizedBox(height: 12),
-                                if (settingsState.showEndpointBuildDefaultsHint) ...<Widget>[
-                                  Text(
-                                    l10n.endpointBuildDefaultsHint,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: AetherPalette.textMuted),
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
                                 TextField(
                                   controller: _baseUrlController,
                                   onChanged: controller.setBaseUrl,
@@ -157,14 +183,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                if (settingsState.showApiKeyFromBuildHint) ...<Widget>[
-                                  Text(
-                                    l10n.apiKeyBuildTimeHiddenHint,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: AetherPalette.textMuted),
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
                                 TextField(
                                   controller: _apiKeyController,
                                   obscureText: _apiKeyObscured,
@@ -185,7 +203,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             : Icons.visibility_off_outlined,
                                       ),
                                       onPressed: () => setState(
-                                        () => _apiKeyObscured = !_apiKeyObscured,
+                                        () =>
+                                            _apiKeyObscured = !_apiKeyObscured,
                                       ),
                                     ),
                                   ),
@@ -291,11 +310,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   size: 18,
                                   color:
                                       settingsState.status!.contains(
-                                                'успешно',
-                                              ) ||
-                                              settingsState.status!.contains(
-                                                'successful',
-                                              )
+                                            'успешно',
+                                          ) ||
+                                          settingsState.status!.contains(
+                                            'successful',
+                                          )
                                       ? Colors.green
                                       : AetherPalette.textMuted,
                                 ),

@@ -5,14 +5,12 @@ import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
-import 'package:ai_prg/src/core/services/ai_client.dart'
-    show AiClient, CancelToken;
-import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
+import 'package:ai_prg/src/core/services/ai_client.dart' show CancelToken;
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
-import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum NewGameWizardMode { modeSelection, quickStart, customSetup }
@@ -36,6 +34,8 @@ class NewGameViewState {
     required this.heroName,
     required this.storyWish,
     required this.customStoryPrompt,
+    required this.campaignTitleHint,
+    required this.objectiveHint,
     required this.characterPrompt,
     required this.personality,
     required this.mode,
@@ -57,6 +57,8 @@ class NewGameViewState {
     : heroName = '',
       storyWish = '',
       customStoryPrompt = '',
+      campaignTitleHint = '',
+      objectiveHint = '',
       characterPrompt = '',
       personality = '',
       mode = NewGameWizardMode.modeSelection,
@@ -76,6 +78,8 @@ class NewGameViewState {
   final String heroName;
   final String storyWish;
   final String customStoryPrompt;
+  final String campaignTitleHint;
+  final String objectiveHint;
   final String characterPrompt;
   final String personality;
   final NewGameWizardMode mode;
@@ -96,6 +100,8 @@ class NewGameViewState {
     final String? heroName,
     final String? storyWish,
     final String? customStoryPrompt,
+    final String? campaignTitleHint,
+    final String? objectiveHint,
     final String? characterPrompt,
     final String? personality,
     final NewGameWizardMode? mode,
@@ -115,6 +121,8 @@ class NewGameViewState {
     heroName: heroName ?? this.heroName,
     storyWish: storyWish ?? this.storyWish,
     customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
+    campaignTitleHint: campaignTitleHint ?? this.campaignTitleHint,
+    objectiveHint: objectiveHint ?? this.objectiveHint,
     characterPrompt: characterPrompt ?? this.characterPrompt,
     personality: personality ?? this.personality,
     mode: mode ?? this.mode,
@@ -154,7 +162,9 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     }
     _didLoad = true;
 
-    final AiSettings settings = await _settingsRepository.loadAiSettings();
+    final AiSettings settings = AiSettings.withEnvFallbacks(
+      await _settingsRepository.loadAiSettings(),
+    );
     state = state.copyWith(aiConfigured: settings.isConfigured);
     _refreshPlannedModules();
   }
@@ -221,17 +231,30 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   }
 
   void setStoryWish(final String value) {
-    state = state.copyWith(storyWish: value);
+    state = state.copyWith(
+      storyWish: value,
+      campaignTitleHint: '',
+      objectiveHint: '',
+    );
     _refreshPlannedModules();
   }
 
   void setStoryInput(final String value) {
-    state = state.copyWith(storyWish: value, customStoryPrompt: value);
+    state = state.copyWith(
+      storyWish: value,
+      customStoryPrompt: value,
+      campaignTitleHint: '',
+      objectiveHint: '',
+    );
     _refreshPlannedModules();
   }
 
   void setCustomStoryPrompt(final String value) {
-    state = state.copyWith(customStoryPrompt: value);
+    state = state.copyWith(
+      customStoryPrompt: value,
+      campaignTitleHint: '',
+      objectiveHint: '',
+    );
     _refreshPlannedModules();
   }
 
@@ -335,19 +358,18 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     state = state.copyWith(isGenerating: true);
 
     final AiSettings settings = await _settingsRepository.loadAiSettings();
-    final AiClient client = _aiServiceFactory.create(settings);
     try {
-      final GeneratedPrompts result = await client.generateCampaignPrompts(
-        settings: settings,
-        language: currentLanguage,
-        request: CampaignPromptGenerationRequest(
-          setting: state.setting,
-          literaryGenre: state.literaryGenre,
-          difficulty: state.difficulty,
-          storyWish: currentInput,
-        ),
-        cancelToken: cancelToken,
-      );
+      final GeneratedPrompts result = await _symmetryAuthRepository
+          .generateCampaignPrompts(
+            aiSettings: settings,
+            language: currentLanguage,
+            request: CampaignPromptGenerationRequest(
+              setting: state.setting,
+              literaryGenre: state.literaryGenre,
+              difficulty: state.difficulty,
+              storyWish: currentInput,
+            ),
+          );
 
       final GeneratedPrompts resolved = _resolvePrompts(
         generationSeed: currentInput,
@@ -357,6 +379,8 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       state = state.copyWith(
         storyWish: resolved.storyPrompt,
         customStoryPrompt: resolved.storyPrompt,
+        campaignTitleHint: resolved.campaignTitle,
+        objectiveHint: resolved.objectiveHint,
         characterPrompt: resolved.characterPrompt,
         formRevision: state.formRevision + 1,
       );
@@ -379,6 +403,8 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       return GeneratedPrompts(
         storyPrompt: rawStoryPrompt,
         characterPrompt: rawCharacterPrompt,
+        campaignTitle: generated.campaignTitle.trim(),
+        objectiveHint: generated.objectiveHint.trim(),
       );
     }
     if (rawStoryPrompt.isNotEmpty) {
@@ -387,12 +413,16 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         characterPrompt: rawCharacterPrompt.isNotEmpty
             ? rawCharacterPrompt
             : state.characterPrompt.trim(),
+        campaignTitle: generated.campaignTitle.trim(),
+        objectiveHint: generated.objectiveHint.trim(),
       );
     }
     final String seed = generationSeed.trim();
     return GeneratedPrompts(
       storyPrompt: seed,
       characterPrompt: state.characterPrompt.trim(),
+      campaignTitle: generated.campaignTitle.trim(),
+      objectiveHint: generated.objectiveHint.trim(),
     );
   }
 
@@ -404,43 +434,44 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       }
       final AppLanguage currentLanguage = language;
       final AiSettings settings = await _settingsRepository.loadAiSettings();
-      final AiClient client = _aiServiceFactory.create(settings);
       final CampaignSetting rolledSetting = CampaignSetting
           .values[_random.nextInt(CampaignSetting.values.length)];
       final LiteraryGenre rolledGenre =
           LiteraryGenre.values[_random.nextInt(LiteraryGenre.values.length)];
-      final GeneratedPrompts prompts = await client.generateCampaignPrompts(
-        settings: settings,
-        language: currentLanguage,
-        request: CampaignPromptGenerationRequest(
-          setting: rolledSetting,
-          literaryGenre: rolledGenre,
-          difficulty: DifficultyLevel.easy,
-        ),
+      final GeneratedPrompts prompts = await _symmetryAuthRepository
+          .generateCampaignPrompts(
+            aiSettings: settings,
+            language: currentLanguage,
+            request: CampaignPromptGenerationRequest(
+              setting: rolledSetting,
+              literaryGenre: rolledGenre,
+              difficulty: DifficultyLevel.easy,
+            ),
+          );
+      final CharacterProfile charProfile = _defaultCharacterProfile().copyWith(
+        name: _resolvedHeroName(currentLanguage),
+        promptFragment: prompts.characterPrompt.trim(),
       );
       final String storyText = prompts.storyPrompt.trim();
       if (storyText.isEmpty) {
         throw StateError('prompt_generation_failed');
       }
-      final CharacterProfile charProfile = _defaultCharacterProfile().copyWith(
-        name: _resolvedHeroName(currentLanguage),
-        promptFragment: prompts.characterPrompt.trim(),
+      final CampaignDraft draft = CampaignDraft(
+        setting: rolledSetting,
+        literaryGenre: rolledGenre,
+        mode: StoryMode.shortStory,
+        difficulty: DifficultyLevel.easy,
+        heroName: _resolvedHeroName(currentLanguage),
+        customStoryPrompt: storyText,
+        campaignTitle: prompts.campaignTitle.trim(),
+        objectiveHint: prompts.objectiveHint.trim(),
+        characterProfile: charProfile,
       );
-      final CampaignState campaign = _gameEngine.createCampaign(
-        draft: CampaignDraft(
-          setting: rolledSetting,
-          literaryGenre: rolledGenre,
-          mode: StoryMode.shortStory,
-          difficulty: DifficultyLevel.easy,
-          heroName: _resolvedHeroName(currentLanguage),
-          customStoryPrompt: storyText,
-          characterProfile: charProfile,
-        ),
+      return _symmetryCampaignRepository.createCampaign(
+        draft: draft,
         language: currentLanguage,
+        aiSettings: settings,
       );
-
-      await _campaignRepository.saveCampaign(campaign);
-      return campaign;
     } finally {
       state = state.copyWith(isSaving: false);
     }
@@ -470,23 +501,25 @@ class NewGameController extends StateNotifier<NewGameViewState> {
         name: _resolvedHeroName(currentLanguage),
       );
 
-      final CampaignState campaign = _gameEngine.createCampaign(
-        draft: CampaignDraft(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
-          setting: state.setting,
-          literaryGenre: state.literaryGenre,
-          mode: state.storyMode,
-          difficulty: state.difficulty,
-          heroName: _resolvedHeroName(currentLanguage),
-          storyWish: state.storyWish.trim(),
-          customStoryPrompt: storyPrompt,
-          characterProfile: charProfile,
-        ),
-        language: currentLanguage,
+      final AiSettings settings = await _settingsRepository.loadAiSettings();
+      final CampaignDraft draft = CampaignDraft(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        setting: state.setting,
+        literaryGenre: state.literaryGenre,
+        mode: state.storyMode,
+        difficulty: state.difficulty,
+        heroName: _resolvedHeroName(currentLanguage),
+        storyWish: state.storyWish.trim(),
+        customStoryPrompt: storyPrompt,
+        campaignTitle: state.campaignTitleHint.trim(),
+        objectiveHint: state.objectiveHint.trim(),
+        characterProfile: charProfile,
       );
-
-      await _campaignRepository.saveCampaign(campaign);
-      return campaign;
+      return _symmetryCampaignRepository.createCampaign(
+        draft: draft,
+        language: currentLanguage,
+        aiSettings: settings,
+      );
     } finally {
       state = state.copyWith(isSaving: false);
     }
@@ -519,8 +552,9 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   /// Syncs stored character prompt text and profile fragment with race, class,
   /// gender, personality, etc. Call after structural profile changes.
   void _rebuildCharacterPromptFromCurrentProfile() {
-    final CharacterProfile cleared =
-        effectiveCharacterProfile().copyWith(promptFragment: '');
+    final CharacterProfile cleared = effectiveCharacterProfile().copyWith(
+      promptFragment: '',
+    );
     final String rebuilt = _charBuilder.buildPrompt(
       profile: cleared,
       setting: state.setting,
@@ -562,10 +596,9 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   SettingsRepository get _settingsRepository =>
       _ref.read(settingsRepositoryProvider);
 
-  AiServiceFactory get _aiServiceFactory => _ref.read(aiServiceFactoryProvider);
+  SymmetryAuthRepository get _symmetryAuthRepository =>
+      _ref.read(symmetryAuthRepositoryProvider);
 
-  GameEngine get _gameEngine => _ref.read(gameEngineProvider);
-
-  CampaignRepository get _campaignRepository =>
-      _ref.read(campaignRepositoryProvider);
+  SymmetryCampaignRepository get _symmetryCampaignRepository =>
+      _ref.read(symmetryCampaignRepositoryProvider);
 }

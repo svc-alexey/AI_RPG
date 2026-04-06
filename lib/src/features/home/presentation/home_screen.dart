@@ -1,10 +1,14 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Web/desktop [MaterialScrollBehavior] adds a [RawScrollbar] around scrollables.
@@ -21,14 +25,96 @@ class _HomeLandingScrollBehavior extends MaterialScrollBehavior {
   ) => child;
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<bool> _ensureSessionReady(
+    final BuildContext context,
+    final WidgetRef ref,
+  ) async {
+    final authRepository = ref.read(symmetryAuthRepositoryProvider);
+    try {
+      await authRepository.ensureSession();
+      return true;
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.symmetryFriendlyError(error))),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _openProtectedScreen(
+    final BuildContext context,
+    final WidgetRef ref,
+    final Widget screen,
+  ) async {
+    final bool ready = await _ensureSessionReady(context, ref);
+    if (!context.mounted || !ready) {
+      return;
+    }
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (final _) => screen));
+  }
+
+  Future<void> _openAuthScreen(
+    final BuildContext context,
+    final WidgetRef ref,
+  ) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (final routeContext) => AuthScreen(
+          onAuthenticated: () => Navigator.of(routeContext).pop(true),
+        ),
+      ),
+    );
+    ref.invalidate(symmetrySessionProvider);
+  }
+
+  Future<void> _handleAccountAction(
+    final BuildContext context,
+    final WidgetRef ref,
+    final SymmetrySession? session,
+  ) async {
+    if (session == null || session.isGuest) {
+      await _openAuthScreen(context, ref);
+      return;
+    }
+    try {
+      await ref.read(symmetryAuthRepositoryProvider).logout();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(context.l10n.signedOutStatus)));
+      }
+      ref.invalidate(symmetrySessionProvider);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(context.l10n.symmetryFriendlyError(error))),
+          );
+      }
+    }
+  }
 
   @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
+    final AsyncValue<SymmetrySession?> sessionState = ref.watch(
+      symmetrySessionProvider,
+    );
 
     return Scaffold(
       body: AetherBackdrop(
@@ -99,6 +185,19 @@ class HomeScreen extends StatelessWidget {
                               l10n: l10n,
                               theme: theme,
                               responsive: responsive,
+                              sessionState: sessionState,
+                              onNewGame: () => _openProtectedScreen(
+                                context,
+                                ref,
+                                const NewGameScreen(),
+                              ),
+                              onContinue: () => _openProtectedScreen(
+                                context,
+                                ref,
+                                const SavesScreen(),
+                              ),
+                              onAccountAction: (final session) =>
+                                  _handleAccountAction(context, ref, session),
                             ),
                             SizedBox(height: responsive.blockSpacing + 20),
                             _HomeFeatureTags(
@@ -333,11 +432,19 @@ class _HomeBentoRow extends StatelessWidget {
     required this.l10n,
     required this.theme,
     required this.responsive,
+    required this.sessionState,
+    required this.onNewGame,
+    required this.onContinue,
+    required this.onAccountAction,
   });
 
   final AppLocalizations l10n;
   final ThemeData theme;
   final AppResponsiveData responsive;
+  final AsyncValue<SymmetrySession?> sessionState;
+  final VoidCallback onNewGame;
+  final VoidCallback onContinue;
+  final Future<void> Function(SymmetrySession? session) onAccountAction;
 
   @override
   Widget build(final BuildContext context) {
@@ -351,24 +458,29 @@ class _HomeBentoRow extends StatelessWidget {
               l10n: l10n,
               theme: theme,
               responsive: responsive,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const NewGameScreen(),
-                ),
-              ),
+              onPressed: onNewGame,
             ),
           ),
           SizedBox(width: responsive.sectionSpacing + 4),
           Expanded(
-            child: _HomeBentoSecondaryCard(
-              l10n: l10n,
-              theme: theme,
-              responsive: responsive,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const SavesScreen(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _HomeBentoSecondaryCard(
+                  l10n: l10n,
+                  theme: theme,
+                  responsive: responsive,
+                  onPressed: onContinue,
                 ),
-              ),
+                SizedBox(height: responsive.sectionSpacing - 2),
+                _HomeLoginButton(
+                  l10n: l10n,
+                  theme: theme,
+                  responsive: responsive,
+                  sessionState: sessionState,
+                  onPressed: onAccountAction,
+                ),
+              ],
             ),
           ),
         ],
@@ -381,20 +493,22 @@ class _HomeBentoRow extends StatelessWidget {
           l10n: l10n,
           theme: theme,
           responsive: responsive,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) => const NewGameScreen(),
-            ),
-          ),
+          onPressed: onNewGame,
         ),
         SizedBox(height: responsive.sectionSpacing + 4),
         _HomeBentoSecondaryCard(
           l10n: l10n,
           theme: theme,
           responsive: responsive,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (context) => const SavesScreen()),
-          ),
+          onPressed: onContinue,
+        ),
+        SizedBox(height: responsive.sectionSpacing - 2),
+        _HomeLoginButton(
+          l10n: l10n,
+          theme: theme,
+          responsive: responsive,
+          sessionState: sessionState,
+          onPressed: onAccountAction,
         ),
       ],
     );
@@ -800,4 +914,224 @@ class _HomeFeatureTags extends StatelessWidget {
         )
         .toList(),
   );
+}
+
+class _HomeLoginButton extends StatelessWidget {
+  const _HomeLoginButton({
+    required this.l10n,
+    required this.theme,
+    required this.responsive,
+    required this.sessionState,
+    required this.onPressed,
+  });
+
+  final AppLocalizations l10n;
+  final ThemeData theme;
+  final AppResponsiveData responsive;
+  final AsyncValue<SymmetrySession?> sessionState;
+  final Future<void> Function(SymmetrySession? session) onPressed;
+
+  @override
+  Widget build(final BuildContext context) => sessionState.when(
+    data: (final session) {
+      final bool isSignedIn = session != null && !session.isGuest;
+      return _HomeAccountCard(
+        title: isSignedIn ? l10n.signOutShortAction : l10n.loginAction,
+        subtitle: isSignedIn
+            ? l10n.homeSignedInCardSubtitle(
+                session.user.displayName.trim().isEmpty
+                    ? session.user.email
+                    : session.user.displayName,
+              )
+            : l10n.homeLoginCardSubtitle,
+        icon: isSignedIn ? Icons.logout_rounded : Icons.login_rounded,
+        theme: theme,
+        responsive: responsive,
+        accent: !isSignedIn,
+        onPressed: () => onPressed(session),
+      );
+    },
+    loading: () => _HomeAccountCard(
+      title: l10n.loginAction,
+      subtitle: l10n.homeLoginCardSubtitle,
+      icon: Icons.login_rounded,
+      theme: theme,
+      responsive: responsive,
+      accent: true,
+      onPressed: null,
+    ),
+    error: (final error, final stackTrace) => Align(
+      alignment: Alignment.centerLeft,
+      child: _HomeAccountCard(
+        title: l10n.loginAction,
+        subtitle: l10n.homeLoginCardSubtitle,
+        icon: Icons.login_rounded,
+        theme: theme,
+        responsive: responsive,
+        accent: true,
+        onPressed: () => onPressed(null),
+      ),
+    ),
+  );
+}
+
+class _HomeAccountCard extends StatefulWidget {
+  const _HomeAccountCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.theme,
+    required this.responsive,
+    required this.accent,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final ThemeData theme;
+  final AppResponsiveData responsive;
+  final bool accent;
+  final VoidCallback? onPressed;
+
+  @override
+  State<_HomeAccountCard> createState() => _HomeAccountCardState();
+}
+
+class _HomeAccountCardState extends State<_HomeAccountCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _hoverCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+    reverseDuration: const Duration(milliseconds: 320),
+  );
+  late final Animation<double> _hoverT = CurvedAnimation(
+    parent: _hoverCtrl,
+    curve: Curves.easeOutCubic,
+    reverseCurve: Curves.easeInCubic,
+  );
+
+  @override
+  void dispose() {
+    _hoverCtrl.dispose();
+    super.dispose();
+  }
+
+  void _setHover(final bool hovering) {
+    if (widget.onPressed == null) {
+      return;
+    }
+    if (hovering) {
+      _hoverCtrl.forward();
+    } else {
+      _hoverCtrl.reverse();
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final BorderRadius radius = BorderRadius.circular(16);
+    final EdgeInsets pad = EdgeInsets.all(
+      widget.responsive.isCompact ? 20 : 24,
+    );
+    return MouseRegion(
+      onEnter: (_) => _setHover(true),
+      onExit: (_) => _setHover(false),
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _hoverT,
+            builder: (context, _) {
+              final double t = _hoverT.value;
+              final bool accent = widget.accent;
+              final Color bg = Color.lerp(
+                AetherPalette.backgroundElevated,
+                accent ? const Color(0xFF1C1410) : AetherPalette.backgroundTop,
+                t,
+              )!;
+              final Color borderC = Color.lerp(
+                AetherPalette.panelBorderSolid,
+                accent
+                    ? AetherPalette.accent.withValues(alpha: 0.34)
+                    : AetherPalette.accent.withValues(alpha: 0.24),
+                t,
+              )!;
+              final Color iconBg = Color.lerp(
+                AetherPalette.panelSoft,
+                accent
+                    ? AetherPalette.accent.withValues(alpha: 0.16)
+                    : AetherPalette.panelSoft,
+                t,
+              )!;
+              final Color iconFg = Color.lerp(
+                AetherPalette.textMuted,
+                accent ? AetherPalette.accentHover : AetherPalette.textPrimary,
+                t,
+              )!;
+
+              return AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: widget.onPressed == null ? 0.68 : 1,
+                child: Container(
+                  padding: pad,
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: radius,
+                    border: Border.all(color: borderC),
+                    boxShadow: accent
+                        ? <BoxShadow>[
+                            BoxShadow(
+                              color: AetherPalette.accent.withValues(
+                                alpha: 0.08 + t * 0.08,
+                              ),
+                              blurRadius: 12 + t * 14,
+                              spreadRadius: -5,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: iconBg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Icon(widget.icon, color: iconFg, size: 22),
+                        ),
+                      ),
+                      SizedBox(height: widget.responsive.isCompact ? 14 : 16),
+                      Text(
+                        widget.title,
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          color: AetherPalette.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        widget.subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: widget.theme.textTheme.bodySmall?.copyWith(
+                          color: AetherPalette.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }

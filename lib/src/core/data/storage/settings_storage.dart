@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 
 abstract class SettingsStorage {
   Future<AiSettings> loadAiSettings();
@@ -12,4 +13,12 @@ abstract class SettingsStorage {
   Future<AppLanguage> loadAppLanguage();
 
   Future<void> saveAppLanguage(AppLanguage language);
+
+  Future<String?> loadSymmetryBaseUrl();
+
+  Future<void> saveSymmetryBaseUrl(String baseUrl);
+
+  Future<SymmetrySession?> loadSymmetrySession();
+
+  Future<void> saveSymmetrySession(SymmetrySession? session);
 }

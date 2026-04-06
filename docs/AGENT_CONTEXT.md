@@ -1,76 +1,102 @@
-# AI PRG — контекст для AI-агентов
+# AI_PRG — контекст для AI-агентов
 
-Краткая точка входа: продукт, код, фичи, процесс. Подробности — в ссылках ниже.
+Краткая точка входа: продукт, код, фичи, процесс.
 
-## Продукт (что это)
+## Продукт
 
-- **Жанр:** narrative RPG на Flutter; LLM даёт повествование и варианты действий, **источник истины** — детерминированный движок и сохранённый `CampaignState`.
-- **Сейвы:** local-first; на **native (IO)** основной бэкенд — **Isar**, на **web** — **SharedPreferences** (адаптивный слой в репозиториях). Один билд — web / Android / iOS / desktop; **у каждой установки свой локальный прогресс**. Синхронизация между устройствами **не реализована** (отдельная фича, если понадобится).
-- **AI:** OpenAI-compatible gateway (`baseUrl`, `model`, ключ, runtime token/window). **Приоритет:** непустые значения из **локального хранилища** важнее compile-time пресетов (`AI_PRG_*` / `AiRuntimeEnv`); `SettingsRepository.loadAiSettings()` применяет `AiSettings.withEnvFallbacks` только для пустых полей. Экран настроек показывает **только сохранённые пользователем** URL/модель/ключ (пресеты в поля не подставляются). Для голого `https://api.deepseek.com` клиент при запросах нормализует путь до `.../v1`; остальные endpoint’ы не меняются.
-- **Web + внешний API:** браузер режет прямые вызовы к хостам вроде `api.deepseek.com` из‑за **CORS** (не баг merge настроек). Для статического web-деплоя нужен **прокси на своём домене** или нативный клиент; см. `docs/DEPLOY_WEB.md`, `tool/cloudflare_worker_deepseek_proxy/`.
-- **Языки:** UI и AI-слой — **ru** (по умолчанию) и **en**; фича не считается готовой, если затронут UX только на одном языке.
-- **UX:** mobile-first (узкие экраны — эталон); чат — главная область экрана; до трёх suggestion chips над вводом; «Отправить» / «Подсказать» в композере; в многострочном вводе чата **Enter** отправляет ход (как кнопка), **Shift+Enter** — новая строка (клавиатура desktop/web).
-- **Статус:** pre-prod; **нет** обязательной миграции данных из старого SharedPreferences в Isar при первом открытии (свежая Isar — только версия схемы). **Портреты персонажа:** генерация изображений **заглушка** (`generateCharacterPortrait` → `null`); `CharacterPortraitPromptBuilder` держится для будущего пайплайна и тестов — не удалять как мёртвый код.
+- **Жанр:** narrative RPG на Flutter с server-authoritative backend
+  `Symmetry`.
+- **Источник истины:** backend runtime и сохранённое серверное состояние
+  кампании; не UI и не свободный текст модели.
+- **Клиент:** Flutter хранит только настройки, язык, server session,
+  server base URL и пользовательские AI-ключи.
+- **Кампании:** живут на сервере. Legacy local campaign persistence удалён из
+  runtime-кода и тестовой инфраструктуры.
+- **AI:** OpenAI-compatible gateway находится на backend. Клиент может
+  передавать user-owned provider credentials transiently, но backend не должен
+  их сохранять.
+- **Языки:** обязательны `ru` и `en`.
+- **UX:** mobile-first, но desktop поддерживается.
+- **User-facing copy:** не показывать пользователю внутреннее кодовое имя
+  backend-а без необходимости; предпочитать нейтральные формулировки вроде
+  `аккаунт`, `сервер игры`, `настройки`.
+- **Статус:** pre-prod, локальная разработка идёт в server-first модели.
 
 ## Стек
 
-- Flutter, `flutter_riverpod`, `google_fonts`, `http`, `isar` (+ `isar_flutter_libs` на IO), `path_provider`, `shared_preferences`.
-- Анализ: `analysis_options.yaml` → `flutter_lints`, строгие `strict-*`.
+- client: Flutter, `flutter_riverpod`
+- local client storage: настройки и session state
+- backend: FastAPI
+- DB: PostgreSQL + pgvector
+- embeddings: `sentence-transformers`
+- migrations: Alembic
 
 ## Карта кода
 
 | Зона | Путь |
 |------|------|
-| Точка входа | `lib/main.dart` |
-| Приложение, bootstrap | `lib/src/app/` (`app.dart`, `app_providers.dart`, `theme.dart`, `aether_shell.dart` — палитра Aether / фон / `AetherCard`, localization) |
-| Фичи (UI + контроллеры) | `lib/src/features/home`, `chat`, `settings`, `saves`, `new_game` |
-| Модели | `lib/src/core/models/` |
-| Репозитории | `lib/src/core/repositories/` |
-| Сервисы (движок, AI, память, промпты) | `lib/src/core/services/` |
-| Данные (Isar, SP, адаптеры) | `lib/src/core/data/` |
+| Точка входа Flutter | `lib/main.dart` |
+| Приложение и bootstrap | `lib/src/app/` |
+| Фичи UI | `lib/src/features/` |
+| Репозитории клиента | `lib/src/core/repositories/` |
+| API клиент | `lib/src/core/services/symmetry_api_client.dart` |
+| Backend | `backend/symmetry/` |
+| Backend routes | `backend/symmetry/app/api/routes/` |
+| Backend services | `backend/symmetry/app/services/` |
+| Backend DB models | `backend/symmetry/app/db/models.py` |
+| Миграции | `backend/symmetry/alembic/` |
 
-Игровой цикл высокоуровнево: экран чата → AI client `generateTurn` → `GameEngine.applyTurn` → `saveCampaign`.
+## Высокоуровневый runtime flow
 
-**Типографика чата:** основной текст повествования рассказчика — `bodyLarge` темы (Inter), цвет `AetherPalette.narrativeText`; декоративный Playfair — для крупных заголовков/бренда, не для тела сообщений в ленте.
+1. Flutter получает guest session автоматически или обычную account session
+   после входа.
+2. Flutter хранит session tokens локально.
+3. Flutter создаёт или загружает кампанию через backend.
+4. Ход уходит в `POST /v1/campaigns/{id}/turns/process`.
+5. Backend делает RAG, вызывает модель, применяет state changes, сохраняет
+   snapshot и возвращает новое состояние.
 
-## Реестр фич (из [CATALOG.md](features/CATALOG.md))
+## Инварианты
 
-| Slug | Статус (каталог) | Где в коде / заметки |
-|------|------------------|----------------------|
-| `localization-ru-en` | implemented | `app_localizations.dart`, строки UI, AI language |
-| `no-think-fast-mode` | implemented-with-backfill | AI client, LM Studio `/no_think` |
-| `summary-memory` | implemented | `campaign_memory_manager`, `context_assembly_service`, модели памяти |
-| `docs-encoding-sync` | implemented | мета-доки |
-| `quality-pass-stabilization` | analysis-ready | качество, линты, UX-потоки |
-| `next-product-layer` | analysis-ready | narrative depth, промпты |
-| `engine-mechanics-token-control` | in-progress | Isar, Riverpod, streaming, token controls, детерминизм |
-| `campaign-modules` | analysis-ready | модули кампании, сайдбар, `CampaignModule` |
-| `deterministic-systems` | implemented | `DiceEngine`, `DeterministicCheckService`, чекы в UI |
-| `narrative-settings-genres` | implemented | `CampaignSetting`, `LiteraryGenre`, мастер новой игры; класс персонажа только если `classesBySetting[setting]` непустой (`character_templates.dart`); на шаге персонажа смена расы/пола/класса или сеттинга пересобирает текст промпта через `CharacterPromptBuilder` (`new_game_controller.dart`) |
+1. AI output недоверенный до валидации.
+2. Сервер является источником истины для кампаний и мира.
+3. Любая схема БД меняется через Alembic migration.
+4. Пользовательские AI-креды не должны попадать в БД, snapshot-ы, логи или
+   background jobs.
+5. UI-задача не считается завершённой, если она сделана только для одного из
+   языков `ru/en`.
 
-Документы фич: `docs/features/<slug>/` (`01-Architecture.md`, `02-PRD.md`, … по шаблону процесса).
+## Реестр важных фич
+
+| Slug | Статус | Где смотреть |
+|------|--------|--------------|
+| `symmetry-hybrid-backend` | implemented-with-followup | `backend/symmetry`, Flutter auth/campaign integration |
+| `deterministic-systems` | implemented | исторический продуктовый слой, не authoritative runtime |
+| `campaign-modules` | implemented | доменные модели кампании и UI-модули |
+| `narrative-settings-genres` | implemented | мастер новой игры и prompt generation |
 
 ## Порядок чтения для агента
 
-1. Корень: [`.cursorrules`](../.cursorrules)
-2. Правила проекта: [`.specify/memory/constitution.md`](../.specify/memory/constitution.md), [project-context.md](../.specify/memory/project-context.md)
-3. Инженерия Flutter: [FlutterRules.md](../FlutterRules.md), [Architecture.md](../Architecture.md)
-4. Требования: [PRD.md](../PRD.md) (выборочно по задаче)
-5. Реестр: [docs/features/CATALOG.md](features/CATALOG.md)
-6. Этот файл и [docs/features/COMMANDS.md](features/COMMANDS.md)
-7. Папка конкретной фичи под задачу
+1. [`.cursorrules`](/D:/AI_PRG/.cursorrules)
+2. [`.specify/memory/constitution.md`](/D:/AI_PRG/.specify/memory/constitution.md)
+3. [`.specify/memory/project-context.md`](/D:/AI_PRG/.specify/memory/project-context.md)
+4. [Architecture.md](/D:/AI_PRG/Architecture.md)
+5. [PRD.md](/D:/AI_PRG/PRD.md)
+6. [ImplementationPlan.md](/D:/AI_PRG/ImplementationPlan.md)
+7. [docs/features/CATALOG.md](/D:/AI_PRG/docs/features/CATALOG.md)
+8. папка конкретной фичи
 
-## Workflow (новая фича / правки)
+## Workflow
 
-- Ветка `codex/<slug>`; фича-пакет в `docs/features/<slug>/`; запись в [CATALOG.md](features/CATALOG.md) и [ImplementationPlan.md](../ImplementationPlan.md) — по [COMMANDS.md](features/COMMANDS.md).
-- Перед merge: **`flutter analyze`** и **`flutter test`** без ошибок ([FlutterRules.md](../FlutterRules.md)).
-- AI/API не вызывать из произвольного UI — через сервисы и контракты; после `await` в виджетах проверять `mounted`; не смешивать огромный рефакторинг с фичей без причины.
-- Перед крупным удалением кода или «чисткой мёртвого кода» — [FlutterRules.md](../FlutterRules.md) §8 и сверка с [CATALOG.md](features/CATALOG.md) / этим файлом.
+- новая фича -> `docs/features/<slug>/` + запись в catalog + запись в plan
+- ветка -> `codex/<slug>`
+- до merge:
+  - `flutter analyze`
+  - `flutter test`
+  - `python -m pytest tests` в `backend/symmetry`
 
-## Глоссарий
+## Что не делать
 
-- **CampaignState** — сериализуемое состояние кампании (чат, модули, память, прогресс).
-- **Structured contract** — ожидаемый формат ответа модели до применения к state.
-- **Gateway** — слой AI-клиента поверх OpenAI-compatible HTTP.
-- **Deterministic turn** — заранее посчитанные на клиенте проверки/кости, передаваемые в промпт как известный факт.
-- **Memory layer** — summary, цель, ситуация, recent buffer; сборка в `ContextAssemblyService` / `CampaignMemoryManager`.
+- не возвращать локальный campaign runtime flow;
+- не складывать пользовательские provider credentials в серверное хранилище;
+- не описывать старую local-first campaign architecture как текущую.

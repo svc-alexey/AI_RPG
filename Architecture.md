@@ -1,95 +1,207 @@
-# Архитектура: схема модулей
+# Архитектура: server-first `AI_PRG + Symmetry`
 
-## 1. Модули верхнего уровня
+## 1. Верхнеуровневая схема
 
 ```mermaid
 flowchart LR
-    UI["Flutter UI"]
-    APP["Application Layer"]
-    ENGINE["Game Engine"]
-    MEMORY["Memory Layer"]
-    AI["AI Gateway"]
-    STORE["Local Storage"]
+    UI["Flutter Client"]
+    API["Symmetry API (FastAPI)"]
+    DB["PostgreSQL + pgvector"]
+    EMB["Local Embeddings"]
+    LLM["OpenAI-compatible Providers"]
 
-    UI --> APP
-    APP --> ENGINE
-    APP --> MEMORY
-    APP --> AI
-    APP --> STORE
+    UI --> API
+    API --> DB
+    API --> EMB
+    API --> LLM
 ```
 
-## 2. Клиентская декомпозиция
+## 2. Источники истины
+
+1. `Symmetry` является источником истины для:
+   - пользователей;
+   - сессий;
+   - кампаний;
+   - snapshot-ов;
+   - ходов;
+   - состояния мира;
+   - векторной памяти;
+   - story library.
+2. Flutter не является источником истины для кампаний и мира.
+3. LLM не является источником истины для игровых изменений.
+4. Изменения кампании применяются только через серверную игровую логику.
+
+## 3. Клиентская декомпозиция
 
 ```mermaid
 flowchart TB
     subgraph Client["Flutter Client"]
-      Screens["Screens"]
-      State["State / App Scope"]
-      Domain["Domain Models"]
-      Services["Services"]
-      Repos["Repositories"]
-      Local["Local Storage"]
+      Screens["Screens / UI"]
+      State["Riverpod Controllers"]
+      Repos["Symmetry Repositories"]
+      Local["Local Settings Storage"]
+    end
+
+    subgraph Server["Symmetry Backend"]
+      Routes["FastAPI Routes"]
+      Runtime["Campaign Runtime"]
+      Rag["RAG + Embeddings"]
+      Auth["Auth / Sessions"]
+      Stories["Story Library"]
+      Sim["World Simulation"]
     end
 
     Screens --> State
-    State --> Services
     State --> Repos
-    Services --> Domain
-    Repos --> Domain
-    Repos --> Local
+    Repos --> Routes
+    State --> Local
+    Routes --> Runtime
+    Routes --> Rag
+    Routes --> Auth
+    Routes --> Stories
+    Routes --> Sim
 ```
 
-## 3. Основные архитектурные правила
+## 4. Клиент
 
-1. UI не является источником истины для игрового состояния.
-2. AI не является источником истины для игрового состояния.
-3. Игровой state изменяется только через детерминированную логику приложения.
-4. AI-слой работает через единый gateway и structured contract.
-5. Память кампании строится слоями: recent turns, rolling summary, active goal, active situation.
+### 4.1 Что осталось в Flutter
 
-## 4. Ключевые модули текущего MVP
+1. UI и навигация.
+2. Авторизационный gate.
+3. Отображение состояния кампании.
+4. Локальные настройки UI и языка.
+5. Локальная server session.
+6. Пользовательские AI-ключи, если пользователь сам их ввёл.
 
-1. `lib/src/app/*` — bootstrapping, app scope, theme, localization.
-2. `lib/src/core/models/*` — доменные модели кампании, персонажа, AI settings.
-3. `lib/src/core/repositories/*` — локальные репозитории настроек и кампаний.
-4. `lib/src/core/services/*` — game engine, AI clients, LM Studio auto-config, memory manager.
-5. `lib/src/features/*` — пользовательские экраны и feature-level UI.
+### 4.2 Чего больше нет в runtime-потоке клиента
 
-## 5. Игровой цикл
+1. Локального campaign persistence как продуктового сценария.
+2. Локального authoritative save/load-flow для кампаний.
+3. Локального primary turn-processing flow.
+
+## 5. Сервер
+
+### 5.1 Основные зоны backend
+
+1. `app/api/routes/*`:
+   - auth
+   - campaigns
+   - prompts
+   - providers
+   - stories
+2. `app/services/*`:
+   - auth
+   - credentials
+   - AI gateway
+   - prompt generation
+   - campaign runtime
+   - simulation
+   - RAG
+   - embeddings
+3. `app/db/*`:
+   - SQLAlchemy models
+   - async session
+   - DB startup check
+4. `alembic/*`:
+   - schema migrations
+
+### 5.2 База данных
+
+Основные группы таблиц:
+
+1. auth:
+   - `users`
+   - `user_profiles`
+   - `auth_identities`
+   - `auth_sessions`
+2. campaigns:
+   - `campaigns`
+   - `campaign_members`
+   - `campaign_snapshots`
+   - `campaign_turns`
+3. world:
+   - `world_state`
+   - `world_locations`
+   - `world_factions`
+   - `world_chronicles`
+   - `simulation_ticks`
+4. story library:
+   - `story_templates`
+   - `story_template_tags`
+   - `story_template_tag_links`
+   - `story_template_likes`
+   - `story_template_views`
+   - `story_template_bookmarks`
+5. billing-ready:
+   - `billing_customers`
+   - `billing_plans`
+   - `billing_subscriptions`
+   - `credit_ledger`
+   - `payment_events`
+
+## 6. Игровой цикл
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant C as Chat Screen
-    participant A as AI Client
-    participant E as Game Engine
-    participant S as Storage
+    participant C as Flutter Client
+    participant B as Symmetry Backend
+    participant R as RAG / pgvector
+    participant M as Model Provider
+    participant P as Postgres
 
     U->>C: Send action
-    C->>A: generateTurn(...)
-    A-->>C: structured turn result
-    C->>E: applyTurn(...)
-    E-->>C: updated CampaignState
-    C->>S: saveCampaign(...)
+    C->>B: POST /campaigns/{id}/turns/process
+    B->>P: Load snapshot + world state
+    B->>R: Search relevant chronicles
+    B->>M: Generate structured turn
+    M-->>B: Narration + choices + state hints
+    B->>B: Apply validated turn logic
+    B->>P: Save turn + snapshot + world tick
+    B-->>C: Updated campaign state
+    B->>P: Background chronicle write
 ```
 
-## 6. Сохранения и совместимость
+## 7. AI-доступ и креды
 
-1. Кампания хранится как сериализуемая модель состояния.
-2. Изменения схемы должны по возможности сохранять обратную совместимость.
-3. Новые поля memory-слоя должны иметь fallback для старых save.
+1. По умолчанию backend использует свои креды из `.env`.
+2. Если пользователь ввёл свои AI-креды в приложении:
+   - Flutter хранит их только локально;
+   - отправляет их в backend только для конкретной AI-операции;
+   - backend использует их transiently;
+   - backend не сохраняет их в БД, логах, snapshot-ах или background jobs.
+3. Проверка и выбор источника кредов идут через
+   `CredentialResolutionService`.
 
-**Платформы и данные:** на **web** локальный стор — `SharedPreferences`; на **IO** — **Isar** (при ошибке открытия Isar возможен fallback на SP). Это **кросс-платформа с локальным сейвом на устройстве**, не синхронизация прогресса между телефоном и ПК. Облачный sync — отдельный продуктовый слой, если появится.
+## 8. Локальное хранение на клиенте
 
-**Pre-prod:** импорт старых сейвов из единственного legacy SharedPreferences в Isar **отключён**; новая база Isar стартует с записи версии схемы. Тяжёлые миграции между релизами усиливать ближе к релизу в прод.
+Локальное хранилище в клиенте остаётся только для:
 
-## 7. AI слой
+1. настроек приложения;
+2. языка;
+3. server base URL;
+4. server session;
+5. пользовательских AI-ключей.
 
-1. Поддерживается OpenAI-compatible endpoint (`/models`, `/chat/completions` относительно базового URL).
-2. LM Studio используется как локальный AI provider.
-3. Для LM Studio поддержан fast mode через `/no_think` с fallback.
-4. Невалидный AI-ответ не должен ломать state кампании.
+Это больше не campaign storage.
 
-**Пресеты сборки и локальные настройки:** через `dart-define` / `String.fromEnvironment` задаются `AI_PRG_BASE_URL`, `AI_PRG_MODEL`, `AI_PRG_API_KEY` (см. `lib/src/core/config/ai_runtime_env.dart`, пример `tool/ai_local_defines.example.json`). Метод `AiSettings.withEnvFallbacks` заполняет **только пустые** поля сохранённых настроек значениями из окружения сборки. Репозиторий: `loadAiSettingsPersisted()` — как в хранилище; `loadAiSettings()` — уже с merge для рантайма (чат, генерация и т.д.). UI настроек редактирует и отображает сохранённый снимок; подсказки объясняют скрытые пресеты, не копируя секреты в поля.
+## 9. Миграции и rollout
 
-**Нормализация URL (DeepSeek):** если пользователь или пресет задаёт базовый URL без пути для хоста `api.deepseek.com`, HTTP-клиент дописывает суффикс `/v1` (ожидаемый префикс OpenAI-compatible API). Произвольные другие хосты и пути не изменяются.
+1. Схема БД обновляется через `Alembic`, а не через `create_all`.
+2. Локально и на сервере используется один и тот же шаг:
+   - `alembic upgrade head`
+3. Контейнер backend выполняет миграции перед запуском API.
+4. Безопасный rollout-порядок:
+   - backup БД;
+   - применить миграции;
+   - поднять новую версию backend;
+   - проверить `/health` и ключевые API.
+
+## 10. Инварианты
+
+1. AI output недоверенный до валидации.
+2. Свободный текст модели не применяется напрямую к state.
+3. Пользовательские provider credentials не должны попадать в persistence.
+4. Важные события кампании попадают в `world_chronicles` только после
+   серверного отбора важности.
+5. Любое изменение схемы БД должно идти через миграцию.

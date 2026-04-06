@@ -152,7 +152,7 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
 
     try {
       final List<CampaignState> campaigns = await ref
-          .read(campaignRepositoryProvider)
+          .read(symmetryCampaignRepositoryProvider)
           .loadAllCampaigns();
       if (!mounted) {
         return;
@@ -175,7 +175,7 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
   }
 
   Future<void> _delete(final String id) async {
-    await ref.read(campaignRepositoryProvider).deleteCampaign(id);
+    await ref.read(symmetryCampaignRepositoryProvider).deleteCampaign(id);
     await _load();
   }
 }

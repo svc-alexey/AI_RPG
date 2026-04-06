@@ -1,148 +1,159 @@
-# AI PRG
+# AI_PRG
 
-`Стирая Грань` / `Beyond the Verge` is a Flutter narrative RPG client with a local-first architecture.
+`Стирая Грань` / `Beyond the Verge` is a Flutter narrative RPG client paired
+with a server-authoritative backend for world state, campaigns, and turn
+processing.
 
-## Project status
+## Current product shape
 
-The project has already moved beyond the original MVP baseline. The current codebase includes:
+- `Flutter` is now a thin client for UI, auth, campaign creation, chat, and
+  settings.
+- the backend owns campaign persistence, world simulation, turn processing,
+  vector memory, auth, and story-template APIs.
+- `PostgreSQL + pgvector` stores campaign snapshots, world state, and
+  `world_chronicles`.
+- text embeddings run locally inside the backend via
+  `sentence-transformers`.
+- narrative generation goes through an OpenAI-compatible server gateway:
+  - backend `.env` credentials are used by default;
+  - user-supplied provider credentials can be sent transiently per request;
+  - those user credentials are never stored on the server.
 
-- structured local persistence with platform-aware backends:
-  - `Isar` on desktop/mobile platforms with native support;
-  - `SharedPreferences` on web as the browser-safe local backend;
-- `Riverpod`-driven app orchestration instead of UI-owned service location;
-- campaign creation, saves, chat, and settings flows managed through controllers/providers;
-- unified OpenAI-compatible AI settings with runtime controls for `max response tokens`, `context window`, and quick profiles;
-- OpenAI-compatible turn generation with resilient streaming transport, automatic fallback to standard completions, and token-limit retries for the final answer;
-- deduplicated AI turn generation so streaming and fallback no longer produce double requests or rewritten final answers;
-- calmer chat rendering that keeps a stable pending-response bubble while the model works, then reveals the final narrator message with a soft fade/slide entrance and smoother autoscroll;
-- hybrid context assembly with `static header`, `dynamic summary`, `recent buffer`, and runtime-aware prompt trimming;
-- module-aware campaign state with optional `Inventory`, `Companions`, `Notes`, `Vitality`, `Resources`, `Progression`, and `Checks`;
-- rule-based entity extraction and reconciliation before persistence for active modules only;
-- adaptive sidebar panels and transient overlays for state changes and module unlocks;
-- a refreshed product-facing home screen with localized hero copy and presentation-focused CTA flows;
-- a streamlined custom campaign wizard with a single story input, AI prompt expansion, and top-bar step navigation instead of bottom action buttons;
-- resilient story prompt generation in custom setup, with automatic enrichment into a more vivid hook when the model returns an empty, too-short, or unchanged response;
-- a cleaner in-game sidebar with compact module icons, a portrait card, and no exposed technical activation reasons;
-- shared responsive layout primitives with width-based breakpoints for phones, large phones, tablets, and desktop;
-- adaptive typography, spacing, cards, buttons, and form controls across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
-- a compact mobile chat chrome for narrow screens so campaign metadata remains readable without oversized headers;
-- tighter mobile chat behavior while the keyboard is open, so the story keeps priority and the composer does not overflow on small screens;
-- a denser in-game campaign layout with reduced mobile padding, slimmer sidebar framing, and more room for readable chat text;
-- demo-mode AI fallback when no model is configured;
-- a unified `Aether` visual system (noir / copper palette, warm backdrop) across `Home`, `New Game`, `Chat`, `Saves`, and `Settings`;
-- AI settings UI that shows only **persisted** endpoint fields while runtime still merges empty fields from optional build-time `AI_PRG_*` defines;
-- soft page/backdrop animations that now also run on desktop outside test mode;
-- mobile-browser viewport recovery after app switching so stale keyboard space is less likely to block chat content;
-- a fast web landing shell that opens before Flutter and launches the full app only after the user presses the main CTA;
-- a staged web/mobile-web startup loader with localized progress steps, rotating flavor text, and a first-frame-aware handoff so the landing overlay stays in place until Flutter has actually painted visible UI.
-- web-safe AI diagnostics for mobile browsers, including structured console events, intro-turn tracing, and retry/fallback visibility in browser console logs.
+## What is implemented
 
-## Current architecture
+- server-first gameplay flow with guest and account-based sessions;
+- email/password auth plus Yandex OAuth scaffolding;
+- backend-driven campaign creation, loading, deleting, and turn processing;
+- server-side RAG over `world_chronicles`;
+- background persistence of important story events into vector memory;
+- story-template backend/API foundation with tags, likes, views, and bookmarks;
+- Alembic migrations and Docker-based local deployment;
+- Flutter auth/session flow and server-backed repositories;
+- local client persistence only for settings, session, and user-owned AI keys.
+- minimal auth UI:
+  - no backend URL field on the sign-in form;
+  - close button returns the user to the previous screen;
+  - settings show a generic `Settings` title instead of `AI Settings`.
+- users can optionally provide their own AI model credentials in settings;
+  those credentials stay only on the user's device and are sent transiently
+  with requests when needed.
 
-- UI: `Flutter`
-- State management: `flutter_riverpod`
-- Local storage:
-  - `Isar` as the primary native backend
-  - `SharedPreferences` as the explicit browser backend
-  - adaptive storage layer under repositories for backend selection
-- AI integration: provider-agnostic client/factory layer
-- Primary target: Cross-device Flutter UI with explicit responsive behavior for:
-  - `320-359 px` small phones
-  - `360-389 px` standard phones
-  - `390-599 px` large phones
-  - `600-1023 px` tablets / narrow landscape
-  - `1024+ px` desktop / wide layouts
+## Architecture snapshot
 
-## Recent milestone
+- client: `Flutter` + `flutter_riverpod`
+- backend: `FastAPI`
+- db: `PostgreSQL + pgvector`
+- embeddings: `sentence-transformers` with
+  `intfloat/multilingual-e5-large`
+- text generation: OpenAI-compatible provider access through backend gateway
+- auth/session storage on client: local settings storage only
 
-`Stage 8: deterministic systems and implementation finish` is complete.
+## Repository layout
 
-The app now has client-resolved deterministic checks, stable long-session memory/context behavior, validated settings/runtime UX flows, and a prompt architecture prepared for the next product layer.
+- Flutter app: [lib/](/D:/AI_PRG/lib)
+- backend: [backend/symmetry/](/D:/AI_PRG/backend/symmetry)
+- feature docs: [docs/features/](/D:/AI_PRG/docs/features)
+- main architecture doc: [Architecture.md](/D:/AI_PRG/Architecture.md)
+- main product requirements: [PRD.md](/D:/AI_PRG/PRD.md)
+- roadmap: [ImplementationPlan.md](/D:/AI_PRG/ImplementationPlan.md)
 
-## What is next
+## Local development
 
-The next planned implementation step is the product-facing layer:
-
-- `Stage 6: next product layer`;
-- chosen direction: `Narrative depth`;
-- expand storytelling quality on top of the deterministic, modular, and memory-aware runtime foundation.
-
-## Key documents
-
-- [Agent / AI onboarding](docs/AGENT_CONTEXT.md) — продукт, карта кода, фичи, процесс для агентов
-- [Feature catalog](docs/features/CATALOG.md)
-- [Commands protocol](docs/features/COMMANDS.md)
-- [PRD](D:/AI_PRG/docs/features/engine-mechanics-token-control/02-PRD.md)
-- [Feature README](D:/AI_PRG/docs/features/engine-mechanics-token-control/README.md)
-- [Architecture](D:/AI_PRG/docs/features/engine-mechanics-token-control/01-Architecture.md)
-- [Implementation Plan](D:/AI_PRG/docs/features/engine-mechanics-token-control/03-Implementation.md)
-- [Project Implementation Plan](D:/AI_PRG/ImplementationPlan.md)
-
-## Basic commands
+### Flutter
 
 ```bash
 flutter pub get
 flutter analyze
 flutter test
+flutter build web --no-tree-shake-icons
 ```
 
-## AI setup
+### Backend
 
-The app uses a single **OpenAI-compatible** configuration path.
-
-**In-app settings (per device):** set `Base URL`, `Model`, and `API Key` (if required), plus runtime token/window controls. Whatever you **save** to local storage **overrides** compile-time defaults for that field.
-
-**Build-time presets (optional):** define `AI_PRG_BASE_URL`, `AI_PRG_MODEL`, and `AI_PRG_API_KEY` via `--dart-define` or `--dart-define-from-file` (see `tool/ai_local_defines.example.json` and `lib/src/core/config/ai_runtime_env.dart`). They apply only where the stored setting is **empty**; the settings screen does **not** copy them into the text fields (users see hints instead of hidden values).
-
-**DeepSeek:** use a base URL that ends with the API version segment, e.g. `https://api.deepseek.com/v1`. The client also auto-appends `/v1` if the host is `api.deepseek.com` and the path is empty.
-
-Examples of compatible endpoints include local servers and hosted APIs that follow the OpenAI chat-completions style.
-
-Current limitations:
-
-- The app expects a working OpenAI-compatible `/models` and `/chat/completions` flow.
-- Automatic portrait generation through provider-specific integrations has been removed.
-- The UI waits for a stable final answer instead of exposing speculative intermediate stream text.
-
-## Web build
-
-For browser and mobile-browser deployment, use the project build script instead of raw `flutter build web`:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
+```bash
+cd backend/symmetry
+python -m pytest tests
+python -m compileall app alembic
 ```
 
-See [DEPLOY_WEB](D:/AI_PRG/docs/DEPLOY_WEB.md) for the deployment flow and mobile-browser notes.
+### Full local stack
 
-## Start experience
+```bash
+docker compose up --build
+```
 
-- `native / desktop / mobile app`: the app opens directly into the new branded start screen
-- `web`: `web/index.html` first shows a lightweight landing page, and Flutter starts only after the user presses `Play`
-- `web / mobile browser`: after `Play`, the CTA becomes a staged loader with progress, loading phrases, and a guarded handoff that hides the HTML landing only after Flutter paints its first visible frame
-- `web / mobile browser / first AI turn`: the chat flow emits structured diagnostic events for intro autostart, retries, fallback behavior, request/response flow, and duplicate-turn suppression in browser console logs
-- `localhost / flutter run -d web-server`: the landing still renders by default; add `?autostart=1` to the URL if you explicitly want immediate Flutter startup
-- `custom campaign / story step`: there is now one editable story field; typed text expands into a richer prompt, and an empty submit generates a fresh random hook first
-- `custom campaign / generate prompt`: when the AI response is weak or effectively echoes the input, the app now rewrites it into a more atmospheric story prompt and fills a matching character prompt instead of leaving the field unchanged
-- `custom campaign / step navigation`: moving between steps now uses the top arrows only
-- the in-game campaign sidebar now favors presentation over technical labels:
-  - compact module icons with tooltips
-  - portrait card that now shows only the character name under the image
-  - no user-visible `Enabled by prompt` / `Enabled by setting` copy
-- in-game quick choices on the campaign screen now submit immediately on tap instead of only filling the composer first
-- the chat composer now also submits the current action on `Enter`, matching the send button behavior
+This starts PostgreSQL with `pgvector` and the `Symmetry` API. The backend
+container applies `alembic upgrade head` before launching `uvicorn`.
 
-## Recent fixes
+### Preferred local web preview
 
-- chat streaming no longer races a second standard completion request in the background;
-- pending narrator bubbles now stay stable while the model is still drafting, and the final narrator text fades in softly once the completed answer is ready;
-- the web shell refreshes viewport metrics when a mobile browser tab/app returns to the foreground;
-- the web landing now keeps a staged loading UI during deferred startup and waits for Flutter's first rendered frame before fading out, which removes the blank-screen gap on slower mobile browsers;
-- mobile-browser intro turn diagnostics now surface directly in web console output, making repeated generation and fallback chains easier to trace on-device;
-- chat turn submission is now single-flight, so duplicate taps or repeated intro triggers no longer start parallel first-turn requests;
-- the mobile chat layout now hides nonessential top chrome while the keyboard is open, preventing bottom overflow on small screens;
-- overlay choice actions in chat now trigger an immediate turn submission instead of waiting for a second explicit send tap;
-- the app now uses a shared responsive layer instead of screen-local breakpoint checks, reducing oversized mobile typography and spacing regressions;
-- widget coverage now includes width-based layout smoke checks for common phone/tablet/desktop viewports.
-- custom prompt generation now has a tested local fallback that prevents silent no-op behavior when AI prompt expansion fails.
-- OpenAI-compatible turn handling includes broader fallback parsing for plain text, broken JSON-like output, alternate narration fields, alternate state containers, alternate location fields, and object-shaped choices.
-- the gameplay screen no longer keeps a persistent `turn completed` status card above the chat; transient feedback now uses snackbars so the story gets more vertical space.
+For faithful local web preview, especially Material Icons, use the built web
+bundle instead of a hot web-server session:
+
+```bash
+flutter build web --no-tree-shake-icons
+python -m http.server 3010 --directory build/web
+```
+
+Then open `http://127.0.0.1:3010` and do a hard refresh after rebuilds if the
+browser keeps old assets cached.
+
+## Runtime model credentials
+
+There are two supported ways to reach text-generation models:
+
+1. Server-managed credentials from `backend/symmetry/.env`
+2. User-managed credentials entered in the Flutter app
+
+Important rule:
+
+- user-managed credentials are stored only on the user's device;
+- Flutter may pass them to the backend for a single request;
+- the backend must not write them to the database, snapshots, logs, or
+  background jobs.
+
+## Main APIs
+
+- auth:
+  - `POST /v1/auth/guest`
+  - `POST /v1/auth/register`
+  - `POST /v1/auth/login`
+  - `POST /v1/auth/refresh`
+  - `POST /v1/auth/logout`
+  - `GET /v1/auth/me`
+  - `GET /v1/auth/yandex/start`
+  - `GET /v1/auth/yandex/callback`
+- campaigns:
+  - `POST /v1/campaigns`
+  - `GET /v1/campaigns`
+  - `GET /v1/campaigns/{id}`
+  - `GET /v1/campaigns/{id}/state`
+  - `POST /v1/campaigns/{id}/turns/process`
+  - `DELETE /v1/campaigns/{id}`
+- prompts:
+  - `POST /v1/prompts/generate`
+- providers:
+  - `POST /v1/providers/check`
+- story library:
+  - `GET /v1/story-templates`
+  - `GET /v1/story-templates/{id}`
+  - `POST /v1/story-templates`
+  - `PATCH /v1/story-templates/{id}`
+  - `POST /v1/story-templates/{id}/like`
+  - `POST /v1/story-templates/{id}/view`
+  - `POST /v1/story-templates/{id}/bookmark`
+
+## Key documents
+
+- [Agent / AI onboarding](/D:/AI_PRG/docs/AGENT_CONTEXT.md)
+- [Feature catalog](/D:/AI_PRG/docs/features/CATALOG.md)
+- [Features workflow](/D:/AI_PRG/docs/features/README.md)
+- [Backend feature packet](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/README.md)
+- [Web deploy notes](/D:/AI_PRG/docs/DEPLOY_WEB.md)
+
+## Current follow-up work
+
+- real end-to-end Yandex OAuth verification with live callback credentials;
+- production rollout hardening around migrations, backup, health checks, and
+  deploy order;
+- next product layer on top of the now server-authoritative gameplay stack.

@@ -8,12 +8,13 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/app/theme.dart';
 import 'package:ai_prg/src/core/data/isar/app_database.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
-import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/portrait_storage.dart';
-import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
+import 'package:ai_prg/src/features/auth/presentation/auth_gate_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,7 +23,6 @@ class AiRpgApp extends StatefulWidget {
     super.key,
     this.database,
     this.settingsRepository,
-    this.campaignRepository,
     this.aiServiceFactory,
     this.gameEngine,
     this.portraitStorage,
@@ -32,7 +32,6 @@ class AiRpgApp extends StatefulWidget {
 
   final AppDatabase? database;
   final SettingsRepository? settingsRepository;
-  final CampaignRepository? campaignRepository;
   final AiServiceFactory? aiServiceFactory;
   final GameEngine? gameEngine;
   final PortraitStorage? portraitStorage;
@@ -46,7 +45,8 @@ class AiRpgApp extends StatefulWidget {
 class _AiRpgAppState extends State<AiRpgApp> {
   late final AppDatabase _database;
   late final SettingsRepository _settingsRepository;
-  late final CampaignRepository _campaignRepository;
+  late final SymmetryAuthRepository _symmetryAuthRepository;
+  late final SymmetryCampaignRepository _symmetryCampaignRepository;
   late final AiServiceFactory _aiServiceFactory;
   late final GameEngine _gameEngine;
   late final PortraitStorage _portraitStorage;
@@ -62,8 +62,12 @@ class _AiRpgAppState extends State<AiRpgApp> {
     _database = widget.database ?? AppDatabase.instance;
     _settingsRepository =
         widget.settingsRepository ?? SettingsRepository(database: _database);
-    _campaignRepository =
-        widget.campaignRepository ?? CampaignRepository(database: _database);
+    _symmetryAuthRepository = SymmetryAuthRepository(
+      settingsRepository: _settingsRepository,
+    );
+    _symmetryCampaignRepository = SymmetryCampaignRepository(
+      authRepository: _symmetryAuthRepository,
+    );
     _aiServiceFactory = widget.aiServiceFactory ?? const AiServiceFactory();
     _gameEngine = widget.gameEngine ?? const GameEngine();
     _portraitStorage = widget.portraitStorage ?? const PortraitStorage();
@@ -88,7 +92,9 @@ class _AiRpgAppState extends State<AiRpgApp> {
       await _database.ensureReady();
       final AppLanguage? launchLanguage = _languageOverrideFromUrl();
       final List<Future<void>> tasks = <Future<void>>[
-        _settingsRepository.loadAppLanguage().then((final storedLanguage) async {
+        _settingsRepository.loadAppLanguage().then((
+          final storedLanguage,
+        ) async {
           final AppLanguage resolvedLanguage = launchLanguage ?? storedLanguage;
           if (launchLanguage != null && launchLanguage != storedLanguage) {
             await _settingsRepository.saveAppLanguage(launchLanguage);
@@ -150,7 +156,8 @@ class _AiRpgAppState extends State<AiRpgApp> {
     return ProviderScope(
       overrides: buildAppProviderOverrides(
         settingsRepository: _settingsRepository,
-        campaignRepository: _campaignRepository,
+        symmetryAuthRepository: _symmetryAuthRepository,
+        symmetryCampaignRepository: _symmetryCampaignRepository,
         aiServiceFactory: _aiServiceFactory,
         gameEngine: _gameEngine,
         portraitStorage: _portraitStorage,
@@ -174,7 +181,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
                 ),
               ),
               home: _bootstrapComplete
-                  ? const HomeScreen()
+                  ? const AuthGateScreen()
                   : const _SplashScreen(),
             ),
           );
