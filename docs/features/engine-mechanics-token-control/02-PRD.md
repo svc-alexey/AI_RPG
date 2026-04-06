@@ -1,5 +1,9 @@
 # PRD: AI RPG Engine (Core, Mechanics & Token Control)
 
+> Historical note: this PRD captures the local-first phase before campaigns were
+> moved to the `Symmetry` backend. It is no longer the authoritative product
+> shape.
+
 ## 1. Product Goal
 
 Превратить текущий AI RPG клиент в local-first RPG engine, где:

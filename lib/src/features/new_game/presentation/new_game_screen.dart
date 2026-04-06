@@ -919,13 +919,11 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       final AppLocalizations l10n = context.l10n;
       final String message = e is StateError && e.message == 'ai_not_configured'
           ? l10n.quickStartNeedsAi
-          : (kIsWeb
-                ? l10n.promptGenerationFailedWeb
-                : l10n.promptGenerationFailed);
+          : l10n.symmetryFriendlyError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          duration: kIsWeb ? const Duration(seconds: 12) : const Duration(seconds: 4),
+          duration: kIsWeb ? const Duration(seconds: 8) : const Duration(seconds: 4),
         ),
       );
     }
@@ -949,7 +947,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       final AppLocalizations l10n = context.l10n;
       final String message = e is StateError && e.message == 'story_prompt_required'
           ? l10n.storyPromptRequired
-          : l10n.promptGenerationFailed;
+          : l10n.symmetryFriendlyError(e);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));

@@ -116,7 +116,7 @@ class _OverlayChoiceButtonState extends State<OverlayChoiceButton> {
                     Expanded(
                       child: Text(
                         widget.label,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.right,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -127,11 +127,7 @@ class _OverlayChoiceButtonState extends State<OverlayChoiceButton> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 16,
-                      color: fg,
-                    ),
+                    Icon(Icons.chevron_right_rounded, size: 16, color: fg),
                   ],
                 ),
               ),

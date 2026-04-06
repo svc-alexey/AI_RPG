@@ -1,23 +1,14 @@
-import 'dart:io';
-
-import 'package:ai_prg/src/core/data/isar/app_database.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/services/context_assembly_service.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
     'Fantasy long-session save/load cycles stay coherent without full chat history',
     () async {
-      SharedPreferences.setMockInitialValues(<String, Object>{});
-      final _TestCampaignStorage storage = _TestCampaignStorage.create();
-      addTearDown(storage.dispose);
-
       const GameEngine engine = GameEngine();
       const ContextAssemblyService assemblyService = ContextAssemblyService();
       CampaignState state = _initialFantasyCampaign();
@@ -66,22 +57,11 @@ void main() {
         state = applied.state;
 
         if ((turn + 1) % 3 == 0) {
-          await storage.repository.saveCampaign(state);
-          final CampaignState? reloaded = await storage.repository.loadCampaign(
-            state.id,
-          );
-          expect(reloaded, isNotNull);
-          state = reloaded!;
+          state = CampaignState.fromJson(state.toJson());
         }
       }
 
-      await storage.repository.saveCampaign(state);
-      final CampaignState? persisted = await storage.repository.loadCampaign(
-        state.id,
-      );
-
-      expect(persisted, isNotNull);
-      final CampaignState loaded = persisted!;
+      final CampaignState loaded = CampaignState.fromJson(state.toJson());
       final Map<String, Object?> context = assemblyService
           .build(state: loaded, contextWindowSize: 1536, fastMode: false)
           .toJson();
@@ -174,33 +154,3 @@ CampaignState _initialFantasyCampaign() => CampaignState(
   choices: const <String>[],
   updatedAt: DateTime(2026, 3, 20, 12),
 );
-
-class _TestCampaignStorage {
-  _TestCampaignStorage._(this.directory, this.database, this.repository);
-
-  factory _TestCampaignStorage.create() {
-    final Directory directory = Directory.systemTemp.createTempSync(
-      'ai_prg_stage8_long_session_',
-    );
-    final AppDatabase database = AppDatabase(
-      directoryPath: directory.path,
-      name: 'stage8_${DateTime.now().microsecondsSinceEpoch}',
-    );
-    return _TestCampaignStorage._(
-      directory,
-      database,
-      CampaignRepository(database: database),
-    );
-  }
-
-  final Directory directory;
-  final AppDatabase database;
-  final CampaignRepository repository;
-
-  Future<void> dispose() async {
-    await database.close(deleteFromDisk: true);
-    if (directory.existsSync()) {
-      directory.deleteSync(recursive: true);
-    }
-  }
-}

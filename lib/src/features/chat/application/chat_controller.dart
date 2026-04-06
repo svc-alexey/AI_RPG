@@ -5,19 +5,10 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
-import 'package:ai_prg/src/core/services/ai_client.dart'
-    show
-        AiCancelException,
-        AiClient,
-        AiRequestMetadata,
-        AiTurnException,
-        CancelToken;
-import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
+import 'package:ai_prg/src/core/services/ai_client.dart' show AiTurnException;
 import 'package:ai_prg/src/core/services/app_logger.dart';
-import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
-import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final chatControllerProvider = StateNotifierProvider.autoDispose
@@ -113,27 +104,21 @@ class ChatViewState {
 }
 
 class ChatController extends StateNotifier<ChatViewState> {
-  ChatController(this._ref, this._campaignId)
-    : super(ChatViewState.initial());
+  ChatController(this._ref, this._campaignId) : super(ChatViewState.initial());
 
   final Ref _ref;
   final String _campaignId;
 
-  CancelToken? _cancelToken;
   Timer? _notificationTimer;
   String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
 
-  CampaignRepository get _campaignRepository =>
-      _ref.read(campaignRepositoryProvider);
+  SymmetryCampaignRepository get _campaignRepository =>
+      _ref.read(symmetryCampaignRepositoryProvider);
 
   SettingsRepository get _settingsRepository =>
       _ref.read(settingsRepositoryProvider);
-
-  AiServiceFactory get _aiServiceFactory => _ref.read(aiServiceFactoryProvider);
-
-  GameEngine get _gameEngine => _ref.read(gameEngineProvider);
 
   AppLanguage get _appLanguage =>
       _ref.read(appLanguageListenableProvider).value;
@@ -149,7 +134,6 @@ class ChatController extends StateNotifier<ChatViewState> {
       screenMounted: false,
     );
     _disposed = true;
-    _cancelToken?.cancel();
     _notificationTimer?.cancel();
     super.dispose();
   }
@@ -190,7 +174,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     state = state.copyWith(status: l10n.campaignSaved);
   }
 
-  void cancelGeneration() => _cancelToken?.cancel();
+  void cancelGeneration() {}
 
   Future<void> runTurn({
     required final AppLocalizations? l10n,
@@ -204,7 +188,7 @@ class ChatController extends StateNotifier<ChatViewState> {
       return;
     }
 
-    if (state.isSending || _cancelToken != null) {
+    if (state.isSending) {
       AppLogger.logDiagnostic(
         level: 'WARN',
         event: 'turn_reentry_blocked',
@@ -227,32 +211,8 @@ class ChatController extends StateNotifier<ChatViewState> {
     }
 
     final AppLanguage language = _appLanguage;
-    final DeterministicTurnContext deterministicContext = suggestionsOnly
-        ? const DeterministicTurnContext.none()
-        : isIntro
-        ? campaign.isModuleActive(CampaignModule.inventory)
-              ? DeterministicTurnContext(
-                  startingLootGate: _gameEngine.rollStartingLootGate(
-                    campaignId: campaign.id,
-                  ),
-                )
-              : const DeterministicTurnContext.none()
-        : _gameEngine.resolveDeterministicTurn(
-            language: language,
-            state: campaign,
-            playerAction: trimmedAction,
-          );
-
-    final CancelToken cancelToken = CancelToken();
     final DateTime now = DateTime.now();
     final String flowId = '${campaign.id}-${now.microsecondsSinceEpoch}';
-    final AiRequestMetadata metadata = AiRequestMetadata(
-      flowId: flowId,
-      campaignId: campaign.id,
-      triggerSource: triggerSource,
-      screenMounted: !_disposed,
-    );
-    _cancelToken = cancelToken;
     _activeFlowId = flowId;
 
     state = state.copyWith(
@@ -288,57 +248,29 @@ class ChatController extends StateNotifier<ChatViewState> {
 
     try {
       final AiSettings settings = await _settingsRepository.loadAiSettings();
-      final AiClient client = _aiServiceFactory.create(settings);
-      final TurnResult result = await client.generateTurn(
-        settings: settings,
-        language: language,
-        state: campaign,
+      final CampaignState nextCampaign = await _campaignRepository.processTurn(
         playerAction: trimmedAction,
-        suggestionsOnly: suggestionsOnly,
-        deterministicContext: deterministicContext,
-        metadata: metadata,
-        onNarrationDelta: suggestionsOnly
-            ? null
-            : (final narration) =>
-                  _updatePendingNarration(narration: narration, createdAt: now),
-        cancelToken: cancelToken,
+        language: language,
+        campaign: campaign,
+        aiSettings: settings,
+        triggerSource: triggerSource,
       );
-
-      final TurnApplicationResult turnApplication;
-      if (suggestionsOnly) {
-        final CampaignState nextState = campaign.copyWith(
-          choices: result.choices,
-          memory: campaign.memory.copyWith(activeSituation: result.narration),
-          updatedAt: DateTime.now(),
-        );
-        turnApplication = TurnApplicationResult(
-          state: nextState,
-          notifications: const <StateChangeNotification>[],
-        );
-      } else {
-        turnApplication = _gameEngine.applyTurn(
-          language: language,
-          state: campaign,
-          playerAction: trimmedAction,
-          result: result,
-          contextWindowSize: settings.contextWindowSize,
-          deterministicContext: deterministicContext,
-        );
-      }
-
-      await _campaignRepository.saveCampaign(turnApplication.state);
 
       if (_disposed) {
         return;
       }
 
       _showTransientNotifications(
-        notifications: turnApplication.notifications,
+        notifications: _buildNotificationsFromCampaignDiff(
+          previousCampaign: campaign,
+          nextCampaign: nextCampaign,
+          language: language,
+        ),
         previousCampaign: campaign,
-        nextCampaign: turnApplication.state,
+        nextCampaign: nextCampaign,
       );
       state = state.copyWith(
-        campaign: turnApplication.state,
+        campaign: nextCampaign,
         settings: settings,
         isSending: false,
         pendingPlayerMessage: null,
@@ -362,7 +294,6 @@ class ChatController extends StateNotifier<ChatViewState> {
         requestMode: suggestionsOnly ? 'suggestions' : 'controller',
         screenMounted: !_disposed,
       );
-      _cancelToken = null;
       _activeFlowId = null;
     } on AiTurnException catch (error) {
       _clearPendingMessages();
@@ -376,86 +307,34 @@ class ChatController extends StateNotifier<ChatViewState> {
         requestMode: suggestionsOnly ? 'suggestions' : 'controller',
         screenMounted: !_disposed,
       );
-      await _handleAiTurnException(error, l10n);
       _activeFlowId = null;
+      state = state.copyWith(
+        isSending: false,
+        pendingPlayerMessage: null,
+        pendingNarratorMessage: null,
+        status: error.userMessage,
+      );
     } catch (error) {
       if (_disposed) {
         return;
       }
-      final bool wasCancelled = error is AiCancelException;
       AppLogger.logDiagnostic(
-        level: wasCancelled ? 'INFO' : 'ERROR',
-        event: wasCancelled ? 'turn_cancelled' : 'turn_unexpected_error',
-        message: wasCancelled ? 'Generation cancelled.' : error.toString(),
+        level: 'ERROR',
+        event: 'turn_unexpected_error',
+        message: error.toString(),
         flowId: flowId,
         campaignId: campaign.id,
         triggerSource: triggerSource,
         requestMode: suggestionsOnly ? 'suggestions' : 'controller',
         screenMounted: !_disposed,
       );
-      _cancelToken = null;
       _activeFlowId = null;
       state = state.copyWith(
         isSending: false,
         pendingPlayerMessage: null,
         pendingNarratorMessage: null,
-        status: l10n == null
-            ? null
-            : wasCancelled
-            ? l10n.generationCancelled
-            : l10n.turnError(error),
+        status: l10n?.turnError(error),
       );
-      if (wasCancelled) {
-        _clearPendingMessages();
-      }
-    }
-  }
-
-  Future<void> _handleAiTurnException(
-    final AiTurnException error,
-    final AppLocalizations? l10n,
-  ) async {
-    final CampaignState? campaign = state.campaign;
-    if (campaign == null) {
-      return;
-    }
-
-    CampaignState nextState = _gameEngine.appendSystemMessage(
-      state: campaign,
-      text: error.userMessage,
-    );
-
-    if ((error.rawResponse ?? '').trim().isNotEmpty && l10n != null) {
-      nextState = _gameEngine.appendSystemMessage(
-        state: nextState,
-        text: l10n.rawModelResponseSaved,
-      );
-    }
-
-    await _campaignRepository.saveCampaign(nextState);
-
-    if (_disposed) {
-      return;
-    }
-
-    _cancelToken = null;
-    state = state.copyWith(
-      campaign: nextState,
-      isSending: false,
-      pendingPlayerMessage: null,
-      pendingNarratorMessage: null,
-      status: error.userMessage,
-    );
-  }
-
-  void _updatePendingNarration({
-    required final String narration,
-    required final DateTime createdAt,
-  }) {
-    // Some providers stream speculative text that gets revised mid-generation.
-    // Keep the UI on a stable "generating" placeholder until the final turn lands.
-    if (_disposed || narration.trim().isEmpty) {
-      return;
     }
   }
 
@@ -514,6 +393,143 @@ class ChatController extends StateNotifier<ChatViewState> {
       );
     });
   }
+
+  List<StateChangeNotification> _buildNotificationsFromCampaignDiff({
+    required final CampaignState previousCampaign,
+    required final CampaignState nextCampaign,
+    required final AppLanguage language,
+  }) {
+    final List<StateChangeNotification> notifications =
+        <StateChangeNotification>[];
+    final DateTime now = DateTime.now();
+
+    for (final String item in nextCampaign.inventory.where(
+      (final candidate) => !previousCampaign.inventory.contains(candidate),
+    )) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'item_add_${item}_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.itemAdded,
+          message: '+ $item',
+        ),
+      );
+    }
+
+    for (final String item in previousCampaign.inventory.where(
+      (final candidate) => !nextCampaign.inventory.contains(candidate),
+    )) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'item_remove_${item}_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.itemRemoved,
+          message: '- $item',
+        ),
+      );
+    }
+
+    final int hpDelta =
+        nextCampaign.character.hp - previousCampaign.character.hp;
+    final int energyDelta =
+        nextCampaign.character.energy - previousCampaign.character.energy;
+    if (hpDelta != 0 || energyDelta != 0) {
+      final List<String> parts = <String>[
+        if (hpDelta != 0) 'HP ${_signed(hpDelta)}',
+        if (energyDelta != 0)
+          language == AppLanguage.ru
+              ? 'Энергия ${_signed(energyDelta)}'
+              : 'Energy ${_signed(energyDelta)}',
+      ];
+      notifications.add(
+        StateChangeNotification(
+          id: 'vitality_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.vitalityChanged,
+          message: parts.join(' • '),
+        ),
+      );
+    }
+
+    final CampaignCheck? latestAddedCheck = nextCampaign.checks
+        .cast<CampaignCheck?>()
+        .firstWhere(
+          (final item) =>
+              item != null &&
+              !previousCampaign.checks.any(
+                (final previous) =>
+                    previous.summary == item.summary &&
+                    previous.outcome == item.outcome &&
+                    previous.total == item.total &&
+                    previous.difficulty == item.difficulty,
+              ),
+          orElse: () => null,
+        );
+    if (latestAddedCheck != null) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'check_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.checkResolved,
+          message: latestAddedCheck.summary,
+        ),
+      );
+    }
+
+    final CampaignCompanion? latestCompanion = nextCampaign.companions
+        .cast<CampaignCompanion?>()
+        .firstWhere(
+          (final item) =>
+              item != null &&
+              !previousCampaign.companions.any(
+                (final previous) =>
+                    previous.name.toLowerCase() == item.name.toLowerCase(),
+              ),
+          orElse: () => null,
+        );
+    if (latestCompanion != null) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'companion_${latestCompanion.id}_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.companionJoined,
+          message: language == AppLanguage.ru
+              ? 'Спутник: ${latestCompanion.name} присоединяется'
+              : 'Companion: ${latestCompanion.name} joins you',
+        ),
+      );
+    }
+
+    final String? latestNote = nextCampaign.notes.cast<String?>().firstWhere(
+      (final item) => item != null && !previousCampaign.notes.contains(item),
+      orElse: () => null,
+    );
+    if (latestNote != null && latestNote.trim().isNotEmpty) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'note_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.noteAdded,
+          message: language == AppLanguage.ru
+              ? 'Заметка: $latestNote'
+              : 'Note: $latestNote',
+        ),
+      );
+    }
+
+    for (final CampaignModule module in _deriveNewlyUnlockedModules(
+      previousCampaign: previousCampaign,
+      nextCampaign: nextCampaign,
+    )) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'module_${module.name}_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.moduleUnlocked,
+          message: language == AppLanguage.ru
+              ? 'Новая система: ${module.name}'
+              : 'New system: ${module.name}',
+        ),
+      );
+    }
+
+    return notifications.take(4).toList();
+  }
+
+  String _signed(final int value) => value > 0 ? '+$value' : '$value';
 
   List<CampaignModule> _deriveHighlightedModules({
     required final CampaignState previousCampaign,

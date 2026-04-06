@@ -3,8 +3,10 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
-import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
@@ -636,13 +638,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: buildAppProviderOverrides(
-          settingsRepository: _FakeSettingsRepository(),
-          campaignRepository: _FakeCampaignRepository(campaign),
-          aiServiceFactory: const AiServiceFactory(),
-          gameEngine: const GameEngine(),
-          portraitStorage: const PortraitStorage(),
-          appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+        overrides: _buildServerOverrides(
+          campaign: campaign,
+          aiClient: const _NotesOnlyAiClient(),
         ),
         child: const AppLocalizationsScope(
           localizations: AppLocalizations(AppLanguage.en),
@@ -712,15 +710,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: buildAppProviderOverrides(
-          settingsRepository: _FakeConfiguredSettingsRepository(),
-          campaignRepository: _MutableCampaignRepository(campaign),
-          aiServiceFactory: _FakeAiServiceFactory(
-            const _DetectiveChromeAiClient(),
-          ),
-          gameEngine: const GameEngine(),
-          portraitStorage: const PortraitStorage(),
-          appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+        overrides: _buildServerOverrides(
+          campaign: campaign,
+          aiClient: const _DetectiveChromeAiClient(),
         ),
         child: const AppLocalizationsScope(
           localizations: AppLocalizations(AppLanguage.en),
@@ -799,13 +791,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: buildAppProviderOverrides(
-          settingsRepository: _FakeConfiguredSettingsRepository(),
-          campaignRepository: _MutableCampaignRepository(campaign),
-          aiServiceFactory: _FakeAiServiceFactory(const _OverlayAiClient()),
-          gameEngine: const GameEngine(),
-          portraitStorage: const PortraitStorage(),
-          appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+        overrides: _buildServerOverrides(
+          campaign: campaign,
+          aiClient: const _OverlayAiClient(),
         ),
         child: const AppLocalizationsScope(
           localizations: AppLocalizations(AppLanguage.en),
@@ -879,13 +867,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: buildAppProviderOverrides(
-          settingsRepository: _FakeConfiguredSettingsRepository(),
-          campaignRepository: _MutableCampaignRepository(campaign),
-          aiServiceFactory: _FakeAiServiceFactory(const _NotesOnlyAiClient()),
-          gameEngine: const GameEngine(),
-          portraitStorage: const PortraitStorage(),
-          appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+        overrides: _buildServerOverrides(
+          campaign: campaign,
+          aiClient: const _NotesOnlyAiClient(),
         ),
         child: const AppLocalizationsScope(
           localizations: AppLocalizations(AppLanguage.en),
@@ -961,13 +945,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: buildAppProviderOverrides(
-          settingsRepository: _FakeConfiguredSettingsRepository(),
-          campaignRepository: _MutableCampaignRepository(campaign),
-          aiServiceFactory: _FakeAiServiceFactory(const _ChecksAiClient()),
-          gameEngine: const GameEngine(),
-          portraitStorage: const PortraitStorage(),
-          appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+        overrides: _buildServerOverrides(
+          campaign: campaign,
+          aiClient: const _ChecksAiClient(),
         ),
         child: const AppLocalizationsScope(
           localizations: AppLocalizations(AppLanguage.en),
@@ -986,12 +966,31 @@ void main() {
   });
 }
 
-class _FakeSettingsRepository extends SettingsRepository {
-  @override
-  Future<AiSettings> loadAiSettings() async => const AiSettings.defaults();
+List<Override> _buildServerOverrides({
+  required final CampaignState campaign,
+  required final AiClient aiClient,
+}) {
+  final SettingsRepository settingsRepository =
+      _FakeConfiguredSettingsRepository();
+  final _FakeSymmetryAuthRepository authRepository =
+      _FakeSymmetryAuthRepository(settingsRepository: settingsRepository);
+  final _FakeSymmetryCampaignRepository symmetryCampaignRepository =
+      _FakeSymmetryCampaignRepository(
+        authRepository: authRepository,
+        aiClient: aiClient,
+        gameEngine: const GameEngine(),
+        initialCampaigns: <CampaignState>[campaign],
+      );
 
-  @override
-  Future<AiSettings> loadAiSettingsPersisted() async => loadAiSettings();
+  return buildAppProviderOverrides(
+    settingsRepository: settingsRepository,
+    symmetryAuthRepository: authRepository,
+    symmetryCampaignRepository: symmetryCampaignRepository,
+    aiServiceFactory: const AiServiceFactory(),
+    gameEngine: const GameEngine(),
+    portraitStorage: const PortraitStorage(),
+    appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
+  );
 }
 
 class _FakeConfiguredSettingsRepository extends SettingsRepository {
@@ -1008,38 +1007,131 @@ class _FakeConfiguredSettingsRepository extends SettingsRepository {
   Future<AiSettings> loadAiSettingsPersisted() async => loadAiSettings();
 }
 
-class _FakeCampaignRepository extends CampaignRepository {
-  _FakeCampaignRepository(this._campaign);
+class _FakeSymmetryAuthRepository extends SymmetryAuthRepository {
+  _FakeSymmetryAuthRepository({required super.settingsRepository});
 
-  final CampaignState _campaign;
+  static const SymmetrySession _session = SymmetrySession(
+    user: SymmetryUser(
+      id: 'user-test',
+      email: 'tester@example.com',
+      displayName: 'Tester',
+    ),
+    tokens: SymmetryTokenPair(
+      accessToken: 'access-test',
+      accessTokenExpiresAt: '2030-01-01T00:00:00Z',
+      refreshToken: 'refresh-test',
+      refreshTokenExpiresAt: '2030-01-01T00:00:00Z',
+    ),
+    baseUrl: 'http://localhost:8080',
+  );
 
   @override
-  Future<CampaignState?> loadCampaign(final String id) async =>
-      id == _campaign.id ? _campaign : null;
+  Future<bool> hasSession() async => true;
+
+  @override
+  Future<SymmetrySession?> loadSession() async => _session;
+
+  @override
+  Future<SymmetrySession> requireSession() async => _session;
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<GeneratedPrompts> generateCampaignPrompts({
+    required final AiSettings aiSettings,
+    required final AppLanguage language,
+    required final CampaignPromptGenerationRequest request,
+  }) async => GeneratedPrompts(
+    storyPrompt: request.storyWish.trim().isEmpty
+        ? 'Generated story seed'
+        : request.storyWish.trim(),
+    characterPrompt: 'Generated character prompt',
+  );
 }
 
-class _MutableCampaignRepository extends CampaignRepository {
-  _MutableCampaignRepository(this._campaign);
+class _FakeSymmetryCampaignRepository extends SymmetryCampaignRepository {
+  _FakeSymmetryCampaignRepository({
+    required super.authRepository,
+    required this.aiClient,
+    required this.gameEngine,
+    required final List<CampaignState> initialCampaigns,
+  }) : _campaigns = <String, CampaignState>{
+         for (final CampaignState campaign in initialCampaigns)
+           campaign.id: campaign,
+       };
 
-  CampaignState _campaign;
+  final AiClient aiClient;
+  final GameEngine gameEngine;
+  final Map<String, CampaignState> _campaigns;
 
   @override
-  Future<CampaignState?> loadCampaign(final String id) async =>
-      id == _campaign.id ? _campaign : null;
+  Future<List<CampaignState>> loadAllCampaigns() async =>
+      _campaigns.values.toList(growable: false);
+
+  @override
+  Future<CampaignState?> loadCampaign(final String id) async => _campaigns[id];
+
+  @override
+  Future<CampaignState> createCampaign({
+    required final CampaignDraft draft,
+    required final AppLanguage language,
+    required final AiSettings aiSettings,
+  }) async {
+    final CampaignState campaign = gameEngine.createCampaign(
+      draft: draft,
+      language: language,
+    );
+    _campaigns[campaign.id] = campaign;
+    return campaign;
+  }
+
+  @override
+  Future<CampaignState> processTurn({
+    required final CampaignState campaign,
+    required final String playerAction,
+    required final AppLanguage language,
+    required final AiSettings aiSettings,
+    final String triggerSource = 'manual',
+  }) async {
+    final CampaignState current = _campaigns[campaign.id] ?? campaign;
+    final DeterministicTurnContext deterministicContext =
+        playerAction.trim().isEmpty
+        ? const DeterministicTurnContext.none()
+        : gameEngine.resolveDeterministicTurn(
+            language: language,
+            state: current,
+            playerAction: playerAction,
+          );
+    final TurnResult result = await aiClient.generateTurn(
+      settings: aiSettings,
+      language: language,
+      state: current,
+      playerAction: playerAction,
+      suggestionsOnly: false,
+      deterministicContext: deterministicContext,
+    );
+    final TurnApplicationResult applied = gameEngine.applyTurn(
+      language: language,
+      state: current,
+      playerAction: playerAction,
+      result: result,
+      contextWindowSize: aiSettings.contextWindowSize,
+      deterministicContext: deterministicContext,
+    );
+    _campaigns[campaign.id] = applied.state;
+    return applied.state;
+  }
+
+  @override
+  Future<void> deleteCampaign(final String id) async {
+    _campaigns.remove(id);
+  }
 
   @override
   Future<void> saveCampaign(final CampaignState campaign) async {
-    _campaign = campaign;
+    _campaigns[campaign.id] = campaign;
   }
-}
-
-class _FakeAiServiceFactory extends AiServiceFactory {
-  _FakeAiServiceFactory(this._client);
-
-  final AiClient _client;
-
-  @override
-  AiClient create(final AiSettings settings) => _client;
 }
 
 class _OverlayAiClient implements AiClient {

@@ -1,6 +1,8 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
-import 'package:ai_prg/src/core/repositories/campaign_repository.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/portrait_storage.dart';
@@ -14,10 +16,17 @@ final Provider<SettingsRepository> settingsRepositoryProvider =
       );
     });
 
-final Provider<CampaignRepository> campaignRepositoryProvider =
-    Provider<CampaignRepository>((final ref) {
+final Provider<SymmetryAuthRepository> symmetryAuthRepositoryProvider =
+    Provider<SymmetryAuthRepository>((final ref) {
       throw UnimplementedError(
-        'campaignRepositoryProvider was not overridden.',
+        'symmetryAuthRepositoryProvider was not overridden.',
+      );
+    });
+
+final Provider<SymmetryCampaignRepository> symmetryCampaignRepositoryProvider =
+    Provider<SymmetryCampaignRepository>((final ref) {
+      throw UnimplementedError(
+        'symmetryCampaignRepositoryProvider was not overridden.',
       );
     });
 
@@ -44,18 +53,67 @@ final Provider<ValueNotifier<AppLanguage>> appLanguageListenableProvider =
       );
     });
 
+final FutureProvider<SymmetrySession?> symmetrySessionProvider =
+    FutureProvider<SymmetrySession?>((final ref) async {
+      final SymmetryAuthRepository repository = ref.read(
+        symmetryAuthRepositoryProvider,
+      );
+      return repository.loadSession();
+    });
+
 List<Override> buildAppProviderOverrides({
   required final SettingsRepository settingsRepository,
-  required final CampaignRepository campaignRepository,
   required final AiServiceFactory aiServiceFactory,
   required final GameEngine gameEngine,
   required final PortraitStorage portraitStorage,
   required final ValueNotifier<AppLanguage> appLanguageListenable,
-}) => <Override>[
-  settingsRepositoryProvider.overrideWithValue(settingsRepository),
-  campaignRepositoryProvider.overrideWithValue(campaignRepository),
-  aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
-  gameEngineProvider.overrideWithValue(gameEngine),
-  portraitStorageProvider.overrideWithValue(portraitStorage),
-  appLanguageListenableProvider.overrideWithValue(appLanguageListenable),
-];
+  final SymmetryAuthRepository? symmetryAuthRepository,
+  final SymmetryCampaignRepository? symmetryCampaignRepository,
+}) {
+  final SymmetryAuthRepository resolvedAuthRepository =
+      symmetryAuthRepository ??
+      _ProviderStubSymmetryAuthRepository(
+        settingsRepository: settingsRepository,
+      );
+  final SymmetryCampaignRepository resolvedCampaignRepository =
+      symmetryCampaignRepository ??
+      SymmetryCampaignRepository(authRepository: resolvedAuthRepository);
+  return <Override>[
+    settingsRepositoryProvider.overrideWithValue(settingsRepository),
+    symmetryAuthRepositoryProvider.overrideWithValue(resolvedAuthRepository),
+    symmetryCampaignRepositoryProvider.overrideWithValue(
+      resolvedCampaignRepository,
+    ),
+    aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
+    gameEngineProvider.overrideWithValue(gameEngine),
+    portraitStorageProvider.overrideWithValue(portraitStorage),
+    appLanguageListenableProvider.overrideWithValue(appLanguageListenable),
+  ];
+}
+
+class _ProviderStubSymmetryAuthRepository extends SymmetryAuthRepository {
+  _ProviderStubSymmetryAuthRepository({required super.settingsRepository});
+
+  @override
+  Future<bool> hasSession() async => false;
+
+  @override
+  Future<SymmetrySession> ensureSession({final bool allowGuest = true}) async =>
+      const SymmetrySession(
+        user: SymmetryUser(
+          id: 'guest-stub',
+          email: 'guest-stub@symmetry.dev',
+          displayName: 'Guest',
+        ),
+        tokens: SymmetryTokenPair(
+          accessToken: 'stub-access-token',
+          accessTokenExpiresAt: '',
+          refreshToken: 'stub-refresh-token',
+          refreshTokenExpiresAt: '',
+        ),
+        baseUrl: 'http://127.0.0.1:8080/v1',
+      );
+
+  @override
+  Future<void> logout() async {}
+}

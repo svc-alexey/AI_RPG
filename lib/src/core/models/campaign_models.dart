@@ -1131,6 +1131,8 @@ class CampaignDraft {
     this.literaryGenre,
     this.storyWish = '',
     this.customStoryPrompt = '',
+    this.campaignTitle = '',
+    this.objectiveHint = '',
     this.characterProfile,
     this.portraitPath = '',
     this.portraitPrompt = '',
@@ -1144,6 +1146,8 @@ class CampaignDraft {
   final String heroName;
   final String storyWish;
   final String customStoryPrompt;
+  final String campaignTitle;
+  final String objectiveHint;
   final CharacterProfile? characterProfile;
   final String portraitPath;
   final String portraitPrompt;
@@ -1154,10 +1158,14 @@ class GeneratedPrompts {
   const GeneratedPrompts({
     required this.storyPrompt,
     required this.characterPrompt,
+    this.campaignTitle = '',
+    this.objectiveHint = '',
   });
 
   final String storyPrompt;
   final String characterPrompt;
+  final String campaignTitle;
+  final String objectiveHint;
 }
 
 /// RO-RO input for campaign prompt generation via AiClient.

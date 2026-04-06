@@ -1,11 +1,11 @@
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/config/ai_runtime_env.dart';
+import 'package:ai_prg/src/core/config/symmetry_runtime_env.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
-import 'package:ai_prg/src/core/services/ai_client.dart';
-import 'package:ai_prg/src/core/services/ai_service_factory.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final settingsControllerProvider =
@@ -20,6 +20,7 @@ class SettingsViewState {
     required this.isLoading,
     required this.isSaving,
     required this.isChecking,
+    required this.backendBaseUrl,
     required this.baseUrl,
     required this.model,
     required this.apiKey,
@@ -39,6 +40,7 @@ class SettingsViewState {
     isLoading: true,
     isSaving: false,
     isChecking: false,
+    backendBaseUrl: '',
     baseUrl: '',
     model: '',
     apiKey: '',
@@ -61,6 +63,7 @@ class SettingsViewState {
   final bool isLoading;
   final bool isSaving;
   final bool isChecking;
+  final String backendBaseUrl;
   final String baseUrl;
   final String model;
   final String apiKey;
@@ -79,6 +82,7 @@ class SettingsViewState {
     final bool? isLoading,
     final bool? isSaving,
     final bool? isChecking,
+    final String? backendBaseUrl,
     final String? baseUrl,
     final String? model,
     final String? apiKey,
@@ -96,6 +100,7 @@ class SettingsViewState {
     isLoading: isLoading ?? this.isLoading,
     isSaving: isSaving ?? this.isSaving,
     isChecking: isChecking ?? this.isChecking,
+    backendBaseUrl: backendBaseUrl ?? this.backendBaseUrl,
     baseUrl: baseUrl ?? this.baseUrl,
     model: model ?? this.model,
     apiKey: apiKey ?? this.apiKey,
@@ -125,14 +130,17 @@ class SettingsController extends StateNotifier<SettingsViewState> {
     }
     _didLoad = true;
 
-    final AiSettings persisted =
-        await _settingsRepository.loadAiSettingsPersisted();
+    final AiSettings persisted = await _settingsRepository
+        .loadAiSettingsPersisted();
     final AppLanguage appLanguage = await _settingsRepository.loadAppLanguage();
+    final String? backendBaseUrl = await _settingsRepository
+        .loadSymmetryBaseUrl();
 
     state = state.copyWith(
       appLanguage: appLanguage,
       confirmed18Plus: persisted.confirmed18Plus,
       isLoading: false,
+      backendBaseUrl: backendBaseUrl ?? SymmetryRuntimeEnv.defaultBaseUrl,
       baseUrl: persisted.baseUrl.trim(),
       model: persisted.model.trim(),
       apiKey: persisted.apiKey.trim().isNotEmpty ? persisted.apiKey : '',
@@ -172,14 +180,24 @@ class SettingsController extends StateNotifier<SettingsViewState> {
   void setBaseUrl(final String value) {
     state = state.copyWith(
       baseUrl: value,
-      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(value, state.model),
+      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(
+        value,
+        state.model,
+      ),
     );
+  }
+
+  void setBackendBaseUrl(final String value) {
+    state = state.copyWith(backendBaseUrl: value);
   }
 
   void setModel(final String value) {
     state = state.copyWith(
       model: value,
-      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(state.baseUrl, value),
+      showEndpointBuildDefaultsHint: _endpointBuildHintForForm(
+        state.baseUrl,
+        value,
+      ),
     );
   }
 
@@ -227,6 +245,7 @@ class SettingsController extends StateNotifier<SettingsViewState> {
 
     await _settingsRepository.saveAiSettings(currentSettings);
     await _settingsRepository.saveAppLanguage(state.appLanguage);
+    await _settingsRepository.saveSymmetryBaseUrl(state.backendBaseUrl.trim());
     _ref.read(appLanguageListenableProvider).value = state.appLanguage;
 
     state = state.copyWith(isSaving: false, status: l10n.settingsSaved);
@@ -234,14 +253,32 @@ class SettingsController extends StateNotifier<SettingsViewState> {
 
   Future<void> checkConnection({required final AppLocalizations l10n}) async {
     state = state.copyWith(isChecking: true, status: null);
+    final String backendBaseUrl = state.backendBaseUrl.trim();
+    final String effectiveBackendBaseUrl =
+        backendBaseUrl.isNotEmpty
+        ? backendBaseUrl
+        : await _symmetryAuthRepository.loadBaseUrl();
 
     try {
       final AiSettings effective = AiSettings.withEnvFallbacks(currentSettings);
-      final AiClient client = _aiServiceFactory.create(effective);
-      await client.checkConnection(settings: effective);
-      state = state.copyWith(status: l10n.connectionOk);
+      if (backendBaseUrl.isNotEmpty) {
+        await _settingsRepository.saveSymmetryBaseUrl(backendBaseUrl);
+      }
+      if (effective.isConfigured) {
+        await _symmetryAuthRepository.checkProviderConnection(
+          aiSettings: effective,
+        );
+        state = state.copyWith(status: l10n.connectionOk);
+      } else {
+        await _symmetryAuthRepository.checkBackendHealth(
+          baseUrlOverride: backendBaseUrl,
+        );
+        state = state.copyWith(status: l10n.symmetryBackendReachableLoginHint);
+      }
     } catch (error) {
-      state = state.copyWith(status: l10n.connectionFailed(error));
+      state = state.copyWith(
+        status: l10n.connectionFailedForUrl(effectiveBackendBaseUrl, error),
+      );
     } finally {
       state = state.copyWith(isChecking: false);
     }
@@ -279,9 +316,13 @@ class SettingsController extends StateNotifier<SettingsViewState> {
   SettingsRepository get _settingsRepository =>
       _ref.read(settingsRepositoryProvider);
 
-  AiServiceFactory get _aiServiceFactory => _ref.read(aiServiceFactoryProvider);
+  SymmetryAuthRepository get _symmetryAuthRepository =>
+      _ref.read(symmetryAuthRepositoryProvider);
 
-  static bool _endpointBuildHintForForm(final String baseUrl, final String model) =>
+  static bool _endpointBuildHintForForm(
+    final String baseUrl,
+    final String model,
+  ) =>
       (baseUrl.trim().isEmpty && AiRuntimeEnv.hasCompileTimeBaseUrl) ||
       (model.trim().isEmpty && AiRuntimeEnv.hasCompileTimeModel);
 }

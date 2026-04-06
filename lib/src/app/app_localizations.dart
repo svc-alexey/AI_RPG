@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:flutter/widgets.dart';
 
 class AppLocalizations {
@@ -58,6 +59,16 @@ class AppLocalizations {
   String get homeSecondaryCardSubtitle => switch (language) {
     AppLanguage.ru => 'Вернуться в сохранённый мир',
     AppLanguage.en => 'Return to a saved world',
+  };
+
+  String get homeLoginCardSubtitle => switch (language) {
+    AppLanguage.ru => 'Войти в аккаунт',
+    AppLanguage.en => 'Sign in to your account',
+  };
+
+  String homeSignedInCardSubtitle(final String name) => switch (language) {
+    AppLanguage.ru => 'Вы вошли как $name',
+    AppLanguage.en => 'Signed in as $name',
   };
 
   String get homeHeroTitle => switch (language) {
@@ -344,8 +355,8 @@ class AppLocalizations {
   };
 
   String get aiSettings => switch (language) {
-    AppLanguage.ru => 'Настройки ИИ',
-    AppLanguage.en => 'AI Settings',
+    AppLanguage.ru => 'Настройки',
+    AppLanguage.en => 'Settings',
   };
 
   String get whatsIncluded => switch (language) {
@@ -640,28 +651,18 @@ class AppLocalizations {
       'Could not generate the story start. Check AI settings and try again.',
   };
 
-  /// Web: direct calls to provider APIs are blocked by browser CORS; use a proxy or native build.
   String get promptGenerationFailedWeb => switch (language) {
     AppLanguage.ru =>
-      'В веб-версии браузер часто блокирует прямые запросы к API нейросети (CORS) — '
-          'это не ошибка ключа в настройках. Решения: обратный прокси на вашем домене '
-          '(см. docs/DEPLOY_WEB.md и tool/cloudflare_worker_deepseek_proxy) или сборка '
-          'Android / iOS / desktop, где ограничения CORS нет.',
+      'Не удалось получить ответ от нейросети через сервер игры. Обычно причина в одном из трёх: вы не вошли в аккаунт, сервер игры недоступен или неверно указаны URL / модель / API-ключ.',
     AppLanguage.en =>
-      'In the web build the browser often blocks direct calls to the model API (CORS)—'
-          'this is not necessarily a bad API key. Fix: run a small reverse proxy on a '
-          'domain you control (see docs/DEPLOY_WEB.md and tool/cloudflare_worker_deepseek_proxy) '
-          'or use Android / iOS / desktop builds, which are not limited by CORS.',
+      'Could not reach the model through the game server. Usually this means one of three things: you are not signed in, the game server is unavailable, or the URL / model / API key is wrong.',
   };
 
   String get settingsWebAiCorsHint => switch (language) {
     AppLanguage.ru =>
-      'В браузере запросы к большинству облачных API (включая DeepSeek) режутся политикой '
-          'CORS. Для публичного сайта укажите базовый URL своего прокси к тому же API '
-          'или используйте нативное приложение.',
+      'Теперь в веб-версии приложение обращается к нейросети через сервер игры, а не напрямую из браузера. Здесь нужно указать данные вашей модели, а для проверки и генерации сначала войти в аккаунт.',
     AppLanguage.en =>
-      'Browsers block most cross-origin model API calls (CORS), including DeepSeek. '
-          'For a public site, point Base URL at your own proxy to the same API, or use a native build.',
+      'In the web version the app now talks to the model through the game server instead of directly from the browser. Enter your model settings here, and sign in before testing or generating.',
   };
 
   String get quickStartNeedsAi => switch (language) {
@@ -1187,9 +1188,28 @@ class AppLocalizations {
     AppLanguage.en => 'Connection successful.',
   };
 
+  String get symmetryBackendReachableLoginHint => switch (language) {
+    AppLanguage.ru =>
+      'Сервер игры доступен. Настройки сохранены локально, но чтобы проверить нейросеть, сначала войдите в аккаунт.',
+    AppLanguage.en =>
+      'The game server is reachable. Your settings are stored locally, but sign in first to check the AI provider.',
+  };
+
   String connectionFailed(final Object error) => switch (language) {
-    AppLanguage.ru => 'Не удалось проверить подключение: $error',
-    AppLanguage.en => 'Failed to check connection: $error',
+    AppLanguage.ru =>
+      'Не удалось проверить подключение: ${symmetryFriendlyError(error)}',
+    AppLanguage.en =>
+      'Failed to check connection: ${symmetryFriendlyError(error)}',
+  };
+
+  String connectionFailedForUrl(
+    final String url,
+    final Object error,
+  ) => switch (language) {
+    AppLanguage.ru =>
+      'Не удалось проверить подключение к $url: ${symmetryFriendlyError(error)}',
+    AppLanguage.en =>
+      'Failed to check connection to $url: ${symmetryFriendlyError(error)}',
   };
 
   String serverReturned(final int statusCode) => switch (language) {
@@ -1329,6 +1349,325 @@ class AppLocalizations {
   String get createNewCampaign => switch (language) {
     AppLanguage.ru => 'Создать новую кампанию',
     AppLanguage.en => 'Create New Campaign',
+  };
+
+  String get authTitle => switch (language) {
+    AppLanguage.ru => 'Вход',
+    AppLanguage.en => 'Sign in',
+  };
+
+  String get closeAction => switch (language) {
+    AppLanguage.ru => 'Закрыть',
+    AppLanguage.en => 'Close',
+  };
+
+  String get serverAddressLabel => switch (language) {
+    AppLanguage.ru => 'Адрес сервера',
+    AppLanguage.en => 'Server address',
+  };
+
+  String get accountTitle => switch (language) {
+    AppLanguage.ru => 'Аккаунт',
+    AppLanguage.en => 'Account',
+  };
+
+  String get personalModelTitle => switch (language) {
+    AppLanguage.ru => 'Своя ИИ-модель',
+    AppLanguage.en => 'Your AI model',
+  };
+
+  String get personalModelHint => switch (language) {
+    AppLanguage.ru =>
+      'Вы можете ввести свой ключ от ИИ-модели для генерации кампании. Ваш ключ хранится только локально.',
+    AppLanguage.en =>
+      'You can enter your own AI model key for campaign generation. Your key is stored only locally.',
+  };
+
+  String get emailLabel => switch (language) {
+    AppLanguage.ru => 'Email',
+    AppLanguage.en => 'Email',
+  };
+
+  String get passwordLabel => switch (language) {
+    AppLanguage.ru => 'Пароль',
+    AppLanguage.en => 'Password',
+  };
+
+  String get displayNameLabel => switch (language) {
+    AppLanguage.ru => 'Отображаемое имя',
+    AppLanguage.en => 'Display name',
+  };
+
+  String get authEmailRequired => switch (language) {
+    AppLanguage.ru => 'Введите email.',
+    AppLanguage.en => 'Enter your email.',
+  };
+
+  String get authEmailInvalid => switch (language) {
+    AppLanguage.ru => 'Введите корректный email.',
+    AppLanguage.en => 'Enter a valid email.',
+  };
+
+  String get authPasswordRequired => switch (language) {
+    AppLanguage.ru => 'Введите пароль.',
+    AppLanguage.en => 'Enter your password.',
+  };
+
+  String get authPasswordTooShort => switch (language) {
+    AppLanguage.ru => 'Пароль должен быть не короче 8 символов.',
+    AppLanguage.en => 'Password must be at least 8 characters long.',
+  };
+
+  String get authDisplayNameTooLong => switch (language) {
+    AppLanguage.ru => 'Отображаемое имя слишком длинное.',
+    AppLanguage.en => 'Display name is too long.',
+  };
+
+  String get loginAction => switch (language) {
+    AppLanguage.ru => 'Войти',
+    AppLanguage.en => 'Log In',
+  };
+
+  String get registerAction => switch (language) {
+    AppLanguage.ru => 'Зарегистрироваться',
+    AppLanguage.en => 'Register',
+  };
+
+  String get switchToRegisterAction => switch (language) {
+    AppLanguage.ru => 'Нет аккаунта? Зарегистрироваться',
+    AppLanguage.en => 'No account? Register',
+  };
+
+  String get switchToLoginAction => switch (language) {
+    AppLanguage.ru => 'Уже есть аккаунт? Войти',
+    AppLanguage.en => 'Already have an account? Log in',
+  };
+
+  String authLoginFailed(final Object error) => switch (language) {
+    AppLanguage.ru => 'Не удалось войти: ${symmetryFriendlyError(error)}',
+    AppLanguage.en => 'Login failed: ${symmetryFriendlyError(error)}',
+  };
+
+  String authRegisterFailed(final Object error) => switch (language) {
+    AppLanguage.ru =>
+      'Не удалось зарегистрироваться: ${symmetryFriendlyError(error)}',
+    AppLanguage.en => 'Registration failed: ${symmetryFriendlyError(error)}',
+  };
+
+  String get authEmailTaken => switch (language) {
+    AppLanguage.ru => 'Этот email уже зарегистрирован.',
+    AppLanguage.en => 'This email is already registered.',
+  };
+
+  String get authInvalidLogin => switch (language) {
+    AppLanguage.ru => 'Неверный email или пароль.',
+    AppLanguage.en => 'Invalid email or password.',
+  };
+
+  String get authRegisterValidationFailed => switch (language) {
+    AppLanguage.ru =>
+      'Проверьте email и пароль: пароль должен быть не короче 8 символов.',
+    AppLanguage.en =>
+      'Check your email and password: the password must be at least 8 characters long.',
+  };
+
+  String get authLoginValidationFailed => switch (language) {
+    AppLanguage.ru =>
+      'Проверьте email и пароль: пароль должен быть не короче 8 символов.',
+    AppLanguage.en =>
+      'Check your email and password: the password must be at least 8 characters long.',
+  };
+
+  String get authBackendUnavailable => switch (language) {
+    AppLanguage.ru =>
+      'Сервер игры сейчас недоступен. Проверьте адрес сервера и попробуйте ещё раз.',
+    AppLanguage.en =>
+      'The game server is currently unavailable. Check the server URL and try again.',
+  };
+
+  String symmetryFriendlyError(final Object error) {
+    if (error is SymmetryApiException) {
+      if (error.hasValidationErrors) {
+        return _validationFriendlyError(error.validationErrors);
+      }
+      final String? detail = error.detailCode;
+      if (detail != null && detail.isNotEmpty) {
+        return _detailFriendlyError(detail);
+      }
+      return _statusFriendlyError(error.statusCode);
+    }
+    if (error is StateError) {
+      final String raw = error.toString();
+      if (raw.contains('symmetry_session_required')) {
+        return switch (language) {
+          AppLanguage.ru => 'Сначала войдите в аккаунт.',
+          AppLanguage.en => 'Sign in first.',
+        };
+      }
+      if (raw.contains('symmetry_unreachable')) {
+        return authBackendUnavailable;
+      }
+      if (raw.contains('symmetry_invalid_response')) {
+        return switch (language) {
+          AppLanguage.ru => 'Сервер игры вернул неожиданный ответ.',
+          AppLanguage.en => 'The game server returned an unexpected response.',
+        };
+      }
+    }
+    final String raw = error.toString().toLowerCase();
+    if (raw.contains('xmlhttprequest error') ||
+        raw.contains('clientexception') ||
+        raw.contains('socketexception') ||
+        raw.contains('connection refused') ||
+        raw.contains('failed host lookup') ||
+        raw.contains('connection closed before full header was received')) {
+      return authBackendUnavailable;
+    }
+    if (raw.contains('timeout')) {
+      return switch (language) {
+        AppLanguage.ru =>
+          'Сервер игры отвечает слишком долго. Попробуйте ещё раз.',
+        AppLanguage.en =>
+          'The game server is taking too long to respond. Please try again.',
+      };
+    }
+    return switch (language) {
+      AppLanguage.ru => 'Произошла непредвиденная ошибка.',
+      AppLanguage.en => 'An unexpected error occurred.',
+    };
+  }
+
+  String _detailFriendlyError(final String detail) => switch (detail) {
+    'email_taken' => authEmailTaken,
+    'invalid_login' => authInvalidLogin,
+    'invalid_refresh_token' => switch (language) {
+      AppLanguage.ru => 'Сессия истекла. Войдите снова.',
+      AppLanguage.en => 'Your session has expired. Sign in again.',
+    },
+    'authentication_required' => switch (language) {
+      AppLanguage.ru => 'Сначала войдите в аккаунт.',
+      AppLanguage.en => 'Sign in first.',
+    },
+    'user_not_found' => switch (language) {
+      AppLanguage.ru => 'Пользователь не найден.',
+      AppLanguage.en => 'User not found.',
+    },
+    'missing_provider_credentials' => switch (language) {
+      AppLanguage.ru =>
+        'Укажите данные AI-провайдера или настройте серверный ключ.',
+      AppLanguage.en =>
+        'Provide AI provider credentials or configure a server-side key.',
+    },
+    'provider_connection_failed' => switch (language) {
+      AppLanguage.ru =>
+        'Не удалось подключиться к AI-провайдеру. Проверьте URL, модель и API-ключ.',
+      AppLanguage.en =>
+        'Could not connect to the AI provider. Check the URL, model, and API key.',
+    },
+    'provider_auth_failed' => switch (language) {
+      AppLanguage.ru =>
+        'AI-провайдер отклонил авторизацию. Проверьте API-ключ и доступ к модели.',
+      AppLanguage.en =>
+        'The AI provider rejected authorization. Check the API key and model access.',
+    },
+    'provider_rate_limited' => switch (language) {
+      AppLanguage.ru =>
+        'У AI-провайдера временно исчерпан лимит запросов. Попробуйте чуть позже.',
+      AppLanguage.en =>
+        'The AI provider rate limit has been reached. Please try again later.',
+    },
+    'campaign_not_found' => switch (language) {
+      AppLanguage.ru => 'Кампания не найдена.',
+      AppLanguage.en => 'Campaign not found.',
+    },
+    'snapshot_not_found' => switch (language) {
+      AppLanguage.ru => 'Снимок кампании не найден.',
+      AppLanguage.en => 'Campaign snapshot not found.',
+    },
+    'campaign_runtime_not_found' => switch (language) {
+      AppLanguage.ru => 'Не удалось загрузить состояние кампании.',
+      AppLanguage.en => 'Could not load the campaign state.',
+    },
+    'story_template_not_found' => switch (language) {
+      AppLanguage.ru => 'Шаблон истории не найден.',
+      AppLanguage.en => 'Story template not found.',
+    },
+    'missing_code' => switch (language) {
+      AppLanguage.ru => 'Не получен код авторизации.',
+      AppLanguage.en => 'Authorization code is missing.',
+    },
+    'invalid_yandex_profile' => switch (language) {
+      AppLanguage.ru => 'Yandex вернул неполный профиль пользователя.',
+      AppLanguage.en => 'Yandex returned an incomplete user profile.',
+    },
+    'yandex_oauth_not_configured' => switch (language) {
+      AppLanguage.ru => 'Вход через Yandex пока не настроен.',
+      AppLanguage.en => 'Yandex sign-in is not configured yet.',
+    },
+    _ => _statusFriendlyError(null),
+  };
+
+  String _statusFriendlyError(final int? statusCode) => switch (statusCode) {
+    400 => switch (language) {
+      AppLanguage.ru => 'Запрос заполнен некорректно.',
+      AppLanguage.en => 'The request is invalid.',
+    },
+    401 => switch (language) {
+      AppLanguage.ru => 'Требуется вход в аккаунт.',
+      AppLanguage.en => 'Sign-in is required.',
+    },
+    404 => switch (language) {
+      AppLanguage.ru => 'Запрошенные данные не найдены.',
+      AppLanguage.en => 'The requested data was not found.',
+    },
+    409 => switch (language) {
+      AppLanguage.ru => 'Такой объект уже существует.',
+      AppLanguage.en => 'This item already exists.',
+    },
+    422 => switch (language) {
+      AppLanguage.ru => 'Некоторые поля заполнены неверно.',
+      AppLanguage.en => 'Some fields are invalid.',
+    },
+    502 => switch (language) {
+      AppLanguage.ru => 'Внешний AI-сервис сейчас недоступен.',
+      AppLanguage.en => 'The external AI service is currently unavailable.',
+    },
+    _ => switch (language) {
+      AppLanguage.ru => 'Произошла ошибка на стороне сервиса.',
+      AppLanguage.en => 'A service error occurred.',
+    },
+  };
+
+  String _validationFriendlyError(final List<String> errors) {
+    final String joined = errors.join(' | ').toLowerCase();
+    if (joined.contains('password') && joined.contains('at least 8')) {
+      return authPasswordTooShort;
+    }
+    if (joined.contains('email')) {
+      return authEmailInvalid;
+    }
+    if (joined.contains('display_name')) {
+      return authDisplayNameTooLong;
+    }
+    return switch (language) {
+      AppLanguage.ru => 'Некоторые поля заполнены неверно.',
+      AppLanguage.en => 'Some fields are invalid.',
+    };
+  }
+
+  String get signOutAction => switch (language) {
+    AppLanguage.ru => 'Выйти из аккаунта',
+    AppLanguage.en => 'Sign out',
+  };
+
+  String get signOutShortAction => switch (language) {
+    AppLanguage.ru => 'Выйти',
+    AppLanguage.en => 'Sign out',
+  };
+
+  String get signedOutStatus => switch (language) {
+    AppLanguage.ru => 'Сессия завершена.',
+    AppLanguage.en => 'Signed out.',
   };
 }
 

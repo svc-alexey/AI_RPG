@@ -62,11 +62,17 @@ local.properties
 # Local app data and generated caches
 .codex/
 .idea/
+.pytest_cache/
+__pycache__/
 *.db
 *.sqlite
 *.sqlite3
 *.tmp
 *.temp
+
+# Local backend model cache
+backend/symmetry/models/*
+!backend/symmetry/models/.gitkeep
 
 # OS / editor local files
 Thumbs.db

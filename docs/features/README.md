@@ -27,3 +27,13 @@
 - [.specify/memory/constitution.md](D:/AI_PRG/.specify/memory/constitution.md)
 - [.specify/memory/project-context.md](D:/AI_PRG/.specify/memory/project-context.md)
 - [.specify/memory/project-settings.md](D:/AI_PRG/.specify/memory/project-settings.md)
+
+## Дополнительно для текущей server-first платформы
+
+- Если фича меняет границы между Flutter и `Symmetry`, нужно обновить:
+  - [PRD.md](D:/AI_PRG/PRD.md)
+  - [Architecture.md](D:/AI_PRG/Architecture.md)
+  - [docs/AGENT_CONTEXT.md](D:/AI_PRG/docs/AGENT_CONTEXT.md)
+  - соответствующий feature packet
+- Если фича меняет схему БД backend-а, нужно добавить Alembic migration.
+- Нельзя возвращать local campaign runtime flow как основной путь приложения.

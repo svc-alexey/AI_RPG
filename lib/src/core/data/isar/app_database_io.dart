@@ -1,12 +1,10 @@
 import 'dart:convert';
 
-import 'package:ai_prg/src/core/data/isar/campaign_local_data_source.dart';
 import 'package:ai_prg/src/core/data/isar/isar_collections.dart';
 import 'package:ai_prg/src/core/data/isar/settings_local_data_source.dart';
 import 'package:ai_prg/src/core/data/isar/storage_backend.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
-import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,10 +19,8 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase();
 
   static const String _schemaVersionKey = 'storage.schema_version';
-  static const int _currentSchemaVersion = 6;
+  static const int _currentSchemaVersion = 7;
   static const String _legacyAiSettingsKey = 'settings.ai';
-  static const CampaignLocalDataSource _campaignLocal =
-      CampaignLocalDataSource();
   static const SettingsLocalDataSource _settingsLocal =
       SettingsLocalDataSource();
 
@@ -104,11 +100,6 @@ class AppDatabase {
       final String directory = await _resolveDirectory();
       final List<CollectionSchema<dynamic>> schemas =
           <CollectionSchema<dynamic>>[
-            CampaignRecordSchema,
-            WorldStateRecordSchema,
-            MessageRecordSchema,
-            InventoryItemRecordSchema,
-            CompanionRecordSchema,
             ProviderProfileRecordSchema,
             ModelControlRecordSchema,
             AppSettingRecordSchema,
@@ -169,21 +160,6 @@ class AppDatabase {
       await _settingsLocal.saveAppLanguage(isar, AppLanguage.ru);
     }
 
-    if ((await isar.campaignRecords.where().count()) > 0) {
-      final List<CampaignState> campaigns = await _campaignLocal
-          .loadAllCampaigns(isar);
-      for (final CampaignState campaign in campaigns) {
-        await _campaignLocal.saveCampaign(
-          isar,
-          campaign.copyWith(
-            schemaVersion: campaign.schemaVersion < 4
-                ? 4
-                : campaign.schemaVersion,
-          ),
-        );
-      }
-    }
-
     await isar.writeTxn(() async {
       await isar.appSettingRecords.put(
         AppSettingRecord()
@@ -193,5 +169,4 @@ class AppDatabase {
       );
     });
   }
-
 }

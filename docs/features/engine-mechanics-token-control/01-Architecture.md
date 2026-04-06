@@ -1,5 +1,10 @@
 # Architecture: AI RPG Engine Core, Mechanics & Token Control
 
+> Historical note: this document describes the earlier client-local architecture
+> that preceded the server-first `Symmetry` migration. For the current source of
+> truth, see [Architecture.md](/D:/AI_PRG/Architecture.md) and
+> [docs/features/symmetry-hybrid-backend/01-Architecture.md](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/01-Architecture.md).
+
 ## 1. Контекст
 
 Текущая реализация уже содержит рабочий MVP, но архитектурно остается ближе к desktop prototype:

@@ -5,6 +5,7 @@ import 'package:ai_prg/src/core/data/storage/adaptive_settings_storage.dart';
 import 'package:ai_prg/src/core/data/storage/settings_storage.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 
 class SettingsRepository {
   SettingsRepository({
@@ -37,4 +38,15 @@ class SettingsRepository {
 
   Future<void> saveAppLanguage(final AppLanguage language) =>
       _storage.saveAppLanguage(language);
+
+  Future<String?> loadSymmetryBaseUrl() => _storage.loadSymmetryBaseUrl();
+
+  Future<void> saveSymmetryBaseUrl(final String baseUrl) =>
+      _storage.saveSymmetryBaseUrl(baseUrl);
+
+  Future<SymmetrySession?> loadSymmetrySession() =>
+      _storage.loadSymmetrySession();
+
+  Future<void> saveSymmetrySession(final SymmetrySession? session) =>
+      _storage.saveSymmetrySession(session);
 }

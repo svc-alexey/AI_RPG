@@ -1,5 +1,10 @@
 # Architecture Plan: Deterministic Systems
 
+> Historical note: this document describes deterministic logic as introduced in
+> the earlier client-local runtime. Today the platform is server-first; use this
+> packet as historical implementation context, not as the primary architecture
+> source of truth.
+
 ## 1. Context
 
 This slice lives on top of the existing local-first RPG stack:

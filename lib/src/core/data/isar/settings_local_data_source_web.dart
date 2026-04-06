@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 
 class SettingsLocalDataSource {
   const SettingsLocalDataSource();
@@ -30,5 +31,21 @@ class SettingsLocalDataSource {
   Future<void> saveAppLanguageInTxn(
     final Object isar,
     final AppLanguage language,
+  ) async => _unsupported();
+
+  Future<String?> loadSymmetryBaseUrl(final Object isar) async =>
+      _unsupported();
+
+  Future<void> saveSymmetryBaseUrl(
+    final Object isar,
+    final String baseUrl,
+  ) async => _unsupported();
+
+  Future<SymmetrySession?> loadSymmetrySession(final Object isar) async =>
+      _unsupported();
+
+  Future<void> saveSymmetrySession(
+    final Object isar,
+    final SymmetrySession? session,
   ) async => _unsupported();
 }
