@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     rag_top_k: int = 5
     rag_hnsw_ef_search: int = 40
     memory_importance_threshold: int = 7
+    worker_poll_interval_seconds: float = 2.0
+    worker_batch_size: int = 8
 
     yandex_client_id: str = ""
     yandex_client_secret: str = ""

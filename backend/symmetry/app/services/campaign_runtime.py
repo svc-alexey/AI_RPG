@@ -13,8 +13,9 @@ from app.services.presentation_text import (
 def build_initial_state(payload) -> dict[str, Any]:
     language = payload.language.strip() or "ru"
     location = normalize_location_label("", language=language)
+    story_prompt = payload.story_prompt.strip()
     objective = normalize_objective_text(
-        payload.objective_hint.strip() or payload.story_prompt.strip(),
+        payload.objective_hint.strip() or story_prompt,
         language=language,
     )
     return {
@@ -25,6 +26,7 @@ def build_initial_state(payload) -> dict[str, Any]:
         "difficulty": payload.difficulty,
         "language": language,
         "turn_number": 0,
+        "custom_story_prompt": story_prompt,
         "location": location,
         "objective": objective,
         "character": {
@@ -55,7 +57,9 @@ class CampaignRuntimeService:
         state: dict[str, Any],
         world_state: WorldState,
         chronicles: list[WorldChronicle],
+        trigger_source: str,
     ) -> dict[str, Any]:
+        character = state.get("character", {}) or {}
         return {
             "campaign": {
                 "title": state.get("title", ""),
@@ -63,18 +67,24 @@ class CampaignRuntimeService:
                 "mode": state.get("mode", ""),
                 "difficulty": state.get("difficulty", ""),
                 "turn_number": state.get("turn_number", 0),
+                "story_prompt": state.get("custom_story_prompt", ""),
             },
             "memory": state.get("memory", {}),
             "world_state": {
                 "current_day": world_state.current_day,
                 "minute_of_day": world_state.minute_of_day,
                 "global_vars": world_state.global_vars,
+                "butterfly": (world_state.global_vars or {}).get("butterfly", {}),
             },
             "state": {
                 "location": state.get("location", ""),
                 "objective": state.get("objective", ""),
-                "character": state.get("character", {}),
+                "character": character,
+                "character_prompt": character.get("prompt_fragment", ""),
                 "choices": state.get("choices", []),
+            },
+            "request": {
+                "trigger_source": trigger_source,
             },
             "relevant_chronicles": [
                 {

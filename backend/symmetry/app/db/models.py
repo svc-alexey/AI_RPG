@@ -168,6 +168,23 @@ class WorldFaction(Base):
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
 
 
+class WorldEntity(Base):
+    __tablename__ = "world_entities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    campaign_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
+    )
+    slug: Mapped[str] = mapped_column(String(120), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    entity_kind: Mapped[str] = mapped_column(String(64), default="world")
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    influence: Mapped[int] = mapped_column(Integer, default=0)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class WorldChronicle(Base):
     __tablename__ = "world_chronicles"
 
@@ -197,6 +214,49 @@ class SimulationTick(Base):
     delta_minutes: Mapped[int] = mapped_column(Integer)
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SimulationJob(Base):
+    __tablename__ = "simulation_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    campaign_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
+    )
+    job_type: Mapped[str] = mapped_column(String(64), default="expand_consequences")
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    payload_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PendingConsequence(Base):
+    __tablename__ = "pending_consequences"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    campaign_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("campaigns.id", ondelete="CASCADE"), index=True
+    )
+    source_turn_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("campaign_turns.id", ondelete="SET NULL"), nullable=True
+    )
+    source_snapshot_version: Mapped[int] = mapped_column(Integer, default=0)
+    mode: Mapped[str] = mapped_column(String(50), default="shortStory")
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    due_turn_number: Mapped[int] = mapped_column(Integer, default=1)
+    entity_kind: Mapped[str] = mapped_column(String(64), default="world")
+    entity_slug: Mapped[str] = mapped_column(String(120), default="", index=True)
+    effect_type: Mapped[str] = mapped_column(String(64), default="rumor")
+    strength: Mapped[int] = mapped_column(Integer, default=1)
+    visibility: Mapped[str] = mapped_column(String(16), default="hidden")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    payload_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class StoryTemplate(Base):

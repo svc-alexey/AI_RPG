@@ -1,0 +1,792 @@
+from copy import deepcopy
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models import PendingConsequence, SimulationJob, WorldChronicle, WorldEntity, WorldState
+from app.services.embeddings import get_embedding_service
+from app.services.ids import new_id
+from app.services.presentation_text import normalize_location_label
+
+
+class ButterflyService:
+    _MODE_PROFILES = {
+        "shortStory": {
+            "seed_limit": 2,
+            "strength_cap": 2,
+            "delay_cap": 2,
+            "effect_history_limit": 3,
+        },
+        "longCampaign": {
+            "seed_limit": 4,
+            "strength_cap": 4,
+            "delay_cap": 5,
+            "effect_history_limit": 6,
+        },
+    }
+    _VALID_ENTITY_KINDS = {"company", "faction", "location", "market", "world"}
+    _VALID_EFFECT_TYPES = {
+        "alertness",
+        "instability",
+        "influence",
+        "opportunity",
+        "rumor",
+        "scarcity",
+        "trust",
+    }
+
+    async def seed_world(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str,
+        mode: str,
+        language: str,
+        location: str,
+        world_state: WorldState,
+    ) -> list[WorldEntity]:
+        result = await session.execute(
+            select(WorldEntity)
+            .where(WorldEntity.campaign_id == campaign_id)
+            .order_by(WorldEntity.created_at)
+        )
+        entities = list(result.scalars().all())
+        if not entities:
+            defaults = self.default_entities_for_mode(
+                mode=mode,
+                language=language,
+                location=location,
+            )
+            for item in defaults:
+                entity = WorldEntity(
+                    id=new_id(),
+                    campaign_id=campaign_id,
+                    slug=item["slug"],
+                    title=item["title"],
+                    entity_kind=item["entity_kind"],
+                    metadata_json={"seeded": True},
+                )
+                session.add(entity)
+                entities.append(entity)
+            await session.flush()
+        self._write_butterfly_summary(
+            world_state,
+            mode=mode,
+            entities=entities,
+        )
+        return entities
+
+    def default_entities_for_mode(
+        self,
+        *,
+        mode: str,
+        language: str,
+        location: str,
+    ) -> list[dict[str, str]]:
+        location_title = normalize_location_label(location, language=language)
+        location_slug = self.slugify(location_title) or "starting-point"
+        if language.startswith("ru"):
+            base = [
+                {
+                    "slug": location_slug,
+                    "title": location_title,
+                    "entity_kind": "location",
+                },
+                {
+                    "slug": "local-guild",
+                    "title": "Местная гильдия",
+                    "entity_kind": "company",
+                },
+                {
+                    "slug": "supply-caravan",
+                    "title": "Караван снабжения",
+                    "entity_kind": "company",
+                },
+                {
+                    "slug": "civic-watch",
+                    "title": "Городская стража",
+                    "entity_kind": "faction",
+                },
+            ]
+            if mode == "longCampaign":
+                base.append(
+                    {
+                        "slug": "shadow-market",
+                        "title": "Теневой рынок",
+                        "entity_kind": "market",
+                    }
+                )
+            return base
+
+        base = [
+            {
+                "slug": location_slug,
+                "title": location_title,
+                "entity_kind": "location",
+            },
+            {
+                "slug": "local-guild",
+                "title": "Local Guild",
+                "entity_kind": "company",
+            },
+            {
+                "slug": "supply-caravan",
+                "title": "Supply Caravan",
+                "entity_kind": "company",
+            },
+            {
+                "slug": "civic-watch",
+                "title": "Civic Watch",
+                "entity_kind": "faction",
+            },
+        ]
+        if mode == "longCampaign":
+            base.append(
+                {
+                    "slug": "shadow-market",
+                    "title": "Shadow Market",
+                    "entity_kind": "market",
+                }
+            )
+        return base
+
+    def normalize_impact_seeds(
+        self,
+        raw_items: Any,
+        *,
+        mode: str,
+        current_location: str,
+    ) -> list[dict[str, Any]]:
+        profile = self.profile(mode)
+        items = raw_items if isinstance(raw_items, list) else []
+        normalized: list[dict[str, Any]] = []
+        seen: set[tuple[str, str, str]] = set()
+        for raw in items:
+            if not isinstance(raw, dict):
+                continue
+            entity_kind = str(raw.get("entity_kind", "")).strip().lower()
+            if entity_kind not in self._VALID_ENTITY_KINDS:
+                entity_kind = "company" if mode == "longCampaign" else "location"
+            effect_type = str(raw.get("impact_type", "")).strip().lower()
+            if effect_type not in self._VALID_EFFECT_TYPES:
+                effect_type = "rumor"
+            entity_slug = self.slugify(str(raw.get("entity_slug", "")).strip())
+            if not entity_slug:
+                entity_slug = self._default_slug_for_kind(
+                    entity_kind=entity_kind,
+                    current_location=current_location,
+                )
+            key = (entity_kind, entity_slug, effect_type)
+            if key in seen:
+                continue
+            seen.add(key)
+            strength = self._clamp_int(
+                raw.get("strength", 1),
+                minimum=1,
+                maximum=profile["strength_cap"],
+            )
+            delay_min = self._clamp_int(raw.get("delay_min_turns", 1), minimum=1, maximum=profile["delay_cap"])
+            delay_max = self._clamp_int(raw.get("delay_max_turns", delay_min), minimum=delay_min, maximum=profile["delay_cap"])
+            visibility = str(raw.get("visibility", "")).strip().lower()
+            if visibility not in {"public", "hidden"}:
+                visibility = "hidden" if mode == "longCampaign" else "public"
+            summary = " ".join(str(raw.get("summary", "")).split()).strip()
+            if not summary:
+                summary = self._fallback_summary(effect_type=effect_type, entity_kind=entity_kind, mode=mode)
+            normalized.append(
+                {
+                    "entity_kind": entity_kind,
+                    "entity_slug": entity_slug,
+                    "impact_type": effect_type,
+                    "strength": strength,
+                    "delay_min_turns": delay_min,
+                    "delay_max_turns": delay_max,
+                    "visibility": visibility,
+                    "summary": summary,
+                }
+            )
+            if len(normalized) >= profile["seed_limit"]:
+                break
+        return normalized
+
+    def fallback_seed_from_turn(
+        self,
+        *,
+        mode: str,
+        importance: int,
+        summary: str,
+        current_location: str,
+    ) -> list[dict[str, Any]]:
+        cleaned_summary = " ".join(summary.split()).strip()
+        if not cleaned_summary:
+            return []
+        effect_type = "rumor" if importance < 7 else "instability"
+        entity_kind = "location" if mode == "shortStory" else "company"
+        return self.normalize_impact_seeds(
+            [
+                {
+                    "entity_kind": entity_kind,
+                    "entity_slug": "",
+                    "impact_type": effect_type,
+                    "strength": 1 if mode == "shortStory" else 2,
+                    "delay_min_turns": 1,
+                    "delay_max_turns": 1 if mode == "shortStory" else 3,
+                    "visibility": "public" if mode == "shortStory" else "hidden",
+                    "summary": cleaned_summary,
+                }
+            ],
+            mode=mode,
+            current_location=current_location,
+        )
+
+    async def enqueue_followup_job(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str,
+        mode: str,
+        language: str,
+        turn_id: str,
+        source_snapshot_version: int,
+        turn_number: int,
+        current_location: str,
+        impact_seeds: list[dict[str, Any]],
+        source_summary: str,
+    ) -> SimulationJob | None:
+        if not impact_seeds:
+            return None
+        job = SimulationJob(
+            id=new_id(),
+            campaign_id=campaign_id,
+            job_type="expand_consequences",
+            status="pending",
+            payload_json={
+                "mode": mode,
+                "language": language,
+                "turn_id": turn_id,
+                "source_snapshot_version": source_snapshot_version,
+                "turn_number": turn_number,
+                "current_location": current_location,
+                "impact_seeds": impact_seeds,
+                "source_summary": source_summary,
+            },
+        )
+        session.add(job)
+        return job
+
+    async def enqueue_chronicle_job(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str,
+        location_slug: str,
+        memory_entry: str,
+        world_event_summary: str,
+        importance: int,
+        metadata_json: dict,
+    ) -> SimulationJob | None:
+        event_text = (world_event_summary or memory_entry).strip()
+        if not event_text:
+            return None
+        job = SimulationJob(
+            id=new_id(),
+            campaign_id=campaign_id,
+            job_type="persist_chronicle_event",
+            status="pending",
+            payload_json={
+                "location_slug": location_slug,
+                "memory_entry": memory_entry,
+                "world_event_summary": world_event_summary,
+                "importance": importance,
+                "metadata_json": metadata_json,
+            },
+        )
+        session.add(job)
+        return job
+
+    async def process_ready_jobs(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str | None,
+        limit: int = 8,
+    ) -> int:
+        now = datetime.now(UTC)
+        stmt = (
+            select(SimulationJob)
+            .where(
+                SimulationJob.status == "pending",
+                SimulationJob.available_at <= now,
+            )
+            .order_by(SimulationJob.created_at)
+            .limit(limit)
+        )
+        if campaign_id is not None:
+            stmt = stmt.where(SimulationJob.campaign_id == campaign_id)
+        result = await session.execute(stmt)
+        jobs = list(result.scalars().all())
+        processed = 0
+        for job in jobs:
+            job.status = "processing"
+            job.attempts += 1
+            job.started_at = now
+            try:
+                if job.job_type == "expand_consequences":
+                    await self._expand_job(session, job=job)
+                elif job.job_type == "persist_chronicle_event":
+                    await self._persist_chronicle_job(session, job=job)
+                else:
+                    raise ValueError(f"unsupported_job_type:{job.job_type}")
+            except Exception as exc:
+                job.status = "failed"
+                job.last_error = str(exc)[:500]
+                job.finished_at = datetime.now(UTC)
+            else:
+                job.status = "completed"
+                job.last_error = ""
+                job.finished_at = datetime.now(UTC)
+                processed += 1
+        return processed
+
+    async def apply_due_consequences(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str,
+        world_state: WorldState,
+        upcoming_turn_number: int,
+    ) -> list[dict[str, Any]]:
+        result = await session.execute(
+            select(PendingConsequence)
+            .where(
+                PendingConsequence.campaign_id == campaign_id,
+                PendingConsequence.status == "pending",
+                PendingConsequence.due_turn_number <= upcoming_turn_number,
+            )
+            .order_by(PendingConsequence.due_turn_number, PendingConsequence.created_at)
+        )
+        consequences = list(result.scalars().all())
+        if not consequences:
+            return []
+
+        global_vars = deepcopy(world_state.global_vars or {})
+        butterfly = dict(global_vars.get("butterfly", {}) or {})
+        active_effects = list(butterfly.get("active_effects", []) or [])
+        recent_events = list(butterfly.get("recent_offscreen_events", []) or [])
+        prices = dict(global_vars.get("prices", {}) or {})
+        factions = dict(global_vars.get("factions", {}) or {})
+        embedding_service = get_embedding_service()
+        applied: list[dict[str, Any]] = []
+        now = datetime.now(UTC)
+
+        for consequence in consequences:
+            entry = {
+                "entity_kind": consequence.entity_kind,
+                "entity_slug": consequence.entity_slug,
+                "effect_type": consequence.effect_type,
+                "strength": consequence.strength,
+                "summary": consequence.summary,
+                "due_turn_number": consequence.due_turn_number,
+                "visibility": consequence.visibility,
+            }
+            active_effects.append(entry)
+            recent_events.append(entry)
+            self._apply_world_delta(
+                prices=prices,
+                factions=factions,
+                consequence=consequence,
+            )
+            event_text = self.render_offscreen_event_text(
+                consequence=consequence,
+                language=str(consequence.payload_json.get("language", "ru")),
+            )
+            vector = embedding_service.encode_document(event_text)
+            session.add(
+                WorldChronicle(
+                    id=new_id(),
+                    campaign_id=campaign_id,
+                    location_slug=str(consequence.payload_json.get("location_slug", "")),
+                    entity_type=consequence.entity_kind,
+                    event_text=event_text,
+                    importance=max(1, min(10, consequence.strength + 3)),
+                    tags=["background", consequence.effect_type],
+                    metadata_json={
+                        "source": "butterfly_effect",
+                        "visibility": consequence.visibility,
+                        "due_turn_number": consequence.due_turn_number,
+                    },
+                    vector=vector,
+                )
+            )
+            await self._touch_entity(
+                session,
+                campaign_id=campaign_id,
+                entity_slug=consequence.entity_slug,
+                delta=consequence.strength,
+            )
+            consequence.status = "applied"
+            consequence.resolved_at = now
+            applied.append(entry)
+
+        profile = self.profile(str(butterfly.get("mode", "shortStory")))
+        butterfly["active_effects"] = active_effects[-profile["effect_history_limit"] :]
+        butterfly["recent_offscreen_events"] = recent_events[-5:]
+        global_vars["prices"] = prices
+        global_vars["factions"] = factions
+        global_vars["butterfly"] = butterfly
+        world_state.global_vars = global_vars
+        return applied
+
+    def apply_immediate_world_patch(
+        self,
+        world_state: WorldState,
+        *,
+        global_vars_patch: Any,
+    ) -> None:
+        if not isinstance(global_vars_patch, dict) or not global_vars_patch:
+            return
+        updated = deepcopy(world_state.global_vars or {})
+        for key, value in global_vars_patch.items():
+            if isinstance(value, dict) and isinstance(updated.get(key), dict):
+                merged = dict(updated.get(key, {}) or {})
+                merged.update(value)
+                updated[key] = merged
+            else:
+                updated[key] = value
+        world_state.global_vars = updated
+
+    def profile(self, mode: str) -> dict[str, int]:
+        return self._MODE_PROFILES.get(mode, self._MODE_PROFILES["shortStory"])
+
+    def render_offscreen_event_text(
+        self,
+        *,
+        consequence: PendingConsequence,
+        language: str,
+    ) -> str:
+        entity_title = str(consequence.payload_json.get("entity_title", "")).strip()
+        summary = consequence.summary.strip()
+        if language.startswith("ru"):
+            if entity_title:
+                return f"Пока герой был занят, {entity_title} сдвинула ситуацию: {summary}."
+            return f"Пока герой был занят, мир изменился: {summary}."
+        if entity_title:
+            return f"While the hero was occupied, {entity_title} shifted the situation: {summary}."
+        return f"While the hero was occupied, the world shifted: {summary}."
+
+    def _apply_world_delta(
+        self,
+        *,
+        prices: dict[str, int],
+        factions: dict[str, int],
+        consequence: PendingConsequence,
+    ) -> None:
+        effect = consequence.effect_type
+        if consequence.entity_kind in {"company", "market"}:
+            delta = consequence.strength if effect in {"scarcity", "instability", "alertness"} else -consequence.strength
+            prices[consequence.entity_slug] = int(prices.get(consequence.entity_slug, 0)) + delta
+            return
+        if consequence.entity_kind == "faction":
+            delta = consequence.strength if effect in {"influence", "trust", "opportunity"} else -consequence.strength
+            factions[consequence.entity_slug] = int(factions.get(consequence.entity_slug, 0)) + delta
+
+    async def _expand_job(
+        self,
+        session: AsyncSession,
+        *,
+        job: SimulationJob,
+    ) -> None:
+        payload = job.payload_json or {}
+        mode = str(payload.get("mode", "shortStory")).strip() or "shortStory"
+        language = str(payload.get("language", "ru")).strip() or "ru"
+        current_location = str(payload.get("current_location", "")).strip()
+        world_state = await session.scalar(
+            select(WorldState).where(WorldState.campaign_id == job.campaign_id)
+        )
+        if world_state is not None:
+            await self.seed_world(
+                session,
+                campaign_id=job.campaign_id,
+                mode=mode,
+                language=language,
+                location=current_location,
+                world_state=world_state,
+            )
+        seeds = self.normalize_impact_seeds(
+            payload.get("impact_seeds"),
+            mode=mode,
+            current_location=current_location,
+        )
+        if not seeds:
+            return
+        source_turn_number = self._clamp_int(payload.get("turn_number", 0), minimum=0, maximum=999999)
+        for seed in seeds:
+            entity = await self._resolve_entity(
+                session,
+                campaign_id=job.campaign_id,
+                seed=seed,
+                language=language,
+            )
+            summary = self._render_pending_summary(
+                seed=seed,
+                entity_title=entity.title,
+                language=language,
+            )
+            session.add(
+                PendingConsequence(
+                    id=new_id(),
+                    campaign_id=job.campaign_id,
+                    source_turn_id=str(payload.get("turn_id", "")).strip() or None,
+                    source_snapshot_version=self._clamp_int(
+                        payload.get("source_snapshot_version", 0),
+                        minimum=0,
+                        maximum=999999,
+                    ),
+                    mode=mode,
+                    due_turn_number=source_turn_number + self._pick_delay(seed),
+                    entity_kind=seed["entity_kind"],
+                    entity_slug=entity.slug,
+                    effect_type=seed["impact_type"],
+                    strength=seed["strength"],
+                    visibility=seed["visibility"],
+                    summary=summary,
+                    payload_json={
+                        "language": language,
+                        "location_slug": self.slugify(current_location),
+                        "entity_title": entity.title,
+                        "source_summary": str(payload.get("source_summary", "")).strip(),
+                    },
+                )
+            )
+        if world_state is not None:
+            result = await session.execute(
+                select(WorldEntity)
+                .where(WorldEntity.campaign_id == job.campaign_id)
+                .order_by(WorldEntity.created_at)
+            )
+            self._write_butterfly_summary(
+                world_state,
+                mode=mode,
+                entities=list(result.scalars().all()),
+            )
+
+    async def _persist_chronicle_job(
+        self,
+        session: AsyncSession,
+        *,
+        job: SimulationJob,
+    ) -> None:
+        payload = job.payload_json or {}
+        event_text = (
+            str(payload.get("world_event_summary", "")).strip()
+            or str(payload.get("memory_entry", "")).strip()
+        )
+        if not event_text:
+            return
+        embedding_service = get_embedding_service()
+        vector = embedding_service.encode_document(event_text)
+        session.add(
+            WorldChronicle(
+                id=new_id(),
+                campaign_id=job.campaign_id,
+                location_slug=str(payload.get("location_slug", "")).strip(),
+                event_text=event_text,
+                importance=self._clamp_int(
+                    payload.get("importance", 1),
+                    minimum=1,
+                    maximum=10,
+                ),
+                metadata_json=dict(payload.get("metadata_json", {}) or {}),
+                vector=vector,
+            )
+        )
+
+    async def _resolve_entity(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str,
+        seed: dict[str, Any],
+        language: str,
+    ) -> WorldEntity:
+        entity = await session.scalar(
+            select(WorldEntity).where(
+                WorldEntity.campaign_id == campaign_id,
+                WorldEntity.slug == seed["entity_slug"],
+            )
+        )
+        if entity is not None:
+            return entity
+        title = self._default_entity_title(
+            entity_kind=seed["entity_kind"],
+            slug=seed["entity_slug"],
+            language=language,
+        )
+        entity = WorldEntity(
+            id=new_id(),
+            campaign_id=campaign_id,
+            slug=seed["entity_slug"],
+            title=title,
+            entity_kind=seed["entity_kind"],
+            metadata_json={"seeded": False, "source": "impact_seed"},
+        )
+        session.add(entity)
+        await session.flush()
+        return entity
+
+    async def _touch_entity(
+        self,
+        session: AsyncSession,
+        *,
+        campaign_id: str,
+        entity_slug: str,
+        delta: int,
+    ) -> None:
+        entity = await session.scalar(
+            select(WorldEntity).where(
+                WorldEntity.campaign_id == campaign_id,
+                WorldEntity.slug == entity_slug,
+            )
+        )
+        if entity is None:
+            return
+        entity.influence += delta
+        entity.updated_at = datetime.now(UTC)
+
+    def _write_butterfly_summary(
+        self,
+        world_state: WorldState,
+        *,
+        mode: str,
+        entities: list[WorldEntity],
+    ) -> None:
+        updated = deepcopy(world_state.global_vars or {})
+        butterfly = dict(updated.get("butterfly", {}) or {})
+        butterfly.setdefault("active_effects", [])
+        butterfly.setdefault("recent_offscreen_events", [])
+        butterfly["mode"] = mode
+        butterfly["known_entities"] = [
+            {
+                "slug": item.slug,
+                "title": item.title,
+                "entity_kind": item.entity_kind,
+            }
+            for item in entities[:8]
+        ]
+        updated["butterfly"] = butterfly
+        updated.setdefault("prices", {})
+        updated.setdefault("factions", {})
+        world_state.global_vars = updated
+
+    def _render_pending_summary(
+        self,
+        *,
+        seed: dict[str, Any],
+        entity_title: str,
+        language: str,
+    ) -> str:
+        summary = seed["summary"].strip()
+        if language.startswith("ru"):
+            if seed["entity_kind"] == "company":
+                return f"{entity_title} меняет расклад: {summary}"
+            if seed["entity_kind"] == "faction":
+                return f"{entity_title} реагирует на события: {summary}"
+            return f"Обстановка меняется: {summary}"
+        if seed["entity_kind"] == "company":
+            return f"{entity_title} shifts the balance: {summary}"
+        if seed["entity_kind"] == "faction":
+            return f"{entity_title} reacts to the fallout: {summary}"
+        return f"The situation changes: {summary}"
+
+    def _default_slug_for_kind(
+        self,
+        *,
+        entity_kind: str,
+        current_location: str,
+    ) -> str:
+        if entity_kind == "location":
+            return self.slugify(current_location) or "starting-point"
+        if entity_kind == "faction":
+            return "civic-watch"
+        if entity_kind == "market":
+            return "shadow-market"
+        if entity_kind == "company":
+            return "local-guild"
+        return "world-state"
+
+    def _default_entity_title(
+        self,
+        *,
+        entity_kind: str,
+        slug: str,
+        language: str,
+    ) -> str:
+        if language.startswith("ru"):
+            mapping = {
+                "company": "Местная компания",
+                "faction": "Новая сила",
+                "market": "Рынок",
+                "location": "Узел мира",
+            }
+        else:
+            mapping = {
+                "company": "Local Company",
+                "faction": "Rising Faction",
+                "market": "Market",
+                "location": "World Hub",
+            }
+        fallback = mapping.get(entity_kind, "World State" if not language.startswith("ru") else "Состояние мира")
+        if slug in {"local-guild", "supply-caravan", "civic-watch", "shadow-market"}:
+            return {
+                "local-guild": "Местная гильдия" if language.startswith("ru") else "Local Guild",
+                "supply-caravan": "Караван снабжения" if language.startswith("ru") else "Supply Caravan",
+                "civic-watch": "Городская стража" if language.startswith("ru") else "Civic Watch",
+                "shadow-market": "Теневой рынок" if language.startswith("ru") else "Shadow Market",
+            }[slug]
+        if entity_kind == "location":
+            return slug.replace("-", " ").title() or fallback
+        return fallback
+
+    def _fallback_summary(
+        self,
+        *,
+        effect_type: str,
+        entity_kind: str,
+        mode: str,
+    ) -> str:
+        if entity_kind == "company" and effect_type == "scarcity":
+            return "Supply lines tighten after the latest move"
+        if entity_kind == "faction" and effect_type == "alertness":
+            return "The local power structure becomes more alert"
+        if mode == "longCampaign":
+            return "A quiet consequence starts building in the background"
+        return "A small ripple forms behind the scene"
+
+    def _pick_delay(self, seed: dict[str, Any]) -> int:
+        minimum = seed["delay_min_turns"]
+        maximum = seed["delay_max_turns"]
+        if maximum <= minimum:
+            return minimum
+        stable = sum(ord(char) for char in f'{seed["entity_slug"]}:{seed["impact_type"]}:{seed["summary"]}')
+        return minimum + (stable % (maximum - minimum + 1))
+
+    def slugify(self, text: str) -> str:
+        allowed = []
+        for char in text.strip().lower():
+            if char.isascii() and char.isalnum():
+                allowed.append(char)
+            elif char in {" ", "-", "_"}:
+                allowed.append("-")
+        slug = "".join(allowed)
+        while "--" in slug:
+            slug = slug.replace("--", "-")
+        return slug.strip("-")
+
+    def _clamp_int(self, value: Any, *, minimum: int, maximum: int) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = minimum
+        return max(minimum, min(maximum, parsed))

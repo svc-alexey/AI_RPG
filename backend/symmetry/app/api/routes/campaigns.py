@@ -1,14 +1,15 @@
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
-from app.db.session import SessionLocal, get_db_session
-from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse
-from app.services.ai_gateway import AiGatewayService
+from app.db.session import get_db_session
+from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
+from app.services.ai_gateway import AiGatewayService, classify_provider_error
+from app.services.butterfly import ButterflyService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
@@ -23,6 +24,7 @@ runtime_service = CampaignRuntimeService()
 rag_service = RagService()
 simulation_service = SimulationService()
 ai_gateway = AiGatewayService()
+butterfly_service = ButterflyService()
 
 
 @router.post("", response_model=CampaignStateResponse)
@@ -69,14 +71,22 @@ async def create_campaign(
             role="owner",
         )
     )
-    session.add(
-        WorldState(
-            id=new_id(),
-            campaign_id=campaign.id,
-            current_day=1,
-            minute_of_day=8 * 60,
-            global_vars={"weather": "clear", "prices": {}, "factions": {}},
-        )
+    world_state = WorldState(
+        id=new_id(),
+        campaign_id=campaign.id,
+        current_day=1,
+        minute_of_day=8 * 60,
+        global_vars={"weather": "clear", "prices": {}, "factions": {}},
+    )
+    session.add(world_state)
+    await session.flush()
+    await butterfly_service.seed_world(
+        session,
+        campaign_id=campaign.id,
+        mode=payload.mode,
+        language=payload.language.strip() or "ru",
+        location=str(state.get("location", "")),
+        world_state=world_state,
     )
     await session.commit()
     return CampaignStateResponse(
@@ -149,11 +159,40 @@ async def get_campaign_state(
     )
 
 
+@router.get("/{campaign_id}/rumors", response_model=list[WorldRumorResponse])
+async def get_campaign_rumors(
+    campaign_id: str,
+    limit: int = Query(default=5, ge=1, le=20),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> list[WorldRumorResponse]:
+    campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
+    result = await session.execute(
+        select(WorldChronicle)
+        .where(
+            WorldChronicle.campaign_id == campaign.id,
+            WorldChronicle.metadata_json.contains({"source": "butterfly_effect"}),
+        )
+        .order_by(desc(WorldChronicle.created_at))
+        .limit(limit)
+    )
+    return [
+        WorldRumorResponse(
+            id=item.id,
+            entity_type=item.entity_type,
+            event_text=item.event_text,
+            importance=item.importance,
+            location_slug=item.location_slug,
+            created_at=item.created_at,
+        )
+        for item in result.scalars().all()
+    ]
+
+
 @router.post("/{campaign_id}/turns/process", response_model=ProcessTurnResponse)
 async def process_turn(
     campaign_id: str,
     payload: ProcessTurnRequest,
-    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> ProcessTurnResponse:
@@ -164,6 +203,22 @@ async def process_turn(
         raise HTTPException(status_code=404, detail="campaign_runtime_not_found")
 
     current_state = snapshot.state_json
+    await butterfly_service.seed_world(
+        session,
+        campaign_id=campaign.id,
+        mode=campaign.mode,
+        language=campaign.language,
+        location=str(current_state.get("location", "")),
+        world_state=world_state,
+    )
+    await butterfly_service.apply_due_consequences(
+        session,
+        campaign_id=campaign.id,
+        world_state=world_state,
+        upcoming_turn_number=int(current_state.get("turn_number", 0)) + 1,
+    )
+    await session.flush()
+
     embedding_service = get_embedding_service()
     query_vector = embedding_service.encode_query(payload.player_action)
     chronicles = await rag_service.search_relevant_events(
@@ -176,18 +231,31 @@ async def process_turn(
         state=current_state,
         world_state=world_state,
         chronicles=chronicles,
+        trigger_source=payload.trigger_source,
     )
-    credentials = credential_service.resolve(payload.provider_credentials)
-    llm_result = await ai_gateway.generate_turn(
-        credentials=credentials,
-        context=context,
-        player_action=payload.player_action,
-        language=payload.language or campaign.language,
-    )
+    try:
+        credentials = credential_service.resolve(payload.provider_credentials)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        llm_result = await ai_gateway.generate_turn(
+            credentials=credentials,
+            context=context,
+            player_action=payload.player_action,
+            language=payload.language or campaign.language,
+            trigger_source=payload.trigger_source,
+        )
+    except Exception as exc:
+        status_code, detail = classify_provider_error(exc)
+        raise HTTPException(status_code=status_code, detail=detail) from exc
     next_state, state_changes, importance, world_event_summary = runtime_service.apply_turn_result(
         state=current_state,
         result=llm_result,
         player_action=payload.player_action,
+    )
+    butterfly_service.apply_immediate_world_patch(
+        world_state,
+        global_vars_patch=state_changes.get("global_vars_patch"),
     )
     world_state, tick = simulation_service.advance(world_state)
     session.add(tick)
@@ -199,30 +267,56 @@ async def process_turn(
     )
     session.add(next_snapshot)
     await session.flush()
-    session.add(
-        CampaignTurn(
-            id=new_id(),
-            campaign_id=campaign.id,
-            snapshot_id=next_snapshot.id,
-            turn_number=int(next_state.get("turn_number", 0)),
-            player_action=payload.player_action,
-            llm_response_json=llm_result,
-        )
+    turn = CampaignTurn(
+        id=new_id(),
+        campaign_id=campaign.id,
+        snapshot_id=next_snapshot.id,
+        turn_number=int(next_state.get("turn_number", 0)),
+        player_action=payload.player_action,
+        llm_response_json=llm_result,
     )
+    session.add(turn)
     campaign.current_snapshot_id = next_snapshot.id
     campaign.updated_at = datetime.utcnow()
-    await session.commit()
 
-    if importance > 0:
-        background_tasks.add_task(
-            _persist_chronicle_event,
-            campaign.id,
-            str(next_state.get("location", "")),
-            llm_result.get("memory_entry", ""),
-            world_event_summary or llm_result.get("memory_entry", ""),
-            importance,
-            llm_result.get("state_changes", {}),
+    impact_seeds = butterfly_service.normalize_impact_seeds(
+        llm_result.get("impact_seeds"),
+        mode=campaign.mode,
+        current_location=str(next_state.get("location", current_state.get("location", ""))),
+    )
+    needs_background_followup = str(
+        llm_result.get("needs_background_followup", "")
+    ).strip().lower() in {"1", "true", "yes"}
+    if not impact_seeds and (needs_background_followup or importance >= 6):
+        impact_seeds = butterfly_service.fallback_seed_from_turn(
+            mode=campaign.mode,
+            importance=importance,
+            summary=world_event_summary or llm_result.get("memory_entry", ""),
+            current_location=str(next_state.get("location", current_state.get("location", ""))),
         )
+    await butterfly_service.enqueue_followup_job(
+        session,
+        campaign_id=campaign.id,
+        mode=campaign.mode,
+        language=payload.language or campaign.language,
+        turn_id=turn.id,
+        source_snapshot_version=next_snapshot.version,
+        turn_number=int(next_state.get("turn_number", 0)),
+        current_location=str(next_state.get("location", current_state.get("location", ""))),
+        impact_seeds=impact_seeds,
+        source_summary=world_event_summary or llm_result.get("memory_entry", ""),
+    )
+    if importance > 0:
+        await butterfly_service.enqueue_chronicle_job(
+            session,
+            campaign_id=campaign.id,
+            location_slug=str(next_state.get("location", "")),
+            memory_entry=llm_result.get("memory_entry", ""),
+            world_event_summary=world_event_summary or llm_result.get("memory_entry", ""),
+            importance=importance,
+            metadata_json=llm_result.get("state_changes", {}),
+        )
+    await session.commit()
 
     return ProcessTurnResponse(
         narration=str(llm_result.get("narration", "")).strip(),
@@ -233,31 +327,3 @@ async def process_turn(
         campaign_snapshot_version=next_snapshot.version,
         state=next_state,
     )
-
-
-async def _persist_chronicle_event(
-    campaign_id: str,
-    location_slug: str,
-    memory_entry: str,
-    world_event_summary: str,
-    importance: int,
-    metadata_json: dict,
-) -> None:
-    event_text = (world_event_summary or memory_entry).strip()
-    if not event_text:
-        return
-    embedding_service = get_embedding_service()
-    vector = embedding_service.encode_document(event_text)
-    async with SessionLocal() as session:
-        session.add(
-            WorldChronicle(
-                id=new_id(),
-                campaign_id=campaign_id,
-                location_slug=location_slug,
-                event_text=event_text,
-                importance=importance,
-                metadata_json=metadata_json,
-                vector=vector,
-            )
-        )
-        await session.commit()

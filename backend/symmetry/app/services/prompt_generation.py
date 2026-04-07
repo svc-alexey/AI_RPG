@@ -17,25 +17,22 @@ class PromptGenerationService:
         credentials: ResolvedCredentials,
         setting: str,
         literary_genre: str,
+        mode: str,
         difficulty: str,
         language: str,
         story_wish: str,
     ) -> GeneratePromptsResponse:
         payload = await self._ai_gateway.generate_json(
             credentials=credentials,
-            system_prompt=(
-                "Return valid JSON only with keys "
-                "`story_prompt`, `character_prompt`, `campaign_title`, and `objective_hint`. "
-                f"Write all values in language `{language}`. "
-                "campaign_title must be a standalone short title, 2-4 words, "
-                "without commas, without subordinate clauses, and no more than 30 characters. "
-                "objective_hint must be a short current goal, not a fragment of narration, "
-                "and no more than 56 characters."
+            system_prompt=_build_prompt_generation_system_prompt(
+                language=language,
+                mode=mode,
             ),
             user_payload={
                 "task": "generate_campaign_prompts",
                 "setting": setting,
                 "literary_genre": literary_genre,
+                "mode": mode,
                 "difficulty": difficulty,
                 "story_wish": story_wish,
             },
@@ -52,3 +49,23 @@ class PromptGenerationService:
                 language=language,
             ),
         )
+
+
+def _build_prompt_generation_system_prompt(*, language: str, mode: str) -> str:
+    is_long_campaign = mode == "longCampaign"
+    return (
+        "Return valid JSON only with keys "
+        "`story_prompt`, `character_prompt`, `campaign_title`, and `objective_hint`. "
+        f"Write all values in language `{language}`. "
+        "campaign_title must be a standalone short title, 2-4 words, "
+        "without commas, without subordinate clauses, and no more than 30 characters. "
+        "objective_hint must be a short current goal, not a fragment of narration, "
+        "and no more than 56 characters. "
+        + (
+            "This is a long campaign. story_prompt should be richer and more detailed, with a clear world frame or hero backstory, a durable conflict, and space for a longer arc. "
+            "character_prompt should be more specific about motivation, internal tension, and tone."
+            if is_long_campaign
+            else "This is a short story. story_prompt should stay compact, fast to enter, and focused on an immediate hook. "
+            "character_prompt should stay concise and action-ready."
+        )
+    )

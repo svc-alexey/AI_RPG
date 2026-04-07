@@ -11,6 +11,8 @@ Feature packet for the server-first `Symmetry` platform layer.
 - introduced `backend/symmetry/` as a dedicated FastAPI backend;
 - moved campaign authority, auth, world simulation, vector memory, and story
   library APIs to the server;
+- added DB-backed butterfly simulation, dedicated worker processing, and
+  world-rumor delivery for off-screen world events;
 - added transient user-provider credential support without server-side storage;
 - migrated Flutter runtime flow away from local campaign persistence.
 
@@ -23,5 +25,6 @@ Feature packet for the server-first `Symmetry` platform layer.
 
 ## Remaining follow-up
 
-- production rollout hardening around migrations and deploy order;
+- production rollout hardening around migrations, readiness, worker health,
+  deploy order, and Docker DNS / relay reachability;
 - live Yandex OAuth verification with real redirect/callback credentials.

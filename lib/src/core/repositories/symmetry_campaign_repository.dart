@@ -36,6 +36,18 @@ class SymmetryCampaignRepository {
     return _campaignStateFromServer(response.state);
   }
 
+  Future<List<SymmetryWorldRumor>> loadCampaignRumors(
+    final String id, {
+    final int limit = 5,
+  }) async {
+    final SymmetrySession session = await _authRepository.ensureSession();
+    return _client(session.baseUrl).getCampaignRumors(
+      accessToken: session.tokens.accessToken,
+      campaignId: id,
+      limit: limit,
+    );
+  }
+
   Future<CampaignState> createCampaign({
     required final CampaignDraft draft,
     required final AppLanguage language,
@@ -213,8 +225,10 @@ class SymmetryCampaignRepository {
       'resources': const <Object?>[],
       'checks': const <Object?>[],
       'modules': const <Object?>[],
-      'customStoryPrompt': json['custom_story_prompt'] ?? '',
-      'characterPrompt': character['prompt_fragment'] ?? '',
+      'customStoryPrompt':
+          json['custom_story_prompt'] ?? json['customStoryPrompt'] ?? '',
+      'characterPrompt':
+          json['character_prompt'] ?? character['prompt_fragment'] ?? '',
     };
   }
 

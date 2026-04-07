@@ -2,6 +2,7 @@ import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
@@ -229,6 +230,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     campaign: campaign,
                     highlightedModules: chatState.highlightedModules,
                     newlyUnlockedModules: chatState.newlyUnlockedModules,
+                    worldRumors: chatState.worldRumors,
                   ),
                 ),
               ),
@@ -247,6 +249,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           campaign: campaign,
                           highlightedModules: chatState.highlightedModules,
                           newlyUnlockedModules: chatState.newlyUnlockedModules,
+                          worldRumors: chatState.worldRumors,
                         ),
                   onSave: () => controller.save(l10n: l10n),
                   onSettings: () {
@@ -271,6 +274,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               highlightedModules: chatState.highlightedModules,
                               newlyUnlockedModules:
                                   chatState.newlyUnlockedModules,
+                              worldRumors: chatState.worldRumors,
                             ),
                           ),
                           SizedBox(width: responsive.sectionSpacing + 4),
@@ -613,6 +617,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     required final CampaignState campaign,
     required final List<CampaignModule> highlightedModules,
     required final List<CampaignModule> newlyUnlockedModules,
+    required final List<SymmetryWorldRumor> worldRumors,
   }) => showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -627,6 +632,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               campaign: campaign,
               highlightedModules: highlightedModules,
               newlyUnlockedModules: newlyUnlockedModules,
+              worldRumors: worldRumors,
             ),
           ),
         ),
@@ -638,6 +644,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     required final CampaignState campaign,
     required final List<CampaignModule> highlightedModules,
     required final List<CampaignModule> newlyUnlockedModules,
+    required final List<SymmetryWorldRumor> worldRumors,
   }) {
     final CharacterStats character = campaign.character;
     final AppLocalizations l10n = context.l10n;
@@ -761,6 +768,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           Text(l10n.summary, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(campaign.summary),
+          const SizedBox(height: 16),
+          Text(
+            l10n.worldRumorsTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          if (worldRumors.isEmpty)
+            Text(l10n.worldRumorsEmpty)
+          else
+            for (final SymmetryWorldRumor item in worldRumors)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('- ${item.eventText}'),
+                    if (item.locationSlug.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          item.locationSlug.replaceAll('-', ' '),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AetherPalette.textDim),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           const SizedBox(height: 16),
           Text(
             l10n.recentEventsTitle,

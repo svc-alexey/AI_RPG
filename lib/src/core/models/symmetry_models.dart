@@ -165,6 +165,36 @@ class SymmetryTurnResponse {
   final Map<String, Object?> state;
 }
 
+class SymmetryWorldRumor {
+  const SymmetryWorldRumor({
+    required this.id,
+    required this.entityType,
+    required this.eventText,
+    required this.importance,
+    required this.locationSlug,
+    required this.createdAt,
+  });
+
+  factory SymmetryWorldRumor.fromJson(final Map<String, Object?> json) =>
+      SymmetryWorldRumor(
+        id: (json['id'] as String?) ?? '',
+        entityType: (json['entity_type'] as String?) ?? '',
+        eventText: (json['event_text'] as String?) ?? '',
+        importance: (json['importance'] as int?) ?? 0,
+        locationSlug: (json['location_slug'] as String?) ?? '',
+        createdAt:
+            DateTime.tryParse((json['created_at'] as String?) ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+      );
+
+  final String id;
+  final String entityType;
+  final String eventText;
+  final int importance;
+  final String locationSlug;
+  final DateTime createdAt;
+}
+
 class SymmetrySession {
   const SymmetrySession({
     required this.user,

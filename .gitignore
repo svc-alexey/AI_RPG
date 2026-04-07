@@ -73,6 +73,7 @@ __pycache__/
 # Local backend model cache
 backend/symmetry/models/*
 !backend/symmetry/models/.gitkeep
+/models/
 
 # OS / editor local files
 Thumbs.db

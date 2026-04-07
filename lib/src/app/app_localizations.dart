@@ -1271,6 +1271,16 @@ class AppLocalizations {
     AppLanguage.en => 'Recent Events',
   };
 
+  String get worldRumorsTitle => switch (language) {
+    AppLanguage.ru => 'Слухи мира',
+    AppLanguage.en => 'World Rumors',
+  };
+
+  String get worldRumorsEmpty => switch (language) {
+    AppLanguage.ru => 'Пока мир не принёс новых слухов.',
+    AppLanguage.en => 'The world has not brought new rumors yet.',
+  };
+
   // New Campaign Wizard strings
   String get howToStart => switch (language) {
     AppLanguage.ru => 'Как хотите начать?',

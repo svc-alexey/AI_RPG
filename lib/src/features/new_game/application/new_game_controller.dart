@@ -149,6 +149,8 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   final Ref _ref;
 
   static final Random _random = Random();
+  static const int quickStartShortStoryWeight = 70;
+  static const int quickStartLongCampaignWeight = 30;
   static const CharacterPromptBuilder _charBuilder = CharacterPromptBuilder();
   static const CampaignModuleResolver _moduleResolver =
       CampaignModuleResolver();
@@ -366,6 +368,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
             request: CampaignPromptGenerationRequest(
               setting: state.setting,
               literaryGenre: state.literaryGenre,
+              mode: state.storyMode,
               difficulty: state.difficulty,
               storyWish: currentInput,
             ),
@@ -438,6 +441,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
           .values[_random.nextInt(CampaignSetting.values.length)];
       final LiteraryGenre rolledGenre =
           LiteraryGenre.values[_random.nextInt(LiteraryGenre.values.length)];
+      final StoryMode rolledMode = pickQuickStartStoryMode(_random);
       final GeneratedPrompts prompts = await _symmetryAuthRepository
           .generateCampaignPrompts(
             aiSettings: settings,
@@ -445,6 +449,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
             request: CampaignPromptGenerationRequest(
               setting: rolledSetting,
               literaryGenre: rolledGenre,
+              mode: rolledMode,
               difficulty: DifficultyLevel.easy,
             ),
           );
@@ -459,7 +464,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       final CampaignDraft draft = CampaignDraft(
         setting: rolledSetting,
         literaryGenre: rolledGenre,
-        mode: StoryMode.shortStory,
+        mode: rolledMode,
         difficulty: DifficultyLevel.easy,
         heroName: _resolvedHeroName(currentLanguage),
         customStoryPrompt: storyText,
@@ -601,4 +606,14 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   SymmetryCampaignRepository get _symmetryCampaignRepository =>
       _ref.read(symmetryCampaignRepositoryProvider);
+
+  static StoryMode pickQuickStartStoryMode(final Random random) {
+    final int totalWeight =
+        quickStartShortStoryWeight + quickStartLongCampaignWeight;
+    final int roll = random.nextInt(totalWeight);
+    if (roll < quickStartShortStoryWeight) {
+      return StoryMode.shortStory;
+    }
+    return StoryMode.longCampaign;
+  }
 }

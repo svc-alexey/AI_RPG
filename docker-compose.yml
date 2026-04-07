@@ -44,6 +44,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
       - ./backend/symmetry/app:/app/app
       - ./backend/symmetry/models:/app/models
@@ -52,6 +55,39 @@ services:
     mem_limit: 5g
     mem_reservation: 2g
     cpus: 6.0
+
+  symmetry-worker:
+    build:
+      context: ./backend/symmetry
+    container_name: ai-rpg-worker
+    restart: unless-stopped
+    command: ["/app/start_worker.sh"]
+    env_file:
+      - ./backend/symmetry/.env
+    environment:
+      SYMMETRY_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/symmetry
+      SYMMETRY_EMBEDDING_MODEL_DIR: /app/models
+      SYMMETRY_EMBEDDING_MODEL: intfloat/multilingual-e5-base
+      SYMMETRY_EMBEDDING_BACKEND: onnx
+      SYMMETRY_EMBEDDING_MODEL_FILE_NAME: onnx/model.onnx
+      OMP_NUM_THREADS: "8"
+      MKL_NUM_THREADS: "8"
+      TORCH_NUM_THREADS: "8"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    volumes:
+      - ./backend/symmetry/app:/app/app
+      - ./backend/symmetry/models:/app/models
+      - ./backend/symmetry/alembic:/app/alembic
+      - ./backend/symmetry/alembic.ini:/app/alembic.ini
+      - ./backend/symmetry/start_worker.sh:/app/start_worker.sh
+    mem_limit: 4g
+    mem_reservation: 2g
+    cpus: 4.0
 
 volumes:
   symmetry_postgres_data:

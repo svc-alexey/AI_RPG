@@ -5,6 +5,7 @@ from app.api.deps import get_current_user
 from app.db.models import User
 from app.db.session import get_db_session
 from app.schemas.prompts import GeneratePromptsRequest, GeneratePromptsResponse
+from app.services.ai_gateway import classify_provider_error
 from app.services.credentials import CredentialResolutionService
 from app.services.prompt_generation import PromptGenerationService
 
@@ -23,11 +24,16 @@ async def generate_prompts(
         credentials = credential_service.resolve(payload.provider_credentials)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return await prompt_service.generate(
-        credentials=credentials,
-        setting=payload.setting,
-        literary_genre=payload.literary_genre,
-        difficulty=payload.difficulty,
-        language=payload.language,
-        story_wish=payload.story_wish,
-    )
+    try:
+        return await prompt_service.generate(
+            credentials=credentials,
+            setting=payload.setting,
+            literary_genre=payload.literary_genre,
+            mode=payload.mode,
+            difficulty=payload.difficulty,
+            language=payload.language,
+            story_wish=payload.story_wish,
+        )
+    except Exception as exc:
+        status_code, detail = classify_provider_error(exc)
+        raise HTTPException(status_code=status_code, detail=detail) from exc

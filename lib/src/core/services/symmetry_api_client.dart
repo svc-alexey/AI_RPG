@@ -20,14 +20,9 @@ class SymmetryApiClient {
   Future<void> checkHealth() async {
     final http.Client client = httpClient ?? http.Client();
     final String url = _join('/health', apiPrefix: false);
-    _logDev('request', <String, Object?>{
-      'method': 'GET',
-      'url': url,
-    });
+    _logDev('request', <String, Object?>{'method': 'GET', 'url': url});
     try {
-      final http.Response response = await client.get(
-        Uri.parse(url),
-      );
+      final http.Response response = await client.get(Uri.parse(url));
       _logDev('response', <String, Object?>{
         'method': 'GET',
         'url': url,
@@ -130,6 +125,7 @@ class SymmetryApiClient {
     required final String accessToken,
     required final CampaignSetting setting,
     required final LiteraryGenre literaryGenre,
+    required final StoryMode mode,
     required final DifficultyLevel difficulty,
     required final String languageCode,
     required final String storyWish,
@@ -141,6 +137,7 @@ class SymmetryApiClient {
       body: <String, Object?>{
         'setting': setting.name,
         'literary_genre': literaryGenre.name,
+        'mode': mode.name,
         'difficulty': difficulty.name,
         'language': languageCode,
         'story_wish': storyWish,
@@ -209,6 +206,30 @@ class SymmetryApiClient {
     required final String campaignId,
   }) async {
     await _delete('/campaigns/$campaignId', bearerToken: accessToken);
+  }
+
+  Future<List<SymmetryWorldRumor>> getCampaignRumors({
+    required final String accessToken,
+    required final String campaignId,
+    final int limit = 5,
+  }) async {
+    final Object? decoded = await _get(
+      '/campaigns/$campaignId/rumors?limit=$limit',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => SymmetryWorldRumor.fromJson(
+            item.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            ),
+          ),
+        )
+        .toList();
   }
 
   Future<SymmetryTurnResponse> processTurn({
@@ -451,10 +472,7 @@ class SymmetryApiClient {
     if (!kDebugMode) {
       return;
     }
-    developer.log(
-      jsonEncode(payload),
-      name: 'SymmetryApiClient.$event',
-    );
+    developer.log(jsonEncode(payload), name: 'SymmetryApiClient.$event');
   }
 
   Object? _redactBody(final Object? payload) {

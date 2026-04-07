@@ -151,6 +151,7 @@ class SymmetryAuthRepository {
           accessToken: session.tokens.accessToken,
           setting: request.setting,
           literaryGenre: request.literaryGenre,
+          mode: request.mode,
           difficulty: request.difficulty,
           languageCode: language.code,
           storyWish: request.storyWish,

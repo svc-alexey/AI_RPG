@@ -18,6 +18,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
   bool _apiKeyObscured = true;
@@ -29,6 +30,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
+    _baseUrlController.dispose();
     _modelController.dispose();
     _apiKeyController.dispose();
     _timeoutController.dispose();
@@ -95,6 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final next,
     ) {
       if (next.formRevision != (previous?.formRevision ?? 0)) {
+        _baseUrlController.text = next.baseUrl;
         _modelController.text = next.model;
         _apiKeyController.text = next.apiKey;
         _timeoutController.text = next.timeoutText;
@@ -250,6 +253,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 TextField(
+                                  controller: _baseUrlController,
+                                  onChanged: controller.setBaseUrl,
+                                  keyboardType: TextInputType.url,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.baseUrl,
+                                    hintText: 'https://api.example.com/v1',
+                                  ),
+                                ),
+                                if (settingsState.showEndpointBuildDefaultsHint)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      l10n.endpointBuildDefaultsHint,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AetherPalette.textMuted,
+                                            height: 1.35,
+                                          ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                                TextField(
                                   controller: _modelController,
                                   onChanged: controller.setModel,
                                   decoration: InputDecoration(
@@ -283,6 +310,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ),
                                   ),
                                 ),
+                                if (settingsState.showApiKeyFromBuildHint)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      l10n.apiKeyBuildTimeHiddenHint,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AetherPalette.textMuted,
+                                            height: 1.35,
+                                          ),
+                                    ),
+                                  ),
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _timeoutController,

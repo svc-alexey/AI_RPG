@@ -12,6 +12,8 @@ processing.
   vector memory, auth, and story-template APIs.
 - `PostgreSQL + pgvector` stores campaign snapshots, world state, and
   `world_chronicles`.
+- background world simulation is persisted through DB-backed jobs and a
+  dedicated worker process.
 - text embeddings run locally inside the backend via
   `sentence-transformers`.
 - narrative generation goes through an OpenAI-compatible server gateway:
@@ -24,10 +26,20 @@ processing.
 - server-first gameplay flow with guest and account-based sessions;
 - email/password auth plus Yandex OAuth scaffolding;
 - backend-driven campaign creation, loading, deleting, and turn processing;
+- two story modes in campaign creation:
+  - `shortStory`: compact entry, fast hook, lighter narration;
+  - `longCampaign`: visible prologue on the first auto-turn plus more
+    expanded ongoing narration;
+- butterfly-effect background simulation for both story modes:
+  - `shortStory`: lighter, local, short-lived ripple effects;
+  - `longCampaign`: broader delayed effects for companies, factions,
+    locations, and markets;
 - server-side RAG over `world_chronicles`;
-- background persistence of important story events into vector memory;
+- background persistence of important story events plus off-screen world
+  rumors into vector memory;
 - story-template backend/API foundation with tags, likes, views, and bookmarks;
-- Alembic migrations and Docker-based local deployment;
+- Alembic migrations, separate worker runtime, and Docker-based local
+  deployment;
 - Flutter auth/session flow and server-backed repositories;
 - local client persistence only for settings, session, and user-owned AI keys.
 - minimal auth UI:
@@ -35,16 +47,35 @@ processing.
   - close button returns the user to the previous screen;
   - settings show a generic `Settings` title instead of `AI Settings`;
   - the account section shows only who is signed in and `Log in` / `Sign out`;
-  - the server address is not shown or edited in settings.
-- users can optionally provide their own AI model credentials in settings;
+  - the game-backend server address is not shown or edited in settings.
+- users can optionally provide their own AI model credentials in settings,
+  including provider `Base URL`;
   those credentials stay only on the user's device and are sent transiently
   with requests when needed.
+- the campaign screen now shows `Слухи мира` directly under `Сводка`.
+
+## Campaign creation flow
+
+- `Quick start` now randomizes genre, setting, and story mode.
+- quick-start story mode weighting is intentionally biased:
+  - `shortStory`: `70%`
+  - `longCampaign`: `30%`
+- custom setup still lets the player choose `Story Mode` explicitly.
+- prompt generation is mode-aware:
+  - `shortStory` asks for a compact hook;
+  - `longCampaign` asks for a richer story seed with world or hero backstory,
+    a longer arc, and a more detailed protagonist brief.
+- the backend stores the full `story_prompt` seed inside campaign state so
+  long campaigns can keep using the original premise after reload.
+- prompt and campaign endpoints accept both `snake_case` and legacy
+  `camelCase` request payloads for web-client compatibility.
 
 ## Architecture snapshot
 
 - client: `Flutter` + `flutter_riverpod`
 - backend: `FastAPI`
 - db: `PostgreSQL + pgvector`
+- background jobs: DB queue + dedicated Python worker
 - embeddings: `sentence-transformers` with
   `intfloat/multilingual-e5-base` on `onnx`
 - text generation: OpenAI-compatible provider access through backend gateway
@@ -84,8 +115,9 @@ python -m compileall app alembic
 docker compose up --build
 ```
 
-This starts PostgreSQL with `pgvector` and the `Symmetry` API. The backend
-container applies `alembic upgrade head` before launching `uvicorn`.
+This starts PostgreSQL with `pgvector`, the `Symmetry` API, and the dedicated
+background worker. The backend container applies `alembic upgrade head` before
+launching `uvicorn`.
 
 ### Preferred local web preview
 
@@ -130,10 +162,13 @@ Important rule:
   - `GET /v1/campaigns`
   - `GET /v1/campaigns/{id}`
   - `GET /v1/campaigns/{id}/state`
+  - `GET /v1/campaigns/{id}/rumors`
   - `POST /v1/campaigns/{id}/turns/process`
   - `DELETE /v1/campaigns/{id}`
 - prompts:
   - `POST /v1/prompts/generate`
+    - expects `setting`, `literary_genre`, `mode`, `difficulty`, `language`,
+      `story_wish`
 - providers:
   - `POST /v1/providers/check`
 - story library:
@@ -156,6 +191,7 @@ Important rule:
 ## Current follow-up work
 
 - real end-to-end Yandex OAuth verification with live callback credentials;
-- production rollout hardening around migrations, backup, health checks, and
-  deploy order;
+- production rollout hardening around migrations, backup, health checks,
+  worker readiness, and deploy order;
+- Docker production hardening around DNS resolution to the AI relay/provider;
 - next product layer on top of the now server-authoritative gameplay stack.

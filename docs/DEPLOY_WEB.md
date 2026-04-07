@@ -61,9 +61,12 @@ The deployed web build is not enough by itself. You also need a reachable
 backend with:
 
 - migrated PostgreSQL schema
+- running background worker
 - working `POST /v1/auth/*`
 - working `POST /v1/campaigns/*`
+- working `GET /v1/campaigns/{id}/rumors`
 - valid backend `.env`
+- working DNS or relay reachability for the configured AI endpoint
 
 ## Deploy order
 
@@ -71,8 +74,9 @@ backend with:
 2. deploy new backend image/code
 3. run `alembic upgrade head`
 4. verify `/health`
-5. verify auth and one campaign request
-6. deploy the web bundle
+5. verify auth and one prompt-generation request
+6. verify one campaign creation + one turn-processing request
+7. deploy the web bundle
 
 ## Runtime behavior
 
@@ -92,5 +96,13 @@ The shipped web build still uses the branded landing shell and staged loader:
   `build/web/assets/fonts/MaterialIcons-Regular.otf` are being served.
 - If the web app loads but auth or gameplay fails, check the backend URL and
   browser CORS policy against the backend, not against model providers first.
+- If the browser reports a CORS error for a gameplay request, check backend
+  logs first: a backend `500/502` during model-provider access often appears
+  in the browser as a misleading CORS failure.
+- For Docker deploys, verify that the API container can resolve the configured
+  model relay/provider hostname before shipping the web bundle.
+- For home-server deploys behind a VPS relay, prefer routing the backend to the
+  relay via fixed IP or VPN address rather than relying on external provider
+  DNS directly from the game container.
 - If the backend uses cookies or strict auth headers behind a proxy, verify that
   the proxy forwards `Authorization` and CORS headers correctly.

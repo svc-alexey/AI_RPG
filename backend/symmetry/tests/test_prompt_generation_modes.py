@@ -1,0 +1,86 @@
+import asyncio
+from unittest.mock import AsyncMock
+
+from app.api.routes.prompts import generate_prompts
+from app.schemas.prompts import GeneratePromptsRequest
+from app.services.prompt_generation import (
+    PromptGenerationService,
+    _build_prompt_generation_system_prompt,
+)
+
+
+def test_prompt_generation_system_prompt_is_mode_aware():
+    short_prompt = _build_prompt_generation_system_prompt(
+        language="ru",
+        mode="shortStory",
+    )
+    long_prompt = _build_prompt_generation_system_prompt(
+        language="ru",
+        mode="longCampaign",
+    )
+
+    assert "short story" in short_prompt.lower()
+    assert "long campaign" in long_prompt.lower()
+    assert "hero backstory" in long_prompt.lower()
+
+
+def test_generate_prompts_route_passes_mode_to_service(monkeypatch):
+    mocked = AsyncMock(
+        return_value={
+            "story_prompt": "story",
+            "character_prompt": "character",
+            "campaign_title": "title",
+            "objective_hint": "goal",
+        }
+    )
+    monkeypatch.setattr(
+        "app.api.routes.prompts.prompt_service.generate",
+        mocked,
+    )
+    monkeypatch.setattr(
+        "app.api.routes.prompts.credential_service.resolve",
+        lambda _: object(),
+    )
+
+    payload = GeneratePromptsRequest(
+        setting="romantasy",
+        literary_genre="fantasyGenre",
+        mode="longCampaign",
+        difficulty="easy",
+        language="ru",
+        story_wish="hero returns home",
+    )
+
+    asyncio.run(generate_prompts(payload=payload, _=object(), __=object()))
+
+    assert mocked.await_count == 1
+    assert mocked.await_args.kwargs["mode"] == "longCampaign"
+
+
+def test_prompt_generation_service_sends_mode_to_ai_gateway():
+    service = PromptGenerationService()
+    service._ai_gateway.generate_json = AsyncMock(
+        return_value={
+            "story_prompt": "Long-form story seed",
+            "character_prompt": "Driven hero",
+            "campaign_title": "Ash Harbor",
+            "objective_hint": "Find the witness",
+        }
+    )
+
+    result = asyncio.run(
+        service.generate(
+            credentials=object(),
+            setting="cozyCrime",
+            literary_genre="mysteryCrime",
+            mode="longCampaign",
+            difficulty="medium",
+            language="en",
+            story_wish="A witness vanishes before dawn.",
+        )
+    )
+
+    kwargs = service._ai_gateway.generate_json.await_args.kwargs
+    assert kwargs["user_payload"]["mode"] == "longCampaign"
+    assert "long campaign" in kwargs["system_prompt"].lower()
+    assert result.story_prompt == "Long-form story seed"

@@ -12,11 +12,14 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 COPY start.sh ./start.sh
+COPY start_worker.sh ./start_worker.sh
 COPY .env.example ./.env.example
 
 RUN mkdir -p /app/models
 RUN sed -i 's/\r$//' /app/start.sh
+RUN sed -i 's/\r$//' /app/start_worker.sh
 RUN chmod +x /app/start.sh
+RUN chmod +x /app/start_worker.sh
 
 EXPOSE 8080
 

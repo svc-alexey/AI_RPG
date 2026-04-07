@@ -5,6 +5,7 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart' show AiTurnException;
@@ -28,6 +29,7 @@ class ChatViewState {
     required this.transientNotifications,
     required this.highlightedModules,
     required this.newlyUnlockedModules,
+    required this.worldRumors,
     required this.clearInputRevision,
   });
 
@@ -42,6 +44,7 @@ class ChatViewState {
       transientNotifications = const <StateChangeNotification>[],
       highlightedModules = const <CampaignModule>[],
       newlyUnlockedModules = const <CampaignModule>[],
+      worldRumors = const <SymmetryWorldRumor>[],
       clearInputRevision = 0;
 
   static const Object _unset = Object();
@@ -56,6 +59,7 @@ class ChatViewState {
   final List<StateChangeNotification> transientNotifications;
   final List<CampaignModule> highlightedModules;
   final List<CampaignModule> newlyUnlockedModules;
+  final List<SymmetryWorldRumor> worldRumors;
   final int clearInputRevision;
 
   List<ChatMessage> get visibleMessages {
@@ -80,6 +84,7 @@ class ChatViewState {
     final List<StateChangeNotification>? transientNotifications,
     final List<CampaignModule>? highlightedModules,
     final List<CampaignModule>? newlyUnlockedModules,
+    final List<SymmetryWorldRumor>? worldRumors,
     final int? clearInputRevision,
   }) => ChatViewState(
     isLoading: isLoading ?? this.isLoading,
@@ -99,6 +104,7 @@ class ChatViewState {
         transientNotifications ?? this.transientNotifications,
     highlightedModules: highlightedModules ?? this.highlightedModules,
     newlyUnlockedModules: newlyUnlockedModules ?? this.newlyUnlockedModules,
+    worldRumors: worldRumors ?? this.worldRumors,
     clearInputRevision: clearInputRevision ?? this.clearInputRevision,
   );
 }
@@ -110,6 +116,7 @@ class ChatController extends StateNotifier<ChatViewState> {
   final String _campaignId;
 
   Timer? _notificationTimer;
+  Timer? _rumorRefreshTimer;
   String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
@@ -135,6 +142,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     );
     _disposed = true;
     _notificationTimer?.cancel();
+    _rumorRefreshTimer?.cancel();
     super.dispose();
   }
 
@@ -147,6 +155,9 @@ class ChatController extends StateNotifier<ChatViewState> {
     final CampaignState? campaign = await _campaignRepository.loadCampaign(
       _campaignId,
     );
+    final List<SymmetryWorldRumor> worldRumors = campaign == null
+        ? const <SymmetryWorldRumor>[]
+        : await _safeLoadRumors(_campaignId);
     final AiSettings settings = await _settingsRepository.loadAiSettings();
 
     if (_disposed) {
@@ -156,6 +167,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     state = state.copyWith(
       campaign: campaign,
       settings: settings,
+      worldRumors: worldRumors,
       isLoading: false,
     );
   }
@@ -259,6 +271,9 @@ class ChatController extends StateNotifier<ChatViewState> {
       if (_disposed) {
         return;
       }
+      final List<SymmetryWorldRumor> worldRumors = await _safeLoadRumors(
+        nextCampaign.id,
+      );
 
       _showTransientNotifications(
         notifications: _buildNotificationsFromCampaignDiff(
@@ -272,6 +287,7 @@ class ChatController extends StateNotifier<ChatViewState> {
       state = state.copyWith(
         campaign: nextCampaign,
         settings: settings,
+        worldRumors: worldRumors,
         isSending: false,
         pendingPlayerMessage: null,
         pendingNarratorMessage: null,
@@ -284,6 +300,7 @@ class ChatController extends StateNotifier<ChatViewState> {
             ? state.clearInputRevision
             : state.clearInputRevision + 1,
       );
+      _scheduleRumorRefresh(nextCampaign.id);
       AppLogger.logDiagnostic(
         level: 'INFO',
         event: 'turn_completed',
@@ -347,6 +364,34 @@ class ChatController extends StateNotifier<ChatViewState> {
       pendingPlayerMessage: null,
       pendingNarratorMessage: null,
     );
+  }
+
+  void _scheduleRumorRefresh(final String campaignId) {
+    _rumorRefreshTimer?.cancel();
+    _rumorRefreshTimer = Timer(const Duration(seconds: 2), () async {
+      if (_disposed) {
+        return;
+      }
+      try {
+        final List<SymmetryWorldRumor> worldRumors = await _safeLoadRumors(
+          campaignId,
+        );
+        if (_disposed) {
+          return;
+        }
+        state = state.copyWith(worldRumors: worldRumors);
+      } catch (_) {}
+    });
+  }
+
+  Future<List<SymmetryWorldRumor>> _safeLoadRumors(
+    final String campaignId,
+  ) async {
+    try {
+      return await _campaignRepository.loadCampaignRumors(campaignId);
+    } catch (_) {
+      return const <SymmetryWorldRumor>[];
+    }
   }
 
   void _showTransientNotifications({

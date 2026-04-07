@@ -84,6 +84,7 @@ enum CharacterClass {
   engineer,
   pilot,
   medic,
+
   /// No game class for this world (romance, cozy, etc.); not shown in wizard.
   unspecified,
 }
@@ -890,8 +891,12 @@ class CampaignState {
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
       literaryGenre: parseLiteraryGenre(json['literaryGenre']?.toString()),
-      customStoryPrompt: _jsonString(json['customStoryPrompt']),
-      characterPrompt: _jsonString(json['characterPrompt']),
+      customStoryPrompt: _jsonString(
+        json['customStoryPrompt'] ?? json['custom_story_prompt'],
+      ),
+      characterPrompt: _jsonString(
+        json['characterPrompt'] ?? json['character_prompt'],
+      ),
       portraitPath: _jsonString(json['portraitPath']),
       portraitPrompt: _jsonString(json['portraitPrompt']),
     );
@@ -1173,12 +1178,14 @@ class CampaignPromptGenerationRequest {
   const CampaignPromptGenerationRequest({
     required this.setting,
     required this.literaryGenre,
+    required this.mode,
     required this.difficulty,
     this.storyWish = '',
   });
 
   final CampaignSetting setting;
   final LiteraryGenre literaryGenre;
+  final StoryMode mode;
   final DifficultyLevel difficulty;
   final String storyWish;
 }
