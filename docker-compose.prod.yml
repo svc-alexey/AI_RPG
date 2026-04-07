@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-rpg-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: symmetry
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    volumes:
+      - symmetry_postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d symmetry"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  symmetry-api:
+    build:
+      context: ./backend/symmetry
+    container_name: ai-rpg-api
+    restart: unless-stopped
+    env_file:
+      - ./backend/symmetry/.env
+    environment:
+      SYMMETRY_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/symmetry
+      SYMMETRY_EMBEDDING_MODEL_DIR: /app/models
+      SYMMETRY_EMBEDDING_MODEL: intfloat/multilingual-e5-base
+      SYMMETRY_EMBEDDING_BACKEND: onnx
+      SYMMETRY_EMBEDDING_MODEL_FILE_NAME: onnx/model.onnx
+      OMP_NUM_THREADS: "8"
+      MKL_NUM_THREADS: "8"
+      TORCH_NUM_THREADS: "8"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    volumes:
+      - ./backend/symmetry/models:/app/models
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)\""]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  symmetry-worker:
+    build:
+      context: ./backend/symmetry
+    container_name: ai-rpg-worker
+    restart: unless-stopped
+    command: ["/app/start_worker.sh"]
+    env_file:
+      - ./backend/symmetry/.env
+    environment:
+      SYMMETRY_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/symmetry
+      SYMMETRY_EMBEDDING_MODEL_DIR: /app/models
+      SYMMETRY_EMBEDDING_MODEL: intfloat/multilingual-e5-base
+      SYMMETRY_EMBEDDING_BACKEND: onnx
+      SYMMETRY_EMBEDDING_MODEL_FILE_NAME: onnx/model.onnx
+      OMP_NUM_THREADS: "8"
+      MKL_NUM_THREADS: "8"
+      TORCH_NUM_THREADS: "8"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    volumes:
+      - ./backend/symmetry/models:/app/models
+
+  web:
+    image: nginx:alpine
+    container_name: ai-rpg-web
+    restart: unless-stopped
+    depends_on:
+      symmetry-api:
+        condition: service_started
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/web:/usr/share/nginx/html:ro
+      - ./deploy/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  symmetry_postgres_data:

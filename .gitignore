@@ -48,6 +48,7 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+!.env.production.example
 !.env.template
 tool/ai_local_defines.json
 *.pem
@@ -81,3 +82,4 @@ Desktop.ini
 
 # Ad-hoc build archives at repo root (not versioned source)
 /*.zip
+/*_build_*.zip.sha256.txt

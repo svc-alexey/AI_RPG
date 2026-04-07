@@ -3,13 +3,14 @@ param()
 $ErrorActionPreference = 'Stop'
 
 Write-Host 'Building Flutter web release...'
-$definesFile = Join-Path $PSScriptRoot 'ai_local_defines.json'
+$definesFile = Join-Path $PSScriptRoot 'web_release_defines.json'
 if (Test-Path $definesFile) {
   $definesResolved = (Resolve-Path $definesFile).Path
   Write-Host "Using dart defines from: $definesResolved"
-  flutter build web --dart-define-from-file=$definesResolved
+  flutter build web --no-tree-shake-icons --dart-define-from-file=$definesResolved
 } else {
-  flutter build web
+  Write-Host 'No web_release_defines.json found; building with compile-time defaults only.'
+  flutter build web --no-tree-shake-icons
 }
 
 $bootstrapPath = Join-Path $PSScriptRoot '..\build\web\flutter_bootstrap.js'
