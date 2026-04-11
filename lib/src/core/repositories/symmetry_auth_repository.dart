@@ -111,6 +111,27 @@ class SymmetryAuthRepository {
     return refreshed;
   }
 
+  Future<Uri> buildYandexStartUri({final String? redirectUri}) async {
+    final String baseUrl = await loadBaseUrl();
+    return _client(baseUrl).buildYandexStartUri(redirectUri: redirectUri);
+  }
+
+  Future<SymmetrySession> loginWithYandexCode({
+    required final String code,
+  }) async {
+    final String baseUrl = await loadBaseUrl();
+    final SymmetryAuthResponse response = await _client(
+      baseUrl,
+    ).loginWithYandexCode(code: code);
+    final SymmetrySession session = SymmetrySession(
+      user: response.user,
+      tokens: response.tokens,
+      baseUrl: baseUrl,
+    );
+    await _settingsRepository.saveSymmetrySession(session);
+    return session;
+  }
+
   Future<void> logout() async {
     final SymmetrySession? session = await _settingsRepository
         .loadSymmetrySession();

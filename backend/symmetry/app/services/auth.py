@@ -151,17 +151,18 @@ class AuthService:
             auth_session.revoked_at = datetime.now(UTC)
             await session.commit()
 
-    def build_yandex_authorize_url(self) -> str:
+    def build_yandex_authorize_url(self, *, redirect_uri: str | None = None) -> str:
         if not self._settings.yandex_client_id:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="yandex_oauth_not_configured",
             )
+        resolved_redirect_uri = (redirect_uri or "").strip() or self._settings.yandex_redirect_uri
         query = urlencode(
             {
                 "response_type": "code",
                 "client_id": self._settings.yandex_client_id,
-                "redirect_uri": self._settings.yandex_redirect_uri,
+                "redirect_uri": resolved_redirect_uri,
             }
         )
         return f"{self._settings.yandex_authorize_url}?{query}"

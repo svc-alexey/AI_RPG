@@ -432,9 +432,6 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   Future<CampaignState> createQuickCampaign() async {
     state = state.copyWith(isSaving: true);
     try {
-      if (!state.aiConfigured) {
-        throw StateError('ai_not_configured');
-      }
       final AppLanguage currentLanguage = language;
       final AiSettings settings = await _settingsRepository.loadAiSettings();
       final CampaignSetting rolledSetting = CampaignSetting
@@ -608,7 +605,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       _ref.read(symmetryCampaignRepositoryProvider);
 
   static StoryMode pickQuickStartStoryMode(final Random random) {
-    final int totalWeight =
+    const int totalWeight =
         quickStartShortStoryWeight + quickStartLongCampaignWeight;
     final int roll = random.nextInt(totalWeight);
     if (roll < quickStartShortStoryWeight) {

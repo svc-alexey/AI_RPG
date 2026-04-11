@@ -59,7 +59,6 @@ class CampaignModuleResolver {
           const <CampaignModule>[
             CampaignModule.inventory,
             CampaignModule.notes,
-            CampaignModule.vitality,
             CampaignModule.checks,
           ],
         CampaignSetting.cozyCrime => const <CampaignModule>[
@@ -69,7 +68,6 @@ class CampaignModuleResolver {
         CampaignSetting.nearFutureSciFi => const <CampaignModule>[
           CampaignModule.inventory,
           CampaignModule.notes,
-          CampaignModule.vitality,
           CampaignModule.resources,
           CampaignModule.checks,
         ],

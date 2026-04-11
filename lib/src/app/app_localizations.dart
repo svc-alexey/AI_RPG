@@ -639,9 +639,9 @@ class AppLocalizations {
 
   String get quickStartAiBlurb => switch (language) {
     AppLanguage.ru =>
-      'ИИ подберёт случайный сеттинг и жанр и сгенерирует старт истории. Нужны настроенные AI и сеть.',
+      'ИИ подберёт случайный сеттинг и жанр и сгенерирует старт истории. Можно использовать локальные настройки AI или серверный ключ.',
     AppLanguage.en =>
-      'AI picks a random setting and genre and writes your opening. Requires configured AI.',
+      'AI picks a random setting and genre and writes your opening. You can use local AI settings or a server-side key.',
   };
 
   String get promptGenerationFailed => switch (language) {
@@ -1366,6 +1366,21 @@ class AppLocalizations {
     AppLanguage.en => 'Sign in',
   };
 
+  String get authContinueWithYandexAction => switch (language) {
+    AppLanguage.ru => 'Войти через Яндекс',
+    AppLanguage.en => 'Continue with Yandex',
+  };
+
+  String get authContinueWithEmailHint => switch (language) {
+    AppLanguage.ru => 'или войдите по email и паролю',
+    AppLanguage.en => 'or sign in with email and password',
+  };
+
+  String get authYandexProcessing => switch (language) {
+    AppLanguage.ru => 'Завершаем вход через Яндекс...',
+    AppLanguage.en => 'Finishing Yandex sign-in...',
+  };
+
   String get closeAction => switch (language) {
     AppLanguage.ru => 'Закрыть',
     AppLanguage.en => 'Close',
@@ -1467,6 +1482,12 @@ class AppLocalizations {
     AppLanguage.ru =>
       'Не удалось зарегистрироваться: ${symmetryFriendlyError(error)}',
     AppLanguage.en => 'Registration failed: ${symmetryFriendlyError(error)}',
+  };
+
+  String authYandexFailed(final Object error) => switch (language) {
+    AppLanguage.ru =>
+      'Не удалось войти через Яндекс: ${symmetryFriendlyError(error)}',
+    AppLanguage.en => 'Yandex sign-in failed: ${symmetryFriendlyError(error)}',
   };
 
   String get authEmailTaken => switch (language) {
@@ -1683,6 +1704,50 @@ class AppLocalizations {
   String get signedOutStatus => switch (language) {
     AppLanguage.ru => 'Сессия завершена.',
     AppLanguage.en => 'Signed out.',
+  };
+
+  String get updateAvailableTitle => switch (language) {
+    AppLanguage.ru => 'Доступно обновление',
+    AppLanguage.en => 'Update available',
+  };
+
+  String get updateRequiredTitle => switch (language) {
+    AppLanguage.ru => 'Требуется обновление',
+    AppLanguage.en => 'Update required',
+  };
+
+  String updateAvailableBody(final String version) => switch (language) {
+    AppLanguage.ru =>
+      'Доступна версия $version. Можно обновиться сейчас или продолжить позже.',
+    AppLanguage.en =>
+      'Version $version is available. You can update now or continue later.',
+  };
+
+  String updateRequiredBody(final String version) => switch (language) {
+    AppLanguage.ru =>
+      'Для продолжения нужна версия $version. Обновите приложение или перезагрузите страницу.',
+    AppLanguage.en =>
+      'Version $version is required to continue. Update the app or reload the page.',
+  };
+
+  String get updateLaterAction => switch (language) {
+    AppLanguage.ru => 'Позже',
+    AppLanguage.en => 'Later',
+  };
+
+  String get updateNowAction => switch (language) {
+    AppLanguage.ru => 'Обновить',
+    AppLanguage.en => 'Update',
+  };
+
+  String get reloadNowAction => switch (language) {
+    AppLanguage.ru => 'Перезагрузить',
+    AppLanguage.en => 'Reload',
+  };
+
+  String get updateUnknownVersion => switch (language) {
+    AppLanguage.ru => 'новая версия',
+    AppLanguage.en => 'a newer version',
   };
 }
 

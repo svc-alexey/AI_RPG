@@ -5,9 +5,12 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+APP_ROOT = Path(__file__).resolve().parents[2]
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=APP_ROOT / ".env",
         env_file_encoding="utf-8",
         env_prefix="SYMMETRY_",
         extra="ignore",
@@ -20,6 +23,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     dev_log_http: bool = True
     dev_log_file: Path = Field(default=Path("logs/symmetry-dev.log"))
+    dev_admin_token: str = ""
+    dev_usage_default_days: int = 7
+    dev_usage_max_rows: int = 1000
 
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/symmetry"
@@ -50,10 +56,34 @@ class Settings(BaseSettings):
 
     yandex_client_id: str = ""
     yandex_client_secret: str = ""
-    yandex_redirect_uri: str = "http://localhost:8080/v1/auth/yandex/callback"
+    yandex_redirect_uri: str = "http://127.0.0.1:3010/auth/yandex/callback"
     yandex_authorize_url: str = "https://oauth.yandex.ru/authorize"
     yandex_token_url: str = "https://oauth.yandex.ru/token"
     yandex_userinfo_url: str = "https://login.yandex.ru/info"
+    api_version: str = "2.0"
+    release_id: str = "dev-local"
+    released_at: str = "2026-04-07T00:00:00Z"
+    web_latest_version: str = "1.0.0+1"
+    web_minimum_supported_version: str = "1.0.0+1"
+    web_asset_version: str = "dev-local"
+    web_update_message: str = "A new web version is available."
+    desktop_latest_version: str = "1.0.0+1"
+    desktop_minimum_supported_version: str = "1.0.0+1"
+    desktop_update_url: str = ""
+    desktop_update_message: str = "A new desktop version is available."
+    feedback_recipient_email: str = "a@svc-code.ru"
+    feedback_sender_email: str = "a@svc-code.ru"
+    feedback_email_subject_prefix: str = "Landing feedback"
+    feedback_smtp_host: str = ""
+    feedback_smtp_port: int = 465
+    feedback_smtp_username: str = ""
+    feedback_smtp_password: str = ""
+    feedback_smtp_use_ssl: bool = True
+    feedback_smtp_use_starttls: bool = False
+    feedback_smtp_timeout_seconds: int = 20
+    feedback_max_attachments: int = 5
+    feedback_max_attachment_bytes: int = 5_000_000
+    feedback_max_total_attachment_bytes: int = 15_000_000
 
 
 @lru_cache

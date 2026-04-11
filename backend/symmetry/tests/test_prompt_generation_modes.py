@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 from app.api.routes.prompts import generate_prompts
 from app.schemas.prompts import GeneratePromptsRequest
+from app.services.ai_gateway import LlmJsonResult, LlmUsage
 from app.services.prompt_generation import (
     PromptGenerationService,
     _build_prompt_generation_system_prompt,
@@ -60,12 +61,16 @@ def test_generate_prompts_route_passes_mode_to_service(monkeypatch):
 def test_prompt_generation_service_sends_mode_to_ai_gateway():
     service = PromptGenerationService()
     service._ai_gateway.generate_json = AsyncMock(
-        return_value={
-            "story_prompt": "Long-form story seed",
-            "character_prompt": "Driven hero",
-            "campaign_title": "Ash Harbor",
-            "objective_hint": "Find the witness",
-        }
+        return_value=LlmJsonResult(
+            payload={
+                "story_prompt": "Long-form story seed",
+                "character_prompt": "Driven hero",
+                "campaign_title": "Ash Harbor",
+                "objective_hint": "Find the witness",
+            },
+            usage=LlmUsage(),
+            meta={},
+        )
     )
 
     result = asyncio.run(
@@ -83,4 +88,6 @@ def test_prompt_generation_service_sends_mode_to_ai_gateway():
     kwargs = service._ai_gateway.generate_json.await_args.kwargs
     assert kwargs["user_payload"]["mode"] == "longCampaign"
     assert "long campaign" in kwargs["system_prompt"].lower()
+    assert kwargs["max_output_tokens"] > 0
+    assert kwargs["scenario"] == "prompt_generation_long"
     assert result.story_prompt == "Long-form story seed"

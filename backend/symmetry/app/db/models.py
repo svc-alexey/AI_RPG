@@ -128,6 +128,7 @@ class CampaignTurn(Base):
     turn_number: Mapped[int] = mapped_column(Integer)
     player_action: Mapped[str] = mapped_column(Text)
     llm_response_json: Mapped[dict] = mapped_column(JSONB)
+    llm_usage_json: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

@@ -24,12 +24,25 @@ processing.
 ## What is implemented
 
 - server-first gameplay flow with guest and account-based sessions;
-- email/password auth plus Yandex OAuth scaffolding;
+- email/password auth plus wired Yandex OAuth for the web sign-in flow;
 - backend-driven campaign creation, loading, deleting, and turn processing;
+- lifecycle/version endpoints for clients and web deploys:
+  - `GET /health`
+  - `GET /version`
 - two story modes in campaign creation:
   - `shortStory`: compact entry, fast hook, lighter narration;
   - `longCampaign`: visible prologue on the first auto-turn plus more
     expanded ongoing narration;
+- DeepSeek/OpenAI-compatible prompt-caching flow:
+  - the backend keeps a stable cached prefix for immutable campaign/world
+    bootstrap and character brief;
+  - dynamic turn data is sent in the final user message only;
+  - per-turn LLM usage now records
+    `prompt_cache_hit_tokens` / `prompt_cache_miss_tokens` and total usage;
+- token-optimization pass for server-first AI requests:
+  - scenario-aware output budgets for prompt generation and turn processing;
+  - compact runtime context for memory, chronicles, and player input;
+  - a dev-only usage report endpoint protected by a server token;
 - butterfly-effect background simulation for both story modes:
   - `shortStory`: lighter, local, short-lived ripple effects;
   - `longCampaign`: broader delayed effects for companies, factions,
@@ -42,9 +55,19 @@ processing.
   deployment;
 - Flutter auth/session flow and server-backed repositories;
 - local client persistence only for settings, session, and user-owned AI keys.
+- custom update system:
+  - backend exposes per-platform release metadata through `/version`;
+  - Flutter uses a custom `soft` / `force` update gate instead of store-only
+    upgrader flows;
+  - web builds ship `version.json` and keep `flutter_service_worker.js`;
+- web landing SEO/release artifacts:
+  - title, description, canonical URL, Open Graph, and Twitter Card metadata;
+  - `robots.txt` and `sitemap.xml` in the web bundle;
+  - path-based URL strategy and scroll reset on load;
 - minimal auth UI:
   - no backend URL field on the sign-in form;
   - close button returns the user to the previous screen;
+  - web auth screen includes a `Sign in with Yandex` button;
   - settings show a generic `Settings` title instead of `AI Settings`;
   - the account section shows only who is signed in and `Log in` / `Sign out`;
   - the game-backend server address is not shown or edited in settings.
@@ -53,6 +76,19 @@ processing.
   those credentials stay only on the user's device and are sent transiently
   with requests when needed.
 - the campaign screen now shows `Слухи мира` directly under `Сводка`.
+- chat/runtime bug fixes:
+  - intro-turn no longer creates an empty player bubble;
+  - `Начальная точка` / `Starting Point` is replaced with a real opening
+    location on the first turn;
+  - chat autoscroll happens on player send, not on narrator growth;
+  - `Слухи мира` and `Последние события` show only the latest 5 entries in
+    descending freshness order;
+- campaign module logic is less hardcoded:
+  - `vitality` is no longer enabled by setting preset alone;
+  - server-backed campaigns no longer fabricate default RPG stats when the
+    backend did not send them;
+  - the backend model can explicitly activate/deactivate modules and provide
+    stat blocks when a module like `vitality` is actually needed.
 
 ## Campaign creation flow
 
@@ -121,16 +157,17 @@ launching `uvicorn`.
 
 ### Preferred local web preview
 
-For faithful local web preview, especially Material Icons, use the built web
-bundle instead of a hot web-server session:
+For faithful local web preview, especially release metadata, service-worker
+behavior, SEO files, and Material Icons, use the production-like web bundle
+instead of a hot web-server session:
 
 ```bash
-flutter build web --no-tree-shake-icons
-python -m http.server 3010 --directory build/web
+powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
 ```
 
-Then open `http://127.0.0.1:3010` and do a hard refresh after rebuilds if the
-browser keeps old assets cached.
+Then serve or mount `build/web` through a static host or nginx reverse proxy
+that also forwards `/v1`, `/health`, and `/version` to the backend. During
+local preview in this repository, `http://127.0.0.1:3010` is used.
 
 ## Runtime model credentials
 
@@ -146,8 +183,56 @@ Important rule:
 - the backend must not write them to the database, snapshots, logs, or
   background jobs.
 
+## Dev usage report
+
+For server-side token analysis, the backend now exposes a private usage report
+endpoint:
+
+- `GET /v1/dev/usage`
+
+It is intentionally not public:
+
+- the endpoint is disabled unless `SYMMETRY_DEV_ADMIN_TOKEN` is configured on
+  the server;
+- access requires header `X-Symmetry-Dev-Token`;
+- this endpoint is intended for direct server/admin usage, not for client UI.
+
+Related env vars:
+
+- `SYMMETRY_DEV_ADMIN_TOKEN`
+- `SYMMETRY_DEV_USAGE_DEFAULT_DAYS`
+- `SYMMETRY_DEV_USAGE_MAX_ROWS`
+
+## Yandex OAuth setup
+
+The current web OAuth flow is:
+
+1. Flutter opens `GET /v1/auth/yandex/start?redirect_uri=...`
+2. the backend redirects the browser to Yandex OAuth
+3. Yandex returns the browser to the Flutter route
+   `/auth/yandex/callback?code=...`
+4. Flutter exchanges `code` through `GET /v1/auth/yandex/callback`
+   and stores the returned session locally
+
+Required backend env values:
+
+- `SYMMETRY_YANDEX_CLIENT_ID`
+- `SYMMETRY_YANDEX_CLIENT_SECRET`
+- `SYMMETRY_YANDEX_REDIRECT_URI`
+
+Important callback note:
+
+- for local web preview, use `http://127.0.0.1:3010/auth/yandex/callback`
+- for production, use `https://your-domain.example/auth/yandex/callback`
+- the same callback URL must be allowed in the Yandex OAuth application
+  settings
+
 ## Main APIs
 
+- runtime:
+  - `GET /health`
+  - `GET /version`
+  - `GET /v1/dev/usage` with `X-Symmetry-Dev-Token`
 - auth:
   - `POST /v1/auth/guest`
   - `POST /v1/auth/register`

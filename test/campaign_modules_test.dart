@@ -100,6 +100,58 @@ void main() {
   });
 
   test(
+    'CampaignState keeps vitality disabled for server payloads without modules and stats',
+    () {
+      final CampaignState state = CampaignState.fromJson(<String, Object?>{
+        'id': 'server-1',
+        'title': 'Server state',
+        'setting': CampaignSetting.grimdarkFantasy.name,
+        'mode': StoryMode.longCampaign.name,
+        'difficulty': DifficultyLevel.medium.name,
+        'character': const <String, Object?>{
+          'name': 'Rhea',
+          'hp': 0,
+          'maxHp': 0,
+          'energy': 0,
+          'maxEnergy': 0,
+          'might': 0,
+          'wit': 0,
+          'spirit': 0,
+        },
+        'location': 'Old road',
+        'objective': 'Reach the chapel',
+        'turnNumber': 1,
+        'modules': const <Object?>[],
+        'messages': const <Object?>[],
+        'choices': const <Object?>[],
+        'updatedAt': DateTime(2026, 4, 7).toIso8601String(),
+      });
+
+      expect(state.isModuleActive(CampaignModule.vitality), isFalse);
+    },
+  );
+
+  test('CampaignModuleResolver does not enable vitality by preset alone', () {
+    const CampaignModuleResolver resolver = CampaignModuleResolver();
+
+    final List<CampaignModuleState> modules = resolver.resolveInitialModules(
+      draft: const CampaignDraft(
+        setting: CampaignSetting.nearFutureSciFi,
+        mode: StoryMode.longCampaign,
+        difficulty: DifficultyLevel.medium,
+        heroName: 'Nova',
+      ),
+    );
+
+    final List<CampaignModule> active = modules
+        .where((final item) => item.isActive)
+        .map((final item) => item.module)
+        .toList();
+
+    expect(active, isNot(contains(CampaignModule.vitality)));
+  });
+
+  test(
     'CampaignState roundtrip preserves resources, progression, and reasons',
     () {
       final CampaignState state = CampaignState(

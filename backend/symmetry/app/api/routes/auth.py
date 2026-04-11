@@ -60,8 +60,14 @@ async def logout(
 
 
 @router.get("/yandex/start")
-async def yandex_start() -> RedirectResponse:
-    return RedirectResponse(auth_service.build_yandex_authorize_url())
+async def yandex_start(
+    redirect_uri: str = Query(default=""),
+) -> RedirectResponse:
+    return RedirectResponse(
+        auth_service.build_yandex_authorize_url(
+            redirect_uri=redirect_uri or None,
+        )
+    )
 
 
 @router.get("/yandex/callback", response_model=AuthResponse)

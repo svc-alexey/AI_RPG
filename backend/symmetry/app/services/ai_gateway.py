@@ -1,54 +1,68 @@
 import json
 import re
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import httpx
 
 from app.core.logging import get_logger
 from app.services.credentials import ResolvedCredentials
+from app.services.prompt_budget import build_turn_budget
+from app.services.text_normalization import normalize_prompt_text
 
 logger = get_logger("symmetry.ai_gateway")
 
 
 TURN_SCHEMA_PROMPT = """
-Return valid JSON only.
-Schema:
-{
-  "narration": "string",
-  "choices": ["string"],
-  "state_changes": {
-    "location": "string",
-    "objective": "string",
-    "quest_note": "string",
-    "global_vars_patch": {},
-    "character_patch": {}
-  },
-  "memory_entry": "string",
-  "importance": 0,
-  "world_event_summary": "string",
-  "needs_background_followup": false,
-  "impact_seeds": [
-    {
-      "entity_kind": "company|faction|location|market|world",
-      "entity_slug": "string",
-      "impact_type": "scarcity|influence|trust|alertness|rumor|instability|opportunity",
-      "strength": 1,
-      "delay_min_turns": 1,
-      "delay_max_turns": 2,
-      "visibility": "public|hidden",
-      "summary": "string"
-    }
-  ]
-}
+Return valid JSON only with keys:
+- narration
+- choices
+- state_changes {location, objective, quest_note, module_updates, global_vars_patch, character_patch}
+- memory_entry
+- importance
+- world_event_summary
+- needs_background_followup
+- impact_seeds
 Rules:
-- choices: up to 3 options, each concise, usually 1-4 words, never full sentences.
-- state_changes.location: a human-readable place name in the target language, 2-4 words, no snake_case, no kebab-case, no special symbols.
-- state_changes.objective and state_changes.quest_note: short current goal summaries in the target language, not fragments of narration, no more than 56 characters.
+- choices: up to 3 concise options, usually 1-4 words, never full sentences.
+- location: human-readable place name in the target language, 2-4 words, no snake_case or kebab-case.
+- objective and quest_note: short goal summaries in the target language, not narration, <=56 characters.
+- module_updates is optional; activate modules only when the story truly needs persistent UI/state support.
+- do not activate `vitality` by default for every campaign.
+- if `vitality` is activated for the first time, provide a full character_patch with hp, max_hp, energy, max_energy, might, wit, spirit.
+- if `vitality` is not active or not needed for the scene, keep combat stats untouched.
 - do not start titles, objectives, quest notes, or choices with filler words like "and" or "и".
-- impact_seeds: optional compact follow-up traces for the background simulation, up to 2 for shortStory and up to 4 for longCampaign.
-- impact_seeds summarize possible consequences only; do not resolve them in the current narration.
-- needs_background_followup should be true only if at least one impact seed is meaningful enough to expand later.
-""" 
+- impact seeds are optional compact follow-up traces for the background simulation, up to 2 for shortStory and up to 4 for longCampaign.
+- impact seeds summarize possible consequences only; do not resolve them in the current narration.
+- needs_background_followup is true only if at least one impact seed is meaningful enough to expand later.
+"""
+
+
+PLACEHOLDER_LOCATIONS = {
+    "starting point",
+    "starting point.",
+    "начальная точка",
+    "начальная точка.",
+}
+
+
+@dataclass(slots=True)
+class LlmUsage:
+    prompt_cache_hit_tokens: int = 0
+    prompt_cache_miss_tokens: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+    def to_dict(self) -> dict[str, int]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class LlmJsonResult:
+    payload: dict[str, Any]
+    usage: LlmUsage
+    meta: dict[str, Any]
 
 
 class AiGatewayService:
@@ -88,42 +102,60 @@ class AiGatewayService:
         player_action: str,
         language: str,
         trigger_source: str,
-    ) -> dict[str, Any]:
-        campaign = context.get("campaign", {}) if isinstance(context, dict) else {}
+    ) -> LlmJsonResult:
+        campaign = context.get("campaign_bootstrap", {}) if isinstance(context, dict) else {}
         mode = str(campaign.get("mode", "shortStory")).strip() or "shortStory"
-        turn_number = int(campaign.get("turn_number", 0) or 0)
+        turn_number = int((context.get("dynamic_context", {}) or {}).get("turn_number", 0) or 0)
+        budget = build_turn_budget(
+            mode=mode,
+            turn_number=turn_number,
+            trigger_source=trigger_source,
+        )
         return await self.generate_json(
             credentials=credentials,
-            system_prompt=build_turn_system_prompt(
-                language=language,
-                mode=mode,
-                turn_number=turn_number,
+            prefix_messages=build_turn_prefix_messages(
+                system_prompt=build_turn_system_prompt(
+                    language=language,
+                    mode=mode,
+                    turn_number=turn_number,
+                    trigger_source=trigger_source,
+                ),
+                context=context,
+            ),
+            dynamic_payload=build_turn_dynamic_payload(
+                context=context,
+                player_action=player_action,
                 trigger_source=trigger_source,
             ),
-            user_payload={
-                "context": context,
-                "player_action": player_action,
-                "trigger_source": trigger_source,
-            },
+            max_output_tokens=budget.max_output_tokens,
+            scenario=budget.scenario,
         )
 
     async def generate_json(
         self,
         *,
         credentials: ResolvedCredentials,
-        system_prompt: str,
-        user_payload: dict[str, Any],
-    ) -> dict[str, Any]:
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": json.dumps(user_payload, ensure_ascii=False),
-            },
-        ]
+        system_prompt: str | None = None,
+        user_payload: dict[str, Any] | None = None,
+        prefix_messages: list[dict[str, str]] | None = None,
+        dynamic_payload: dict[str, Any] | None = None,
+        max_output_tokens: int | None = None,
+        scenario: str = "generic_json",
+    ) -> LlmJsonResult:
+        messages = build_messages(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            prefix_messages=prefix_messages,
+            dynamic_payload=dynamic_payload,
+        )
+        request_meta = _build_request_meta(
+            messages=messages,
+            prefix_messages=prefix_messages,
+            dynamic_payload=dynamic_payload,
+            user_payload=user_payload,
+            max_output_tokens=max_output_tokens,
+            scenario=scenario,
+        )
 
         payload = {
             "model": credentials.model,
@@ -131,10 +163,16 @@ class AiGatewayService:
             "temperature": 0.8,
             "response_format": {"type": "json_object"},
         }
+        if max_output_tokens is not None:
+            payload["max_tokens"] = max_output_tokens
         logger.info(
-            "llm_request_started credentials=%s payload_keys=%s",
+            "llm_request_started credentials=%s scenario=%s payload_keys=%s message_count=%s prompt_chars=%s max_tokens=%s",
             credentials.safe_summary,
+            scenario,
             list(payload.keys()),
+            len(messages),
+            request_meta["prompt_characters"],
+            max_output_tokens or "-",
         )
         async with httpx.AsyncClient(timeout=credentials.timeout_seconds) as client:
             response = await client.post(
@@ -156,17 +194,25 @@ class AiGatewayService:
                 )
                 raise
         data = response.json()
+        usage = _parse_usage(data.get("usage"))
         logger.info(
-            "llm_request_completed status=%s credentials=%s",
+            "llm_request_completed status=%s credentials=%s scenario=%s usage=%s meta=%s",
             response.status_code,
             credentials.safe_summary,
+            scenario,
+            usage.to_dict(),
+            request_meta,
         )
         content = (
             data.get("choices", [{}])[0]
             .get("message", {})
             .get("content", "")
         )
-        return self._parse_json(content)
+        return LlmJsonResult(
+            payload=self._parse_json(content),
+            usage=usage,
+            meta=request_meta,
+        )
 
     def _parse_json(self, content: Any) -> dict[str, Any]:
         if isinstance(content, dict):
@@ -181,6 +227,132 @@ class AiGatewayService:
             if not match:
                 raise ValueError("invalid_llm_payload")
             return json.loads(match.group(0))
+
+
+def build_messages(
+    *,
+    system_prompt: str | None = None,
+    user_payload: dict[str, Any] | None = None,
+    prefix_messages: list[dict[str, str]] | None = None,
+    dynamic_payload: dict[str, Any] | None = None,
+) -> list[dict[str, str]]:
+    if prefix_messages is not None:
+        messages = list(prefix_messages)
+        if dynamic_payload is None:
+            raise ValueError("dynamic_payload_required")
+        messages.append(
+            {
+                "role": "user",
+                "content": json.dumps(dynamic_payload, ensure_ascii=False),
+            }
+        )
+        return messages
+
+    if system_prompt is None or user_payload is None:
+        raise ValueError("system_prompt_and_user_payload_required")
+
+    return [
+        {
+            "role": "system",
+            "content": normalize_prompt_text(system_prompt),
+        },
+        {
+            "role": "user",
+            "content": json.dumps(user_payload, ensure_ascii=False),
+        },
+    ]
+
+
+def build_turn_prefix_messages(
+    *,
+    system_prompt: str,
+    context: dict[str, Any],
+) -> list[dict[str, str]]:
+    immutable_payload = {
+        "campaign_bootstrap": context.get("campaign_bootstrap", {}),
+        "world_bootstrap": context.get("world_bootstrap", {}),
+        "character_brief": context.get("character_brief", {}),
+    }
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": json.dumps(immutable_payload, ensure_ascii=False),
+        },
+    ]
+
+
+def build_turn_dynamic_payload(
+    *,
+    context: dict[str, Any],
+    player_action: str,
+    trigger_source: str,
+) -> dict[str, Any]:
+    dynamic_context = context.get("dynamic_context", {})
+    state = dynamic_context.get("state", {}) if isinstance(dynamic_context, dict) else {}
+    location = str(state.get("location", "")).strip()
+    language = str(
+        (context.get("campaign_bootstrap", {}) or {}).get("language", "ru")
+    ).strip() or "ru"
+    return {
+        "dynamic_context": dynamic_context,
+        "player_action": normalize_prompt_text(player_action, limit=240),
+        "trigger_source": normalize_prompt_text(trigger_source, limit=32),
+        "location_is_placeholder": is_placeholder_location(
+            location,
+            language=language,
+        ),
+    }
+
+
+def is_placeholder_location(location: str, *, language: str) -> bool:
+    normalized = location.strip().lower()
+    if not normalized:
+        return True
+    if normalized in PLACEHOLDER_LOCATIONS:
+        return True
+    return normalized == ("начальная точка" if language.startswith("ru") else "starting point")
+
+
+def _parse_usage(raw_usage: Any) -> LlmUsage:
+    usage = raw_usage if isinstance(raw_usage, dict) else {}
+    return LlmUsage(
+        prompt_cache_hit_tokens=int(usage.get("prompt_cache_hit_tokens", 0) or 0),
+        prompt_cache_miss_tokens=int(usage.get("prompt_cache_miss_tokens", 0) or 0),
+        prompt_tokens=int(usage.get("prompt_tokens", 0) or 0),
+        completion_tokens=int(usage.get("completion_tokens", 0) or 0),
+        total_tokens=int(usage.get("total_tokens", 0) or 0),
+    )
+
+
+def _build_request_meta(
+    *,
+    messages: list[dict[str, str]],
+    prefix_messages: list[dict[str, str]] | None,
+    dynamic_payload: dict[str, Any] | None,
+    user_payload: dict[str, Any] | None,
+    max_output_tokens: int | None,
+    scenario: str,
+) -> dict[str, Any]:
+    prompt_characters = sum(len(item.get("content", "")) for item in messages)
+    prefix_characters = sum(len(item.get("content", "")) for item in prefix_messages or [])
+    if dynamic_payload is not None:
+        dynamic_characters = len(json.dumps(dynamic_payload, ensure_ascii=False))
+    elif user_payload is not None:
+        dynamic_characters = len(json.dumps(user_payload, ensure_ascii=False))
+    else:
+        dynamic_characters = 0
+    return {
+        "scenario": scenario,
+        "message_count": len(messages),
+        "prompt_characters": prompt_characters,
+        "prefix_characters": prefix_characters,
+        "dynamic_characters": dynamic_characters,
+        "max_output_tokens": max_output_tokens or 0,
+    }
 
 
 def classify_provider_error(exc: Exception) -> tuple[int, str]:
@@ -232,6 +404,10 @@ def build_turn_system_prompt(
         "You are the narrative engine for a living-world RPG. "
         "Respect the provided state. "
         f"Write narration and choices in language `{language}`. "
+        "If the current location is a placeholder such as `Starting Point` or `Начальная точка`, "
+        "your first task is to replace it with a unique, concrete starting location that fits the setting. "
+        "Only enable gameplay modules when they are justified by the genre, setting, current story pressure, and hero concept. "
+        "Do not assume health bars or RPG stats are always required. "
         f"{style_rules}"
         f"{butterfly_rules}"
         + TURN_SCHEMA_PROMPT

@@ -3,9 +3,11 @@ import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
+import 'package:ai_prg/src/core/repositories/update_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/portrait_storage.dart';
+import 'package:ai_prg/src/core/services/version_check_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -45,6 +47,20 @@ final Provider<PortraitStorage> portraitStorageProvider =
     Provider<PortraitStorage>((final ref) {
       throw UnimplementedError('portraitStorageProvider was not overridden.');
     });
+
+final Provider<UpdateRepository> updateRepositoryProvider =
+    Provider<UpdateRepository>(
+      (final ref) => UpdateRepository(
+        authRepository: ref.read(symmetryAuthRepositoryProvider),
+      ),
+    );
+
+final Provider<VersionCheckService> versionCheckServiceProvider =
+    Provider<VersionCheckService>(
+      (final ref) => VersionCheckService(
+        updateRepository: ref.read(updateRepositoryProvider),
+      ),
+    );
 
 final Provider<ValueNotifier<AppLanguage>> appLanguageListenableProvider =
     Provider<ValueNotifier<AppLanguage>>((final ref) {

@@ -93,6 +93,30 @@ class SymmetryApiClient {
     return SymmetryAuthResponse.fromJson(response);
   }
 
+  Uri buildYandexStartUri({final String? redirectUri}) {
+    final Map<String, String> queryParameters = <String, String>{
+      if (redirectUri != null && redirectUri.trim().isNotEmpty)
+        'redirect_uri': redirectUri.trim(),
+    };
+    return Uri.parse(_join('/auth/yandex/start')).replace(
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+    );
+  }
+
+  Future<SymmetryAuthResponse> loginWithYandexCode({
+    required final String code,
+  }) async {
+    final Object? decoded = await _get(
+      '/auth/yandex/callback?code=${Uri.encodeQueryComponent(code)}',
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw const SymmetryApiException(message: 'symmetry_invalid_response');
+    }
+    return SymmetryAuthResponse.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
+  }
+
   Future<void> logout({required final String refreshToken}) async {
     await _post(
       '/auth/logout',
@@ -208,6 +232,28 @@ class SymmetryApiClient {
     await _delete('/campaigns/$campaignId', bearerToken: accessToken);
   }
 
+  Future<SymmetryVersionInfo> getVersionInfo({
+    final String? currentVersion,
+    final String? currentAssetVersion,
+  }) async {
+    final List<String> queryParts = <String>[
+      if (currentVersion != null && currentVersion.trim().isNotEmpty)
+        'current_version=${Uri.encodeQueryComponent(currentVersion.trim())}',
+      if (currentAssetVersion != null && currentAssetVersion.trim().isNotEmpty)
+        'current_asset_version=${Uri.encodeQueryComponent(currentAssetVersion.trim())}',
+    ];
+    final String path = queryParts.isEmpty
+        ? '/version'
+        : '/version?${queryParts.join('&')}';
+    final Object? decoded = await _get(path, apiPrefix: false);
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return SymmetryVersionInfo.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
+  }
+
   Future<List<SymmetryWorldRumor>> getCampaignRumors({
     required final String accessToken,
     required final String campaignId,
@@ -317,9 +363,13 @@ class SymmetryApiClient {
     }
   }
 
-  Future<Object?> _get(final String path, {final String? bearerToken}) async {
+  Future<Object?> _get(
+    final String path, {
+    final String? bearerToken,
+    final bool apiPrefix = true,
+  }) async {
     final http.Client client = httpClient ?? http.Client();
-    final String url = _join(path);
+    final String url = _join(path, apiPrefix: apiPrefix);
     _logDev('request', <String, Object?>{
       'method': 'GET',
       'url': url,

@@ -15,6 +15,7 @@ import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_gate_screen.dart';
+import 'package:ai_prg/src/features/update/presentation/update_gate_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -177,7 +178,9 @@ class _AiRpgAppState extends State<AiRpgApp> {
                 data: adaptThemeForContext(context, Theme.of(context)),
                 child: ColoredBox(
                   color: AetherPalette.background,
-                  child: child ?? const SizedBox.shrink(),
+                  child: UpdateGateOverlay(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
               home: _bootstrapComplete

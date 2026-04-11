@@ -172,15 +172,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
           color: AetherPalette.textMuted,
         ),
       ),
-      if (!state.aiConfigured) ...<Widget>[
-        SizedBox(height: context.responsive.blockSpacing),
-        Text(
-          l10n.quickStartNeedsAi,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.error,
-          ),
-        ),
-      ],
       SizedBox(height: context.responsive.blockSpacing),
       TextField(
         controller: _heroController,
@@ -592,16 +583,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         ),
       ),
       const SizedBox(height: 12),
-      if (!state.aiConfigured) ...<Widget>[
-        const SizedBox(height: 12),
-        Text(
-          l10n.configureAiFirst,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AetherPalette.textMuted,
-          ),
-        ),
-      ],
-      const SizedBox(height: 12),
       Text(
         l10n.portraitAutoGenerateHint,
         style: theme.textTheme.bodySmall?.copyWith(
@@ -614,9 +595,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         runSpacing: 12,
         children: <Widget>[
           FilledButton(
-            onPressed: state.aiConfigured && !state.isGenerating
-                ? _generatePrompts
-                : null,
+            onPressed: !state.isGenerating ? _generatePrompts : null,
             child: state.isGenerating
                 ? const SizedBox(
                     width: 18,
@@ -917,9 +896,7 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         return;
       }
       final AppLocalizations l10n = context.l10n;
-      final String message = e is StateError && e.message == 'ai_not_configured'
-          ? l10n.quickStartNeedsAi
-          : l10n.symmetryFriendlyError(e);
+      final String message = l10n.symmetryFriendlyError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),

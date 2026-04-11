@@ -9,6 +9,15 @@
     name="description"
     content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор."
   >
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Стирая Грань">
+  <meta property="og:description" content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор.">
+  <meta property="og:image" content="/icons/Icon-512.png">
+  <meta property="og:url" content="/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Стирая Грань">
+  <meta name="twitter:description" content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор.">
+  <meta name="twitter:image" content="/icons/Icon-512.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0A0908">
 
@@ -19,6 +28,7 @@
 
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
+  <link rel="canonical" href="/">
   <title>Стирая Грань</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,6 +117,30 @@
       justify-content: space-between;
       gap: 16px;
       padding: 6px 4px 22px;
+    }
+
+    .update-banner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin: 0 0 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(191, 167, 111, 0.24);
+      background: rgba(12, 10, 9, 0.92);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+    }
+
+    .update-banner.is-force {
+      border-color: rgba(255, 180, 171, 0.48);
+    }
+
+    .update-banner-copy {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 14px;
     }
 
     .landing-tagline {
@@ -689,6 +723,372 @@
       font-size: 15px;
     }
 
+    .feedback-cta {
+      margin-top: 34px;
+      position: relative;
+      display: block;
+      min-height: 332px;
+      padding: clamp(18px, 2.4vw, 36px);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(191, 167, 111, 0.26);
+      background: rgba(12, 10, 9, 0.94);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .feedback-cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(10, 9, 8, 0.94) 0%, rgba(10, 9, 8, 0.88) 24%, rgba(10, 9, 8, 0.58) 42%, rgba(10, 9, 8, 0.08) 62%, rgba(10, 9, 8, 0.12) 100%),
+        linear-gradient(180deg, rgba(10, 9, 8, 0.22), rgba(10, 9, 8, 0.38)),
+        url('landing/feedback_bg.png') 68% center / auto 100% no-repeat;
+    }
+
+    .feedback-cta::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 72% 52%, rgba(200, 121, 65, 0.2), transparent 28%),
+        radial-gradient(circle at 82% 34%, rgba(255, 214, 145, 0.12), transparent 18%);
+      pointer-events: none;
+    }
+
+    .feedback-cta-copy {
+      position: relative;
+      z-index: 1;
+      max-width: min(44%, 560px);
+      padding: 6px 0;
+    }
+
+    .feedback-cta-eyebrow,
+    .feedback-kicker {
+      margin: 0;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .feedback-cta-title,
+    .feedback-form-title {
+      margin: 14px 0 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(40px, 5vw, 72px);
+      line-height: 0.9;
+      text-transform: uppercase;
+      letter-spacing: -0.04em;
+    }
+
+    .feedback-cta-text,
+    .feedback-form-copy,
+    .feedback-page-subtitle,
+    .feedback-contact-copy,
+    .feedback-aside-item {
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.72;
+      font-size: 17px;
+    }
+
+    .feedback-cta-actions {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .feedback-cta-art {
+      display: none;
+    }
+
+    .feedback-view {
+      padding: 12px 0 18px;
+    }
+
+    .feedback-page-hero {
+      margin-top: 10px;
+    }
+
+    .feedback-hero-card,
+    .feedback-form-panel,
+    .feedback-aside,
+    .feedback-contacts-panel {
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(191, 167, 111, 0.22);
+      background:
+        radial-gradient(circle at top left, rgba(191, 167, 111, 0.08), transparent 42%),
+        linear-gradient(180deg, rgba(18, 15, 13, 0.98), rgba(10, 9, 8, 0.95));
+      box-shadow: var(--shadow);
+    }
+
+    .feedback-hero-card {
+      padding: clamp(28px, 4vw, 42px);
+    }
+
+    .feedback-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #f0d9b7;
+      text-decoration: none;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      transition: color 180ms ease, transform 180ms ease;
+    }
+
+    .feedback-back-link:hover {
+      color: #fff2dc;
+      transform: translateX(-2px);
+    }
+
+    .feedback-page-title {
+      margin: 18px 0 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(42px, 6vw, 74px);
+      line-height: 0.94;
+      text-transform: uppercase;
+    }
+
+    .feedback-layout {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .feedback-form-panel,
+    .feedback-aside,
+    .feedback-contacts-panel {
+      padding: clamp(24px, 3vw, 32px);
+    }
+
+    .feedback-form {
+      display: grid;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .feedback-topic-group {
+      display: grid;
+      gap: 12px;
+    }
+
+    .feedback-label,
+    .feedback-aside-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .feedback-topic-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .feedback-topic-option {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .feedback-topic-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .feedback-topic-option span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+      cursor: pointer;
+    }
+
+    .feedback-topic-option input:checked + span {
+      border-color: rgba(191, 167, 111, 0.38);
+      background: rgba(191, 167, 111, 0.12);
+      color: #f3eadb;
+      box-shadow: inset 0 0 0 1px rgba(191, 167, 111, 0.26);
+    }
+
+    .feedback-topic-option span:hover {
+      transform: translateY(-1px);
+    }
+
+    .feedback-field {
+      display: grid;
+      gap: 10px;
+    }
+
+    .feedback-input,
+    .feedback-textarea {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(13, 11, 10, 0.94);
+      color: var(--text);
+      font: inherit;
+      padding: 16px 18px;
+      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .feedback-input::placeholder,
+    .feedback-textarea::placeholder {
+      color: var(--dim);
+    }
+
+    .feedback-input:focus,
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: rgba(191, 167, 111, 0.4);
+      box-shadow: 0 0 0 4px rgba(191, 167, 111, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .feedback-textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    .feedback-file-input {
+      width: 100%;
+      border: 1px dashed rgba(191, 167, 111, 0.28);
+      border-radius: 18px;
+      background: rgba(13, 11, 10, 0.94);
+      color: var(--muted);
+      font: inherit;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    .feedback-file-hint {
+      color: var(--dim);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .feedback-files-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 16px;
+    }
+
+    .feedback-file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .feedback-form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .feedback-status {
+      margin: 2px 0 0;
+      min-height: 24px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .feedback-status.is-error {
+      color: var(--danger);
+    }
+
+    .feedback-aside-list {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 14px;
+      counter-reset: feedback-item;
+    }
+
+    .feedback-aside-item {
+      margin: 0;
+      padding: 14px 16px 14px 52px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      position: relative;
+      font-size: 15px;
+    }
+
+    .feedback-aside-item::before {
+      content: "0" counter(feedback-item);
+      counter-increment: feedback-item;
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+    }
+
+    .feedback-contacts-panel {
+      margin-top: 18px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .feedback-contact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .feedback-contact-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--text);
+      text-decoration: none;
+      transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
+    }
+
+    .feedback-contact-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(191, 167, 111, 0.34);
+      color: #f0d9b7;
+    }
+
+    .feedback-contact-card .footer-contact-icon {
+      width: 22px;
+      height: 22px;
+    }
+
     .landing-footer {
       margin-top: 36px;
       padding: 22px 8px 10px;
@@ -796,6 +1196,19 @@
         display: grid;
       }
 
+      .feedback-layout,
+      .feedback-contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .feedback-cta {
+        min-height: 320px;
+      }
+
+      .feedback-cta-copy {
+        max-width: min(56%, 460px);
+      }
+
       .landing-footer {
         grid-template-columns: 1fr;
       }
@@ -840,19 +1253,46 @@
 
       .hero-frame,
       .teaser-section,
-      .tech-section {
+      .tech-section,
+      .feedback-cta,
+      .feedback-hero-card,
+      .feedback-form-panel,
+      .feedback-aside,
+      .feedback-contacts-panel {
         border-radius: 24px;
       }
 
       .hero-actions,
       .hero-launch-shell,
-      .teaser-actions {
+      .teaser-actions,
+      .feedback-cta-actions,
+      .feedback-form-actions {
         width: 100%;
       }
 
       .button-primary,
       .button-secondary {
         width: 100%;
+      }
+
+      .feedback-cta {
+        min-height: 300px;
+        padding: 18px 18px 20px;
+      }
+
+      .feedback-cta::before {
+        background:
+          linear-gradient(180deg, rgba(10, 9, 8, 0.9) 0%, rgba(10, 9, 8, 0.78) 34%, rgba(10, 9, 8, 0.34) 68%, rgba(10, 9, 8, 0.16) 100%),
+          linear-gradient(180deg, rgba(10, 9, 8, 0.18), rgba(10, 9, 8, 0.44)),
+          url('landing/feedback_bg.png') 70% center / auto 100% no-repeat;
+      }
+
+      .feedback-cta-copy {
+        max-width: 100%;
+      }
+
+      .feedback-topic-options {
+        display: grid;
       }
 
       .world-title {
@@ -881,92 +1321,199 @@
         </div>
       </header>
 
-      <section class="hero-section section is-hero">
-        <div id="hero-frame" class="hero-frame">
-          <div class="hero-copy">
-            <div id="landing-eyebrow" class="eyebrow"></div>
-            <h1 id="landing-brand" class="brand-mark"></h1>
-            <p id="landing-title" class="brand-subtitle"></p>
-            <p id="landing-subtitle" class="hero-description"></p>
-            <div id="landing-pills" class="hero-pills"></div>
-            <div class="hero-actions">
-              <div id="hero-launch-shell" class="hero-launch-shell">
-                <button id="launch-button" class="button-primary" type="button"></button>
-                <button id="how-button" class="button-secondary" type="button"></button>
-              </div>
-            </div>
-            <section id="loading-shell" class="loading-shell" aria-live="polite" hidden>
-              <div class="loading-shell-top">
-                <div class="loading-spinner" aria-hidden="true"></div>
-                <div class="loading-copy">
-                  <p id="loading-title" class="loading-title"></p>
-                  <p id="loading-stage" class="loading-stage"></p>
+      <section id="update-banner" class="update-banner" hidden>
+        <p id="update-banner-text" class="update-banner-copy"></p>
+        <button id="update-reload-button" class="button-secondary" type="button">Reload</button>
+      </section>
+
+      <div id="landing-view">
+        <section class="hero-section section is-hero">
+          <div id="hero-frame" class="hero-frame">
+            <div class="hero-copy">
+              <div id="landing-eyebrow" class="eyebrow"></div>
+              <h1 id="landing-brand" class="brand-mark"></h1>
+              <p id="landing-title" class="brand-subtitle"></p>
+              <p id="landing-subtitle" class="hero-description"></p>
+              <div id="landing-pills" class="hero-pills"></div>
+              <div class="hero-actions">
+                <div id="hero-launch-shell" class="hero-launch-shell">
+                  <button id="launch-button" class="button-primary" type="button"></button>
+                  <button id="how-button" class="button-secondary" type="button"></button>
                 </div>
               </div>
-              <div class="loading-progress-track" aria-hidden="true">
-                <div id="loading-progress-fill" class="loading-progress-fill"></div>
-              </div>
-              <div class="loading-meta">
-                <span id="loading-progress-label"></span>
-                <span id="loading-eta"></span>
-              </div>
-              <p id="loading-flavor" class="loading-flavor"></p>
-            </section>
-            <p id="loading-note" class="launch-note" aria-live="polite"></p>
+              <section id="loading-shell" class="loading-shell" aria-live="polite" hidden>
+                <div class="loading-shell-top">
+                  <div class="loading-spinner" aria-hidden="true"></div>
+                  <div class="loading-copy">
+                    <p id="loading-title" class="loading-title"></p>
+                    <p id="loading-stage" class="loading-stage"></p>
+                  </div>
+                </div>
+                <div class="loading-progress-track" aria-hidden="true">
+                  <div id="loading-progress-fill" class="loading-progress-fill"></div>
+                </div>
+                <div class="loading-meta">
+                  <span id="loading-progress-label"></span>
+                  <span id="loading-eta"></span>
+                </div>
+                <p id="loading-flavor" class="loading-flavor"></p>
+              </section>
+              <p id="loading-note" class="launch-note" aria-live="polite"></p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="teaser-section section" data-reveal>
-        <div class="teaser-chat">
-          <div id="teaser-messages"></div>
+        <section class="teaser-section section" data-reveal>
+          <div class="teaser-chat">
+            <div id="teaser-messages"></div>
 
-          <div class="teaser-input-shell">
-            <div id="teaser-input" class="teaser-input is-placeholder"></div>
-            <button id="teaser-send" class="button-primary teaser-send" type="button"></button>
+            <div class="teaser-input-shell">
+              <div id="teaser-input" class="teaser-input is-placeholder"></div>
+              <button id="teaser-send" class="button-primary teaser-send" type="button"></button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="gallery-section section" data-reveal>
-        <h2 id="gallery-title" class="section-title"></h2>
-        <div id="world-grid" class="world-grid"></div>
-      </section>
+        <section class="gallery-section section" data-reveal>
+          <h2 id="gallery-title" class="section-title"></h2>
+          <div id="world-grid" class="world-grid"></div>
+        </section>
 
-      <section id="how-anchor" class="tech-section section" data-reveal>
-        <h2 id="tech-title" class="section-title"></h2>
-        <div id="tech-grid" class="tech-grid"></div>
-      </section>
+        <section id="how-anchor" class="tech-section section" data-reveal>
+          <h2 id="tech-title" class="section-title"></h2>
+          <div id="tech-grid" class="tech-grid"></div>
+        </section>
 
-      <footer class="landing-footer section" data-reveal>
-        <div class="footer-brand">
-          <p id="footer-brand-name" class="footer-brand-name"></p>
-          <p id="footer-brand-copy" class="footer-brand-copy"></p>
-        </div>
-        <div class="footer-contacts">
-          <p id="footer-contacts-title" class="footer-contacts-title"></p>
-          <a class="footer-contact-link" href="mailto:a@svc-code.ru">
-            <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z" stroke="currentColor" stroke-width="1.8"/>
-              <path d="m4 8 8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="footer-contact-meta">
-              <span id="footer-email-label" class="footer-contact-label"></span>
-              <span class="footer-contact-value">a@svc-code.ru</span>
-            </span>
-          </a>
-          <a class="footer-contact-link" href="https://t.me/svc_alexey" target="_blank" rel="noreferrer">
-            <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 4 3.8 10.5c-.8.3-.8 1.4.1 1.6l4.4 1.4 1.7 5c.3.9 1.4 1 1.8.2l2.5-4 4.4 3.3c.7.5 1.7.1 1.9-.7L22.5 5.3C22.7 4.5 21.8 3.7 21 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-              <path d="m8.2 13.5 10.3-7.2M10 18.5l1.1-4.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="footer-contact-meta">
-              <span id="footer-telegram-label" class="footer-contact-label"></span>
-              <span class="footer-contact-value">@svc_alexey</span>
-            </span>
-          </a>
-        </div>
-      </footer>
+        <section class="feedback-cta section" data-reveal>
+          <div class="feedback-cta-copy">
+            <p id="feedback-cta-eyebrow" class="feedback-cta-eyebrow"></p>
+            <h2 id="feedback-cta-title" class="feedback-cta-title"></h2>
+            <p id="feedback-cta-text" class="feedback-cta-text"></p>
+            <div class="feedback-cta-actions">
+              <button id="feedback-cta-button" class="button-primary" type="button"></button>
+            </div>
+          </div>
+          <div class="feedback-cta-art" aria-hidden="true"></div>
+        </section>
+
+        <footer class="landing-footer section" data-reveal>
+          <div class="footer-brand">
+            <p id="footer-brand-name" class="footer-brand-name"></p>
+            <p id="footer-brand-copy" class="footer-brand-copy"></p>
+          </div>
+          <div class="footer-contacts">
+            <p id="footer-contacts-title" class="footer-contacts-title"></p>
+            <a class="footer-contact-link" href="mailto:a@svc-code.ru">
+              <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z" stroke="currentColor" stroke-width="1.8"/>
+                <path d="m4 8 8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="footer-contact-meta">
+                <span id="footer-email-label" class="footer-contact-label"></span>
+                <span class="footer-contact-value">a@svc-code.ru</span>
+              </span>
+            </a>
+            <a class="footer-contact-link" href="https://t.me/svc_alexey" target="_blank" rel="noreferrer">
+              <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 4 3.8 10.5c-.8.3-.8 1.4.1 1.6l4.4 1.4 1.7 5c.3.9 1.4 1 1.8.2l2.5-4 4.4 3.3c.7.5 1.7.1 1.9-.7L22.5 5.3C22.7 4.5 21.8 3.7 21 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                <path d="m8.2 13.5 10.3-7.2M10 18.5l1.1-4.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="footer-contact-meta">
+                <span id="footer-telegram-label" class="footer-contact-label"></span>
+                <span class="footer-contact-value">@svc_alexey</span>
+              </span>
+            </a>
+          </div>
+        </footer>
+      </div>
+
+      <div id="feedback-view" class="feedback-view" hidden>
+        <section class="feedback-page-hero section is-hero">
+          <div class="feedback-hero-card">
+            <a id="feedback-back-link" class="feedback-back-link" href="?lang=ru">
+              <span aria-hidden="true">←</span>
+              <span id="feedback-back-link-label"></span>
+            </a>
+            <p id="feedback-page-eyebrow" class="feedback-kicker"></p>
+            <h1 id="feedback-page-title" class="feedback-page-title"></h1>
+            <p id="feedback-page-subtitle" class="feedback-page-subtitle"></p>
+          </div>
+        </section>
+
+        <section class="feedback-layout section is-visible">
+          <div class="feedback-form-panel">
+            <p id="feedback-form-eyebrow" class="feedback-kicker"></p>
+            <h2 id="feedback-form-title" class="feedback-form-title"></h2>
+            <p id="feedback-form-copy" class="feedback-form-copy"></p>
+
+            <form id="feedback-form" class="feedback-form">
+              <input name="topic" type="hidden" value="feedback">
+
+              <label class="feedback-field">
+                <span id="feedback-name-label" class="feedback-label"></span>
+                <input id="feedback-name-input" class="feedback-input" name="name" type="text" autocomplete="name">
+              </label>
+
+              <label class="feedback-field">
+                <span id="feedback-contact-label" class="feedback-label"></span>
+                <input id="feedback-contact-input" class="feedback-input" name="contact" type="text" autocomplete="email">
+              </label>
+
+              <label class="feedback-field">
+                <span id="feedback-message-label" class="feedback-label"></span>
+                <textarea id="feedback-message-input" class="feedback-textarea" name="message"></textarea>
+              </label>
+
+              <label class="feedback-field">
+                <span id="feedback-files-label" class="feedback-label"></span>
+                <input id="feedback-file-input" class="feedback-file-input" name="files" type="file" multiple>
+                <span id="feedback-files-hint" class="feedback-file-hint"></span>
+                <div id="feedback-files-list" class="feedback-files-list"></div>
+              </label>
+
+              <div class="feedback-form-actions">
+                <button id="feedback-submit-button" class="button-primary" type="submit"></button>
+                <button id="feedback-back-button" class="button-secondary" type="button"></button>
+              </div>
+              <p id="feedback-status" class="feedback-status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <aside class="feedback-aside">
+            <p id="feedback-aside-title" class="feedback-aside-title"></p>
+            <div id="feedback-aside-list" class="feedback-aside-list"></div>
+          </aside>
+        </section>
+
+        <section class="feedback-contacts-panel section is-visible">
+          <div>
+            <p id="feedback-contacts-title" class="footer-contacts-title"></p>
+            <p id="feedback-contact-copy" class="feedback-contact-copy"></p>
+          </div>
+          <div class="feedback-contact-grid">
+            <a class="feedback-contact-card" href="mailto:a@svc-code.ru">
+              <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z" stroke="currentColor" stroke-width="1.8"/>
+                <path d="m4 8 8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="footer-contact-meta">
+                <span id="feedback-email-label" class="footer-contact-label"></span>
+                <span class="footer-contact-value">a@svc-code.ru</span>
+              </span>
+            </a>
+            <a class="feedback-contact-card" href="https://t.me/svc_alexey" target="_blank" rel="noreferrer">
+              <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 4 3.8 10.5c-.8.3-.8 1.4.1 1.6l4.4 1.4 1.7 5c.3.9 1.4 1 1.8.2l2.5-4 4.4 3.3c.7.5 1.7.1 1.9-.7L22.5 5.3C22.7 4.5 21.8 3.7 21 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                <path d="m8.2 13.5 10.3-7.2M10 18.5l1.1-4.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="footer-contact-meta">
+                <span id="feedback-telegram-label" class="footer-contact-label"></span>
+                <span class="footer-contact-value">@svc_alexey</span>
+              </span>
+            </a>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
   <script>
@@ -996,6 +1543,39 @@
           footerBrandCopy: 'Нарративная ИИ RPG',
           footerEmailLabel: 'Почта',
           footerTelegramLabel: 'Телеграм',
+          feedbackCtaEyebrow: 'Ваш голос меняет игру',
+          feedbackCtaTitle: 'Подскажите, куда вести следующую главу',
+          feedbackCtaText: 'Оставьте обратную связь или рекомендацию по приложению. Мы читаем каждое сообщение и используем его для следующих обновлений.',
+          feedbackCtaButton: 'Обратная связь',
+          feedbackPageEyebrow: 'Открытый канал с командой',
+          feedbackPageTitle: 'Поделитесь впечатлением о приложении',
+          feedbackPageSubtitle: 'Расскажите, что уже работает хорошо, чего не хватает и какие идеи вы хотите увидеть в следующих обновлениях.',
+          feedbackFormEyebrow: 'Форма обратной связи',
+          feedbackFormTitle: 'Что хотите нам передать?',
+          feedbackFormCopy: 'Пара конкретных мыслей помогает нам точнее настроить следующий релиз.',
+          feedbackNameLabel: 'Как к вам обращаться',
+          feedbackNamePlaceholder: 'Например, Алексей',
+          feedbackContactLabel: 'Как с вами связаться',
+          feedbackContactPlaceholder: 'Email или Telegram, если нужен ответ',
+          feedbackMessageLabel: 'Сообщение',
+          feedbackMessagePlaceholder: 'Что понравилось, что хотелось бы изменить, каких механик или миров вам не хватает...',
+          feedbackFilesLabel: 'Файлы',
+          feedbackFilesHint: 'Можно прикрепить до 5 файлов, каждый до 5 МБ.',
+          feedbackSend: 'Отправить',
+          feedbackBack: 'Вернутся',
+          feedbackStatusReady: 'Заполните сообщение и при необходимости прикрепите файлы.',
+          feedbackStatusSending: 'Отправляем сообщение...',
+          feedbackStatusSuccess: 'Сообщение отправлено. Спасибо за обратную связь.',
+          feedbackStatusError: 'Добавьте сообщение, чтобы мы поняли, что улучшать.',
+          feedbackStatusServerError: 'Не получилось отправить сообщение. Попробуйте еще раз или напишите нам по контактам ниже.',
+          feedbackContactsTitle: 'Контакты',
+          feedbackContactCopy: '',
+          feedbackAsideTitle: 'Что особенно полезно',
+          feedbackAsideItems: [
+            'Какой момент в приложении зацепил сильнее всего',
+            'Что сбивает или мешает войти в историю',
+            'Какие жанры, механики и функции вы ждете следующими'
+          ],
           worlds: [
             {
               title: 'КИБЕР-НУАР',
@@ -1076,6 +1656,39 @@
           footerBrandCopy: 'Narrative AI RPG',
           footerEmailLabel: 'Email',
           footerTelegramLabel: 'Telegram',
+          feedbackCtaEyebrow: 'Your voice shapes the world',
+          feedbackCtaTitle: 'Tell us where the next chapter should go',
+          feedbackCtaText: 'Share feedback or recommendations about the app. We read every message and use it to guide the next updates.',
+          feedbackCtaButton: 'Feedback',
+          feedbackPageEyebrow: 'An open line to the team',
+          feedbackPageTitle: 'Share what the app feels like',
+          feedbackPageSubtitle: 'Tell us what already works, what still feels rough, and which ideas you want to see in the next updates.',
+          feedbackFormEyebrow: 'Feedback form',
+          feedbackFormTitle: 'What would you like to tell us?',
+          feedbackFormCopy: 'A few concrete notes help us tune the next release with more precision.',
+          feedbackNameLabel: 'How should we address you',
+          feedbackNamePlaceholder: 'For example, Alex',
+          feedbackContactLabel: 'How can we reach you',
+          feedbackContactPlaceholder: 'Email or Telegram if you want a reply',
+          feedbackMessageLabel: 'Message',
+          feedbackMessagePlaceholder: 'What felt strong, what should change, and which worlds or mechanics would you like to see next...',
+          feedbackFilesLabel: 'Files',
+          feedbackFilesHint: 'You can attach up to 5 files, 5 MB each.',
+          feedbackSend: 'Send',
+          feedbackBack: 'Back to landing',
+          feedbackStatusReady: 'Write your message and attach files if needed.',
+          feedbackStatusSending: 'Sending your message...',
+          feedbackStatusSuccess: 'Your message has been sent. Thank you.',
+          feedbackStatusError: 'Add a message so we know what to improve.',
+          feedbackStatusServerError: 'We could not send the message right now. Please try again or use the contacts below.',
+          feedbackContactsTitle: 'Contacts',
+          feedbackContactCopy: '',
+          feedbackAsideTitle: 'What helps most',
+          feedbackAsideItems: [
+            'Which moment in the app hooked you the most',
+            'What interrupts the feeling of being inside the story',
+            'Which genres, mechanics, or features you want next'
+          ],
           worlds: [
             {
               title: 'CYBER-NOIR',
@@ -1155,6 +1768,9 @@
       const loadingProgressFill = document.getElementById('loading-progress-fill');
       const loadingProgressLabel = document.getElementById('loading-progress-label');
       const loadingNote = document.getElementById('loading-note');
+      const updateBanner = document.getElementById('update-banner');
+      const updateBannerText = document.getElementById('update-banner-text');
+      const updateReloadButton = document.getElementById('update-reload-button');
       const launchButton = document.getElementById('launch-button');
       const howButton = document.getElementById('how-button');
       const howAnchor = document.getElementById('how-anchor');
@@ -1162,10 +1778,29 @@
       const languageEnButton = document.getElementById('language-en');
       const languageButtons = [languageRuButton, languageEnButton];
       const urlParams = new URLSearchParams(window.location.search);
-      const shouldAutoLaunch = urlParams.get('autostart') === '1';
+      const landingView = document.getElementById('landing-view');
+      const feedbackView = document.getElementById('feedback-view');
+      const feedbackCtaButton = document.getElementById('feedback-cta-button');
+      const feedbackBackButton = document.getElementById('feedback-back-button');
+      const feedbackSubmitButton = document.getElementById('feedback-submit-button');
+      const feedbackBackLink = document.getElementById('feedback-back-link');
+      const feedbackForm = document.getElementById('feedback-form');
+      const feedbackStatus = document.getElementById('feedback-status');
+      const feedbackAsideList = document.getElementById('feedback-aside-list');
+      const feedbackContactCopy = document.getElementById('feedback-contact-copy');
+      const feedbackFileInput = document.getElementById('feedback-file-input');
+      const feedbackFilesList = document.getElementById('feedback-files-list');
+      const feedbackNameInput = document.getElementById('feedback-name-input');
+      const feedbackContactInput = document.getElementById('feedback-contact-input');
+      const feedbackMessageInput = document.getElementById('feedback-message-input');
 
       let currentLanguage = resolveInitialLanguage();
       let text = copy[currentLanguage];
+      let currentView = resolveView(urlParams.get('view'));
+      const isYandexCallbackPath = window.location.pathname === '/auth/yandex/callback';
+      const shouldAutoLaunch =
+        currentView === 'landing' &&
+        (urlParams.get('autostart') === '1' || isYandexCallbackPath);
 
       let launchInFlight = false;
       let launchCompleted = false;
@@ -1178,6 +1813,11 @@
       let teaserSequenceToken = 0;
       let nextTeaserMessageId = 0;
       let teaserMessages = [createTeaserMessage('narrator', '')];
+      let localVersionInfo = {
+        app_version: '',
+        asset_version: ''
+      };
+      let updateBannerLocked = false;
 
       function parseLanguage(value) {
         return supportedLanguages.includes(value) ? value : null;
@@ -1197,12 +1837,22 @@
         return 'ru';
       }
 
-      function syncLanguageUrl() {
+      function resolveView(value) {
+        return value === 'feedback' ? 'feedback' : 'landing';
+      }
+
+      function syncLanguageUrl(mode) {
         const nextParams = new URLSearchParams(window.location.search);
         nextParams.set('lang', currentLanguage);
+        if (currentView === 'feedback') {
+          nextParams.set('view', 'feedback');
+        } else {
+          nextParams.delete('view');
+        }
         const nextQuery = nextParams.toString();
         const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
-        window.history.replaceState({}, '', nextUrl);
+        const method = mode === 'push' ? 'pushState' : 'replaceState';
+        window.history[method]({ view: currentView, lang: currentLanguage }, '', nextUrl);
       }
 
       function persistLanguage() {
@@ -1224,6 +1874,18 @@
         if (node) {
           node.textContent = value;
         }
+      }
+
+      function setFeedbackStatus(message, isError) {
+        feedbackStatus.textContent = message || '';
+        feedbackStatus.classList.toggle('is-error', Boolean(isError));
+      }
+
+      function updateDocumentTitle() {
+        document.documentElement.lang = currentLanguage;
+        document.title = currentView === 'feedback'
+          ? `${text.feedbackCtaButton} • ${text.brand}`
+          : text.brand;
       }
 
       function createTeaserMessage(role, textValue, extra) {
@@ -1393,6 +2055,88 @@
         });
       }
 
+      function renderSelectedFiles() {
+        feedbackFilesList.innerHTML = '';
+        const files = Array.from(feedbackFileInput.files || []);
+        files.forEach((file) => {
+          const chip = document.createElement('span');
+          chip.className = 'feedback-file-chip';
+          const sizeLabel = `${Math.max(1, Math.round(file.size / 1024))} KB`;
+          chip.textContent = `${file.name} · ${sizeLabel}`;
+          feedbackFilesList.appendChild(chip);
+        });
+      }
+
+      function renderFeedbackAside() {
+        feedbackAsideList.innerHTML = '';
+        text.feedbackAsideItems.forEach((item) => {
+          const line = document.createElement('p');
+          line.className = 'feedback-aside-item';
+          line.textContent = item;
+          feedbackAsideList.appendChild(line);
+        });
+      }
+
+      function renderFeedbackView() {
+        setText('feedback-cta-eyebrow', text.feedbackCtaEyebrow);
+        setText('feedback-cta-title', text.feedbackCtaTitle);
+        setText('feedback-cta-text', text.feedbackCtaText);
+        setText('feedback-cta-button', text.feedbackCtaButton);
+        setText('feedback-page-eyebrow', text.feedbackPageEyebrow);
+        setText('feedback-page-title', text.feedbackPageTitle);
+        setText('feedback-page-subtitle', text.feedbackPageSubtitle);
+        setText('feedback-form-eyebrow', text.feedbackFormEyebrow);
+        setText('feedback-form-title', text.feedbackFormTitle);
+        setText('feedback-form-copy', text.feedbackFormCopy);
+        setText('feedback-name-label', text.feedbackNameLabel);
+        setText('feedback-contact-label', text.feedbackContactLabel);
+        setText('feedback-message-label', text.feedbackMessageLabel);
+        setText('feedback-files-label', text.feedbackFilesLabel);
+        setText('feedback-files-hint', text.feedbackFilesHint);
+        setText('feedback-submit-button', text.feedbackSend);
+        setText('feedback-back-button', text.feedbackBack);
+        setText('feedback-back-link-label', text.feedbackBack);
+        setText('feedback-contacts-title', text.feedbackContactsTitle);
+        setText('feedback-contact-copy', text.feedbackContactCopy);
+        setText('feedback-email-label', text.footerEmailLabel);
+        setText('feedback-telegram-label', text.footerTelegramLabel);
+        setText('feedback-aside-title', text.feedbackAsideTitle);
+        feedbackNameInput.placeholder = text.feedbackNamePlaceholder;
+        feedbackContactInput.placeholder = text.feedbackContactPlaceholder;
+        feedbackMessageInput.placeholder = text.feedbackMessagePlaceholder;
+        feedbackBackLink.href = `${window.location.pathname}?lang=${currentLanguage}`;
+        renderFeedbackAside();
+        renderSelectedFiles();
+        feedbackContactCopy.hidden = !text.feedbackContactCopy;
+        if (!feedbackStatus.textContent || feedbackStatus.dataset.state === 'ready') {
+          feedbackStatus.dataset.state = 'ready';
+          setFeedbackStatus(text.feedbackStatusReady, false);
+        }
+      }
+
+      function setView(nextView, options) {
+        currentView = resolveView(nextView);
+        landingView.hidden = currentView !== 'landing';
+        feedbackView.hidden = currentView !== 'feedback';
+        updateDocumentTitle();
+        if (!(options && options.skipScroll)) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        if (options && options.updateUrl) {
+          syncLanguageUrl(options.historyMode || 'push');
+        } else {
+          syncLanguageUrl();
+        }
+      }
+
+      function openFeedbackView() {
+        setView('feedback', { updateUrl: true, historyMode: 'push' });
+      }
+
+      function openLandingView() {
+        setView('landing', { updateUrl: true, historyMode: 'push' });
+      }
+
       function syncRenderedSectionState() {
         const teaserSection = document.querySelector('.teaser-section');
         const gallerySection = document.querySelector('.gallery-section');
@@ -1413,8 +2157,6 @@
       }
 
       function renderLanding(options) {
-        document.documentElement.lang = currentLanguage;
-        document.title = text.brand;
         setText('landing-tagline', text.pageTagline.toUpperCase());
         setText('landing-eyebrow', text.eyebrow);
         setText('landing-brand', text.brand);
@@ -1430,6 +2172,7 @@
         launchButton.textContent = text.launch;
         howButton.textContent = text.how;
         teaserSend.textContent = text.teaserSend;
+        updateReloadButton.textContent = currentLanguage === 'ru' ? 'Обновить' : 'Reload';
         updateLanguageToggle();
 
         const pillHost = document.getElementById('landing-pills');
@@ -1448,6 +2191,8 @@
         }
         renderWorlds();
         renderTechCards();
+        renderFeedbackView();
+        updateDocumentTitle();
         syncRenderedSectionState();
       }
 
@@ -1478,8 +2223,134 @@
       }
 
       function refreshViewportMetrics() {
+        window.scrollTo(0, 0);
         syncViewportHeight();
         window.dispatchEvent(new Event('resize'));
+      }
+
+      async function loadLocalVersionInfo() {
+        try {
+          const response = await fetch('version.json', {
+            cache: 'no-store'
+          });
+          if (!response.ok) {
+            return {
+              app_version: '',
+              asset_version: ''
+            };
+          }
+          const data = await response.json();
+          return {
+            app_version: data.app_version || '',
+            asset_version: data.asset_version || ''
+          };
+        } catch (_) {
+          return {
+            app_version: '',
+            asset_version: ''
+          };
+        }
+      }
+
+      async function fetchRemoteVersionInfo() {
+        try {
+          const params = new URLSearchParams();
+          if (localVersionInfo.app_version) {
+            params.set('current_version', localVersionInfo.app_version);
+          }
+          if (localVersionInfo.asset_version) {
+            params.set('current_asset_version', localVersionInfo.asset_version);
+          }
+          const url = params.toString() ? `/version?${params.toString()}` : '/version';
+          const response = await fetch(url, {
+            cache: 'no-store'
+          });
+          if (!response.ok) {
+            return null;
+          }
+          return await response.json();
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function showUpdateBanner(message, options) {
+        if (!updateBanner || !updateBannerText) {
+          return;
+        }
+        const force = Boolean(options && options.force);
+        updateBannerLocked = force;
+        updateBanner.hidden = false;
+        updateBanner.classList.toggle('is-force', force);
+        updateBannerText.textContent = message;
+        setInteractiveState(force);
+      }
+
+      function hideUpdateBanner() {
+        if (!updateBanner || updateBannerLocked) {
+          return;
+        }
+        updateBanner.hidden = true;
+        updateBanner.classList.remove('is-force');
+        updateBannerText.textContent = '';
+      }
+
+      async function requestServiceWorkerRefresh() {
+        if (!('serviceWorker' in navigator)) {
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) {
+          return;
+        }
+
+        let waitingWorker = registration.waiting;
+        await registration.update();
+        waitingWorker = registration.waiting || waitingWorker;
+
+        if (waitingWorker) {
+          waitingWorker.postMessage('skipWaiting');
+        }
+      }
+
+      async function reloadForUpdate() {
+        setInteractiveState(true);
+        await requestServiceWorkerRefresh();
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', Date.now().toString());
+        window.location.replace(url.toString());
+      }
+
+      async function runStartupVersionCheck() {
+        localVersionInfo = await loadLocalVersionInfo();
+        const remoteVersionInfo = await fetchRemoteVersionInfo();
+        const webInfo = remoteVersionInfo && remoteVersionInfo.platforms
+          ? remoteVersionInfo.platforms.web
+          : null;
+
+        if (!webInfo) {
+          hideUpdateBanner();
+          return;
+        }
+
+        const reloadRequired = Boolean(webInfo.reload_required);
+        const forceUpdate = webInfo.update_mode === 'force' || reloadRequired;
+        const softUpdate = webInfo.update_mode === 'soft';
+
+        if (!forceUpdate && !softUpdate) {
+          updateBannerLocked = false;
+          setInteractiveState(false);
+          hideUpdateBanner();
+          return;
+        }
+
+        const fallbackMessage = forceUpdate
+          ? 'A new web build is ready. Reload to continue.'
+          : 'A newer version is available. Reload when convenient.';
+        showUpdateBanner(webInfo.message || fallbackMessage, {
+          force: forceUpdate
+        });
       }
 
       function clearLaunchTimers() {
@@ -1497,6 +2368,11 @@
         launchButton.disabled = disabled;
         howButton.disabled = disabled;
         teaserSend.disabled = disabled;
+        feedbackCtaButton.disabled = disabled;
+        feedbackBackButton.disabled = disabled;
+        feedbackForm.querySelectorAll('input, textarea, button').forEach((field) => {
+          field.disabled = disabled;
+        });
         languageButtons.forEach((button) => {
           button.disabled = disabled;
         });
@@ -1741,14 +2617,104 @@
         heroFrame.style.opacity = `${1 - progress * 0.08}`;
       }
 
+      function resolveFeedbackEndpoint() {
+        const isLocalPreview = (
+          (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
+          window.location.port &&
+          window.location.port !== '8080'
+        );
+        if (isLocalPreview) {
+          return `${window.location.protocol}//${window.location.hostname}:8080/v1/feedback`;
+        }
+        return '/v1/feedback';
+      }
+
+      function setFeedbackFormPending(isPending) {
+        feedbackSubmitButton.disabled = isPending;
+        feedbackBackButton.disabled = isPending;
+        feedbackFileInput.disabled = isPending;
+        feedbackNameInput.disabled = isPending;
+        feedbackContactInput.disabled = isPending;
+        feedbackMessageInput.disabled = isPending;
+      }
+
+      function mapFeedbackError(detail) {
+        if (
+          detail === 'feedback_attachment_too_large' ||
+          detail === 'feedback_attachments_total_too_large' ||
+          detail === 'feedback_too_many_attachments'
+        ) {
+          return text.feedbackFilesHint;
+        }
+        return text.feedbackStatusServerError;
+      }
+
+      async function submitFeedbackForm() {
+        const name = feedbackNameInput.value.trim();
+        const contact = feedbackContactInput.value.trim();
+        const message = feedbackMessageInput.value.trim();
+        if (!message) {
+          feedbackStatus.dataset.state = 'error';
+          setFeedbackStatus(text.feedbackStatusError, true);
+          feedbackMessageInput.focus();
+          return;
+        }
+
+        const payload = new FormData();
+        payload.append('name', name);
+        payload.append('contact', contact);
+        payload.append('message', message);
+        payload.append('language', currentLanguage);
+        payload.append('page_url', window.location.href);
+        Array.from(feedbackFileInput.files || []).forEach((file) => {
+          payload.append('files', file, file.name);
+        });
+
+        feedbackStatus.dataset.state = 'sending';
+        setFeedbackStatus(text.feedbackStatusSending, false);
+        setFeedbackFormPending(true);
+
+        try {
+          const response = await fetch(resolveFeedbackEndpoint(), {
+            method: 'POST',
+            body: payload
+          });
+          let detail = '';
+          try {
+            const responsePayload = await response.json();
+            detail = responsePayload && responsePayload.detail ? String(responsePayload.detail) : '';
+          } catch (_) {}
+
+          if (!response.ok) {
+            throw new Error(detail || 'feedback_send_failed');
+          }
+
+          feedbackForm.reset();
+          renderSelectedFiles();
+          feedbackStatus.dataset.state = 'success';
+          setFeedbackStatus(text.feedbackStatusSuccess, false);
+        } catch (error) {
+          feedbackStatus.dataset.state = 'error';
+          setFeedbackStatus(mapFeedbackError(error.message), true);
+        } finally {
+          setFeedbackFormPending(false);
+        }
+      }
+
       persistLanguage();
       syncLanguageUrl();
       renderLanding();
+      setView(currentView, { updateUrl: false, skipScroll: true });
+      window.scrollTo(0, 0);
       syncViewportHeight();
       syncHeroMotion();
       wireRevealEffects();
+      runStartupVersionCheck();
 
       launchButton.addEventListener('click', launchFlutter);
+      updateReloadButton.addEventListener('click', function () {
+        reloadForUpdate();
+      });
       teaserSend.addEventListener('click', function () {
         if (launchInFlight) {
           return;
@@ -1761,6 +2727,24 @@
         }
         howAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
+      feedbackCtaButton.addEventListener('click', function () {
+        if (launchInFlight) {
+          return;
+        }
+        openFeedbackView();
+      });
+      feedbackBackButton.addEventListener('click', function () {
+        openLandingView();
+      });
+      feedbackBackLink.addEventListener('click', function (event) {
+        event.preventDefault();
+        openLandingView();
+      });
+      feedbackForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitFeedbackForm();
+      });
+      feedbackFileInput.addEventListener('change', renderSelectedFiles);
       languageRuButton.addEventListener('click', function () {
         if (launchInFlight) {
           return;
@@ -1780,7 +2764,14 @@
       window.addEventListener('scroll', syncHeroMotion, { passive: true });
       window.addEventListener('orientationchange', refreshViewportMetrics);
       window.addEventListener('focus', refreshViewportMetrics);
-      window.addEventListener('pageshow', refreshViewportMetrics);
+      window.addEventListener('pageshow', function () {
+        refreshViewportMetrics();
+        runStartupVersionCheck();
+      });
+      window.addEventListener('popstate', function () {
+        currentView = resolveView(new URLSearchParams(window.location.search).get('view'));
+        setView(currentView, { updateUrl: false, skipScroll: true });
+      });
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) {
           window.setTimeout(refreshViewportMetrics, 0);

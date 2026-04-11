@@ -3,8 +3,10 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({required this.onAuthenticated, super.key});
@@ -20,6 +22,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
   bool _isSubmitting = false;
+  bool _isYandexSubmitting = false;
   bool _registerMode = false;
   String? _error;
 
@@ -35,6 +38,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
+    final bool isBusy = _isSubmitting || _isYandexSubmitting;
 
     return Scaffold(
       body: AetherBackdrop(
@@ -63,13 +67,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
+                    if (kIsWeb) ...<Widget>[
+                      const SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: isBusy ? null : _continueWithYandex,
+                        icon: _isYandexSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.account_circle_outlined),
+                        label: Text(l10n.authContinueWithYandexAction),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.authContinueWithEmailHint,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).hintColor,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: l10n.emailLabel,
-                      ),
+                      decoration: InputDecoration(labelText: l10n.emailLabel),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -99,14 +125,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ],
                     const SizedBox(height: 20),
                     FilledButton(
-                      onPressed: _isSubmitting ? null : _submit,
+                      onPressed: isBusy ? null : _submit,
                       child: _isSubmitting
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(
                               _registerMode
@@ -116,7 +140,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: _isSubmitting
+                      onPressed: isBusy
                           ? null
                           : () => setState(() {
                               _registerMode = !_registerMode;
@@ -136,6 +160,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _continueWithYandex() async {
+    setState(() {
+      _isYandexSubmitting = true;
+      _error = null;
+    });
+    try {
+      final Uri startUri = await ref
+          .read(symmetryAuthRepositoryProvider)
+          .buildYandexStartUri(redirectUri: _buildYandexRedirectUri());
+      final bool launched = await launchUrl(
+        startUri,
+        webOnlyWindowName: '_self',
+      );
+      if (!launched) {
+        throw StateError('yandex_sign_in_launch_failed');
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = context.l10n.authYandexFailed(error);
+        _isYandexSubmitting = false;
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -171,10 +222,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       } else {
         await ref
             .read(symmetryAuthRepositoryProvider)
-            .login(
-              email: email,
-              password: password,
-            );
+            .login(email: email, password: password);
       }
       if (!mounted) {
         return;
@@ -218,6 +266,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return null;
   }
 
+  String _buildYandexRedirectUri() {
+    final Uri current = Uri.base;
+    return Uri(
+      scheme: current.scheme,
+      host: current.host,
+      port: current.hasPort ? current.port : null,
+      path: '/auth/yandex/callback',
+    ).toString();
+  }
+
   bool _looksLikeEmail(final String value) {
     final int atIndex = value.indexOf('@');
     if (atIndex <= 0 || atIndex >= value.length - 3) {
@@ -226,10 +284,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return value.substring(atIndex + 1).contains('.');
   }
 
-  String _humanizeAuthError(
-    final AppLocalizations l10n,
-    final Object error,
-  ) {
+  String _humanizeAuthError(final AppLocalizations l10n, final Object error) {
     if (error is SymmetryApiException && error.detailCode == 'email_taken') {
       return l10n.authEmailTaken;
     }
@@ -241,7 +296,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ? l10n.authRegisterValidationFailed
           : l10n.authLoginValidationFailed;
     }
-    if (error is SymmetryApiException && error.message == 'symmetry_unreachable') {
+    if (error is SymmetryApiException &&
+        error.message == 'symmetry_unreachable') {
       return l10n.authBackendUnavailable;
     }
     return _registerMode

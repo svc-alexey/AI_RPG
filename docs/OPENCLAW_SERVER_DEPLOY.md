@@ -11,18 +11,41 @@ It is intentionally explicit:
 - which commands to run
 - what to verify after startup
 
+## Fill this before handing the task to OpenClaw
+
+Before you give this instruction to the server agent, replace placeholders in:
+
+- [OPENCLAW_DEPLOY_PROMPT_20260407T212959Z.md](/D:/AI_PRG/docs/OPENCLAW_DEPLOY_PROMPT_20260407T212959Z.md)
+- `backend/symmetry/.env.production.example` or your production `backend/symmetry/.env`
+
+Minimum fields you should fill in first:
+
+- `SYMMETRY_JWT_SECRET`
+- `SYMMETRY_SERVER_LLM_BASE_URL`
+- `SYMMETRY_SERVER_LLM_MODEL`
+- `SYMMETRY_SERVER_LLM_API_KEY`
+- `SYMMETRY_YANDEX_CLIENT_ID` and `SYMMETRY_YANDEX_CLIENT_SECRET` if Yandex login is enabled
+- `SYMMETRY_FEEDBACK_RECIPIENT_EMAIL`
+- `SYMMETRY_FEEDBACK_SENDER_EMAIL`
+- `SYMMETRY_FEEDBACK_SMTP_HOST`
+- `SYMMETRY_FEEDBACK_SMTP_PORT`
+- `SYMMETRY_FEEDBACK_SMTP_USERNAME`
+- `SYMMETRY_FEEDBACK_SMTP_PASSWORD`
+- `SYMMETRY_FEEDBACK_SMTP_USE_SSL`
+- `SYMMETRY_FEEDBACK_SMTP_USE_STARTTLS`
+
 ## Deployment artifacts
 
 ### Frontend archive
 
 Use this web build archive:
 
-- `ai_prg_web_build_20260407_142100.zip`
+- `ai_prg_web_build_20260407T212959.zip`
 
 Expected SHA256:
 
 ```text
-56528ded3baa49d7c47c6b9f46e7a3738812dc9c7983d0730c65132c7f764c36
+e25d87a1e74f32ca7c5f9ff1b78110f04f3dd1027e618586df74bdf2c4026c3e
 ```
 
 This archive is safe for server deployment:
@@ -30,6 +53,8 @@ This archive is safe for server deployment:
 - it does **not** embed provider API keys
 - it is built for backend access through `AI_PRG_SYMMETRY_BASE_URL=/v1`
 - it expects the web server to proxy `/v1/*` to the backend API
+- it ships `version.json`, `robots.txt`, `sitemap.xml`, and
+  `flutter_service_worker.js`
 
 ### Backend Docker files
 
@@ -58,8 +83,8 @@ Example layout:
 4. Fill production secrets and URLs.
 5. Unpack the frontend archive into `deploy/web`.
 6. Start the production Docker stack with `docker-compose.prod.yml`.
-7. Verify health and smoke-test auth, prompt generation, campaign creation,
-   turn processing, and rumors.
+7. Verify `/health`, `/version`, guest auth, prompt generation, campaign
+   creation, turn processing, rumors, and web release metadata.
 
 ## Required backend env file
 
@@ -77,18 +102,59 @@ Minimum required values to change:
 SYMMETRY_ENV=production
 SYMMETRY_JWT_SECRET=replace-with-a-long-random-secret
 
-SYMMETRY_SERVER_LLM_BASE_URL=https://your-relay-or-provider.example/v1
+SYMMETRY_SERVER_LLM_BASE_URL=https://api.deepseek.com/v1
 SYMMETRY_SERVER_LLM_MODEL=deepseek-chat
 SYMMETRY_SERVER_LLM_API_KEY=replace-with-real-key
 
-SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/v1/auth/yandex/callback
+SYMMETRY_RELEASE_ID=web-20260407T212959Z
+SYMMETRY_RELEASED_AT=2026-04-07T21:29:59Z
+SYMMETRY_WEB_LATEST_VERSION=1.0.0+1
+SYMMETRY_WEB_MINIMUM_SUPPORTED_VERSION=1.0.0+1
+SYMMETRY_WEB_ASSET_VERSION=web-20260407T212959Z
+
+SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/auth/yandex/callback
 ```
+
+Feedback email SMTP credentials:
+
+```env
+SYMMETRY_FEEDBACK_RECIPIENT_EMAIL=feedback@your-domain.example
+SYMMETRY_FEEDBACK_SENDER_EMAIL=no-reply@your-domain.example
+SYMMETRY_FEEDBACK_EMAIL_SUBJECT_PREFIX=Landing feedback
+SYMMETRY_FEEDBACK_SMTP_HOST=smtp.your-provider.example
+SYMMETRY_FEEDBACK_SMTP_PORT=465
+SYMMETRY_FEEDBACK_SMTP_USERNAME=no-reply@your-domain.example
+SYMMETRY_FEEDBACK_SMTP_PASSWORD=replace-with-real-password
+SYMMETRY_FEEDBACK_SMTP_USE_SSL=true
+SYMMETRY_FEEDBACK_SMTP_USE_STARTTLS=false
+```
+
+Rules for mail setup:
+
+- put these values into `backend/symmetry/.env` on the server
+- `SYMMETRY_FEEDBACK_RECIPIENT_EMAIL` is where landing feedback is delivered
+- `SYMMETRY_FEEDBACK_SENDER_EMAIL` is the visible From address
+- if your provider requires port `587`, use `SYMMETRY_FEEDBACK_SMTP_USE_SSL=false`
+  and `SYMMETRY_FEEDBACK_SMTP_USE_STARTTLS=true`
+- if your provider requires implicit SSL on port `465`, keep
+  `SYMMETRY_FEEDBACK_SMTP_USE_SSL=true`
+- feedback email sending is considered configured only when
+  `SYMMETRY_FEEDBACK_SMTP_HOST`, `SYMMETRY_FEEDBACK_SENDER_EMAIL`, and
+  `SYMMETRY_FEEDBACK_RECIPIENT_EMAIL` are all set
 
 Recommended:
 
 - point `SYMMETRY_SERVER_LLM_BASE_URL` to your `VPS relay`, not directly to the
   public model provider
 - keep the relay reachable by fixed IP or VPN address when possible
+- register the exact same `/auth/yandex/callback` URL in the Yandex OAuth app
+
+Yandex OAuth note:
+
+- the browser returns to the Flutter route `/auth/yandex/callback`
+- Flutter then exchanges the `code` through the backend endpoint
+  `/v1/auth/yandex/callback`
+- do not configure the Yandex callback to `/v1/auth/yandex/callback` directly
 
 ## Full deployment sequence for the AI agent
 
@@ -115,19 +181,19 @@ fi
 
 Place:
 
-- `/opt/ai-rpg/packages/ai_prg_web_build_20260407_142100.zip`
+- `/opt/ai-rpg/packages/ai_prg_web_build_20260407T212959.zip`
 
 Optional integrity check:
 
 ```bash
 cd /opt/ai-rpg/packages
-sha256sum ai_prg_web_build_20260407_142100.zip
+sha256sum ai_prg_web_build_20260407T212959.zip
 ```
 
 Expected hash:
 
 ```text
-56528ded3baa49d7c47c6b9f46e7a3738812dc9c7983d0730c65132c7f764c36
+e25d87a1e74f32ca7c5f9ff1b78110f04f3dd1027e618586df74bdf2c4026c3e
 ```
 
 ### 4. Create backend env
@@ -147,7 +213,7 @@ Then edit:
 cd /opt/ai-rpg/app
 rm -rf deploy/web
 mkdir -p deploy/web
-unzip -o /opt/ai-rpg/packages/ai_prg_web_build_20260407_142100.zip -d deploy/web
+unzip -o /opt/ai-rpg/packages/ai_prg_web_build_20260407T212959.zip -d deploy/web
 ```
 
 ### 6. Start production Docker stack
@@ -185,6 +251,13 @@ Or directly to the API container through published nginx proxy:
 curl -fsS http://127.0.0.1/v1/auth/guest -X POST -H 'Content-Type: application/json' -d '{}'
 ```
 
+Check release metadata too:
+
+```bash
+curl -fsS http://127.0.0.1/version
+curl -fsS http://127.0.0.1/version.json
+```
+
 ### 9. Check logs if needed
 
 ```bash
@@ -200,7 +273,7 @@ docker logs ai-rpg-web --tail 100
 - container: `web`
 - image: `nginx:alpine`
 - serves static files from `deploy/web`
-- proxies `/v1/*` to `symmetry-api:8080`
+- proxies `/v1/*`, `/health`, and `/version` to `symmetry-api:8080`
 
 ### Backend API
 
@@ -245,11 +318,15 @@ If DNS resolution fails:
 The agent should verify all of these after deploy:
 
 1. `GET /health`
-2. `POST /v1/auth/guest`
-3. `POST /v1/prompts/generate`
-4. `POST /v1/campaigns`
-5. `POST /v1/campaigns/{id}/turns/process`
-6. `GET /v1/campaigns/{id}/rumors`
+2. `GET /version`
+3. `GET /version.json`
+4. `POST /v1/auth/guest`
+5. `POST /v1/prompts/generate`
+6. `POST /v1/campaigns`
+7. `POST /v1/campaigns/{id}/turns/process`
+8. `GET /v1/campaigns/{id}/rumors`
+9. optional: open `/v1/auth/yandex/start` in a browser and verify the redirect
+   target uses your configured public callback URL
 
 ## Minimal smoke sequence
 
@@ -291,8 +368,8 @@ curl -fsS http://127.0.0.1/v1/providers/check \
 
 Frontend:
 
-- upload `ai_prg_web_build_20260407_141200.zip`
-- upload `ai_prg_web_build_20260407_142100.zip`
+- upload `ai_prg_web_build_20260407T212959.zip`
+- verify SHA256 `e25d87a1e74f32ca7c5f9ff1b78110f04f3dd1027e618586df74bdf2c4026c3e`
 - unpack into `deploy/web`
 - serve through the `web` container from `docker-compose.prod.yml`
 
@@ -305,6 +382,8 @@ Backend:
 Smoke checks:
 
 - `/health`
+- `/version`
+- `/version.json`
 - guest auth
 - prompt generation
 - campaign creation

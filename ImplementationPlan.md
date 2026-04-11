@@ -23,7 +23,7 @@
 - [x] `Symmetry` backend на `FastAPI`
 - [x] `PostgreSQL + pgvector` в `docker-compose`
 - [x] Alembic migrations и container startup rollout
-- [x] Email auth, refresh/logout и Yandex OAuth scaffolding
+- [x] Email auth, refresh/logout и web Yandex OAuth flow
 - [x] Серверная обработка кампаний и игровых ходов
 - [x] Векторная память мира через `world_chronicles`
 - [x] Story library backend/API foundation

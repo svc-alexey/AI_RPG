@@ -153,6 +153,14 @@ class SymmetryCampaignRepository {
           (final key, final value) => MapEntry(key.toString(), value),
         ) ??
         const <String, Object?>{};
+    final List<Object?> modules =
+        (json['modules'] as List<Object?>?)?.toList() ?? const <Object?>[];
+    final List<Object?> companions =
+        (json['companions'] as List<Object?>?)?.toList() ?? const <Object?>[];
+    final List<Object?> resources =
+        (json['resources'] as List<Object?>?)?.toList() ?? const <Object?>[];
+    final List<Object?> checks =
+        (json['checks'] as List<Object?>?)?.toList() ?? const <Object?>[];
 
     return <String, Object?>{
       'id': json['id'] ?? json['campaign_id'] ?? '',
@@ -172,13 +180,13 @@ class SymmetryCampaignRepository {
       'updatedAt': DateTime.now().toIso8601String(),
       'character': <String, Object?>{
         'name': character['name'] ?? 'Hero',
-        'hp': character['hp'] ?? 12,
-        'maxHp': character['maxHp'] ?? character['max_hp'] ?? 12,
-        'energy': character['energy'] ?? 8,
-        'maxEnergy': character['maxEnergy'] ?? character['max_energy'] ?? 8,
-        'might': character['might'] ?? 2,
-        'wit': character['wit'] ?? 2,
-        'spirit': character['spirit'] ?? 2,
+        'hp': character['hp'] ?? 0,
+        'maxHp': character['maxHp'] ?? character['max_hp'] ?? 0,
+        'energy': character['energy'] ?? 0,
+        'maxEnergy': character['maxEnergy'] ?? character['max_energy'] ?? 0,
+        'might': character['might'] ?? 0,
+        'wit': character['wit'] ?? 0,
+        'spirit': character['spirit'] ?? 0,
       },
       'memory': <String, Object?>{
         'rollingSummary':
@@ -219,12 +227,38 @@ class SymmetryCampaignRepository {
                 .toList() ??
             const <String>[],
       ),
-      'inventory': const <String>[],
-      'notes': const <String>[],
-      'companions': const <Object?>[],
-      'resources': const <Object?>[],
-      'checks': const <Object?>[],
-      'modules': const <Object?>[],
+      'inventory':
+          (json['inventory'] as List<Object?>?)
+              ?.map((final item) => item.toString())
+              .toList() ??
+          const <String>[],
+      'notes':
+          ((json['notes'] ?? json['questLog']) as List<Object?>?)
+              ?.map((final item) => item.toString())
+              .toList() ??
+          const <String>[],
+      'companions': companions,
+      'resources': resources,
+      'checks': checks,
+      'modules':
+          modules.map((final item) {
+            final Map<Object?, Object?> map =
+                item as Map<Object?, Object?>? ?? const <Object?, Object?>{};
+            return <String, Object?>{
+              'module': map['module']?.toString() ?? '',
+              'isActive': map['isActive'] ?? map['is_active'] ?? true,
+              'activationReason':
+                  map['activationReason'] ?? map['activation_reason'] ?? '',
+              'activatedAt': map['activatedAt'] ?? map['activated_at'],
+            };
+          }).toList(),
+      'progression':
+          json['progression'] is Map<Object?, Object?>
+              ? (json['progression'] as Map<Object?, Object?>).map(
+                  (final key, final value) =>
+                      MapEntry(key.toString(), value),
+                )
+              : const <String, Object?>{},
       'customStoryPrompt':
           json['custom_story_prompt'] ?? json['customStoryPrompt'] ?? '',
       'characterPrompt':

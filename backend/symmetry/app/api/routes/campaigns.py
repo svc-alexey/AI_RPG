@@ -14,9 +14,11 @@ from app.services.campaign_runtime import CampaignRuntimeService, build_initial_
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
 from app.services.ids import new_id
+from app.services.prompt_budget import build_turn_budget
 from app.services.presentation_text import normalize_campaign_title
 from app.services.rag import RagService
 from app.services.simulation import SimulationService
+from app.services.text_normalization import normalize_prompt_text
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 credential_service = CredentialResolutionService()
@@ -25,6 +27,32 @@ rag_service = RagService()
 simulation_service = SimulationService()
 ai_gateway = AiGatewayService()
 butterfly_service = ButterflyService()
+
+
+def _build_turn_usage_meta(
+    *,
+    mode: str,
+    turn_number: int,
+    trigger_source: str,
+    usage: dict[str, int],
+) -> dict[str, str | int | float]:
+    budget = build_turn_budget(
+        mode=mode,
+        turn_number=turn_number,
+        trigger_source=trigger_source,
+    )
+    prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+    cache_hit_tokens = int(usage.get("prompt_cache_hit_tokens", 0) or 0)
+    return {
+        "mode": mode,
+        "trigger_source": normalize_prompt_text(trigger_source, limit=32),
+        "turn_number": turn_number,
+        "budget_scenario": budget.scenario,
+        "budget_max_output_tokens": budget.max_output_tokens,
+        "prompt_cache_hit_ratio": round(cache_hit_tokens / prompt_tokens, 4)
+        if prompt_tokens > 0
+        else 0.0,
+    }
 
 
 @router.post("", response_model=CampaignStateResponse)
@@ -203,6 +231,8 @@ async def process_turn(
         raise HTTPException(status_code=404, detail="campaign_runtime_not_found")
 
     current_state = snapshot.state_json
+    current_state = runtime_service.ensure_bootstrap_state(state=current_state)
+    normalized_player_action = normalize_prompt_text(payload.player_action, limit=240)
     await butterfly_service.seed_world(
         session,
         campaign_id=campaign.id,
@@ -220,7 +250,7 @@ async def process_turn(
     await session.flush()
 
     embedding_service = get_embedding_service()
-    query_vector = embedding_service.encode_query(payload.player_action)
+    query_vector = embedding_service.encode_query(normalized_player_action)
     chronicles = await rag_service.search_relevant_events(
         session,
         campaign_id=campaign.id,
@@ -241,17 +271,22 @@ async def process_turn(
         llm_result = await ai_gateway.generate_turn(
             credentials=credentials,
             context=context,
-            player_action=payload.player_action,
+            player_action=normalized_player_action,
             language=payload.language or campaign.language,
             trigger_source=payload.trigger_source,
         )
     except Exception as exc:
         status_code, detail = classify_provider_error(exc)
         raise HTTPException(status_code=status_code, detail=detail) from exc
+    llm_payload = llm_result.payload
     next_state, state_changes, importance, world_event_summary = runtime_service.apply_turn_result(
         state=current_state,
-        result=llm_result,
-        player_action=payload.player_action,
+        result=llm_payload,
+        player_action=normalized_player_action,
+    )
+    next_state = runtime_service.ensure_playable_location(
+        state=next_state,
+        state_changes=state_changes,
     )
     butterfly_service.apply_immediate_world_patch(
         world_state,
@@ -272,26 +307,36 @@ async def process_turn(
         campaign_id=campaign.id,
         snapshot_id=next_snapshot.id,
         turn_number=int(next_state.get("turn_number", 0)),
-        player_action=payload.player_action,
-        llm_response_json=llm_result,
+        player_action=normalized_player_action,
+        llm_response_json=llm_payload,
+        llm_usage_json={
+            **llm_result.usage.to_dict(),
+            **llm_result.meta,
+            **_build_turn_usage_meta(
+                mode=campaign.mode,
+                turn_number=int(current_state.get("turn_number", 0) or 0),
+                trigger_source=payload.trigger_source,
+                usage=llm_result.usage.to_dict(),
+            ),
+        },
     )
     session.add(turn)
     campaign.current_snapshot_id = next_snapshot.id
     campaign.updated_at = datetime.utcnow()
 
     impact_seeds = butterfly_service.normalize_impact_seeds(
-        llm_result.get("impact_seeds"),
+        llm_payload.get("impact_seeds"),
         mode=campaign.mode,
         current_location=str(next_state.get("location", current_state.get("location", ""))),
     )
     needs_background_followup = str(
-        llm_result.get("needs_background_followup", "")
+        llm_payload.get("needs_background_followup", "")
     ).strip().lower() in {"1", "true", "yes"}
     if not impact_seeds and (needs_background_followup or importance >= 6):
         impact_seeds = butterfly_service.fallback_seed_from_turn(
             mode=campaign.mode,
             importance=importance,
-            summary=world_event_summary or llm_result.get("memory_entry", ""),
+            summary=world_event_summary or llm_payload.get("memory_entry", ""),
             current_location=str(next_state.get("location", current_state.get("location", ""))),
         )
     await butterfly_service.enqueue_followup_job(
@@ -304,25 +349,25 @@ async def process_turn(
         turn_number=int(next_state.get("turn_number", 0)),
         current_location=str(next_state.get("location", current_state.get("location", ""))),
         impact_seeds=impact_seeds,
-        source_summary=world_event_summary or llm_result.get("memory_entry", ""),
+        source_summary=world_event_summary or llm_payload.get("memory_entry", ""),
     )
     if importance > 0:
         await butterfly_service.enqueue_chronicle_job(
             session,
             campaign_id=campaign.id,
             location_slug=str(next_state.get("location", "")),
-            memory_entry=llm_result.get("memory_entry", ""),
-            world_event_summary=world_event_summary or llm_result.get("memory_entry", ""),
+            memory_entry=llm_payload.get("memory_entry", ""),
+            world_event_summary=world_event_summary or llm_payload.get("memory_entry", ""),
             importance=importance,
-            metadata_json=llm_result.get("state_changes", {}),
+            metadata_json=llm_payload.get("state_changes", {}),
         )
     await session.commit()
 
     return ProcessTurnResponse(
-        narration=str(llm_result.get("narration", "")).strip(),
-        choices=[str(item) for item in llm_result.get("choices", []) if str(item).strip()],
+        narration=str(llm_payload.get("narration", "")).strip(),
+        choices=[str(item) for item in llm_payload.get("choices", []) if str(item).strip()],
         state_changes=state_changes,
-        memory_entry=str(llm_result.get("memory_entry", "")).strip(),
+        memory_entry=str(llm_payload.get("memory_entry", "")).strip(),
         request_id=new_id(),
         campaign_snapshot_version=next_snapshot.version,
         state=next_state,

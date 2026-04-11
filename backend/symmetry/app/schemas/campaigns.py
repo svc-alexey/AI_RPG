@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+
+from app.services.text_normalization import normalize_compact_list, normalize_prompt_text
 
 
 class ProviderCredentialsInput(BaseModel):
@@ -14,6 +16,11 @@ class ProviderCredentialsInput(BaseModel):
         default="",
         validation_alias=AliasChoices("api_key", "apiKey"),
     )
+
+    @field_validator("base_url", "model", "api_key", mode="before")
+    @classmethod
+    def _normalize_provider_text(cls, value: object) -> str:
+        return normalize_prompt_text(str(value or ""))
 
 
 class CharacterProfileInput(BaseModel):
@@ -31,6 +38,30 @@ class CharacterProfileInput(BaseModel):
     )
     skills: list[str] = Field(default_factory=list)
     perks: list[str] = Field(default_factory=list)
+
+    @field_validator(
+        "name",
+        "gender",
+        "race",
+        "character_class",
+        "personality",
+        "prompt_fragment",
+        mode="before",
+    )
+    @classmethod
+    def _normalize_text_fields(cls, value: object) -> str:
+        return normalize_prompt_text(str(value or ""))
+
+    @field_validator("skills", "perks", mode="before")
+    @classmethod
+    def _normalize_list_fields(cls, value: object) -> list[str]:
+        if isinstance(value, list):
+            items = value
+        elif value is None:
+            items = []
+        else:
+            items = [value]
+        return normalize_compact_list(items)
 
 
 class CreateCampaignRequest(BaseModel):
@@ -53,6 +84,20 @@ class CreateCampaignRequest(BaseModel):
         validation_alias=AliasChoices("provider_credentials", "providerCredentials"),
     )
 
+    @field_validator(
+        "title",
+        "setting",
+        "mode",
+        "difficulty",
+        "language",
+        "story_prompt",
+        "objective_hint",
+        mode="before",
+    )
+    @classmethod
+    def _normalize_campaign_text(cls, value: object) -> str:
+        return normalize_prompt_text(str(value or ""))
+
 
 class ProcessTurnRequest(BaseModel):
     player_action: str = Field(
@@ -67,6 +112,11 @@ class ProcessTurnRequest(BaseModel):
         default=None,
         validation_alias=AliasChoices("provider_credentials", "providerCredentials"),
     )
+
+    @field_validator("player_action", "language", "trigger_source", mode="before")
+    @classmethod
+    def _normalize_turn_text(cls, value: object) -> str:
+        return normalize_prompt_text(str(value or ""))
 
 
 class CampaignResponse(BaseModel):

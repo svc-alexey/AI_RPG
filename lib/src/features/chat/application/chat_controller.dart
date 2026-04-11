@@ -63,9 +63,18 @@ class ChatViewState {
   final int clearInputRevision;
 
   List<ChatMessage> get visibleMessages {
-    final List<ChatMessage> messages = <ChatMessage>[...?campaign?.messages];
+    final List<ChatMessage> messages = <ChatMessage>[
+      ...?campaign?.messages.where((final message) {
+        if (message.role != ChatRole.player) {
+          return true;
+        }
+        return message.text.trim().isNotEmpty;
+      }),
+    ];
     if (pendingPlayerMessage != null) {
-      messages.add(pendingPlayerMessage!);
+      if (pendingPlayerMessage!.text.trim().isNotEmpty) {
+        messages.add(pendingPlayerMessage!);
+      }
     }
     if (pendingNarratorMessage != null) {
       messages.add(pendingNarratorMessage!);

@@ -49,11 +49,15 @@ def test_build_turn_context_exposes_story_seed_and_character_prompt():
         trigger_source="intro",
     )
 
-    assert context["campaign"]["mode"] == "longCampaign"
-    assert context["campaign"]["turn_number"] == 0
-    assert context["campaign"]["story_prompt"] == _Payload.story_prompt
-    assert context["state"]["character_prompt"] == _PayloadCharacter.prompt_fragment
-    assert context["request"]["trigger_source"] == "intro"
+    assert context["campaign_bootstrap"]["mode"] == "longCampaign"
+    assert context["dynamic_context"]["turn_number"] == 0
+    assert context["campaign_bootstrap"]["story_prompt"] == _Payload.story_prompt
+    assert (
+        context["character_brief"]["character_prompt"]
+        == _PayloadCharacter.prompt_fragment
+    )
+    assert context["dynamic_context"]["request"]["trigger_source"] == "intro"
+    assert "prompt_fragment" not in context["dynamic_context"]["state"]["character"]
 
 
 def test_long_campaign_intro_system_prompt_requires_visible_prologue():

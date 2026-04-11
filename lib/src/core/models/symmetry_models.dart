@@ -278,3 +278,97 @@ Map<String, Object?> _jsonMap(final Object? value) =>
       (final key, final item) => MapEntry(key.toString(), item),
     ) ??
     const <String, Object?>{};
+
+bool _jsonBool(final Object? value, {final bool fallback = false}) {
+  if (value is bool) {
+    return value;
+  }
+  if (value is num) {
+    return value != 0;
+  }
+  if (value is String) {
+    final String normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return fallback;
+    }
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+  return fallback;
+}
+
+enum SymmetryUpdateMode { none, soft, force }
+
+class SymmetryVersionPlatformInfo {
+  const SymmetryVersionPlatformInfo({
+    required this.latestVersion,
+    required this.minimumSupportedVersion,
+    required this.updateMode,
+    required this.message,
+    this.assetVersion = '',
+    this.reloadRequired = false,
+    this.updateUrl = '',
+  });
+
+  factory SymmetryVersionPlatformInfo.fromJson(
+    final Map<String, Object?> json,
+  ) => SymmetryVersionPlatformInfo(
+    latestVersion: (json['latest_version'] as String?) ?? '',
+    minimumSupportedVersion:
+        (json['minimum_supported_version'] as String?) ?? '',
+    updateMode: SymmetryUpdateMode.values.firstWhere(
+      (final item) => item.name == json['update_mode'],
+      orElse: () => SymmetryUpdateMode.none,
+    ),
+    message: (json['message'] as String?) ?? '',
+    assetVersion: (json['asset_version'] as String?) ?? '',
+    reloadRequired: _jsonBool(json['reload_required']),
+    updateUrl: (json['update_url'] as String?) ?? '',
+  );
+
+  final String latestVersion;
+  final String minimumSupportedVersion;
+  final SymmetryUpdateMode updateMode;
+  final String message;
+  final String assetVersion;
+  final bool reloadRequired;
+  final String updateUrl;
+}
+
+class SymmetryVersionPlatforms {
+  const SymmetryVersionPlatforms({required this.web, required this.desktop});
+
+  factory SymmetryVersionPlatforms.fromJson(final Map<String, Object?> json) =>
+      SymmetryVersionPlatforms(
+        web: SymmetryVersionPlatformInfo.fromJson(_jsonMap(json['web'])),
+        desktop: SymmetryVersionPlatformInfo.fromJson(
+          _jsonMap(json['desktop']),
+        ),
+      );
+
+  final SymmetryVersionPlatformInfo web;
+  final SymmetryVersionPlatformInfo desktop;
+}
+
+class SymmetryVersionInfo {
+  const SymmetryVersionInfo({
+    required this.apiVersion,
+    required this.releaseId,
+    required this.releasedAt,
+    required this.platforms,
+  });
+
+  factory SymmetryVersionInfo.fromJson(final Map<String, Object?> json) =>
+      SymmetryVersionInfo(
+        apiVersion: (json['api_version'] as String?) ?? '',
+        releaseId: (json['release_id'] as String?) ?? '',
+        releasedAt: (json['released_at'] as String?) ?? '',
+        platforms: SymmetryVersionPlatforms.fromJson(
+          _jsonMap(json['platforms']),
+        ),
+      );
+
+  final String apiVersion;
+  final String releaseId;
+  final String releasedAt;
+  final SymmetryVersionPlatforms platforms;
+}

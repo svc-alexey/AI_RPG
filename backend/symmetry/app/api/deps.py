@@ -1,8 +1,9 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.security import decode_access_token
 from app.db.models import User
 from app.db.session import get_db_session
@@ -34,3 +35,17 @@ async def get_current_user(
             detail="user_not_found",
         )
     return user
+
+
+def require_dev_admin_token(
+    x_symmetry_dev_token: str | None = Header(default=None),
+) -> None:
+    settings = get_settings()
+    expected = settings.dev_admin_token.strip()
+    if not expected:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not_found")
+    if (x_symmetry_dev_token or "").strip() != expected:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="dev_admin_forbidden",
+        )

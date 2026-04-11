@@ -193,8 +193,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   : _ChatChromeIconButton(
                       icon: Icons.menu_rounded,
                       tooltip: l10n.campaignInfo,
-                      onPressed: () =>
-                          _scaffoldKey.currentState?.openDrawer(),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
               actions: <Widget>[
                 _ChatChromeIconButton(
@@ -451,9 +450,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           decoration: BoxDecoration(
             color: AetherPalette.backgroundElevated,
             borderRadius: BorderRadius.circular(isNarrow ? 12 : 14),
-            border: Border.all(
-              color: AetherPalette.panelBorderSolid,
-            ),
+            border: Border.all(color: AetherPalette.panelBorderSolid),
           ),
           padding: EdgeInsets.symmetric(
             horizontal: isNarrow ? (compactMobileComposer ? 6 : 8) : 10,
@@ -560,28 +557,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     required final ChatController controller,
     required final int maxLines,
     required final InputDecoration decoration,
-  }) =>
-      TextField(
-        controller: _inputController,
-        focusNode: _composerFocusNode,
-        minLines: 1,
-        maxLines: maxLines,
-        textInputAction: TextInputAction.newline,
-        onSubmitted: (_) => _submitAction(
-          controller: controller,
-          action: _inputController.text,
-        ),
-        decoration: decoration,
-      );
+  }) => TextField(
+    controller: _inputController,
+    focusNode: _composerFocusNode,
+    minLines: 1,
+    maxLines: maxLines,
+    textInputAction: TextInputAction.newline,
+    onSubmitted: (_) =>
+        _submitAction(controller: controller, action: _inputController.text),
+    decoration: decoration,
+  );
 
-  KeyEventResult _onComposerFocusKeyEvent(final FocusNode node, final KeyEvent event) {
+  KeyEventResult _onComposerFocusKeyEvent(
+    final FocusNode node,
+    final KeyEvent event,
+  ) {
     if (!mounted) {
       return KeyEventResult.ignored;
     }
-    final ChatController controller =
-        ref.read(chatControllerProvider(widget.campaignId).notifier);
-    final ChatViewState chatState =
-        ref.read(chatControllerProvider(widget.campaignId));
+    final ChatController controller = ref.read(
+      chatControllerProvider(widget.campaignId).notifier,
+    );
+    final ChatViewState chatState = ref.read(
+      chatControllerProvider(widget.campaignId),
+    );
     return _handleComposerKeyEvent(
       controller: controller,
       isSending: chatState.isSending,
@@ -649,6 +648,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final CharacterStats character = campaign.character;
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
+    final bool showVitality =
+        campaign.isModuleActive(CampaignModule.vitality) &&
+        (character.maxHp > 0 ||
+            character.maxEnergy > 0 ||
+            character.might > 0 ||
+            character.wit > 0 ||
+            character.spirit > 0);
+    final List<SymmetryWorldRumor> latestWorldRumors =
+        List<SymmetryWorldRumor>.from(worldRumors)
+          ..sort(
+            (final a, final b) => b.createdAt.compareTo(a.createdAt),
+          );
+    final List<RecentTurnSummary> latestRecentTurns =
+        List<RecentTurnSummary>.from(campaign.recentTurns.reversed).take(5).toList();
     return AetherCard(
       padding: EdgeInsets.all(responsive.isCompact ? 8 : 14),
       child: ListView(
@@ -685,7 +698,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SizedBox(height: responsive.isCompact ? 8 : 6),
           ],
           SizedBox(height: responsive.sectionSpacing),
-          if (campaign.isModuleActive(CampaignModule.vitality)) ...<Widget>[
+          if (showVitality) ...<Widget>[
             _SidebarSectionTitle(
               title: l10n.campaignModuleLabel(CampaignModule.vitality),
             ),
@@ -774,10 +787,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          if (worldRumors.isEmpty)
+          if (latestWorldRumors.isEmpty)
             Text(l10n.worldRumorsEmpty)
           else
-            for (final SymmetryWorldRumor item in worldRumors)
+            for (final SymmetryWorldRumor item in latestWorldRumors.take(5))
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Column(
@@ -802,7 +815,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          for (final RecentTurnSummary item in campaign.recentTurns)
+          for (final RecentTurnSummary item in latestRecentTurns)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text('- ${item.playerAction} -> ${item.outcome}'),
@@ -856,17 +869,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return next.isLoading ? _ScrollMode.none : _ScrollMode.animate;
     }
 
-    final bool visibleCountChanged =
-        previous.visibleMessages.length != next.visibleMessages.length;
-    final bool narratorChanged =
-        previous.pendingNarratorMessage?.text !=
-        next.pendingNarratorMessage?.text;
-    final bool finishedSending = previous.isSending && !next.isSending;
+    final bool pendingPlayerAdded =
+        previous.pendingPlayerMessage == null &&
+        next.pendingPlayerMessage != null;
+    final bool initialMessagesLoaded =
+        previous.campaign == null &&
+        next.campaign != null &&
+        next.visibleMessages.isNotEmpty;
 
-    if (visibleCountChanged || finishedSending) {
-      return _ScrollMode.animate;
-    }
-    if (narratorChanged) {
+    if (pendingPlayerAdded || initialMessagesLoaded) {
       return _ScrollMode.animate;
     }
     return _ScrollMode.none;
@@ -917,43 +928,43 @@ class _ChatChromeIconButtonState extends State<_ChatChromeIconButton> {
 
   @override
   Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.only(right: 2),
-        child: Tooltip(
-          message: widget.tooltip,
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _hover = true),
-            onExit: (_) => setState(() => _hover = false),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: widget.onPressed,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _hover
-                          ? AetherPalette.accent.withValues(alpha: 0.35)
-                          : AetherPalette.panelBorderSolid,
-                    ),
-                    color: AetherPalette.backgroundElevated,
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    size: 18,
-                    color: _hover
-                        ? AetherPalette.accentHover
-                        : AetherPalette.textMuted,
-                  ),
+    padding: const EdgeInsets.only(right: 2),
+    child: Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onPressed,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: _hover
+                      ? AetherPalette.accent.withValues(alpha: 0.35)
+                      : AetherPalette.panelBorderSolid,
                 ),
+                color: AetherPalette.backgroundElevated,
+              ),
+              child: Icon(
+                widget.icon,
+                size: 18,
+                color: _hover
+                    ? AetherPalette.accentHover
+                    : AetherPalette.textMuted,
               ),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _SidebarSectionTitle extends StatelessWidget {
@@ -963,14 +974,14 @@ class _SidebarSectionTitle extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          letterSpacing: 2.2,
-          color: AetherPalette.textDim,
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
-        ),
-      );
+    title.toUpperCase(),
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      letterSpacing: 2.2,
+      color: AetherPalette.textDim,
+      fontWeight: FontWeight.w600,
+      fontSize: 10,
+    ),
+  );
 }
 
 class _CompactChatToolbar extends StatelessWidget {
@@ -1056,9 +1067,7 @@ class _CompactToolbarButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AetherPalette.backgroundElevated,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AetherPalette.panelBorderSolid,
-          ),
+          border: Border.all(color: AetherPalette.panelBorderSolid),
         ),
         child: Icon(icon, size: 18),
       ),
@@ -1082,9 +1091,7 @@ class _CharacterPortraitCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AetherPalette.backgroundElevated,
         borderRadius: BorderRadius.circular(responsive.isCompact ? 16 : 20),
-        border: Border.all(
-          color: AetherPalette.accent.withValues(alpha: 0.28),
-        ),
+        border: Border.all(color: AetherPalette.accent.withValues(alpha: 0.28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1180,8 +1187,7 @@ class _ModuleIconStrip extends StatelessWidget {
                   AetherPalette.accent.withValues(alpha: 0.75),
                 _ModuleHighlightState.updated =>
                   AetherPalette.accentSoft.withValues(alpha: 0.78),
-                _ModuleHighlightState.none =>
-                  AetherPalette.panelBorderSolid,
+                _ModuleHighlightState.none => AetherPalette.panelBorderSolid,
               },
             ),
             boxShadow: highlightState == _ModuleHighlightState.none
@@ -1267,9 +1273,7 @@ class _SidebarMetaChip extends StatelessWidget {
     decoration: BoxDecoration(
       color: AetherPalette.panelSoft,
       borderRadius: BorderRadius.circular(999),
-      border: Border.all(
-        color: AetherPalette.panelBorderSolid,
-      ),
+      border: Border.all(color: AetherPalette.panelBorderSolid),
     ),
     child: Text(
       label,
@@ -1313,8 +1317,7 @@ String _portraitAssetForCampaign(final CampaignState campaign) =>
     switch (campaign.setting) {
       CampaignSetting.cozyCrime =>
         'assets/images/portraits/detective_shadow.png',
-      CampaignSetting.postApocalypse ||
-      CampaignSetting.nearFutureSciFi =>
+      CampaignSetting.postApocalypse || CampaignSetting.nearFutureSciFi =>
         'assets/images/portraits/scifi_oracle.png',
       _ => 'assets/images/portraits/fantasy_guardian.png',
     };

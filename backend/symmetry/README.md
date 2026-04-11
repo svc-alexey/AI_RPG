@@ -13,6 +13,8 @@ should not expose it unless there is a deliberate product reason.
   with `intfloat/multilingual-e5-base` on the `onnx` backend
 - OpenAI-compatible LLM gateway with transient user credentials support
 - guest sessions plus account sessions for client access
+- Yandex OAuth endpoints for web sign-in, with runtime `redirect_uri`
+  override support
 - DB-backed butterfly simulation with `simulation_jobs`,
   `pending_consequences`, and persistent `world_entities`
 - dedicated worker process for background consequence expansion and chronicle
@@ -21,6 +23,11 @@ should not expose it unless there is a deliberate product reason.
   - `shortStory` stays compact;
   - `longCampaign` uses richer prompt generation and a visible prologue on the
     first auto intro-turn
+- stable-prefix LLM request architecture for prompt caching
+- persisted LLM usage metadata on each processed campaign turn
+- scenario-aware token budgets and compact turn context assembly
+- dev-only usage analytics endpoint protected by a server token
+- root `/version` contract for `web` and `desktop` clients
 - `world rumors` API for compact off-screen event summaries consumed by the
   Flutter campaign screen
 
@@ -35,6 +42,14 @@ The backend supports two local development modes:
 The default `.env` is now tuned for the first case: local Python process +
 Postgres exposed on `localhost:5432`. Docker Compose overrides the DB host and
 model directory for the container automatically.
+
+Configuration notes:
+
+- `.env` is resolved relative to `backend/symmetry`, not the current shell
+  working directory;
+- precedence is `environment variables > .env > code defaults`;
+- the same `backend/symmetry/.env` is used by both `symmetry-api` and
+  `symmetry-worker` under `docker compose`.
 
 The compose stack also mounts:
 
@@ -74,6 +89,10 @@ python -m app.workers.butterfly_worker
 
 Development request logs are written to `backend/symmetry/logs/symmetry-dev.log`.
 
+For private usage analytics, the backend can also expose `GET /v1/dev/usage`
+when `SYMMETRY_DEV_ADMIN_TOKEN` is configured. Access requires header
+`X-Symmetry-Dev-Token`.
+
 4. Open docs:
 
 `http://localhost:8080/docs`
@@ -87,13 +106,42 @@ embeddings, stop the stack and remove the Postgres volume before the next
 For local web preview, the preferred frontend path is:
 
 ```powershell
-flutter build web --no-tree-shake-icons
-python -m http.server 3010 --directory build/web
+powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
 ```
 
 This mirrors deployed static asset loading more closely than a temporary
-Flutter web-server session and avoids common icon/font asset glitches during
-development.
+Flutter web-server session and keeps release artifacts aligned, including:
+
+- `version.json`
+- `robots.txt`
+- `sitemap.xml`
+- `flutter_service_worker.js`
+
+## Yandex OAuth notes
+
+The backend exposes:
+
+- `GET /v1/auth/yandex/start`
+- `GET /v1/auth/yandex/callback`
+
+The intended web flow is:
+
+1. the Flutter web client opens `/v1/auth/yandex/start?redirect_uri=...`
+2. the backend redirects to Yandex
+3. Yandex returns the browser to the web app route
+   `/auth/yandex/callback?code=...`
+4. Flutter calls `/v1/auth/yandex/callback?code=...`
+   and stores the returned auth session locally
+
+Default env configuration should point at the web callback route, not the
+backend callback route. Examples:
+
+- local preview:
+  `SYMMETRY_YANDEX_REDIRECT_URI=http://127.0.0.1:3010/auth/yandex/callback`
+- production:
+  `SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/auth/yandex/callback`
+
+The same callback URL must also be registered in the Yandex OAuth application.
 
 ## Important credential rule
 
@@ -108,14 +156,37 @@ for web-client compatibility. Examples:
 - `provider_credentials` or `providerCredentials`
 - `player_action` or `playerAction`
 
+## Dev usage analytics
+
+The backend now supports a dev-only usage report endpoint for token analysis:
+
+- `GET /v1/dev/usage`
+
+Protection model:
+
+- disabled unless `SYMMETRY_DEV_ADMIN_TOKEN` is set;
+- requires request header `X-Symmetry-Dev-Token`;
+- intended for direct admin/server usage only.
+
+Useful env vars:
+
+- `SYMMETRY_DEV_ADMIN_TOKEN`
+- `SYMMETRY_DEV_USAGE_DEFAULT_DAYS`
+- `SYMMETRY_DEV_USAGE_MAX_ROWS`
+
 ## Main auth and gameplay endpoints
 
+- `GET /health`
+- `GET /version`
+- `GET /v1/dev/usage` with `X-Symmetry-Dev-Token`
 - `POST /v1/auth/guest`
 - `POST /v1/auth/register`
 - `POST /v1/auth/login`
 - `POST /v1/auth/refresh`
 - `POST /v1/auth/logout`
 - `GET /v1/auth/me`
+- `GET /v1/auth/yandex/start`
+- `GET /v1/auth/yandex/callback`
 - `POST /v1/campaigns`
 - `GET /v1/campaigns`
 - `GET /v1/campaigns/{id}`
@@ -126,6 +197,33 @@ for web-client compatibility. Examples:
   - request body includes `setting`, `literary_genre`, `mode`, `difficulty`,
   `language`, `story_wish`
 - `POST /v1/providers/check`
+
+## Turn-processing notes
+
+- turn generation is split into:
+  - a stable cached prefix
+  - a dynamic final user message with mutable runtime state
+- immutable campaign bootstrap, world bootstrap, and character brief are kept
+  at the start of the `messages` array for provider cache hits
+- mutable turn state, recent memory, relevant chronicles, and player action
+  are sent only in the dynamic tail
+- turn and prompt-generation requests now use scenario-aware output budgets
+  instead of one implicit shared output size
+- processed turns persist both the parsed LLM payload and normalized usage
+  fields such as:
+  - `prompt_cache_hit_tokens`
+  - `prompt_cache_miss_tokens`
+  - `prompt_tokens`
+  - `total_tokens`
+  - `budget_scenario`
+  - `prompt_cache_hit_ratio`
+- intro-turns do not store an empty player message
+- if the current location is still `Starting Point` / `Начальная точка`, the
+  runtime replaces it with a concrete opening location before snapshot save
+- the model may explicitly activate/deactivate gameplay modules through
+  `state_changes.module_updates`
+- `vitality` is not expected by default for every campaign; if the model wants
+  it, it should also provide the actual stat block through `character_patch`
 
 ## Narrative mode notes
 
