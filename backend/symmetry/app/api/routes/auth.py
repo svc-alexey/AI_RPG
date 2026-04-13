@@ -74,11 +74,17 @@ async def yandex_start(
 async def yandex_callback(
     request: Request,
     code: str = Query(default=""),
+    redirect_uri: str = Query(default=""),
     session: AsyncSession = Depends(get_db_session),
 ) -> AuthResponse:
     if not code:
         raise HTTPException(status_code=400, detail="missing_code")
-    return await auth_service.login_with_yandex(session, code=code, request=request)
+    return await auth_service.login_with_yandex(
+        session,
+        code=code,
+        request=request,
+        redirect_uri=redirect_uri or None,
+    )
 
 
 @router.get("/me", response_model=UserResponse)

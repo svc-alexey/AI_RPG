@@ -118,11 +118,12 @@ class SymmetryAuthRepository {
 
   Future<SymmetrySession> loginWithYandexCode({
     required final String code,
+    final String? redirectUri,
   }) async {
     final String baseUrl = await loadBaseUrl();
     final SymmetryAuthResponse response = await _client(
       baseUrl,
-    ).loginWithYandexCode(code: code);
+    ).loginWithYandexCode(code: code, redirectUri: redirectUri);
     final SymmetrySession session = SymmetrySession(
       user: response.user,
       tokens: response.tokens,

@@ -4,31 +4,33 @@ You are on the production server for AI_RPG. Deploy the new backend and web rele
 
 ## Fill these values before handing this task to the agent
 
-Replace every placeholder below with real production values:
+Replace every placeholder below with real production values. **Do not commit
+real API keys, OAuth secrets, or SMTP passwords**; keep them only in
+`backend/symmetry/.env` on the server (that file is gitignored).
 
 ```env
-PUBLIC_DOMAIN=beyondtheverge.online
+PUBLIC_DOMAIN=your-domain.example
 REPO_ROOT=/opt/ai-rpg/app
 PACKAGES_DIR=/opt/ai-rpg/packages
 WEB_ARCHIVE_NAME=ai_prg_web_build_20260407T212959.zip
 
 SYMMETRY_JWT_SECRET=replace-with-a-long-random-secret
 
-SYMMETRY_SERVER_LLM_BASE_URL=https://api.deepseek.com/v1
-SYMMETRY_SERVER_LLM_MODEL=deepseek-chat
+SYMMETRY_SERVER_LLM_BASE_URL=https://api.example.com/v1
+SYMMETRY_SERVER_LLM_MODEL=your-model-name
 SYMMETRY_SERVER_LLM_API_KEY=replace-with-llm-api-key
 
-SYMMETRY_YANDEX_CLIENT_ID=36ed51485bd446b1acb805275a605500
-SYMMETRY_YANDEX_CLIENT_SECRET=28f769a5119b47549510260582318b23
-SYMMETRY_YANDEX_REDIRECT_URI=https://beyondtheverge.online/auth/yandex/callback
+SYMMETRY_YANDEX_CLIENT_ID=replace-with-yandex-client-id
+SYMMETRY_YANDEX_CLIENT_SECRET=replace-with-yandex-client-secret
+SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/auth/yandex/callback
 
-SYMMETRY_FEEDBACK_RECIPIENT_EMAIL=aleksey.shvetsov97@yandex.ru
-SYMMETRY_FEEDBACK_SENDER_EMAIL=aleksey.shvetsov97@yandex.ru
+SYMMETRY_FEEDBACK_RECIPIENT_EMAIL=feedback-recipient@example.com
+SYMMETRY_FEEDBACK_SENDER_EMAIL=feedback-sender@example.com
 SYMMETRY_FEEDBACK_EMAIL_SUBJECT_PREFIX=Landing feedback
-SYMMETRY_FEEDBACK_SMTP_HOST=smtp.yandex.ru
+SYMMETRY_FEEDBACK_SMTP_HOST=smtp.your-provider.example
 SYMMETRY_FEEDBACK_SMTP_PORT=465
-SYMMETRY_FEEDBACK_SMTP_USERNAME=aleksey.shvetsov97@yandex.ru
-SYMMETRY_FEEDBACK_SMTP_PASSWORD=aqivgqzjoqykbpio
+SYMMETRY_FEEDBACK_SMTP_USERNAME=mailbox@example.com
+SYMMETRY_FEEDBACK_SMTP_PASSWORD=replace-with-smtp-password
 SYMMETRY_FEEDBACK_SMTP_USE_SSL=true
 SYMMETRY_FEEDBACK_SMTP_USE_STARTTLS=false
 ```

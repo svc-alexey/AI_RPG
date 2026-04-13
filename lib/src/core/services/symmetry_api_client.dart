@@ -105,10 +105,18 @@ class SymmetryApiClient {
 
   Future<SymmetryAuthResponse> loginWithYandexCode({
     required final String code,
+    final String? redirectUri,
   }) async {
-    final Object? decoded = await _get(
-      '/auth/yandex/callback?code=${Uri.encodeQueryComponent(code)}',
-    );
+    final Map<String, String> queryParameters = <String, String>{
+      'code': code,
+      if (redirectUri != null && redirectUri.trim().isNotEmpty)
+        'redirect_uri': redirectUri.trim(),
+    };
+    final String pathWithQuery = Uri(
+      path: '/auth/yandex/callback',
+      queryParameters: queryParameters,
+    ).toString();
+    final Object? decoded = await _get(pathWithQuery);
     if (decoded is! Map<Object?, Object?>) {
       throw const SymmetryApiException(message: 'symmetry_invalid_response');
     }

@@ -120,6 +120,11 @@ The reverse proxy still only needs to forward `/v1/`, `/health`, and
 `/version`; the `/auth/yandex/callback` route is handled by the Flutter app
 itself and served from `index.html`.
 
+Token exchange: the backend includes `redirect_uri` when calling Yandex
+`oauth.yandex.ru/token`; it must be the same URI as in the authorize request.
+The Flutter client should pass `redirect_uri` on
+`GET /v1/auth/yandex/callback` (it must match `SYMMETRY_YANDEX_REDIRECT_URI`).
+
 ## Deploy notes
 
 - Deploy the contents of `build/web`.
@@ -134,6 +139,9 @@ itself and served from `index.html`.
   - the browser is returning to `/auth/yandex/callback`
   - the backend `SYMMETRY_YANDEX_REDIRECT_URI` matches that exact URL
   - the same URL is whitelisted in the Yandex OAuth app settings
+  - the API request to `/v1/auth/yandex/callback` succeeds (check Network tab);
+    a mismatch triggers `invalid_yandex_redirect_uri` if the query
+    `redirect_uri` does not equal `SYMMETRY_YANDEX_REDIRECT_URI`
 - If icons or fonts look broken after a fresh build, hard-refresh the browser
   and verify `build/web/assets/FontManifest.json` and
   `build/web/assets/fonts/MaterialIcons-Regular.otf` are being served.

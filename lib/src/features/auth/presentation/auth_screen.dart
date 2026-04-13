@@ -3,6 +3,7 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/features/auth/yandex_oauth_redirect_uri.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
+    final AsyncValue<SymmetrySession?> sessionState = ref.watch(
+      symmetrySessionProvider,
+    );
+    final bool isSignedInNonGuest = sessionState.maybeWhen(
+      data: (final session) =>
+          session != null && !session.isGuest,
+      orElse: () => false,
+    );
     final bool isBusy = _isSubmitting || _isYandexSubmitting;
 
     return Scaffold(
@@ -67,6 +76,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
+                    if (isSignedInNonGuest) ...<Widget>[
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.authAlreadySignedInHint,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: isBusy ? null : () => widget.onAuthenticated(),
+                        child: Text(l10n.homeSecondaryCta),
+                      ),
+                    ],
                     if (kIsWeb) ...<Widget>[
                       const SizedBox(height: 20),
                       OutlinedButton.icon(
@@ -170,7 +192,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     try {
       final Uri startUri = await ref
           .read(symmetryAuthRepositoryProvider)
-          .buildYandexStartUri(redirectUri: _buildYandexRedirectUri());
+          .buildYandexStartUri(
+            redirectUri: buildYandexOAuthRedirectUriForCurrentOrigin(),
+          );
       final bool launched = await launchUrl(
         startUri,
         webOnlyWindowName: '_self',
@@ -264,16 +288,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return l10n.authDisplayNameTooLong;
     }
     return null;
-  }
-
-  String _buildYandexRedirectUri() {
-    final Uri current = Uri.base;
-    return Uri(
-      scheme: current.scheme,
-      host: current.host,
-      port: current.hasPort ? current.port : null,
-      path: '/auth/yandex/callback',
-    ).toString();
   }
 
   bool _looksLikeEmail(final String value) {

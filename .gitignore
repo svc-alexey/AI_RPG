@@ -59,6 +59,8 @@ tool/ai_local_defines.json
 *.kdbx
 secrets.*
 local.properties
+# Local infra secrets only (passwords, tokens); see INFRA.secrets.local.example
+INFRA.secrets.local.md
 
 # Local app data and generated caches
 .codex/

@@ -167,14 +167,37 @@ class AuthService:
         )
         return f"{self._settings.yandex_authorize_url}?{query}"
 
+    def _resolve_yandex_oauth_redirect_uri(self, redirect_uri: str | None) -> str:
+        configured = (self._settings.yandex_redirect_uri or "").strip()
+        if not configured:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="yandex_oauth_not_configured",
+            )
+        raw = (redirect_uri or "").strip()
+        if not raw:
+            return configured
+        if raw != configured:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid_yandex_redirect_uri",
+            )
+        return raw
+
     async def login_with_yandex(
-        self, session: AsyncSession, *, code: str, request: Request
+        self,
+        session: AsyncSession,
+        *,
+        code: str,
+        request: Request,
+        redirect_uri: str | None = None,
     ) -> AuthResponse:
         if not self._settings.yandex_client_id or not self._settings.yandex_client_secret:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="yandex_oauth_not_configured",
             )
+        resolved_redirect_uri = self._resolve_yandex_oauth_redirect_uri(redirect_uri)
         async with httpx.AsyncClient(timeout=30) as client:
             token_response = await client.post(
                 self._settings.yandex_token_url,
@@ -183,6 +206,7 @@ class AuthService:
                     "code": code,
                     "client_id": self._settings.yandex_client_id,
                     "client_secret": self._settings.yandex_client_secret,
+                    "redirect_uri": resolved_redirect_uri,
                 },
             )
             token_response.raise_for_status()

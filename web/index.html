@@ -1308,6 +1308,24 @@
         width: 100%;
       }
     }
+
+    /* OAuth return: only loading UI, no marketing landing chrome */
+    body.is-oauth-callback .landing-topbar {
+      display: none !important;
+    }
+
+    body.is-oauth-callback #landing-view > section:not(.is-hero) {
+      display: none !important;
+    }
+
+    body.is-oauth-callback #landing-view .is-hero .hero-frame {
+      min-height: min(100vh, 760px);
+      padding-top: 10vh;
+    }
+
+    body.is-oauth-callback #landing-view .is-hero .hero-copy > *:not(#loading-shell):not(#loading-note) {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -1798,6 +1816,9 @@
       let text = copy[currentLanguage];
       let currentView = resolveView(urlParams.get('view'));
       const isYandexCallbackPath = window.location.pathname === '/auth/yandex/callback';
+      if (isYandexCallbackPath) {
+        document.body.classList.add('is-oauth-callback');
+      }
       const shouldAutoLaunch =
         currentView === 'landing' &&
         (urlParams.get('autostart') === '1' || isYandexCallbackPath);

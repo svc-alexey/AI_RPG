@@ -130,8 +130,11 @@ The intended web flow is:
 2. the backend redirects to Yandex
 3. Yandex returns the browser to the web app route
    `/auth/yandex/callback?code=...`
-4. Flutter calls `/v1/auth/yandex/callback?code=...`
-   and stores the returned auth session locally
+4. Flutter calls `/v1/auth/yandex/callback?code=...&redirect_uri=...`
+   (optional `redirect_uri`; when sent it must match `SYMMETRY_YANDEX_REDIRECT_URI`)
+5. the backend exchanges the code at Yandex `POST /token` including the same
+   `redirect_uri` as in step 1
+6. Flutter stores the returned auth session locally
 
 Default env configuration should point at the web callback route, not the
 backend callback route. Examples:

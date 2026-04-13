@@ -1381,6 +1381,11 @@ class AppLocalizations {
     AppLanguage.en => 'Finishing Yandex sign-in...',
   };
 
+  String get authAlreadySignedInHint => switch (language) {
+    AppLanguage.ru => 'Вы уже вошли в аккаунт.',
+    AppLanguage.en => 'You are already signed in.',
+  };
+
   String get closeAction => switch (language) {
     AppLanguage.ru => 'Закрыть',
     AppLanguage.en => 'Close',
@@ -1639,6 +1644,12 @@ class AppLocalizations {
     'yandex_oauth_not_configured' => switch (language) {
       AppLanguage.ru => 'Вход через Yandex пока не настроен.',
       AppLanguage.en => 'Yandex sign-in is not configured yet.',
+    },
+    'invalid_yandex_redirect_uri' => switch (language) {
+      AppLanguage.ru =>
+        'Адрес возврата OAuth не совпадает с настройками сервера. Проверьте SYMMETRY_YANDEX_REDIRECT_URI.',
+      AppLanguage.en =>
+        'OAuth redirect URI does not match server settings. Check SYMMETRY_YANDEX_REDIRECT_URI.',
     },
     _ => _statusFriendlyError(null),
   };

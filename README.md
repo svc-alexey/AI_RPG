@@ -211,8 +211,13 @@ The current web OAuth flow is:
 2. the backend redirects the browser to Yandex OAuth
 3. Yandex returns the browser to the Flutter route
    `/auth/yandex/callback?code=...`
-4. Flutter exchanges `code` through `GET /v1/auth/yandex/callback`
-   and stores the returned session locally
+4. Flutter exchanges the code through
+   `GET /v1/auth/yandex/callback?code=...&redirect_uri=...`
+   (optional `redirect_uri` query param; if present it must **exactly** match
+   `SYMMETRY_YANDEX_REDIRECT_URI`)
+5. the backend calls Yandex `POST /token` with the same `redirect_uri` as in
+   step 1 (required by Yandex for the authorization code grant)
+6. Flutter stores the returned session locally (web: SharedPreferences)
 
 Required backend env values:
 
@@ -226,6 +231,9 @@ Important callback note:
 - for production, use `https://your-domain.example/auth/yandex/callback`
 - the same callback URL must be allowed in the Yandex OAuth application
   settings
+- `SYMMETRY_YANDEX_REDIRECT_URI`, the value passed to `/yandex/start`, and the
+  Flutter-built redirect URI (scheme + host + port + path) must match
+  **byte-for-byte** (including `www` vs apex domain)
 
 ## Main APIs
 
@@ -265,13 +273,20 @@ Important callback note:
   - `POST /v1/story-templates/{id}/view`
   - `POST /v1/story-templates/{id}/bookmark`
 
+## Secrets and environment files
+
+- **Never commit** real API keys, OAuth secrets, SMTP passwords, or JWT secrets.
+- Gitignored: `.env`, `.env.local`, `backend/symmetry/.env`, and similar (see
+  [`.gitignore`](.gitignore)).
+- Safe to commit: `*.env.example` templates with placeholders only.
+
 ## Key documents
 
-- [Agent / AI onboarding](/D:/AI_PRG/docs/AGENT_CONTEXT.md)
-- [Feature catalog](/D:/AI_PRG/docs/features/CATALOG.md)
-- [Features workflow](/D:/AI_PRG/docs/features/README.md)
-- [Backend feature packet](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/README.md)
-- [Web deploy notes](/D:/AI_PRG/docs/DEPLOY_WEB.md)
+- [Agent / AI onboarding](docs/AGENT_CONTEXT.md)
+- [Feature catalog](docs/features/CATALOG.md)
+- [Features workflow](docs/features/README.md)
+- [Backend feature packet](docs/features/symmetry-hybrid-backend/README.md)
+- [Web deploy notes](docs/DEPLOY_WEB.md)
 
 ## Current follow-up work
 

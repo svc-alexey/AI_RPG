@@ -153,7 +153,10 @@ Yandex OAuth note:
 
 - the browser returns to the Flutter route `/auth/yandex/callback`
 - Flutter then exchanges the `code` through the backend endpoint
-  `/v1/auth/yandex/callback`
+  `/v1/auth/yandex/callback` (optionally with query `redirect_uri=...` matching
+  `SYMMETRY_YANDEX_REDIRECT_URI`)
+- the backend calls Yandex `POST /token` with the same `redirect_uri` as in the
+  authorize step
 - do not configure the Yandex callback to `/v1/auth/yandex/callback` directly
 
 ## Full deployment sequence for the AI agent
