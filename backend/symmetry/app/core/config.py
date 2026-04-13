@@ -56,7 +56,10 @@ class Settings(BaseSettings):
 
     yandex_client_id: str = ""
     yandex_client_secret: str = ""
-    yandex_redirect_uri: str = "http://127.0.0.1:3010/auth/yandex/callback"
+    yandex_redirect_uri: str = "http://127.0.0.1:8080/v1/auth/yandex/callback"
+    web_public_origin: str = "http://127.0.0.1:3010"
+    yandex_oauth_state_ttl_seconds: int = 300
+    yandex_oauth_handoff_ttl_seconds: int = 300
     yandex_authorize_url: str = "https://oauth.yandex.ru/authorize"
     yandex_token_url: str = "https://oauth.yandex.ru/token"
     yandex_userinfo_url: str = "https://login.yandex.ru/info"

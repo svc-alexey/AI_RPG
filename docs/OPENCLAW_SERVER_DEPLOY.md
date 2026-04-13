@@ -112,7 +112,8 @@ SYMMETRY_WEB_LATEST_VERSION=1.0.0+1
 SYMMETRY_WEB_MINIMUM_SUPPORTED_VERSION=1.0.0+1
 SYMMETRY_WEB_ASSET_VERSION=web-20260407T212959Z
 
-SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/auth/yandex/callback
+SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/v1/auth/yandex/callback
+SYMMETRY_WEB_PUBLIC_ORIGIN=https://your-domain.example
 ```
 
 Feedback email SMTP credentials:
@@ -147,17 +148,15 @@ Recommended:
 - point `SYMMETRY_SERVER_LLM_BASE_URL` to your `VPS relay`, not directly to the
   public model provider
 - keep the relay reachable by fixed IP or VPN address when possible
-- register the exact same `/auth/yandex/callback` URL in the Yandex OAuth app
+- register the exact same `/v1/auth/yandex/callback` URL in the Yandex OAuth app
 
 Yandex OAuth note:
 
-- the browser returns to the Flutter route `/auth/yandex/callback`
-- Flutter then exchanges the `code` through the backend endpoint
-  `/v1/auth/yandex/callback` (optionally with query `redirect_uri=...` matching
-  `SYMMETRY_YANDEX_REDIRECT_URI`)
-- the backend calls Yandex `POST /token` with the same `redirect_uri` as in the
-  authorize step
-- do not configure the Yandex callback to `/v1/auth/yandex/callback` directly
+- Yandex returns to the backend callback `/v1/auth/yandex/callback`
+- the backend exchanges the `code`, creates a one-time handoff, and redirects
+  the browser to the Flutter route `/auth/yandex/callback?handoff=...`
+- Flutter completes the flow through `POST /v1/auth/yandex/complete`
+- do not configure the Yandex callback to the frontend `/auth/yandex/callback`
 
 ## Full deployment sequence for the AI agent
 

@@ -93,36 +93,16 @@ class SymmetryApiClient {
     return SymmetryAuthResponse.fromJson(response);
   }
 
-  Uri buildYandexStartUri({final String? redirectUri}) {
-    final Map<String, String> queryParameters = <String, String>{
-      if (redirectUri != null && redirectUri.trim().isNotEmpty)
-        'redirect_uri': redirectUri.trim(),
-    };
-    return Uri.parse(_join('/auth/yandex/start')).replace(
-      queryParameters: queryParameters.isEmpty ? null : queryParameters,
-    );
-  }
+  Uri buildYandexStartUri() => Uri.parse(_join('/auth/yandex/start'));
 
-  Future<SymmetryAuthResponse> loginWithYandexCode({
-    required final String code,
-    final String? redirectUri,
+  Future<SymmetryAuthResponse> completeYandexHandoff({
+    required final String handoffId,
   }) async {
-    final Map<String, String> queryParameters = <String, String>{
-      'code': code,
-      if (redirectUri != null && redirectUri.trim().isNotEmpty)
-        'redirect_uri': redirectUri.trim(),
-    };
-    final String pathWithQuery = Uri(
-      path: '/auth/yandex/callback',
-      queryParameters: queryParameters,
-    ).toString();
-    final Object? decoded = await _get(pathWithQuery);
-    if (decoded is! Map<Object?, Object?>) {
-      throw const SymmetryApiException(message: 'symmetry_invalid_response');
-    }
-    return SymmetryAuthResponse.fromJson(
-      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    final Map<String, Object?> response = await _post(
+      '/auth/yandex/complete',
+      body: <String, Object?>{'handoff_id': handoffId},
     );
+    return SymmetryAuthResponse.fromJson(response);
   }
 
   Future<void> logout({required final String refreshToken}) async {

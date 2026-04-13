@@ -2,7 +2,9 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
+from jose import ExpiredSignatureError, JWTError, jwt
 from fastapi import HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +16,7 @@ from app.core.security import (
     hash_refresh_token,
     verify_password,
 )
-from app.db.models import AuthIdentity, AuthSession, User, UserProfile
+from app.db.models import AuthHandoff, AuthIdentity, AuthSession, User, UserProfile
 from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, TokenPair, UserResponse
 from app.services.ids import new_id
 
@@ -151,53 +153,113 @@ class AuthService:
             auth_session.revoked_at = datetime.now(UTC)
             await session.commit()
 
-    def build_yandex_authorize_url(self, *, redirect_uri: str | None = None) -> str:
-        if not self._settings.yandex_client_id:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="yandex_oauth_not_configured",
-            )
-        resolved_redirect_uri = (redirect_uri or "").strip() or self._settings.yandex_redirect_uri
-        query = urlencode(
-            {
-                "response_type": "code",
-                "client_id": self._settings.yandex_client_id,
-                "redirect_uri": resolved_redirect_uri,
-            }
-        )
-        return f"{self._settings.yandex_authorize_url}?{query}"
-
-    def _resolve_yandex_oauth_redirect_uri(self, redirect_uri: str | None) -> str:
-        configured = (self._settings.yandex_redirect_uri or "").strip()
-        if not configured:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="yandex_oauth_not_configured",
-            )
-        raw = (redirect_uri or "").strip()
-        if not raw:
-            return configured
-        if raw != configured:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="invalid_yandex_redirect_uri",
-            )
-        return raw
-
-    async def login_with_yandex(
-        self,
-        session: AsyncSession,
-        *,
-        code: str,
-        request: Request,
-        redirect_uri: str | None = None,
-    ) -> AuthResponse:
+    def build_yandex_authorize_url(self) -> str:
+        backend_redirect_uri = self._require_yandex_backend_redirect_uri()
+        web_origin = self._require_web_public_origin()
         if not self._settings.yandex_client_id or not self._settings.yandex_client_secret:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="yandex_oauth_not_configured",
             )
-        resolved_redirect_uri = self._resolve_yandex_oauth_redirect_uri(redirect_uri)
+        state = self._create_yandex_oauth_state(web_origin=web_origin)
+        query = urlencode(
+            {
+                "response_type": "code",
+                "client_id": self._settings.yandex_client_id,
+                "redirect_uri": backend_redirect_uri,
+                "state": state,
+            }
+        )
+        return f"{self._settings.yandex_authorize_url}?{query}"
+
+    async def handle_yandex_callback(
+        self,
+        session: AsyncSession,
+        *,
+        code: str,
+        state: str,
+    ) -> RedirectResponse:
+        state_payload = self._decode_yandex_oauth_state(state)
+        web_origin = str(state_payload["web_origin"])
+        if not code:
+            return self._build_yandex_completion_redirect(
+                web_origin=web_origin,
+                error_code="missing_code",
+            )
+
+        try:
+            yandex_profile = await self._exchange_yandex_code_for_profile(code=code)
+            user = await self._resolve_or_create_yandex_user(session, yandex_profile)
+            handoff_id = self._create_auth_handoff(session, user_id=user.id)
+            await session.commit()
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else "provider_auth_failed"
+            return self._build_yandex_completion_redirect(
+                web_origin=web_origin,
+                error_code=detail,
+            )
+        except httpx.HTTPError:
+            return self._build_yandex_completion_redirect(
+                web_origin=web_origin,
+                error_code="provider_auth_failed",
+            )
+
+        return self._build_yandex_completion_redirect(
+            web_origin=web_origin,
+            handoff_id=handoff_id,
+        )
+
+    async def complete_yandex_handoff(
+        self,
+        session: AsyncSession,
+        *,
+        handoff_id: str,
+        request: Request,
+    ) -> AuthResponse:
+        handoff = await session.get(AuthHandoff, handoff_id)
+        if handoff is None or handoff.provider != "yandex_oauth":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid_yandex_handoff",
+            )
+        now = datetime.now(UTC)
+        if handoff.consumed_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid_yandex_handoff",
+            )
+        if handoff.expires_at <= now:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="expired_yandex_handoff",
+            )
+        user = await session.get(User, handoff.user_id)
+        if user is None or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_not_found",
+            )
+        handoff.consumed_at = now
+        tokens = self._issue_tokens(request, user.id)
+        session.add(tokens["session"])
+        await session.commit()
+        profile = await session.get(UserProfile, user.id)
+        return AuthResponse(
+            user=UserResponse(
+                id=user.id,
+                email=user.email,
+                display_name=profile.display_name if profile is not None else "",
+            ),
+            tokens=tokens["response"],
+        )
+
+    async def _exchange_yandex_code_for_profile(self, *, code: str) -> dict:
+        if not self._settings.yandex_client_id or not self._settings.yandex_client_secret:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="yandex_oauth_not_configured",
+            )
+        resolved_redirect_uri = self._require_yandex_backend_redirect_uri()
         async with httpx.AsyncClient(timeout=30) as client:
             token_response = await client.post(
                 self._settings.yandex_token_url,
@@ -217,7 +279,13 @@ class AuthService:
                 params={"format": "json"},
             )
             profile_response.raise_for_status()
-        yandex_profile = profile_response.json()
+        return profile_response.json()
+
+    async def _resolve_or_create_yandex_user(
+        self,
+        session: AsyncSession,
+        yandex_profile: dict,
+    ) -> User:
         provider_user_id = str(yandex_profile.get("id", "")).strip()
         email = str(yandex_profile.get("default_email", "")).strip().lower()
         if not provider_user_id or not email:
@@ -231,6 +299,11 @@ class AuthService:
         )
         if identity is not None:
             user = await session.get(User, identity.user_id)
+            if user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="user_not_found",
+                )
         else:
             user = await session.scalar(select(User).where(User.email == email))
             if user is None:
@@ -255,18 +328,105 @@ class AuthService:
                     provider_email=email,
                 )
             )
-        tokens = self._issue_tokens(request, user.id)
-        session.add(tokens["session"])
-        await session.commit()
-        profile = await session.get(UserProfile, user.id)
-        return AuthResponse(
-            user=UserResponse(
-                id=user.id,
-                email=user.email,
-                display_name=profile.display_name if profile is not None else "",
-            ),
-            tokens=tokens["response"],
+        return user
+
+    def _require_yandex_backend_redirect_uri(self) -> str:
+        configured = (self._settings.yandex_redirect_uri or "").strip()
+        if not configured:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="yandex_oauth_not_configured",
+            )
+        return configured
+
+    def _require_web_public_origin(self) -> str:
+        configured = (self._settings.web_public_origin or "").strip().rstrip("/")
+        if not configured:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="web_public_origin_not_configured",
+            )
+        return configured
+
+    def _create_yandex_oauth_state(self, *, web_origin: str) -> str:
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=self._settings.yandex_oauth_state_ttl_seconds
         )
+        return jwt.encode(
+            {
+                "purpose": "yandex_oauth_state",
+                "web_origin": web_origin,
+                "exp": expires_at,
+            },
+            self._settings.jwt_secret,
+            algorithm=self._settings.jwt_algorithm,
+        )
+
+    def _decode_yandex_oauth_state(self, state: str) -> dict:
+        try:
+            payload = jwt.decode(
+                state,
+                self._settings.jwt_secret,
+                algorithms=[self._settings.jwt_algorithm],
+            )
+        except ExpiredSignatureError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="expired_yandex_state",
+            ) from exc
+        except JWTError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid_yandex_state",
+            ) from exc
+
+        if payload.get("purpose") != "yandex_oauth_state":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid_yandex_state",
+            )
+        web_origin = str(payload.get("web_origin", "")).strip().rstrip("/")
+        if not web_origin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid_yandex_state",
+            )
+        return {"web_origin": web_origin}
+
+    def _create_auth_handoff(self, session: AsyncSession, *, user_id: str) -> str:
+        handoff_id = new_id()
+        session.add(
+            AuthHandoff(
+                id=handoff_id,
+                user_id=user_id,
+                provider="yandex_oauth",
+                expires_at=datetime.now(UTC)
+                + timedelta(seconds=self._settings.yandex_oauth_handoff_ttl_seconds),
+            )
+        )
+        return handoff_id
+
+    def _build_yandex_completion_redirect(
+        self,
+        *,
+        web_origin: str,
+        handoff_id: str | None = None,
+        error_code: str | None = None,
+    ) -> RedirectResponse:
+        base = f"{web_origin}/"
+        query = urlencode(
+            {
+                key: value
+                for key, value in {
+                    "handoff": handoff_id,
+                    "oauth_error": error_code,
+                    "autostart": "1",
+                }.items()
+                if value
+            }
+        )
+        target = f"{base}?{query}" if query else base
+        return RedirectResponse(target, status_code=302)
 
     def _issue_tokens(self, request: Request, user_id: str) -> dict:
         access_token, access_expires_at = create_access_token(user_id)

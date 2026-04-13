@@ -4,3 +4,6 @@ import 'package:ai_prg/src/app/browser_location_stub.dart'
 
 void replaceBrowserUrl(final String url) =>
     browser_location.replaceBrowserUrl(url);
+
+void navigateBrowserUrl(final String url) =>
+    browser_location.navigateBrowserUrl(url);

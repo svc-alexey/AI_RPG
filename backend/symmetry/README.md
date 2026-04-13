@@ -126,25 +126,28 @@ The backend exposes:
 
 The intended web flow is:
 
-1. the Flutter web client opens `/v1/auth/yandex/start?redirect_uri=...`
+1. the Flutter web client opens `/v1/auth/yandex/start`
 2. the backend redirects to Yandex
-3. Yandex returns the browser to the web app route
-   `/auth/yandex/callback?code=...`
-4. Flutter calls `/v1/auth/yandex/callback?code=...&redirect_uri=...`
-   (optional `redirect_uri`; when sent it must match `SYMMETRY_YANDEX_REDIRECT_URI`)
-5. the backend exchanges the code at Yandex `POST /token` including the same
-   `redirect_uri` as in step 1
+3. Yandex returns the browser to the backend callback
+   `/v1/auth/yandex/callback?code=...&state=...`
+4. the backend exchanges the code at Yandex `POST /token`, creates a one-time
+   auth handoff, and redirects the browser to the Flutter route
+   `/auth/yandex/callback?handoff=...`
+5. Flutter calls `POST /v1/auth/yandex/complete`
 6. Flutter stores the returned auth session locally
 
-Default env configuration should point at the web callback route, not the
-backend callback route. Examples:
+Default env configuration should point at the backend callback route plus the
+public web origin. Examples:
 
 - local preview:
-  `SYMMETRY_YANDEX_REDIRECT_URI=http://127.0.0.1:3010/auth/yandex/callback`
+  `SYMMETRY_YANDEX_REDIRECT_URI=http://127.0.0.1:8080/v1/auth/yandex/callback`
+  and `SYMMETRY_WEB_PUBLIC_ORIGIN=http://127.0.0.1:3010`
 - production:
-  `SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/auth/yandex/callback`
+  `SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/v1/auth/yandex/callback`
+  and `SYMMETRY_WEB_PUBLIC_ORIGIN=https://your-domain.example`
 
-The same callback URL must also be registered in the Yandex OAuth application.
+The same backend callback URL must also be registered in the Yandex OAuth
+application.
 
 ## Important credential rule
 
@@ -190,6 +193,7 @@ Useful env vars:
 - `GET /v1/auth/me`
 - `GET /v1/auth/yandex/start`
 - `GET /v1/auth/yandex/callback`
+- `POST /v1/auth/yandex/complete`
 - `POST /v1/campaigns`
 - `GET /v1/campaigns`
 - `GET /v1/campaigns/{id}`

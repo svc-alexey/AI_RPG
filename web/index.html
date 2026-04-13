@@ -1816,12 +1816,19 @@
       let text = copy[currentLanguage];
       let currentView = resolveView(urlParams.get('view'));
       const isYandexCallbackPath = window.location.pathname === '/auth/yandex/callback';
+      const hasYandexLegacyCode = Boolean(urlParams.get('code'));
+      const hasYandexLegacyState = Boolean(urlParams.get('state'));
+      const hasYandexHandoff = Boolean(urlParams.get('handoff'));
+      const hasYandexError = Boolean(urlParams.get('oauth_error'));
+      const yandexHandoffId = urlParams.get('handoff') || '';
+      const yandexOauthError = urlParams.get('oauth_error') || '';
       if (isYandexCallbackPath) {
         document.body.classList.add('is-oauth-callback');
       }
       const shouldAutoLaunch =
         currentView === 'landing' &&
-        (urlParams.get('autostart') === '1' || isYandexCallbackPath);
+        (urlParams.get('autostart') === '1' || isYandexCallbackPath) &&
+        !hasYandexHandoff;
 
       let launchInFlight = false;
       let launchCompleted = false;
@@ -1838,6 +1845,7 @@
         app_version: '',
         asset_version: ''
       };
+      let localVersionInfoPromise = null;
       let updateBannerLocked = false;
 
       function parseLanguage(value) {
@@ -1860,6 +1868,82 @@
 
       function resolveView(value) {
         return value === 'feedback' ? 'feedback' : 'landing';
+      }
+
+      function redirectLegacyYandexCallbackToBackend() {
+        const callbackUrl = new URL('/v1/auth/yandex/callback', window.location.origin);
+        callbackUrl.searchParams.set('code', urlParams.get('code'));
+        callbackUrl.searchParams.set('state', urlParams.get('state'));
+        window.location.replace(callbackUrl.toString());
+      }
+
+      function encodeSharedPreferencesString(value) {
+        return JSON.stringify(value);
+      }
+
+      function persistSymmetrySession(sessionPayload) {
+        const sessionValue = encodeSharedPreferencesString(
+          JSON.stringify(sessionPayload)
+        );
+        const baseUrlValue = encodeSharedPreferencesString('/v1');
+
+        // Flutter SharedPreferences on web stores keys with the "flutter." prefix.
+        window.localStorage.setItem('flutter.settings.symmetry_session', sessionValue);
+        window.localStorage.setItem('flutter.settings.symmetry_base_url', baseUrlValue);
+
+        // Keep unprefixed compatibility keys during rollout; Flutter ignores them.
+        window.localStorage.setItem('settings.symmetry_session', sessionValue);
+        window.localStorage.setItem('settings.symmetry_base_url', baseUrlValue);
+      }
+
+      function buildAutostartUrl(options) {
+        const nextUrl = new URL('/', window.location.origin);
+        nextUrl.searchParams.set('autostart', '1');
+        if (currentLanguage) {
+          nextUrl.searchParams.set('lang', currentLanguage);
+        }
+        if (options && options.oauthError) {
+          nextUrl.searchParams.set('oauth_error', options.oauthError);
+        }
+        return nextUrl.toString();
+      }
+
+      async function completeYandexHandoffFromLanding() {
+        showLoadingShell();
+        setInteractiveState(true);
+        setStage(0);
+        setLoadingNote('Завершаем вход...', false);
+
+        try {
+          const response = await fetch('/v1/auth/yandex/complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              handoff_id: yandexHandoffId
+            })
+          });
+          let payload = null;
+          try {
+            payload = await response.json();
+          } catch (_) {}
+
+          if (!response.ok || !payload || !payload.user || !payload.tokens) {
+            const detailCode = payload && payload.detail ? String(payload.detail) : 'provider_auth_failed';
+            window.location.replace(buildAutostartUrl({ oauthError: detailCode }));
+            return;
+          }
+
+          persistSymmetrySession({
+            user: payload.user,
+            tokens: payload.tokens,
+            base_url: '/v1'
+          });
+          window.location.replace(buildAutostartUrl());
+        } catch (_) {
+          window.location.replace(buildAutostartUrl({ oauthError: 'provider_auth_failed' }));
+        }
       }
 
       function syncLanguageUrl(mode) {
@@ -2273,6 +2357,45 @@
         }
       }
 
+      function ensureLocalVersionInfoLoaded(options) {
+        const forceRefresh = Boolean(options && options.forceRefresh);
+        if (!forceRefresh && localVersionInfoPromise) {
+          return localVersionInfoPromise;
+        }
+
+        localVersionInfoPromise = loadLocalVersionInfo()
+          .then((info) => {
+            localVersionInfo = info;
+            return info;
+          })
+          .catch(() => {
+            localVersionInfo = {
+              app_version: '',
+              asset_version: ''
+            };
+            return localVersionInfo;
+          });
+
+        return localVersionInfoPromise;
+      }
+
+      function applyFlutterEntrypointVersion(assetVersion) {
+        if (!window._flutter || !window._flutter.buildConfig || !Array.isArray(window._flutter.buildConfig.builds)) {
+          return;
+        }
+
+        window._flutter.buildConfig.builds.forEach((build) => {
+          if (!build || typeof build.mainJsPath !== 'string' || !build.mainJsPath.trim()) {
+            return;
+          }
+
+          const cleanPath = build.mainJsPath.split('?')[0];
+          build.mainJsPath = assetVersion
+            ? `${cleanPath}?v=${encodeURIComponent(assetVersion)}`
+            : cleanPath;
+        });
+      }
+
       async function fetchRemoteVersionInfo() {
         try {
           const params = new URLSearchParams();
@@ -2335,16 +2458,36 @@
         }
       }
 
+      async function clearBrowserUpdateState() {
+        if ('caches' in window) {
+          try {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map((cacheKey) => caches.delete(cacheKey)));
+          } catch (_) {}
+        }
+
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+          } catch (_) {}
+        }
+      }
+
       async function reloadForUpdate() {
         setInteractiveState(true);
         await requestServiceWorkerRefresh();
+        await clearBrowserUpdateState();
+        const latestLocalVersionInfo = await ensureLocalVersionInfoLoaded({ forceRefresh: true });
+        applyFlutterEntrypointVersion(latestLocalVersionInfo.asset_version);
         const url = new URL(window.location.href);
         url.searchParams.set('v', Date.now().toString());
         window.location.replace(url.toString());
       }
 
       async function runStartupVersionCheck() {
-        localVersionInfo = await loadLocalVersionInfo();
+        localVersionInfo = await ensureLocalVersionInfoLoaded();
+        applyFlutterEntrypointVersion(localVersionInfo.asset_version);
         const remoteVersionInfo = await fetchRemoteVersionInfo();
         const webInfo = remoteVersionInfo && remoteVersionInfo.platforms
           ? remoteVersionInfo.platforms.web
@@ -2487,6 +2630,8 @@
         enterLaunchState();
 
         try {
+          const resolvedLocalVersionInfo = await ensureLocalVersionInfoLoaded();
+          applyFlutterEntrypointVersion(resolvedLocalVersionInfo.asset_version);
           const start = window.__codexLaunchFlutterApp || (window._flutter && window._flutter.loader
             ? function () {
                 return window._flutter.loader.load({
@@ -2724,6 +2869,14 @@
 
       persistLanguage();
       syncLanguageUrl();
+      if (isYandexCallbackPath && hasYandexLegacyCode && hasYandexLegacyState && !hasYandexHandoff && !hasYandexError) {
+        redirectLegacyYandexCallbackToBackend();
+        return;
+      }
+      if (hasYandexHandoff) {
+        completeYandexHandoffFromLanding();
+        return;
+      }
       renderLanding();
       setView(currentView, { updateUrl: false, skipScroll: true });
       window.scrollTo(0, 0);

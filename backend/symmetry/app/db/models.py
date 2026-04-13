@@ -34,6 +34,7 @@ class User(Base):
     profile: Mapped["UserProfile"] = relationship(back_populates="user", uselist=False)
     identities: Mapped[list["AuthIdentity"]] = relationship(back_populates="user")
     sessions: Mapped[list["AuthSession"]] = relationship(back_populates="user")
+    handoffs: Mapped[list["AuthHandoff"]] = relationship(back_populates="user")
 
 
 class UserProfile(Base):
@@ -78,6 +79,19 @@ class AuthSession(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="sessions")
+
+
+class AuthHandoff(Base):
+    __tablename__ = "auth_handoffs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    provider: Mapped[str] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="handoffs")
 
 
 class Campaign(Base):

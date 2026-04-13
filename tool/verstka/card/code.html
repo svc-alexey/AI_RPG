@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#d4af37",
+                    "on-primary": "#241a00",
+                    "surface": "#151311",
+                    "outline": "#99907c",
+                    "surface-container": "#221f1d",
+                    "background": "#151311",
+                    "on-surface": "#e8e1dd",
+                    "on-surface-variant": "#d0c5af"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Newsreader", "serif"],
+                    "body": ["Manrope", "sans-serif"],
+                    "label": ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .text-glow {
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+        .card-blur {
+            background: rgba(21, 19, 17, 0.7);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        .gradient-btn {
+            background: linear-gradient(135deg, #d4af37 0%, #b48a25 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen relative flex items-center justify-center overflow-x-hidden">
+<!-- Background Layer -->
+<div class="fixed inset-0 z-0">
+<img class="w-full h-full object-cover scale-105" data-alt="atmospheric cinematic view of an ancient mystical forest at twilight with thick fog and faint glowing magical runes on old stone ruins" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBkN6xn7g0g-pVjErGugCcsZtcJ3H5TBN09war95JRehpwaw7Eb6qhqAyFFmeEtM3MIC22yVps2T8zwLSW_Bxha3IDSSfjVCDpH7vKcq8r5l4iEsWGEMkuVTY-L-YFcIfoL5duxkwcQ1IXKBckyaqjVs-7-7fyqIiqLHGFP-pJCtx-COH-5i5oNySkeZkM5Owg_4YUX5cCBI2XAMZP-PzTlzRdb44svLr73dvB7WQqBeJQfR6j_9xylJ19mtuWYNavWhpMHwri"/>
+<div class="absolute inset-0 bg-black/40"></div>
+</div>
+<!-- Main Content -->
+<main class="relative z-10 w-full max-w-5xl px-6 py-12">
+<!-- Centered Card -->
+<div class="card-blur rounded-2xl p-8 md:p-14 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
+<!-- Header Section -->
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label uppercase tracking-[0.25em] text-xs text-primary font-bold">НАРРАТИВНАЯ RPG</span>
+</div>
+<h1 class="font-headline text-4xl md:text-6xl text-on-surface leading-tight mb-4 italic">
+            Забытое Королевство: Эхо Древних
+        </h1>
+<p class="font-body text-outline text-lg mb-8">Автор: <span class="text-on-surface/90">AI Master</span></p>
+<!-- Tags -->
+<div class="flex flex-wrap gap-3 mb-10">
+<span class="px-5 py-2 bg-white/5 border border-primary/20 rounded-full text-xs font-label uppercase tracking-widest text-on-surface-variant">Тёмное Фэнтези</span>
+<span class="px-5 py-2 bg-white/5 border border-primary/20 rounded-full text-xs font-label uppercase tracking-widest text-on-surface-variant">Приключение</span>
+<span class="px-5 py-2 bg-white/5 border border-primary/20 rounded-full text-xs font-label uppercase tracking-widest text-on-surface-variant">Загадки</span>
+<span class="px-5 py-2 bg-white/5 border border-primary/20 rounded-full text-xs font-label uppercase tracking-widest text-on-surface-variant">Древние Руины</span>
+</div>
+<!-- Narrative Body -->
+<div class="max-w-4xl mb-12">
+<p class="font-body text-lg text-on-surface/80 leading-relaxed">
+                В этом мире, забытом богами, древние силы пробуждаются от векового сна. Вы — последний из рода Хранителей, призванный восстановить равновесие. Исследуйте руины Забытого Королевства, раскройте тайны Эха Древних и решите судьбу этого мира, где каждое ваше решение имеет последствия. ИИ ведёт сцену, создавая уникальный опыт для каждого игрока.
+            </p>
+</div>
+<!-- Statistics -->
+<div class="flex flex-wrap items-center gap-12 mb-12">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label font-bold text-xl">12.5K</span>
+</div>
+<p class="text-[10px] uppercase tracking-widest text-outline ml-7">Лайков</p>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-outline text-xl">thumb_down</span>
+<span class="font-label font-bold text-xl">1.2K</span>
+</div>
+<p class="text-[10px] uppercase tracking-widest text-outline ml-7">Дизлайков</p>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span class="font-label font-bold text-xl">45K</span>
+</div>
+<p class="text-[10px] uppercase tracking-widest text-outline ml-7">Прохождений</p>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+<button class="gradient-btn text-on-primary font-label font-extrabold uppercase tracking-widest px-10 py-5 rounded-lg flex items-center justify-center gap-3 hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95">
+                Начать кампанию
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<button class="px-8 py-5 border border-primary/30 text-on-surface font-label font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-3 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined">favorite</span>
+                Нравится
+            </button>
+<button class="px-8 py-5 border border-primary/30 text-on-surface font-label font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-3 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined">share</span>
+                Поделиться
+            </button>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="fixed bottom-8 w-full flex justify-center z-10 opacity-40 hover:opacity-100 transition-opacity">
+<p class="font-label text-[10px] tracking-[0.3em] uppercase text-outline">
+        © 2024 The Ethereal Archivist • All narratives secured
+    </p>
+</footer>
+</body></html>

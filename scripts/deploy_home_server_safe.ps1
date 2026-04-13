@@ -1,37 +1,37 @@
-# Safe deploy to home server: runs scripts/deploy_home_server_safe.sh over SSH.
-# Does NOT touch remote backend/symmetry/.env (see bash script).
-#
-# Prerequisites: OpenSSH or Git's ssh.exe; one-time password OR SSH key for the server user.
+# Safe deploy to home server from Windows.
+# - Builds local Flutter web release.
+# - Uploads the web bundle to the server.
+# - Resets remote tracked code to origin/master.
+# - Preserves remote backend/symmetry/.env and syncs release metadata in it.
+# - Rebuilds and restarts docker compose on the server.
 #
 # Usage:
 #   .\scripts\deploy_home_server_safe.ps1
-#   .\scripts\deploy_home_server_safe.ps1 -HostName 192.168.1.68 -User alexeyko
+#   $env:AI_PRG_HOME_SERVER_PASSWORD='...'; .\scripts\deploy_home_server_safe.ps1
 #
 param(
     [string] $HostName = "192.168.1.68",
-    [string] $User = "alexeyko"
+    [string] $User = "alexeyko",
+    [string] $AppRoot = "/home/alexeyko/ai-rpg/app",
+    [string] $SiteUrl = "https://beyondtheverge.online"
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$bashScript = Join-Path $repoRoot "scripts\deploy_home_server_safe.sh"
-if (-not (Test-Path $bashScript)) {
-    Write-Error "Missing $bashScript"
+$pythonScript = Join-Path $repoRoot "scripts\deploy_home_server_safe.py"
+if (-not (Test-Path $pythonScript)) {
+    Write-Error "Missing $pythonScript"
     exit 1
 }
 
-$ssh = "ssh.exe"
-if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
-    $gitSsh = "C:\Program Files\Git\usr\bin\ssh.exe"
-    if (Test-Path $gitSsh) {
-        $ssh = $gitSsh
-    } else {
-        Write-Error "ssh not found. Install OpenSSH Client or Git for Windows."
-        exit 1
-    }
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    Write-Error "python not found."
+    exit 1
 }
 
-Write-Host "Connecting ${User}@${HostName} (you may be prompted for password)..." -ForegroundColor Cyan
-Write-Host "Remote script preserves backend/symmetry/.env — never copies from .example over it." -ForegroundColor DarkGray
+Write-Host "Building local web release for ${SiteUrl} ..." -ForegroundColor Cyan
+$env:AI_PRG_SITE_URL = $SiteUrl
+powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot "tool\build_web_release.ps1")
 
-Get-Content -LiteralPath $bashScript -Raw | & $ssh -o ConnectTimeout=20 "${User}@${HostName}" "bash -s"
+Write-Host "Deploying to ${User}@${HostName} ..." -ForegroundColor Cyan
+python $pythonScript --host-name $HostName --user $User --app-root $AppRoot --site-url $SiteUrl

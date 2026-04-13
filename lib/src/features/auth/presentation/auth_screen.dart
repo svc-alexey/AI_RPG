@@ -3,7 +3,6 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
-import 'package:ai_prg/src/features/auth/yandex_oauth_redirect_uri.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,8 +42,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       symmetrySessionProvider,
     );
     final bool isSignedInNonGuest = sessionState.maybeWhen(
-      data: (final session) =>
-          session != null && !session.isGuest,
+      data: (final session) => session != null && !session.isGuest,
       orElse: () => false,
     );
     final bool isBusy = _isSubmitting || _isYandexSubmitting;
@@ -85,7 +83,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                       const SizedBox(height: 12),
                       FilledButton(
-                        onPressed: isBusy ? null : () => widget.onAuthenticated(),
+                        onPressed: isBusy
+                            ? null
+                            : () => widget.onAuthenticated(),
                         child: Text(l10n.homeSecondaryCta),
                       ),
                     ],
@@ -192,9 +192,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     try {
       final Uri startUri = await ref
           .read(symmetryAuthRepositoryProvider)
-          .buildYandexStartUri(
-            redirectUri: buildYandexOAuthRedirectUriForCurrentOrigin(),
-          );
+          .buildYandexStartUri();
       final bool launched = await launchUrl(
         startUri,
         webOnlyWindowName: '_self',

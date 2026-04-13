@@ -18,6 +18,10 @@ class RefreshRequest(BaseModel):
     refresh_token: str = Field(min_length=12)
 
 
+class YandexCompleteRequest(BaseModel):
+    handoff_id: str = Field(min_length=8, max_length=64)
+
+
 class TokenPair(BaseModel):
     access_token: str
     access_token_expires_at: datetime

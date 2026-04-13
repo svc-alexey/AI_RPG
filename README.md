@@ -207,16 +207,15 @@ Related env vars:
 
 The current web OAuth flow is:
 
-1. Flutter opens `GET /v1/auth/yandex/start?redirect_uri=...`
-2. the backend redirects the browser to Yandex OAuth
-3. Yandex returns the browser to the Flutter route
-   `/auth/yandex/callback?code=...`
-4. Flutter exchanges the code through
-   `GET /v1/auth/yandex/callback?code=...&redirect_uri=...`
-   (optional `redirect_uri` query param; if present it must **exactly** match
-   `SYMMETRY_YANDEX_REDIRECT_URI`)
-5. the backend calls Yandex `POST /token` with the same `redirect_uri` as in
-   step 1 (required by Yandex for the authorization code grant)
+1. Flutter opens `GET /v1/auth/yandex/start`
+2. the backend redirects the browser to Yandex OAuth with a signed short-lived
+   `state`
+3. Yandex returns the browser to the backend callback
+   `/v1/auth/yandex/callback?code=...&state=...`
+4. the backend exchanges the code with Yandex, creates a one-time auth handoff,
+   and redirects the browser to the Flutter route
+   `/auth/yandex/callback?handoff=...`
+5. Flutter completes sign-in through `POST /v1/auth/yandex/complete`
 6. Flutter stores the returned session locally (web: SharedPreferences)
 
 Required backend env values:
@@ -224,16 +223,20 @@ Required backend env values:
 - `SYMMETRY_YANDEX_CLIENT_ID`
 - `SYMMETRY_YANDEX_CLIENT_SECRET`
 - `SYMMETRY_YANDEX_REDIRECT_URI`
+- `SYMMETRY_WEB_PUBLIC_ORIGIN`
 
 Important callback note:
 
-- for local web preview, use `http://127.0.0.1:3010/auth/yandex/callback`
-- for production, use `https://your-domain.example/auth/yandex/callback`
-- the same callback URL must be allowed in the Yandex OAuth application
+- for local backend preview, use
+  `http://127.0.0.1:8080/v1/auth/yandex/callback`
+- for local web return, use `http://127.0.0.1:3010`
+- for production, use
+  `SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/v1/auth/yandex/callback`
+  and `SYMMETRY_WEB_PUBLIC_ORIGIN=https://your-domain.example`
+- the backend callback URL must be allowed in the Yandex OAuth application
   settings
-- `SYMMETRY_YANDEX_REDIRECT_URI`, the value passed to `/yandex/start`, and the
-  Flutter-built redirect URI (scheme + host + port + path) must match
-  **byte-for-byte** (including `www` vs apex domain)
+- the backend callback URL in Yandex and `SYMMETRY_YANDEX_REDIRECT_URI` must
+  match **byte-for-byte**
 
 ## Main APIs
 
@@ -250,6 +253,7 @@ Important callback note:
   - `GET /v1/auth/me`
   - `GET /v1/auth/yandex/start`
   - `GET /v1/auth/yandex/callback`
+  - `POST /v1/auth/yandex/complete`
 - campaigns:
   - `POST /v1/campaigns`
   - `GET /v1/campaigns`

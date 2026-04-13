@@ -1637,19 +1637,60 @@ class AppLocalizations {
       AppLanguage.ru => 'Не получен код авторизации.',
       AppLanguage.en => 'Authorization code is missing.',
     },
+    'missing_yandex_state' => switch (language) {
+      AppLanguage.ru => 'Не получено состояние OAuth-сессии Яндекса.',
+      AppLanguage.en => 'Yandex OAuth state is missing.',
+    },
+    'invalid_yandex_state' => switch (language) {
+      AppLanguage.ru => 'Сессия входа через Яндекс устарела или повреждена.',
+      AppLanguage.en => 'The Yandex sign-in session is expired or invalid.',
+    },
+    'expired_yandex_state' => switch (language) {
+      AppLanguage.ru =>
+        'Сессия входа через Яндекс истекла. Начните вход заново.',
+      AppLanguage.en => 'The Yandex sign-in session has expired. Start again.',
+    },
     'invalid_yandex_profile' => switch (language) {
       AppLanguage.ru => 'Yandex вернул неполный профиль пользователя.',
       AppLanguage.en => 'Yandex returned an incomplete user profile.',
     },
+    'missing_yandex_handoff' => switch (language) {
+      AppLanguage.ru => 'Сервер не передал результат входа через Яндекс.',
+      AppLanguage.en => 'The server did not return a Yandex sign-in result.',
+    },
+    'invalid_yandex_handoff' => switch (language) {
+      AppLanguage.ru =>
+        'Ссылка завершения входа через Яндекс уже недействительна.',
+      AppLanguage.en =>
+        'This Yandex sign-in completion link is no longer valid.',
+    },
+    'expired_yandex_handoff' => switch (language) {
+      AppLanguage.ru =>
+        'Срок завершения входа через Яндекс истёк. Попробуйте снова.',
+      AppLanguage.en =>
+        'The Yandex sign-in completion has expired. Please try again.',
+    },
     'yandex_oauth_not_configured' => switch (language) {
       AppLanguage.ru => 'Вход через Yandex пока не настроен.',
       AppLanguage.en => 'Yandex sign-in is not configured yet.',
+    },
+    'web_public_origin_not_configured' => switch (language) {
+      AppLanguage.ru =>
+        'Сервер не настроен для возврата в веб-приложение. Проверьте SYMMETRY_WEB_PUBLIC_ORIGIN.',
+      AppLanguage.en =>
+        'The server cannot return users to the web app. Check SYMMETRY_WEB_PUBLIC_ORIGIN.',
     },
     'invalid_yandex_redirect_uri' => switch (language) {
       AppLanguage.ru =>
         'Адрес возврата OAuth не совпадает с настройками сервера. Проверьте SYMMETRY_YANDEX_REDIRECT_URI.',
       AppLanguage.en =>
         'OAuth redirect URI does not match server settings. Check SYMMETRY_YANDEX_REDIRECT_URI.',
+    },
+    'legacy_yandex_callback_flow' => switch (language) {
+      AppLanguage.ru =>
+        'В браузер вернулся устаревший OAuth callback. Обновите callback URL Яндекса на backend `/v1/auth/yandex/callback`.',
+      AppLanguage.en =>
+        'The browser returned to a legacy OAuth callback. Update the Yandex callback URL to backend `/v1/auth/yandex/callback`.',
     },
     _ => _statusFriendlyError(null),
   };

@@ -1,9 +1,10 @@
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/browser_location.dart';
+import 'package:ai_prg/src/core/config/symmetry_runtime_env.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
-import 'package:ai_prg/src/features/auth/yandex_oauth_redirect_uri.dart';
+import 'package:ai_prg/src/features/auth/yandex_oauth_callback_result.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/update/application/update_gate_controller.dart';
 import 'package:flutter/foundation.dart';
@@ -23,11 +24,12 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   bool _didShowCallbackError = false;
   bool _didShowWarmSessionWarning = false;
   Object? _warmSessionWarning;
+  bool _redirectingLegacyYandexCallback = false;
 
   @override
   void initState() {
     super.initState();
-    if (_isYandexCallback) {
+    if (_hasYandexCallbackPayload) {
       _handleYandexCallback();
     } else {
       _warmSession();
@@ -35,8 +37,18 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
     ref.read(updateGateControllerProvider.notifier).checkForUpdates();
   }
 
-  bool get _isYandexCallback =>
-      kIsWeb && Uri.base.path == '/auth/yandex/callback';
+  bool get _hasYandexCallbackPayload {
+    if (!kIsWeb) {
+      return false;
+    }
+    final YandexOAuthCallbackResult callbackResult =
+        YandexOAuthCallbackResult.fromUri(Uri.base);
+    return Uri.base.path == '/auth/yandex/callback' ||
+        callbackResult.hasHandoff ||
+        callbackResult.hasError ||
+        callbackResult.hasLegacyCode ||
+        callbackResult.hasLegacyState;
+  }
 
   Future<void> _warmSession() async {
     try {
@@ -106,17 +118,33 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   Future<void> _handleYandexCallback() async {
     setState(() => _handlingYandexCallback = true);
     try {
-      final String code = Uri.base.queryParameters['code']?.trim() ?? '';
-      if (code.isEmpty) {
-        throw const SymmetryApiException(
-          message: 'missing_code',
-          detailCode: 'missing_code',
+      final YandexOAuthCallbackResult callbackResult =
+          YandexOAuthCallbackResult.fromUri(Uri.base);
+      if (callbackResult.hasError) {
+        throw SymmetryApiException(
+          message: callbackResult.errorCode,
+          detailCode: callbackResult.errorCode,
         );
       }
-      await ref.read(symmetryAuthRepositoryProvider).loginWithYandexCode(
-            code: code,
-            redirectUri: buildYandexOAuthRedirectUriForCurrentOrigin(),
-          );
+      if (callbackResult.hasHandoff) {
+        await ref
+            .read(symmetryAuthRepositoryProvider)
+            .completeYandexHandoff(handoffId: callbackResult.handoffId);
+      } else if (callbackResult.hasLegacyOAuthCallback) {
+        _redirectingLegacyYandexCallback = true;
+        navigateBrowserUrl(_legacyYandexBackendCallbackUrl(callbackResult));
+        return;
+      } else if (callbackResult.hasLegacyCode) {
+        throw const SymmetryApiException(
+          message: 'missing_yandex_state',
+          detailCode: 'missing_yandex_state',
+        );
+      } else {
+        throw const SymmetryApiException(
+          message: 'missing_yandex_handoff',
+          detailCode: 'missing_yandex_handoff',
+        );
+      }
       _callbackError = null;
       ref.invalidate(symmetrySessionProvider);
       await ref.read(symmetrySessionProvider.future);
@@ -124,14 +152,34 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       _callbackError = error;
       await _warmSession();
     } finally {
-      replaceBrowserUrl(_browserUrlAfterYandexCallback());
+      if (!_redirectingLegacyYandexCallback) {
+        replaceBrowserUrl(_browserUrlAfterYandexCallback());
+      }
       if (mounted) {
         setState(() => _handlingYandexCallback = false);
       }
     }
   }
 
-  /// Clears the OAuth `code` from the address bar without reloading (see [replaceBrowserUrl]).
+  String _legacyYandexBackendCallbackUrl(
+    final YandexOAuthCallbackResult callbackResult,
+  ) {
+    final Uri apiBaseUri = Uri.parse(SymmetryRuntimeEnv.defaultBaseUrl);
+    final String normalizedApiPath = apiBaseUri.path.endsWith('/v1')
+        ? apiBaseUri.path
+        : '${apiBaseUri.path}/v1';
+    return apiBaseUri
+        .replace(
+          path: '$normalizedApiPath/auth/yandex/callback',
+          queryParameters: <String, String>{
+            'code': callbackResult.legacyCode,
+            'state': callbackResult.legacyState,
+          },
+        )
+        .toString();
+  }
+
+  /// Clears the OAuth callback params from the address bar without reloading.
   String _browserUrlAfterYandexCallback() {
     final Map<String, String> queryParameters = <String, String>{};
     final String? lang = Uri.base.queryParameters['lang']?.trim();
@@ -155,9 +203,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
         }
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(content: Text(l10n.authBackendUnavailable)),
-          );
+          ..showSnackBar(SnackBar(content: Text(l10n.authBackendUnavailable)));
       });
     }
     if (_callbackError != null && !_didShowCallbackError) {

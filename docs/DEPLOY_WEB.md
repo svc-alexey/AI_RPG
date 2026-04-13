@@ -102,28 +102,32 @@ The shipped web bundle now also includes:
 
 ## Yandex OAuth for web
 
-The web login flow now returns from Yandex to the Flutter route
-`/auth/yandex/callback`, not directly to a backend-rendered page.
+The web login flow now returns from Yandex to the backend callback first, and
+only then back to the Flutter route with a one-time handoff.
 
 Set these consistently:
 
 - backend env:
-  `SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/auth/yandex/callback`
+  `SYMMETRY_YANDEX_REDIRECT_URI=https://your-domain.example/v1/auth/yandex/callback`
+  `SYMMETRY_WEB_PUBLIC_ORIGIN=https://your-domain.example`
 - Yandex OAuth app callback:
-  `https://your-domain.example/auth/yandex/callback`
+  `https://your-domain.example/v1/auth/yandex/callback`
 
 For local preview, use:
 
-- `http://127.0.0.1:3010/auth/yandex/callback`
+- backend callback: `http://127.0.0.1:8080/v1/auth/yandex/callback`
+- web public origin: `http://127.0.0.1:3010`
 
 The reverse proxy still only needs to forward `/v1/`, `/health`, and
-`/version`; the `/auth/yandex/callback` route is handled by the Flutter app
-itself and served from `index.html`.
+`/version`; the final `/auth/yandex/callback` route is still handled by the
+Flutter app and served from `index.html`, but Yandex itself must call the
+backend callback under `/v1/`.
 
 Token exchange: the backend includes `redirect_uri` when calling Yandex
-`oauth.yandex.ru/token`; it must be the same URI as in the authorize request.
-The Flutter client should pass `redirect_uri` on
-`GET /v1/auth/yandex/callback` (it must match `SYMMETRY_YANDEX_REDIRECT_URI`).
+`oauth.yandex.ru/token`; it must be the same backend callback URI as in the
+authorize request. After that, the backend redirects the browser back to
+Flutter with `?handoff=...`, and Flutter finishes sign-in through
+`POST /v1/auth/yandex/complete`.
 
 ## Deploy notes
 
@@ -136,12 +140,14 @@ The Flutter client should pass `redirect_uri` on
 - If you terminate web traffic in nginx, also proxy `/health`, `/version`, and
   `/v1/` to the backend.
 - If Yandex login redirects back but sign-in does not finish, verify that:
-  - the browser is returning to `/auth/yandex/callback`
+  - Yandex is returning to `/v1/auth/yandex/callback`
   - the backend `SYMMETRY_YANDEX_REDIRECT_URI` matches that exact URL
-  - the same URL is whitelisted in the Yandex OAuth app settings
-  - the API request to `/v1/auth/yandex/callback` succeeds (check Network tab);
-    a mismatch triggers `invalid_yandex_redirect_uri` if the query
-    `redirect_uri` does not equal `SYMMETRY_YANDEX_REDIRECT_URI`
+  - `SYMMETRY_WEB_PUBLIC_ORIGIN` matches the actual public web origin
+  - the same backend callback URL is whitelisted in the Yandex OAuth app
+    settings
+  - the backend callback redirects the browser to
+    `/auth/yandex/callback?handoff=...`
+  - the API request to `POST /v1/auth/yandex/complete` succeeds
 - If icons or fonts look broken after a fresh build, hard-refresh the browser
   and verify `build/web/assets/FontManifest.json` and
   `build/web/assets/fonts/MaterialIcons-Regular.otf` are being served.

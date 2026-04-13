@@ -7,10 +7,14 @@ import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/services/symmetry_api_client.dart';
 
 class SymmetryAuthRepository {
-  SymmetryAuthRepository({required SettingsRepository settingsRepository})
-    : _settingsRepository = settingsRepository;
+  SymmetryAuthRepository({
+    required SettingsRepository settingsRepository,
+    SymmetryApiClient Function(String baseUrl)? clientFactory,
+  }) : _settingsRepository = settingsRepository,
+       _clientFactory = clientFactory;
 
   final SettingsRepository _settingsRepository;
+  final SymmetryApiClient Function(String baseUrl)? _clientFactory;
 
   Future<String> loadBaseUrl() async {
     final String? persisted = await _settingsRepository.loadSymmetryBaseUrl();
@@ -111,19 +115,18 @@ class SymmetryAuthRepository {
     return refreshed;
   }
 
-  Future<Uri> buildYandexStartUri({final String? redirectUri}) async {
+  Future<Uri> buildYandexStartUri() async {
     final String baseUrl = await loadBaseUrl();
-    return _client(baseUrl).buildYandexStartUri(redirectUri: redirectUri);
+    return _client(baseUrl).buildYandexStartUri();
   }
 
-  Future<SymmetrySession> loginWithYandexCode({
-    required final String code,
-    final String? redirectUri,
+  Future<SymmetrySession> completeYandexHandoff({
+    required final String handoffId,
   }) async {
     final String baseUrl = await loadBaseUrl();
     final SymmetryAuthResponse response = await _client(
       baseUrl,
-    ).loginWithYandexCode(code: code, redirectUri: redirectUri);
+    ).completeYandexHandoff(handoffId: handoffId);
     final SymmetrySession session = SymmetrySession(
       user: response.user,
       tokens: response.tokens,
@@ -188,5 +191,5 @@ class SymmetryAuthRepository {
   }
 
   SymmetryApiClient _client(final String baseUrl) =>
-      SymmetryApiClient(baseUrl: baseUrl);
+      _clientFactory?.call(baseUrl) ?? SymmetryApiClient(baseUrl: baseUrl);
 }
