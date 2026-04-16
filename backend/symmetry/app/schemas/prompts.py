@@ -1,6 +1,6 @@
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
-from app.schemas.campaigns import ProviderCredentialsInput
+from app.schemas.campaigns import CharacterProfileInput, ProviderCredentialsInput
 from app.services.text_normalization import normalize_prompt_text
 
 
@@ -15,6 +15,10 @@ class GeneratePromptsRequest(BaseModel):
     story_wish: str = Field(
         default="",
         validation_alias=AliasChoices("story_wish", "storyWish"),
+    )
+    character: CharacterProfileInput | None = Field(
+        default=None,
+        validation_alias=AliasChoices("character", "hero_profile", "heroProfile"),
     )
     provider_credentials: ProviderCredentialsInput | None = Field(
         default=None,

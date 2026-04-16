@@ -78,6 +78,7 @@ async def create_campaign(
     )
     state = build_initial_state(payload)
     state["id"] = campaign.id
+    state = runtime_service.ensure_playable_location(state=state)
     session.add(campaign)
     await session.flush()
 
@@ -232,6 +233,7 @@ async def process_turn(
 
     current_state = snapshot.state_json
     current_state = runtime_service.ensure_bootstrap_state(state=current_state)
+    current_state = runtime_service.ensure_playable_location(state=current_state)
     normalized_player_action = normalize_prompt_text(payload.player_action, limit=240)
     await butterfly_service.seed_world(
         session,

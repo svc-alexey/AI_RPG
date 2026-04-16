@@ -26,6 +26,34 @@ def test_generate_prompts_request_accepts_camel_case_fields():
     assert payload.provider_credentials.api_key == "secret"
 
 
+def test_generate_prompts_request_accepts_nested_character_camel_case():
+    payload = GeneratePromptsRequest.model_validate(
+        {
+            "setting": "romantasy",
+            "literaryGenre": "fantasyGenre",
+            "mode": "shortStory",
+            "difficulty": "easy",
+            "language": "ru",
+            "storyWish": "A quiet harbor",
+            "character": {
+                "name": "Mira",
+                "gender": "female",
+                "race": "elf",
+                "characterClass": "ranger",
+                "promptFragment": "Watchful",
+                "personality": "calm",
+                "skills": ["tracking"],
+                "perks": ["keen"],
+            },
+        }
+    )
+
+    assert payload.character is not None
+    assert payload.character.name == "Mira"
+    assert payload.character.character_class == "ranger"
+    assert payload.character.prompt_fragment == "Watchful"
+
+
 def test_create_campaign_request_accepts_camel_case_fields():
     payload = CreateCampaignRequest.model_validate(
         {

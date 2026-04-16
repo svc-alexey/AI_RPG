@@ -14,6 +14,21 @@ import 'package:ai_prg/src/core/services/turn_prompt_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+String _campaignPromptLockedHeroBlock({
+  required final CharacterProfile profile,
+  required final AppLanguage language,
+}) =>
+    switch (language) {
+      AppLanguage.ru =>
+        '''
+
+Зафиксированный герой (соблюдай пол и черты в storyPrompt и characterPrompt): имя «${profile.name}», пол ${profile.gender.name}, раса ${profile.race}, класс ${profile.characterClass.name}. Личность: ${profile.personality}. Доп. детали: ${profile.promptFragment}.''',
+      AppLanguage.en =>
+        '''
+
+Locked protagonist (keep gender and traits consistent in storyPrompt and characterPrompt): name "${profile.name}", gender ${profile.gender.name}, race ${profile.race}, class ${profile.characterClass.name}. Personality: ${profile.personality}. Details: ${profile.promptFragment}.''',
+    };
+
 class OpenAiCompatibleAiClient implements AiClient {
   OpenAiCompatibleAiClient();
 
@@ -94,6 +109,12 @@ class OpenAiCompatibleAiClient implements AiClient {
               'User wish (develop freely): "${request.storyWish.trim()}"',
           };
     final bool isLongCampaign = request.mode == StoryMode.longCampaign;
+    final String lockedHeroBlock = request.characterProfile == null
+        ? ''
+        : _campaignPromptLockedHeroBlock(
+            profile: request.characterProfile!,
+            language: language,
+          );
     final String metaPrompt = switch (language) {
       AppLanguage.ru =>
         '''
@@ -105,7 +126,7 @@ class OpenAiCompatibleAiClient implements AiClient {
 Мягкие ориентиры:
 $anchors
 
-$wishLine
+$wishLine$lockedHeroBlock
 
 ВАЖНО: Ответ полностью на русском для русского интерфейса.
 
@@ -125,7 +146,7 @@ Story mode: ${request.mode.name}
 Soft anchors:
 $anchors
 
-$wishLine
+$wishLine$lockedHeroBlock
 
 Generate JSON with keys:
 - storyPrompt: instructions for the narrative AI (tone, atmosphere). ${isLongCampaign ? "For longCampaign, make it richer and more layered: include hero or world backstory, a durable conflict, and room for a longer arc. Target 180-260 words." : "For shortStory, keep it compact, fast, and centered on an immediate hook. Target 80-140 words."} Be specific; do not paste generic templates.$contentNote

@@ -190,6 +190,7 @@ class SymmetryApiClient {
     required final String languageCode,
     required final String storyWish,
     required final AiSettings aiSettings,
+    final CharacterProfile? characterProfile,
   }) async {
     final Map<String, Object?> response = await _post(
       '/prompts/generate',
@@ -201,6 +202,7 @@ class SymmetryApiClient {
         'difficulty': difficulty.name,
         'language': languageCode,
         'story_wish': storyWish,
+        if (characterProfile != null) 'character': characterProfile.toJson(),
         if (aiSettings.baseUrl.trim().isNotEmpty &&
             aiSettings.model.trim().isNotEmpty &&
             aiSettings.apiKey.trim().isNotEmpty)

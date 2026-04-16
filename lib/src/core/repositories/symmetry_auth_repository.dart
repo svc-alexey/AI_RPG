@@ -200,6 +200,7 @@ class SymmetryAuthRepository {
           languageCode: language.code,
           storyWish: request.storyWish,
           aiSettings: aiSettings,
+          characterProfile: request.characterProfile,
         );
     return GeneratedPrompts(
       storyPrompt: generated.storyPrompt,

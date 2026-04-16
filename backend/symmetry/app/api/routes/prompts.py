@@ -33,6 +33,7 @@ async def generate_prompts(
             difficulty=payload.difficulty,
             language=payload.language,
             story_wish=payload.story_wish,
+            character=payload.character,
         )
     except Exception as exc:
         status_code, detail = classify_provider_error(exc)

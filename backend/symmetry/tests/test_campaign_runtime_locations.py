@@ -1,3 +1,4 @@
+from app.services.ai_gateway import is_placeholder_location
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 
 
@@ -54,6 +55,32 @@ def test_ensure_playable_location_replaces_placeholder():
 
     assert next_state["location"] == "Туманный причал"
     assert state_changes["location"] == "Туманный причал"
+
+
+class _StubWorldState:
+    current_day = 1
+    minute_of_day = 480
+    global_vars = {"weather": "clear", "butterfly": {}}
+
+
+def test_build_turn_context_location_not_placeholder_after_ensure():
+    state = build_initial_state(_Payload())
+    service = CampaignRuntimeService()
+    resolved = service.ensure_playable_location(state=state)
+    context = service.build_turn_context(
+        state=resolved,
+        world_state=_StubWorldState(),
+        chronicles=[],
+        trigger_source="manual",
+    )
+    location = str(
+        context["dynamic_context"]["state"].get("location", "")
+    ).strip()
+    assert not is_placeholder_location(location, language="ru")
+    starting = str(
+        context["world_bootstrap"].get("starting_location", "")
+    ).strip()
+    assert not is_placeholder_location(starting, language="ru")
 
 
 def test_apply_turn_result_can_activate_vitality_and_assign_stats():

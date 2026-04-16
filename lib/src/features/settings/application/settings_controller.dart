@@ -25,16 +25,13 @@ class SettingsViewState {
     required this.model,
     required this.apiKey,
     required this.timeoutText,
-    required this.runtimeProfile,
-    required this.maxResponseTokensText,
-    required this.contextWindowSizeText,
     required this.status,
     required this.formRevision,
     required this.showApiKeyFromBuildHint,
     required this.showEndpointBuildDefaultsHint,
   });
 
-  factory SettingsViewState.initial() => SettingsViewState(
+  factory SettingsViewState.initial() => const SettingsViewState(
     appLanguage: AppLanguage.ru,
     confirmed18Plus: false,
     isLoading: true,
@@ -45,11 +42,6 @@ class SettingsViewState {
     model: '',
     apiKey: '',
     timeoutText: '60',
-    runtimeProfile: ModelRuntimeSettings.defaults.profile,
-    maxResponseTokensText: ModelRuntimeSettings.defaults.maxResponseTokens
-        .toString(),
-    contextWindowSizeText: ModelRuntimeSettings.defaults.contextWindowSize
-        .toString(),
     status: null,
     formRevision: 0,
     showApiKeyFromBuildHint: false,
@@ -68,9 +60,6 @@ class SettingsViewState {
   final String model;
   final String apiKey;
   final String timeoutText;
-  final ModelRuntimeProfile runtimeProfile;
-  final String maxResponseTokensText;
-  final String contextWindowSizeText;
   final String? status;
   final int formRevision;
   final bool showApiKeyFromBuildHint;
@@ -87,9 +76,6 @@ class SettingsViewState {
     final String? model,
     final String? apiKey,
     final String? timeoutText,
-    final ModelRuntimeProfile? runtimeProfile,
-    final String? maxResponseTokensText,
-    final String? contextWindowSizeText,
     final Object? status = _unset,
     final int? formRevision,
     final bool? showApiKeyFromBuildHint,
@@ -105,9 +91,6 @@ class SettingsViewState {
     model: model ?? this.model,
     apiKey: apiKey ?? this.apiKey,
     timeoutText: timeoutText ?? this.timeoutText,
-    runtimeProfile: runtimeProfile ?? this.runtimeProfile,
-    maxResponseTokensText: maxResponseTokensText ?? this.maxResponseTokensText,
-    contextWindowSizeText: contextWindowSizeText ?? this.contextWindowSizeText,
     status: identical(status, _unset) ? this.status : status as String?,
     formRevision: formRevision ?? this.formRevision,
     showApiKeyFromBuildHint:
@@ -151,11 +134,6 @@ class SettingsController extends StateNotifier<SettingsViewState> {
         persisted.model,
       ),
       timeoutText: persisted.timeoutSeconds.toString(),
-      runtimeProfile: persisted.runtimeSettings.profile,
-      maxResponseTokensText: persisted.runtimeSettings.maxResponseTokens
-          .toString(),
-      contextWindowSizeText: persisted.runtimeSettings.contextWindowSize
-          .toString(),
       formRevision: state.formRevision + 1,
     );
   }
@@ -165,7 +143,7 @@ class SettingsController extends StateNotifier<SettingsViewState> {
     model: state.model.trim(),
     apiKey: state.apiKey.trim(),
     timeoutSeconds: int.tryParse(state.timeoutText.trim()) ?? 60,
-    runtimeSettings: _currentRuntimeSettings(),
+    runtimeSettings: ModelRuntimeSettings.defaults,
     confirmed18Plus: state.confirmed18Plus,
   );
 
@@ -213,33 +191,6 @@ class SettingsController extends StateNotifier<SettingsViewState> {
     state = state.copyWith(timeoutText: value);
   }
 
-  void applyRuntimeProfile(final ModelRuntimeProfile profile) {
-    if (profile == ModelRuntimeProfile.custom) {
-      return;
-    }
-    final ModelRuntimeSettings preset = ModelRuntimeSettings.preset(profile);
-    state = state.copyWith(
-      runtimeProfile: profile,
-      maxResponseTokensText: preset.maxResponseTokens.toString(),
-      contextWindowSizeText: preset.contextWindowSize.toString(),
-      formRevision: state.formRevision + 1,
-    );
-  }
-
-  void setMaxResponseTokensText(final String value) {
-    state = state.copyWith(
-      maxResponseTokensText: value,
-      runtimeProfile: _resolveRuntimeProfile(maxResponseTokensText: value),
-    );
-  }
-
-  void setContextWindowSizeText(final String value) {
-    state = state.copyWith(
-      contextWindowSizeText: value,
-      runtimeProfile: _resolveRuntimeProfile(contextWindowSizeText: value),
-    );
-  }
-
   Future<void> save({required final AppLocalizations l10n}) async {
     state = state.copyWith(isSaving: true, status: null);
 
@@ -284,35 +235,6 @@ class SettingsController extends StateNotifier<SettingsViewState> {
     } finally {
       state = state.copyWith(isChecking: false);
     }
-  }
-
-  ModelRuntimeSettings _currentRuntimeSettings() {
-    final ModelRuntimeSettings normalized = ModelRuntimeSettings.defaults
-        .copyWith(
-          maxResponseTokens: int.tryParse(state.maxResponseTokensText.trim()),
-          contextWindowSize: int.tryParse(state.contextWindowSizeText.trim()),
-          profile: state.runtimeProfile,
-        );
-    return normalized.copyWith(profile: _resolveRuntimeProfile());
-  }
-
-  ModelRuntimeProfile _resolveRuntimeProfile({
-    final String? maxResponseTokensText,
-    final String? contextWindowSizeText,
-  }) {
-    final ModelRuntimeSettings normalized = ModelRuntimeSettings.defaults
-        .copyWith(
-          maxResponseTokens: int.tryParse(
-            (maxResponseTokensText ?? state.maxResponseTokensText).trim(),
-          ),
-          contextWindowSize: int.tryParse(
-            (contextWindowSizeText ?? state.contextWindowSizeText).trim(),
-          ),
-        );
-    return ModelRuntimeSettings.resolveProfile(
-      maxResponseTokens: normalized.maxResponseTokens,
-      contextWindowSize: normalized.contextWindowSize,
-    );
   }
 
   SettingsRepository get _settingsRepository =>

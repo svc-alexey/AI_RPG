@@ -20,8 +20,8 @@ enum NewGameCustomSetupStep {
   literaryGenre,
   worldSetting,
   foundation,
-  story,
   character,
+  story,
   review,
 }
 
@@ -365,6 +365,22 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     _refreshPlannedModules();
   }
 
+  CharacterProfile _characterProfileForPromptGeneration(
+    final AppLanguage currentLanguage,
+  ) {
+    CharacterProfile profile =
+        state.characterProfile ?? _defaultCharacterProfile();
+    if (state.characterPrompt.trim().isNotEmpty) {
+      profile = profile.copyWith(
+        promptFragment: state.characterPrompt.trim(),
+      );
+    }
+    if (state.personality.trim().isNotEmpty) {
+      profile = profile.copyWith(personality: state.personality.trim());
+    }
+    return profile.copyWith(name: _resolvedHeroName(currentLanguage));
+  }
+
   Future<void> generatePrompts() async {
     final AppLanguage currentLanguage = language;
     final String currentInput = state.customStoryPrompt.trim().isNotEmpty
@@ -387,6 +403,9 @@ class NewGameController extends StateNotifier<NewGameViewState> {
               mode: state.storyMode,
               difficulty: state.difficulty,
               storyWish: currentInput,
+              characterProfile: _characterProfileForPromptGeneration(
+                currentLanguage,
+              ),
             ),
           );
 

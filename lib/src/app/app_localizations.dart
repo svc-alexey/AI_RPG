@@ -1366,48 +1366,6 @@ class AppLocalizations {
     AppLanguage.en => 'Timeout in Seconds',
   };
 
-  String get runtimeControlsTitle => switch (language) {
-    AppLanguage.ru => 'Runtime',
-    AppLanguage.en => 'Runtime',
-  };
-
-  String get runtimeControlsDescription => switch (language) {
-    AppLanguage.ru =>
-      'Управляйте длиной ответа и примерным размером контекста, который отправляется модели.',
-    AppLanguage.en =>
-      'Control response length and the approximate amount of context sent to the model.',
-  };
-
-  String get runtimeProfileCheap => switch (language) {
-    AppLanguage.ru => 'Дёшево',
-    AppLanguage.en => 'Cheap',
-  };
-
-  String get runtimeProfileFast => switch (language) {
-    AppLanguage.ru => 'Быстро',
-    AppLanguage.en => 'Fast',
-  };
-
-  String get runtimeProfileSmart => switch (language) {
-    AppLanguage.ru => 'Умно',
-    AppLanguage.en => 'Smart',
-  };
-
-  String get runtimeProfileCustom => switch (language) {
-    AppLanguage.ru => 'Свои',
-    AppLanguage.en => 'Custom',
-  };
-
-  String get maxResponseTokens => switch (language) {
-    AppLanguage.ru => 'Максимум токенов ответа',
-    AppLanguage.en => 'Max Response Tokens',
-  };
-
-  String get contextWindowSize => switch (language) {
-    AppLanguage.ru => 'Размер окна контекста',
-    AppLanguage.en => 'Context Window Size',
-  };
-
   String get saveSettings => switch (language) {
     AppLanguage.ru => 'Сохранить настройки',
     AppLanguage.en => 'Save Settings',

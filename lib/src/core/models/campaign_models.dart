@@ -1181,6 +1181,7 @@ class CampaignPromptGenerationRequest {
     required this.mode,
     required this.difficulty,
     this.storyWish = '',
+    this.characterProfile,
   });
 
   final CampaignSetting setting;
@@ -1188,6 +1189,7 @@ class CampaignPromptGenerationRequest {
   final StoryMode mode;
   final DifficultyLevel difficulty;
   final String storyWish;
+  final CharacterProfile? characterProfile;
 }
 
 class GeneratedPortrait {

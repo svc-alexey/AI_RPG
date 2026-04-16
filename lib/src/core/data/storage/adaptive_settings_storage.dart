@@ -20,16 +20,20 @@ class AdaptiveSettingsStorage implements SettingsStorage {
   final SettingsLocalDataSource _isarDataSource;
   final SettingsPreferencesDataSource _preferencesDataSource;
 
+  AiSettings _withFixedRuntime(final AiSettings settings) => settings.copyWith(
+    runtimeSettings: ModelRuntimeSettings.defaults,
+  );
+
   Future<AiSettings> _loadAiSettingsPersistedBody() async {
     await _database.ensureReady();
     if (_database.backend == StorageBackend.isar) {
       final isar = await _database.isar;
       final AiSettings? settings = await _isarDataSource.loadAiSettings(isar);
       if (settings != null) {
-        return settings;
+        return _withFixedRuntime(settings);
       }
     }
-    return _preferencesDataSource.loadAiSettings();
+    return _withFixedRuntime(await _preferencesDataSource.loadAiSettings());
   }
 
   @override
@@ -42,12 +46,13 @@ class AdaptiveSettingsStorage implements SettingsStorage {
 
   @override
   Future<void> saveAiSettings(final AiSettings settings) async {
+    final AiSettings normalized = _withFixedRuntime(settings);
     await _database.ensureReady();
     if (_database.backend == StorageBackend.isar) {
       final isar = await _database.isar;
-      await _isarDataSource.saveAiSettings(isar, settings);
+      await _isarDataSource.saveAiSettings(isar, normalized);
     }
-    await _preferencesDataSource.saveAiSettings(settings);
+    await _preferencesDataSource.saveAiSettings(normalized);
   }
 
   @override

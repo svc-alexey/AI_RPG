@@ -94,12 +94,12 @@ class _AetherBackdropState extends State<AetherBackdrop>
             ),
           ),
         ),
-        if (!kIsWeb)
-          const Positioned.fill(
-            child: RepaintBoundary(
-              child: CustomPaint(painter: _FilmNoisePainter()),
-            ),
-          ),
+        // if (!kIsWeb)
+        //   const Positioned.fill(
+        //     child: RepaintBoundary(
+        //       child: CustomPaint(painter: _FilmNoisePainter()),
+        //     ),
+        //   ),
         widget.child,
       ],
     ),

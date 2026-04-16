@@ -2,7 +2,6 @@ import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
-import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
@@ -24,10 +23,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
   bool _apiKeyObscured = true;
   final TextEditingController _timeoutController = TextEditingController();
-  final TextEditingController _maxResponseTokensController =
-      TextEditingController();
-  final TextEditingController _contextWindowSizeController =
-      TextEditingController();
 
   @override
   void dispose() {
@@ -35,8 +30,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _modelController.dispose();
     _apiKeyController.dispose();
     _timeoutController.dispose();
-    _maxResponseTokensController.dispose();
-    _contextWindowSizeController.dispose();
     super.dispose();
   }
 
@@ -102,8 +95,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _modelController.text = next.model;
         _apiKeyController.text = next.apiKey;
         _timeoutController.text = next.timeoutText;
-        _maxResponseTokensController.text = next.maxResponseTokensText;
-        _contextWindowSizeController.text = next.contextWindowSizeText;
       }
     });
 
@@ -371,81 +362,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: l10n.timeoutSeconds,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: responsive.sectionSpacing),
-                          _SettingsSection(
-                            title: l10n.runtimeControlsTitle,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  l10n.runtimeControlsDescription,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 12),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: <Widget>[
-                                    ChoiceChip(
-                                      label: Text(l10n.runtimeProfileCheap),
-                                      selected:
-                                          settingsState.runtimeProfile ==
-                                          ModelRuntimeProfile.cheap,
-                                      onSelected: (_) =>
-                                          controller.applyRuntimeProfile(
-                                            ModelRuntimeProfile.cheap,
-                                          ),
-                                    ),
-                                    ChoiceChip(
-                                      label: Text(l10n.runtimeProfileFast),
-                                      selected:
-                                          settingsState.runtimeProfile ==
-                                          ModelRuntimeProfile.fast,
-                                      onSelected: (_) =>
-                                          controller.applyRuntimeProfile(
-                                            ModelRuntimeProfile.fast,
-                                          ),
-                                    ),
-                                    ChoiceChip(
-                                      label: Text(l10n.runtimeProfileSmart),
-                                      selected:
-                                          settingsState.runtimeProfile ==
-                                          ModelRuntimeProfile.smart,
-                                      onSelected: (_) =>
-                                          controller.applyRuntimeProfile(
-                                            ModelRuntimeProfile.smart,
-                                          ),
-                                    ),
-                                    if (settingsState.runtimeProfile ==
-                                        ModelRuntimeProfile.custom)
-                                      Chip(
-                                        label: Text(l10n.runtimeProfileCustom),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _maxResponseTokensController,
-                                  onChanged:
-                                      controller.setMaxResponseTokensText,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.maxResponseTokens,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _contextWindowSizeController,
-                                  onChanged:
-                                      controller.setContextWindowSizeText,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.contextWindowSize,
                                   ),
                                 ),
                               ],
