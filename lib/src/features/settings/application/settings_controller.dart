@@ -261,10 +261,12 @@ class SettingsController extends StateNotifier<SettingsViewState> {
 
     try {
       final AiSettings effective = AiSettings.withEnvFallbacks(currentSettings);
+      final bool hasSession =
+          await _symmetryAuthRepository.loadSession() != null;
       if (backendBaseUrl.isNotEmpty) {
         await _settingsRepository.saveSymmetryBaseUrl(backendBaseUrl);
       }
-      if (effective.isConfigured) {
+      if (hasSession) {
         await _symmetryAuthRepository.checkProviderConnection(
           aiSettings: effective,
         );

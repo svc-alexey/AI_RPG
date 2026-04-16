@@ -163,16 +163,105 @@ class AiGatewayService:
             "temperature": 0.8,
             "response_format": {"type": "json_object"},
         }
-        if max_output_tokens is not None:
-            payload["max_tokens"] = max_output_tokens
+        current_max_tokens = max_output_tokens
+        current_payload = dict(payload)
+        attempt = 0
+        parsed_payload: dict[str, Any] | None = None
+        usage = LlmUsage()
+        finish_reason = ""
+
+        while True:
+            if current_max_tokens is not None:
+                current_payload["max_tokens"] = current_max_tokens
+            elif "max_tokens" in current_payload:
+                del current_payload["max_tokens"]
+
+            current_meta = {
+                **request_meta,
+                "max_output_tokens": current_max_tokens or 0,
+                "retry_attempt": attempt,
+            }
+            if attempt > 0 and max_output_tokens is not None:
+                current_meta["retry_of_max_output_tokens"] = max_output_tokens
+
+            data, usage, finish_reason = await self._post_json_completion(
+                credentials=credentials,
+                payload=current_payload,
+                scenario=scenario if attempt == 0 else f"{scenario}_retry_{attempt}",
+                request_meta=current_meta,
+            )
+            response_was_truncated = _is_response_truncated(
+                finish_reason=finish_reason,
+                usage=usage,
+                max_output_tokens=current_max_tokens,
+            )
+            content = (
+                data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+            )
+            try:
+                parsed_payload = self._parse_json(content)
+                if response_was_truncated and current_max_tokens is not None and attempt < 2:
+                    next_max_tokens = _next_retry_max_tokens(current_max_tokens)
+                    logger.warning(
+                        "llm_response_truncated_retrying credentials=%s scenario=%s finish_reason=%s completion_tokens=%s previous_max_tokens=%s retry_max_tokens=%s attempt=%s",
+                        credentials.safe_summary,
+                        scenario,
+                        finish_reason or "-",
+                        usage.completion_tokens,
+                        current_max_tokens,
+                        next_max_tokens,
+                        attempt + 1,
+                    )
+                    current_max_tokens = next_max_tokens
+                    attempt += 1
+                    continue
+                request_meta = {
+                    **current_meta,
+                    "finish_reason": finish_reason or "",
+                    "completion_truncated": response_was_truncated,
+                }
+                break
+            except ValueError:
+                if current_max_tokens is None or not response_was_truncated or attempt >= 2:
+                    raise
+                next_max_tokens = _next_retry_max_tokens(current_max_tokens)
+                logger.warning(
+                    "llm_payload_invalid_retrying credentials=%s scenario=%s finish_reason=%s completion_tokens=%s previous_max_tokens=%s retry_max_tokens=%s attempt=%s",
+                    credentials.safe_summary,
+                    scenario,
+                    finish_reason or "-",
+                    usage.completion_tokens,
+                    current_max_tokens,
+                    next_max_tokens,
+                    attempt + 1,
+                )
+                current_max_tokens = next_max_tokens
+                attempt += 1
+
+        return LlmJsonResult(
+            payload=parsed_payload or {},
+            usage=usage,
+            meta=request_meta,
+        )
+
+    async def _post_json_completion(
+        self,
+        *,
+        credentials: ResolvedCredentials,
+        payload: dict[str, Any],
+        scenario: str,
+        request_meta: dict[str, Any],
+    ) -> tuple[dict[str, Any], LlmUsage, str]:
         logger.info(
             "llm_request_started credentials=%s scenario=%s payload_keys=%s message_count=%s prompt_chars=%s max_tokens=%s",
             credentials.safe_summary,
             scenario,
             list(payload.keys()),
-            len(messages),
+            len(payload.get("messages", [])),
             request_meta["prompt_characters"],
-            max_output_tokens or "-",
+            payload.get("max_tokens", "-"),
         )
         async with httpx.AsyncClient(timeout=credentials.timeout_seconds) as client:
             response = await client.post(
@@ -195,24 +284,17 @@ class AiGatewayService:
                 raise
         data = response.json()
         usage = _parse_usage(data.get("usage"))
+        finish_reason = _extract_finish_reason(data)
         logger.info(
-            "llm_request_completed status=%s credentials=%s scenario=%s usage=%s meta=%s",
+            "llm_request_completed status=%s credentials=%s scenario=%s finish_reason=%s usage=%s meta=%s",
             response.status_code,
             credentials.safe_summary,
             scenario,
+            finish_reason or "-",
             usage.to_dict(),
             request_meta,
         )
-        content = (
-            data.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-        )
-        return LlmJsonResult(
-            payload=self._parse_json(content),
-            usage=usage,
-            meta=request_meta,
-        )
+        return data, usage, finish_reason
 
     def _parse_json(self, content: Any) -> dict[str, Any]:
         if isinstance(content, dict):
@@ -226,7 +308,10 @@ class AiGatewayService:
             match = re.search(r"\{.*\}", content, flags=re.DOTALL)
             if not match:
                 raise ValueError("invalid_llm_payload")
-            return json.loads(match.group(0))
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError as exc:
+                raise ValueError("invalid_llm_payload") from exc
 
 
 def build_messages(
@@ -326,6 +411,34 @@ def _parse_usage(raw_usage: Any) -> LlmUsage:
         completion_tokens=int(usage.get("completion_tokens", 0) or 0),
         total_tokens=int(usage.get("total_tokens", 0) or 0),
     )
+
+
+def _extract_finish_reason(data: Any) -> str:
+    if not isinstance(data, dict):
+        return ""
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first_choice = choices[0] if isinstance(choices[0], dict) else {}
+    finish_reason = str(first_choice.get("finish_reason", "") or "").strip()
+    return finish_reason
+
+
+def _is_response_truncated(
+    *,
+    finish_reason: str,
+    usage: LlmUsage,
+    max_output_tokens: int | None,
+) -> bool:
+    if max_output_tokens is None:
+        return False
+    if finish_reason.lower() == "length":
+        return True
+    return usage.completion_tokens >= max_output_tokens
+
+
+def _next_retry_max_tokens(current_max_tokens: int) -> int:
+    return current_max_tokens + max(160, current_max_tokens // 2)
 
 
 def _build_request_meta(

@@ -299,3 +299,21 @@ Important callback note:
   worker readiness, and deploy order;
 - Docker production hardening around DNS resolution to the AI relay/provider;
 - next product layer on top of the now server-authoritative gameplay stack.
+
+## Recent production notes
+
+Recent production hardening on `beyondtheverge.online` included:
+
+- fixing web release stamping so `asset_version` matches `release_id`
+  and web no longer loops on forced refresh prompts;
+- hardening backend turn generation against truncated JSON and loose provider
+  output types;
+- expanding token/output budgets separately for `shortStory` and
+  `longCampaign`;
+- fixing settings-side provider checks so authenticated users can verify the
+  server-managed model connection without filling local custom model fields;
+- returning `404` for missing `*.map` files in nginx instead of serving
+  `index.html`;
+- reducing authenticated image flicker in the web UI;
+- confirming production smoke tests with guest auth, campaign creation, intro
+  turn, and follow-up manual turn.

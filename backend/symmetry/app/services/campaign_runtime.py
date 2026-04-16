@@ -315,7 +315,7 @@ class CampaignRuntimeService:
                 language=language,
             )
         memory["active_situation"] = narration
-        importance = int(result.get("importance", 0) or 0)
+        importance = normalize_importance(result.get("importance", 0))
         world_event_summary = normalize_prompt_text(
             str(result.get("world_event_summary", "")),
             limit=240,
@@ -383,7 +383,30 @@ def normalize_character_patch(raw_patch: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def normalize_importance(raw_value: Any) -> int:
+    try:
+        return max(0, min(10, int(raw_value or 0)))
+    except (TypeError, ValueError):
+        normalized = str(raw_value or "").strip().lower()
+        if normalized in {"low", "minor"}:
+            return 3
+        if normalized in {"medium", "moderate"}:
+            return 6
+        if normalized in {"high", "major"}:
+            return 8
+        if normalized in {"critical", "severe"}:
+            return 10
+        return 0
+
+
 def normalize_module_updates(raw_updates: dict[str, Any]) -> dict[str, list[str]]:
+    if isinstance(raw_updates, list):
+        raw_updates = {"activate": raw_updates}
+    elif isinstance(raw_updates, str):
+        raw_updates = {"activate": [raw_updates]}
+    elif not isinstance(raw_updates, dict):
+        raw_updates = {}
+
     def _as_list(value: Any) -> list[Any]:
         if isinstance(value, list):
             return value

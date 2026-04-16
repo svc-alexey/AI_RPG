@@ -22,7 +22,7 @@ def build_prompt_generation_budget(*, mode: str) -> PromptBudgetProfile:
     if mode == "longCampaign":
         return PromptBudgetProfile(
             scenario="prompt_generation_long",
-            max_output_tokens=360,
+            max_output_tokens=520,
             max_story_prompt_chars=0,
             max_character_prompt_chars=0,
             max_recent_turns=0,
@@ -34,7 +34,7 @@ def build_prompt_generation_budget(*, mode: str) -> PromptBudgetProfile:
         )
     return PromptBudgetProfile(
         scenario="prompt_generation_short",
-        max_output_tokens=240,
+        max_output_tokens=320,
         max_story_prompt_chars=0,
         max_character_prompt_chars=0,
         max_recent_turns=0,
@@ -59,68 +59,68 @@ def build_turn_budget(
     if is_suggestions:
         return PromptBudgetProfile(
             scenario="turn_suggestions",
-            max_output_tokens=120,
-            max_story_prompt_chars=220,
-            max_character_prompt_chars=140,
+            max_output_tokens=140,
+            max_story_prompt_chars=240,
+            max_character_prompt_chars=160,
             max_recent_turns=1,
-            max_recent_turn_chars=100,
-            max_memory_chars=120,
+            max_recent_turn_chars=120,
+            max_memory_chars=140,
             max_chronicles=1,
-            max_chronicle_chars=120,
-            max_total_chronicle_chars=120,
+            max_chronicle_chars=140,
+            max_total_chronicle_chars=140,
         )
 
     if mode == "longCampaign" and is_intro:
         return PromptBudgetProfile(
             scenario="turn_intro_long",
-            max_output_tokens=420,
-            max_story_prompt_chars=520,
-            max_character_prompt_chars=220,
-            max_recent_turns=2,
-            max_recent_turn_chars=140,
-            max_memory_chars=220,
-            max_chronicles=3,
-            max_chronicle_chars=180,
-            max_total_chronicle_chars=420,
+            max_output_tokens=800,
+            max_story_prompt_chars=720,
+            max_character_prompt_chars=320,
+            max_recent_turns=3,
+            max_recent_turn_chars=180,
+            max_memory_chars=320,
+            max_chronicles=4,
+            max_chronicle_chars=220,
+            max_total_chronicle_chars=720,
         )
 
     if mode == "longCampaign":
         return PromptBudgetProfile(
             scenario="turn_standard_long",
-            max_output_tokens=320,
-            max_story_prompt_chars=420,
-            max_character_prompt_chars=180,
-            max_recent_turns=3,
-            max_recent_turn_chars=120,
-            max_memory_chars=180,
-            max_chronicles=3,
-            max_chronicle_chars=150,
-            max_total_chronicle_chars=360,
+            max_output_tokens=520,
+            max_story_prompt_chars=600,
+            max_character_prompt_chars=280,
+            max_recent_turns=4,
+            max_recent_turn_chars=160,
+            max_memory_chars=260,
+            max_chronicles=4,
+            max_chronicle_chars=200,
+            max_total_chronicle_chars=640,
         )
 
     if is_intro:
         return PromptBudgetProfile(
             scenario="turn_intro_short",
-            max_output_tokens=220,
-            max_story_prompt_chars=300,
-            max_character_prompt_chars=150,
+            max_output_tokens=420,
+            max_story_prompt_chars=340,
+            max_character_prompt_chars=180,
             max_recent_turns=1,
-            max_recent_turn_chars=100,
-            max_memory_chars=120,
+            max_recent_turn_chars=120,
+            max_memory_chars=140,
             max_chronicles=2,
-            max_chronicle_chars=120,
-            max_total_chronicle_chars=200,
+            max_chronicle_chars=140,
+            max_total_chronicle_chars=240,
         )
 
     return PromptBudgetProfile(
         scenario="turn_standard_short",
-        max_output_tokens=180,
-        max_story_prompt_chars=260,
-        max_character_prompt_chars=140,
+        max_output_tokens=280,
+        max_story_prompt_chars=280,
+        max_character_prompt_chars=160,
         max_recent_turns=2,
-        max_recent_turn_chars=96,
-        max_memory_chars=120,
+        max_recent_turn_chars=120,
+        max_memory_chars=140,
         max_chronicles=2,
-        max_chronicle_chars=110,
-        max_total_chronicle_chars=180,
+        max_chronicle_chars=130,
+        max_total_chronicle_chars=220,
     )

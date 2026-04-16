@@ -26,7 +26,7 @@ def user_response_from_models(*, user: User, display_name: str) -> UserResponse:
         id=user.id,
         email=user.email,
         display_name=display_name,
-        is_admin=user.is_admin,
+        is_admin=bool(user.is_admin),
     )
 
 
@@ -45,6 +45,8 @@ class AuthService:
             id=new_id(),
             email=payload.email.lower(),
             password_hash=hash_password(payload.password),
+            is_active=True,
+            is_admin=False,
         )
         profile = UserProfile(
             user_id=user.id,
@@ -96,6 +98,8 @@ class AuthService:
             id=guest_id,
             email=guest_email,
             password_hash=hash_password(new_id()),
+            is_active=True,
+            is_admin=False,
         )
         profile = UserProfile(
             user_id=user.id,
@@ -319,6 +323,8 @@ class AuthService:
                     id=new_id(),
                     email=email,
                     password_hash=hash_password(new_id()),
+                    is_active=True,
+                    is_admin=False,
                 )
                 session.add(user)
                 session.add(

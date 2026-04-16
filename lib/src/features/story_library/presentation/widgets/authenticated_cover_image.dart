@@ -27,6 +27,7 @@ class AuthenticatedCoverImage extends StatefulWidget {
 
 class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
   Future<Uint8List>? _bytesFuture;
+  Uint8List? _lastResolvedBytes;
 
   static bool _needsFetch(final Map<String, String>? headers) =>
       headers != null && headers.isNotEmpty;
@@ -81,6 +82,12 @@ class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
     return response.bodyBytes;
   }
 
+  Widget _buildResolvedImage(final Uint8List bytes) => Image.memory(
+    bytes,
+    fit: widget.fit,
+    gaplessPlayback: true,
+  );
+
   @override
   Widget build(final BuildContext context) {
     final Map<String, String>? headers = widget.requestHeaders;
@@ -88,13 +95,20 @@ class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
       return Image.network(
         widget.imageUrl,
         fit: widget.fit,
+        gaplessPlayback: true,
         errorBuilder: widget.errorBuilder,
       );
     }
     return FutureBuilder<Uint8List>(
       future: _bytesFuture!,
-      builder: (final BuildContext context, final AsyncSnapshot<Uint8List> s) {
+      builder: (context, s) {
+        if (s.hasData) {
+          _lastResolvedBytes = s.data;
+        }
         if (s.connectionState != ConnectionState.done) {
+          if (_lastResolvedBytes != null) {
+            return _buildResolvedImage(_lastResolvedBytes!);
+          }
           return const Center(
             child: SizedBox(
               width: 28,
@@ -119,10 +133,7 @@ class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
             ),
           );
         }
-        return Image.memory(
-          s.data!,
-          fit: widget.fit,
-        );
+        return _buildResolvedImage(s.data!);
       },
     );
   }

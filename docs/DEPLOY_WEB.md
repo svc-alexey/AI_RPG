@@ -40,6 +40,12 @@ Use the project script:
 powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
 ```
 
+Важно: production web release теперь должен собираться через
+`tool\web_release_defines.nginx.json`, а `AI_PRG_ASSET_VERSION` должен
+принудительно совпадать с текущим `release_id`. Иначе `/version` видит клиент
+как устаревший и web начинает циклически просить обновление даже после
+успешного деплоя.
+
 For local browser preview, prefer the production-like bundle over a hot
 Flutter web-server session:
 
@@ -137,8 +143,14 @@ Flutter with `?handoff=...`, and Flutter finishes sign-in through
 - Keep `version.json` and backend `/version` synchronized to the same release id.
 - Keep the service worker enabled in production; do not strip
   `flutter_service_worker.js` from the bundle.
+- If the backend container was recreated in Docker, be ready to restart the
+  `web` container too; otherwise nginx may keep returning `502` to
+  `symmetry-api` even when the API is already healthy again.
 - If you terminate web traffic in nginx, also proxy `/health`, `/version`, and
   `/v1/` to the backend.
+- For `*.map` files, prefer `try_files $uri =404;` instead of SPA fallback to
+  `/index.html`; otherwise browser devtools may report fake source-map JSON
+  parse errors for `flutter.js.map`.
 - If Yandex login redirects back but sign-in does not finish, verify that:
   - Yandex is returning to `/v1/auth/yandex/callback`
   - the backend `SYMMETRY_YANDEX_REDIRECT_URI` matches that exact URL
@@ -153,6 +165,9 @@ Flutter with `?handoff=...`, and Flutter finishes sign-in through
   `build/web/assets/fonts/MaterialIcons-Regular.otf` are being served.
 - If the browser keeps serving stale assets, confirm the new `version.json`
   is live and that the service worker has picked up the fresh release.
+- If the browser still loops on "update required", verify not only
+  `version.json`, but also backend `/version` and the emitted
+  `AI_PRG_ASSET_VERSION`; all three must point to the same release.
 - If the web app loads but auth or gameplay fails, check the backend URL and
   browser CORS policy against the backend, not against model providers first.
 - If the browser reports a CORS error for a gameplay request, check backend
@@ -171,3 +186,31 @@ Flutter with `?handoff=...`, and Flutter finishes sign-in through
   `SYMMETRY_FEEDBACK_SMTP_PORT`, `SYMMETRY_FEEDBACK_SMTP_USERNAME`,
   `SYMMETRY_FEEDBACK_SMTP_PASSWORD`, `SYMMETRY_FEEDBACK_SMTP_USE_SSL`,
   `SYMMETRY_FEEDBACK_SMTP_USE_STARTTLS`.
+
+## Recent production fixes
+
+These fixes are already reflected in the current production code and are worth
+preserving in future deploys.
+
+### Settings and auth UX
+
+- Settings no longer claim "log in first" just because user-owned AI fields are
+  empty.
+- If a valid session exists, provider connectivity checks can fall back to the
+  server-managed credentials from backend `.env`.
+
+### Story generation resilience
+
+- Short and long campaign modes now use different output budgets.
+- Long campaigns keep more room for prologue, world context, and ongoing
+  narration.
+- The backend now retries when the provider signals truncation via
+  `finish_reason=length` or when completion tokens hit the configured ceiling.
+- The backend also tolerates non-ideal structured fields such as textual
+  `importance` or non-object `module_updates`.
+
+### Image rendering
+
+- Authenticated cover images on web were adjusted to reduce visible blinking
+  during reloads or token refreshes by keeping the previous image visible while
+  the refreshed bytes are loading.

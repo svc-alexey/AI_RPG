@@ -21,6 +21,7 @@ DEFAULT_APP_ROOT = "/home/alexeyko/ai-rpg/app"
 
 
 def parse_args() -> argparse.Namespace:
+    default_key = Path.home() / ".ssh" / "id_ed25519_ai_rpg"
     parser = argparse.ArgumentParser()
     parser.add_argument("--host-name", default=DEFAULT_HOST)
     parser.add_argument("--user", default=DEFAULT_USER)
@@ -29,6 +30,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--password",
         default=os.environ.get("AI_PRG_HOME_SERVER_PASSWORD", ""),
+    )
+    parser.add_argument(
+        "--key-file",
+        default=os.environ.get(
+            "AI_PRG_HOME_SERVER_KEY_FILE",
+            str(default_key) if default_key.exists() else "",
+        ),
     )
     parser.add_argument(
         "--build-web-dir",
@@ -93,9 +101,10 @@ def main() -> int:
     remote_upload_dir = posixpath.join(posixpath.dirname(args.app_root), "uploads")
     remote_archive_path = posixpath.join(remote_upload_dir, archive_path.name)
 
-    password = args.password or getpass.getpass(
-        f"SSH password for {args.user}@{args.host_name}: "
-    )
+    key_file = str(Path(args.key_file).expanduser().resolve()) if args.key_file else ""
+    password = args.password
+    if not password and not key_file:
+        password = getpass.getpass(f"SSH password for {args.user}@{args.host_name}: ")
 
     print(f"Connecting to {args.user}@{args.host_name} ...")
     client = paramiko.SSHClient()
@@ -103,7 +112,10 @@ def main() -> int:
     client.connect(
         args.host_name,
         username=args.user,
-        password=password,
+        password=password or None,
+        key_filename=key_file or None,
+        allow_agent=True,
+        look_for_keys=True,
         timeout=20,
     )
 

@@ -6,6 +6,41 @@
 - какие команды выполнить там один в один
 - готовый `nginx`-конфиг для VPS reverse proxy
 
+## 0. Текущий production snapshot
+
+На текущем этапе production работает не как прямой `nginx -> домашний сервер`,
+а как двухузловая схема:
+
+- публичный VPS принимает домены и HTTPS
+- домашний сервер держит Docker Compose стек приложения
+- доступ между ними идет через туннель / relay слой
+
+Актуальные production сервисы на домашнем сервере:
+
+- `symmetry-api`
+- `symmetry-worker`
+- `web`
+- `postgres`
+
+Актуальный рабочий путь проекта на домашнем сервере:
+
+```bash
+/home/alexeyko/ai-rpg/app
+```
+
+Публичный web origin:
+
+```text
+https://beyondtheverge.online
+```
+
+Важно:
+
+- production health-check идет через `https://beyondtheverge.online/health`
+- production version-check идет через `https://beyondtheverge.online/version`
+- после пересоздания backend-контейнера иногда нужно отдельно перезапускать
+  контейнер `web`, чтобы `nginx` заново подцепил upstream `symmetry-api`
+
 ## 1. Что переносить на домашний сервер
 
 Минимально нужны только эти файлы и папки:
@@ -282,6 +317,63 @@ curl http://api.example.com/health
 4. Создать кампанию
 5. Сделать 1-3 хода
 6. Проверить, что backend не падает и health остается `ok`
+
+### Актуальный production smoke test
+
+Для текущего production мало проверить только `health`. После каждого backend
+deploy нужно обязательно прогонять такой минимальный сценарий:
+
+1. `GET /health`
+2. `GET /version`
+3. `POST /v1/auth/guest`
+4. `POST /v1/campaigns`
+5. `POST /v1/campaigns/{id}/turns/process` с `triggerSource=intro`
+6. еще один `POST /v1/campaigns/{id}/turns/process` с обычным действием игрока
+
+Почему это важно:
+
+- часть недавних production-багов проявлялась только на первом или втором ходе
+- `health=ok` сам по себе не гарантирует, что LLM-генерация реально работает
+- web мог отвечать `502`, даже когда сам API-контейнер уже был `healthy`
+
+## 8.1. Зафиксированные production hotfix notes
+
+Ниже список исправлений, которые уже были нужны на production и которые важно
+учитывать при следующих деплоях.
+
+### Auth и роли
+
+- исправлен backend-баг, из-за которого `is_admin` мог приходить как `null`
+- пользователю `svc.alexey@gmail.com` выдан `is_admin=true` в production БД
+
+### Генерация и LLM runtime
+
+- backend стал устойчивее к ответам модели с нестрогим форматом
+- `importance` теперь принимает не только числа, но и текстовые уровни
+  (`low`, `medium`, `high`, `critical`)
+- `module_updates` теперь принимает не только объект, но и `list` / `string`
+- добавлен retry на случай обрезанного JSON от модели
+- retry теперь срабатывает не только на битом JSON, но и на
+  `finish_reason=length` или упоре в лимит токенов
+- бюджеты вывода разделены по режимам:
+  - `shortStory`: быстрые, но безопасные лимиты
+  - `longCampaign`: заметно более широкие лимиты для атмосферы и контекста
+
+### Web/runtime release
+
+- release web-сборки теперь обязан публиковаться с
+  `AI_PRG_ASSET_VERSION = release_id`
+- если этого не сделать, web-клиент может бесконечно просить обновление
+- backend `/version` и web bundle должны быть синхронизированы по одному
+  `release_id`
+
+### Reverse proxy / nginx
+
+- для `*.map` production nginx теперь должен отдавать `404`, а не `index.html`
+- иначе Firefox DevTools пытается распарсить HTML как source map и пишет
+  `JSON.parse ... flutter.js.map`
+- после backend recreate контейнер `web` может потребовать `docker compose restart web`
+  для обновления связи с upstream
 
 ## 9. Быстрый rollback
 
