@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -28,6 +29,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -274,6 +276,15 @@ class PendingConsequence(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class LiteraryGenre(Base):
+    __tablename__ = "literary_genres"
+
+    slug: Mapped[str] = mapped_column(String(80), primary_key=True)
+    title_en: Mapped[str] = mapped_column(String(160))
+    title_ru: Mapped[str] = mapped_column(String(160))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+
+
 class StoryTemplate(Base):
     __tablename__ = "story_templates"
 
@@ -283,7 +294,17 @@ class StoryTemplate(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     prompt_text: Mapped[str] = mapped_column(Text)
     setting: Mapped[str] = mapped_column(String(100), default="")
+    literary_genre_slug: Mapped[str | None] = mapped_column(
+        String(80),
+        ForeignKey("literary_genres.slug", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_master_curated: Mapped[bool] = mapped_column(Boolean, default=False)
+    cover_image_mime: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    cover_image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    cover_image_populated: Mapped[bool] = mapped_column(Boolean, default=False)
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

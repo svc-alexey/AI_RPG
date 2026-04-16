@@ -5,6 +5,7 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
+import 'package:ai_prg/src/features/story_library/presentation/story_library_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,6 +49,19 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
           ),
         ),
         title: Text(l10n.savedCampaigns),
+        actions: <Widget>[
+          IconButton(
+            tooltip: l10n.storyLibraryTitle,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (final _) => const StoryLibraryScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.public_rounded),
+          ),
+        ],
       ),
       body: AetherBackdrop(
         child: _isLoading

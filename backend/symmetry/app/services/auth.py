@@ -21,6 +21,15 @@ from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, TokenP
 from app.services.ids import new_id
 
 
+def user_response_from_models(*, user: User, display_name: str) -> UserResponse:
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        display_name=display_name,
+        is_admin=user.is_admin,
+    )
+
+
 class AuthService:
     def __init__(self) -> None:
         self._settings = get_settings()
@@ -53,7 +62,10 @@ class AuthService:
         session.add(tokens["session"])
         await session.commit()
         return AuthResponse(
-            user=UserResponse(id=user.id, email=user.email, display_name=profile.display_name),
+            user=user_response_from_models(
+                user=user,
+                display_name=profile.display_name,
+            ),
             tokens=tokens["response"],
         )
 
@@ -68,9 +80,8 @@ class AuthService:
         session.add(tokens["session"])
         await session.commit()
         return AuthResponse(
-            user=UserResponse(
-                id=user.id,
-                email=user.email,
+            user=user_response_from_models(
+                user=user,
                 display_name=profile.display_name if profile is not None else "",
             ),
             tokens=tokens["response"],
@@ -102,9 +113,8 @@ class AuthService:
         session.add(tokens["session"])
         await session.commit()
         return AuthResponse(
-            user=UserResponse(
-                id=user.id,
-                email=user.email,
+            user=user_response_from_models(
+                user=user,
                 display_name=profile.display_name,
             ),
             tokens=tokens["response"],
@@ -136,9 +146,8 @@ class AuthService:
         await session.commit()
         profile = await session.get(UserProfile, user.id)
         return AuthResponse(
-            user=UserResponse(
-                id=user.id,
-                email=user.email,
+            user=user_response_from_models(
+                user=user,
                 display_name=profile.display_name if profile is not None else "",
             ),
             tokens=tokens["response"],
@@ -245,9 +254,8 @@ class AuthService:
         await session.commit()
         profile = await session.get(UserProfile, user.id)
         return AuthResponse(
-            user=UserResponse(
-                id=user.id,
-                email=user.email,
+            user=user_response_from_models(
+                user=user,
                 display_name=profile.display_name if profile is not None else "",
             ),
             tokens=tokens["response"],

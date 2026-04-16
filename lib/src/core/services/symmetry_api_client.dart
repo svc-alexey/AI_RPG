@@ -4,15 +4,45 @@ import 'dart:developer' as developer;
 import 'package:ai_prg/src/core/config/symmetry_runtime_env.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/models/literary_genre_model.dart';
+import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+/// Symmetry mounts REST routes under `/v1`. If the user saved `http://127.0.0.1:8080`
+/// without the prefix, all API calls (including PUT …/cover) return 404.
+String normalizeSymmetryApiBaseUrl(String raw) {
+  final String trimmed = raw.trim();
+  if (trimmed.isEmpty) {
+    return SymmetryRuntimeEnv.defaultBaseUrl;
+  }
+  final String noTrailingSlash = trimmed.endsWith('/')
+      ? trimmed.substring(0, trimmed.length - 1)
+      : trimmed;
+  if (noTrailingSlash.endsWith('/v1')) {
+    return noTrailingSlash;
+  }
+  final Uri? u = Uri.tryParse(noTrailingSlash);
+  if (u == null || !u.hasScheme || u.host.isEmpty) {
+    return noTrailingSlash;
+  }
+  final bool loopback =
+      u.host == 'localhost' ||
+      u.host == '127.0.0.1' ||
+      u.host == '::1';
+  final bool pathEmptyOrRoot = u.path.isEmpty || u.path == '/';
+  if (loopback && pathEmptyOrRoot) {
+    return '$noTrailingSlash/v1';
+  }
+  return noTrailingSlash;
+}
+
 class SymmetryApiClient {
-  const SymmetryApiClient({
-    this.baseUrl = SymmetryRuntimeEnv.defaultBaseUrl,
+  SymmetryApiClient({
+    String baseUrl = SymmetryRuntimeEnv.defaultBaseUrl,
     this.httpClient,
-  });
+  }) : baseUrl = normalizeSymmetryApiBaseUrl(baseUrl);
 
   final String baseUrl;
   final http.Client? httpClient;
@@ -109,6 +139,24 @@ class SymmetryApiClient {
     await _post(
       '/auth/logout',
       body: <String, Object?>{'refresh_token': refreshToken},
+    );
+  }
+
+  Future<SymmetryUser> getCurrentUser({
+    required final String accessToken,
+  }) async {
+    final Object? decoded = await _get(
+      '/auth/me',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return SymmetryUser.fromJson(
+      decoded.map(
+        (final Object? key, final Object? value) =>
+            MapEntry(key.toString(), value),
+      ),
     );
   }
 
@@ -294,6 +342,188 @@ class SymmetryApiClient {
     return SymmetryTurnResponse.fromJson(response);
   }
 
+  Future<List<LiteraryGenreCatalogItem>> listLiteraryGenres({
+    required final String accessToken,
+  }) async {
+    final Object? decoded = await _get(
+      '/literary-genres',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => LiteraryGenreCatalogItem.fromJson(
+            item.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<List<StoryTemplate>> listStoryTemplates({
+    required final String accessToken,
+    final String? tag,
+    final String? genre,
+    final String sort = 'new',
+    final String scope = 'all',
+  }) async {
+    final List<String> queryParts = <String>[
+      'sort=${Uri.encodeQueryComponent(sort)}',
+      'scope=${Uri.encodeQueryComponent(scope)}',
+      if (tag != null && tag.trim().isNotEmpty)
+        'tag=${Uri.encodeQueryComponent(tag.trim())}',
+      if (genre != null && genre.trim().isNotEmpty)
+        'genre=${Uri.encodeQueryComponent(genre.trim())}',
+    ];
+    final Object? decoded = await _get(
+      '/story-templates?${queryParts.join('&')}',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => StoryTemplate.fromJson(
+            item.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<StoryTemplate> getStoryTemplate({
+    required final String accessToken,
+    required final String templateId,
+  }) async {
+    final Object? decoded = await _get(
+      '/story-templates/$templateId',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return StoryTemplate.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
+  }
+
+  Future<void> postStoryTemplateView({
+    required final String accessToken,
+    required final String templateId,
+  }) async {
+    await _post(
+      '/story-templates/$templateId/view',
+      bearerToken: accessToken,
+      body: const <String, Object?>{},
+    );
+  }
+
+  Future<void> postStoryTemplateLike({
+    required final String accessToken,
+    required final String templateId,
+  }) async {
+    await _post(
+      '/story-templates/$templateId/like',
+      bearerToken: accessToken,
+      body: const <String, Object?>{},
+    );
+  }
+
+  Future<List<StoryTemplate>> adminListStoryTemplates({
+    required final String accessToken,
+    final String? tag,
+    final String? genre,
+    final String sort = 'new',
+  }) async {
+    final List<String> queryParts = <String>[
+      'sort=${Uri.encodeQueryComponent(sort)}',
+      if (tag != null && tag.trim().isNotEmpty)
+        'tag=${Uri.encodeQueryComponent(tag.trim())}',
+      if (genre != null && genre.trim().isNotEmpty)
+        'genre=${Uri.encodeQueryComponent(genre.trim())}',
+    ];
+    final String q = queryParts.isEmpty ? '' : '?${queryParts.join('&')}';
+    final Object? decoded = await _get(
+      '/admin/story-templates$q',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => StoryTemplate.fromJson(
+            item.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<StoryTemplate> adminUpsertStoryTemplate({
+    required final String accessToken,
+    required final Map<String, Object?> body,
+    final String? templateId,
+  }) async {
+    if (templateId != null && templateId.trim().isNotEmpty) {
+      final Map<String, Object?> response = await _patch(
+        '/admin/story-templates/${templateId.trim()}',
+        bearerToken: accessToken,
+        body: body,
+      );
+      return StoryTemplate.fromJson(response);
+    }
+    final Map<String, Object?> response = await _post(
+      '/admin/story-templates',
+      bearerToken: accessToken,
+      body: body,
+    );
+    return StoryTemplate.fromJson(response);
+  }
+
+  Future<void> adminDeleteStoryTemplate({
+    required final String accessToken,
+    required final String templateId,
+  }) async {
+    await _delete(
+      '/admin/story-templates/${templateId.trim()}',
+      bearerToken: accessToken,
+    );
+  }
+
+  Future<void> adminPutStoryTemplateCoverRaw({
+    required final String accessToken,
+    required final String templateId,
+    required final List<int> bytes,
+    required final String contentType,
+  }) async {
+    await _putBytes(
+      '/admin/story-templates/${templateId.trim()}/cover',
+      body: bytes,
+      contentType: contentType,
+      bearerToken: accessToken,
+    );
+  }
+
+  Future<void> adminDeleteStoryTemplateCover({
+    required final String accessToken,
+    required final String templateId,
+  }) async {
+    await _delete(
+      '/admin/story-templates/${templateId.trim()}/cover',
+      bearerToken: accessToken,
+    );
+  }
+
   Future<Map<String, Object?>> _post(
     final String path, {
     required final Map<String, Object?> body,
@@ -340,6 +570,113 @@ class SymmetryApiClient {
     } catch (error) {
       _logDev('error', <String, Object?>{
         'method': 'POST',
+        'url': url,
+        'error': error.toString(),
+      });
+      rethrow;
+    } finally {
+      if (httpClient == null) {
+        client.close();
+      }
+    }
+  }
+
+  Future<Map<String, Object?>> _patch(
+    final String path, {
+    required final Map<String, Object?> body,
+    final String? bearerToken,
+  }) async {
+    final http.Client client = httpClient ?? http.Client();
+    final String url = _join(path);
+    _logDev('request', <String, Object?>{
+      'method': 'PATCH',
+      'url': url,
+      'hasBearerToken': bearerToken != null && bearerToken.trim().isNotEmpty,
+      'body': _redactBody(body),
+    });
+    try {
+      final http.Response response = await client.patch(
+        Uri.parse(url),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          if (bearerToken != null && bearerToken.trim().isNotEmpty)
+            'Authorization': 'Bearer $bearerToken',
+        },
+        body: jsonEncode(body),
+      );
+      final Object? decoded = _tryDecode(response.body);
+      _logDev('response', <String, Object?>{
+        'method': 'PATCH',
+        'url': url,
+        'statusCode': response.statusCode,
+        'body': _redactDecoded(decoded),
+      });
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw _buildException(
+          response: response,
+          decoded: decoded,
+          fallbackMessage: 'symmetry_request_failed_${response.statusCode}',
+        );
+      }
+      if (decoded is Map<Object?, Object?>) {
+        return decoded.map(
+          (final key, final value) => MapEntry(key.toString(), value),
+        );
+      }
+      throw const SymmetryApiException(message: 'symmetry_invalid_response');
+    } catch (error) {
+      _logDev('error', <String, Object?>{
+        'method': 'PATCH',
+        'url': url,
+        'error': error.toString(),
+      });
+      rethrow;
+    } finally {
+      if (httpClient == null) {
+        client.close();
+      }
+    }
+  }
+
+  Future<void> _putBytes(
+    final String path, {
+    required final List<int> body,
+    required final String contentType,
+    final String? bearerToken,
+  }) async {
+    final http.Client client = httpClient ?? http.Client();
+    final String url = _join(path);
+    _logDev('request', <String, Object?>{
+      'method': 'PUT',
+      'url': url,
+      'hasBearerToken': bearerToken != null && bearerToken.trim().isNotEmpty,
+      'body': 'bytes(${body.length})',
+    });
+    try {
+      final http.Response response = await client.put(
+        Uri.parse(url),
+        headers: <String, String>{
+          'Content-Type': contentType,
+          if (bearerToken != null && bearerToken.trim().isNotEmpty)
+            'Authorization': 'Bearer $bearerToken',
+        },
+        body: body,
+      );
+      _logDev('response', <String, Object?>{
+        'method': 'PUT',
+        'url': url,
+        'statusCode': response.statusCode,
+      });
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw _buildException(
+          response: response,
+          decoded: _tryDecode(response.body),
+          fallbackMessage: 'symmetry_request_failed_${response.statusCode}',
+        );
+      }
+    } catch (error) {
+      _logDev('error', <String, Object?>{
+        'method': 'PUT',
         'url': url,
         'error': error.toString(),
       });

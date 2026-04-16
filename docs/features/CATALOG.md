@@ -77,3 +77,5 @@
 - follow-up:
   - production rollout hardening
   - живая проверка Yandex OAuth
+- библиотека миров / обложки шаблонов (реализация): см. раздел **Story library** в
+  [symmetry-hybrid-backend/03-Implementation.md](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/03-Implementation.md)

@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
@@ -11,13 +12,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class NewGameScreen extends ConsumerStatefulWidget {
-  const NewGameScreen({super.key});
+  const NewGameScreen({super.key, this.storyTemplateId});
+
+  /// When set, loads the template from Symmetry and prefills quick start.
+  final String? storyTemplateId;
 
   @override
   ConsumerState<NewGameScreen> createState() => _NewGameScreenState();
 }
 
 class _NewGameScreenState extends ConsumerState<NewGameScreen> {
+  bool _didApplyStoryTemplate = false;
   final TextEditingController _heroController = TextEditingController();
   final TextEditingController _storyPromptController = TextEditingController();
   final TextEditingController _characterPromptController =
@@ -26,6 +31,37 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
 
   NewGameController get _controller =>
       ref.read(newGameControllerProvider.notifier);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final String? id = widget.storyTemplateId;
+    if (id == null || id.trim().isEmpty || _didApplyStoryTemplate) {
+      return;
+    }
+    _didApplyStoryTemplate = true;
+    final String templateId = id.trim();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final template = await ref
+            .read(storyLibraryRepositoryProvider)
+            .loadTemplate(templateId);
+        if (!mounted) {
+          return;
+        }
+        ref.read(newGameControllerProvider.notifier).applyStoryTemplate(template);
+      } catch (_) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(context.l10n.storyLibraryLoadFailed)),
+          );
+      }
+    });
+  }
 
   @override
   void dispose() {

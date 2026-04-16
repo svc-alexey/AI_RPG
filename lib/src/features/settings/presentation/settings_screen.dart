@@ -7,6 +7,7 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
+import 'package:ai_prg/src/features/story_admin/presentation/story_admin_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -240,6 +241,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ],
                               ),
                             ),
+                          ),
+                          sessionState.maybeWhen(
+                            data: (final SymmetrySession? session) {
+                              final bool showAdmin =
+                                  session != null &&
+                                  !session.isGuest &&
+                                  session.user.isAdmin;
+                              if (!showAdmin) {
+                                return const SizedBox.shrink();
+                              }
+                              return Column(
+                                children: <Widget>[
+                                  SizedBox(height: responsive.sectionSpacing),
+                                  _SettingsSection(
+                                    title: l10n.storyAdminTitle,
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: const Icon(
+                                        Icons.library_books_outlined,
+                                      ),
+                                      title: Text(l10n.storyAdminTitle),
+                                      subtitle: Text(
+                                        l10n.storyAdminMenuSubtitle,
+                                      ),
+                                      trailing: const Icon(
+                                        Icons.chevron_right_rounded,
+                                      ),
+                                      onTap: () {
+                                        Navigator.of(context).push<void>(
+                                          MaterialPageRoute<void>(
+                                            builder: (final BuildContext ctx) =>
+                                                const StoryAdminScreen(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                            orElse: () => const SizedBox.shrink(),
                           ),
                           SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(

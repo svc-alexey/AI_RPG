@@ -1,3 +1,4 @@
 {
-  "AI_PRG_SYMMETRY_BASE_URL": "/v1"
+  "AI_PRG_SYMMETRY_BASE_URL": "http://127.0.0.1:8080/v1",
+  "AI_PRG_ASSET_VERSION": "dev-local"
 }

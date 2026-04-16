@@ -5,6 +5,7 @@ import 'package:ai_prg/src/core/data/character_templates.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
@@ -178,6 +179,21 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   void setModeSelection() {
     state = state.copyWith(mode: NewGameWizardMode.modeSelection);
+  }
+
+  void applyStoryTemplate(final StoryTemplate template) {
+    setSetting(parseCampaignSetting(template.setting));
+    setStoryInput(template.promptText);
+    final String objective = template.summary.trim().isNotEmpty
+        ? template.summary.trim()
+        : template.title;
+    state = state.copyWith(
+      campaignTitleHint: template.title,
+      objectiveHint: objective,
+      formRevision: state.formRevision + 1,
+    );
+    _refreshPlannedModules();
+    setQuickStartMode();
   }
 
   void setQuickStartMode() {

@@ -13,7 +13,10 @@ This file defines the stable project context for SpecKit and feature packets:
 
 AI_PRG is a narrative RPG with a Flutter client and the server-authoritative
 `Symmetry` backend. Campaigns, world state, turn history, auth, vector memory,
-and story-template APIs live on the backend. The Flutter client handles UI,
+and story-template APIs live on the backend. Story-template cover images are
+stored server-side (BYTEA); client docs for library/cover behavior live under
+`docs/features/symmetry-hybrid-backend/03-Implementation.md` (section **Story library**).
+The Flutter client handles UI,
 auth UX, local session/settings, and optional user-owned provider credentials
 that are passed transiently to the backend and never stored there.
 

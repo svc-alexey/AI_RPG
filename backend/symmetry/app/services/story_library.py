@@ -1,16 +1,23 @@
 from collections import defaultdict
+from datetime import UTC, datetime
 
+from fastapi import HTTPException, status
 from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from app.db.models import (
+    LiteraryGenre,
     StoryTemplate,
     StoryTemplateBookmark,
     StoryTemplateLike,
     StoryTemplateTag,
     StoryTemplateTagLink,
     StoryTemplateView,
+    User,
+    UserProfile,
 )
+from app.core.config import get_settings
 from app.schemas.stories import StoryTemplateResponse, StoryTemplateUpsertRequest
 from app.services.ids import new_id
 
@@ -22,11 +29,19 @@ class StoryLibraryService:
         *,
         user_id: str,
         tag: str | None,
+        genre: str | None,
         sort: str,
+        scope: str = "all",
     ) -> list[StoryTemplateResponse]:
-        stmt: Select = select(StoryTemplate).where(
-            (StoryTemplate.author_user_id == user_id) | (StoryTemplate.is_public.is_(True))
+        stmt: Select = select(StoryTemplate).options(
+            defer(StoryTemplate.cover_image_data),
         )
+        if scope == "master":
+            stmt = stmt.where(StoryTemplate.is_master_curated.is_(True))
+        elif scope == "community":
+            stmt = stmt.where(StoryTemplate.is_master_curated.is_(False))
+        if genre and genre.strip():
+            stmt = stmt.where(StoryTemplate.literary_genre_slug == genre.strip())
         if tag:
             stmt = stmt.join(
                 StoryTemplateTagLink,
@@ -40,13 +55,41 @@ class StoryLibraryService:
         templates = list(result.scalars().all())
         return await self._serialize_many(session, templates, user_id=user_id, sort=sort)
 
+    async def list_all_templates(
+        self,
+        session: AsyncSession,
+        *,
+        user_id: str,
+        tag: str | None,
+        genre: str | None,
+        sort: str,
+    ) -> list[StoryTemplateResponse]:
+        stmt: Select = select(StoryTemplate).options(
+            defer(StoryTemplate.cover_image_data),
+        )
+        if genre and genre.strip():
+            stmt = stmt.where(StoryTemplate.literary_genre_slug == genre.strip())
+        if tag:
+            stmt = stmt.join(
+                StoryTemplateTagLink,
+                StoryTemplateTagLink.story_template_id == StoryTemplate.id,
+            ).join(
+                StoryTemplateTag,
+                StoryTemplateTag.id == StoryTemplateTagLink.tag_id,
+            ).where(StoryTemplateTag.slug == tag)
+        result = await session.execute(stmt)
+        templates = list(result.scalars().all())
+        return await self._serialize_many(session, templates, user_id=user_id, sort=sort)
+
     async def get_template(
         self, session: AsyncSession, *, template_id: str, user_id: str
     ) -> StoryTemplateResponse | None:
-        template = await session.get(StoryTemplate, template_id)
+        template = await session.get(
+            StoryTemplate,
+            template_id,
+            options=[defer(StoryTemplate.cover_image_data)],
+        )
         if template is None:
-            return None
-        if template.author_user_id != user_id and not template.is_public:
             return None
         items = await self._serialize_many(session, [template], user_id=user_id, sort="new")
         return items[0]
@@ -66,7 +109,9 @@ class StoryLibraryService:
             summary=payload.summary.strip(),
             prompt_text=payload.prompt_text.strip(),
             setting=payload.setting.strip(),
+            literary_genre_slug=None,
             is_public=payload.is_public,
+            is_master_curated=False,
             metadata_json=payload.metadata,
         )
         template.title = payload.title.strip()
@@ -75,6 +120,7 @@ class StoryLibraryService:
         template.setting = payload.setting.strip()
         template.is_public = payload.is_public
         template.metadata_json = payload.metadata
+        await self._apply_literary_genre_slug(session, template, payload.literary_genre_slug)
         session.add(template)
         await session.flush()
         await session.execute(
@@ -100,7 +146,73 @@ class StoryLibraryService:
                     tag_id=tag_row.id,
                 )
             )
+        if payload.is_master_curated is not None:
+            template.is_master_curated = payload.is_master_curated
         return template
+
+    async def _apply_literary_genre_slug(
+        self,
+        session: AsyncSession,
+        template: StoryTemplate,
+        raw_slug: str | None,
+    ) -> None:
+        if raw_slug is None or not str(raw_slug).strip():
+            template.literary_genre_slug = None
+            return
+        slug = str(raw_slug).strip()
+        genre_row = await session.get(LiteraryGenre, slug)
+        if genre_row is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="invalid_literary_genre_slug",
+            )
+        template.literary_genre_slug = slug
+
+    async def delete_template(self, session: AsyncSession, *, template_id: str) -> bool:
+        result = await session.execute(
+            delete(StoryTemplate).where(StoryTemplate.id == template_id)
+        )
+        return (result.rowcount or 0) > 0
+
+    async def set_template_cover(
+        self,
+        session: AsyncSession,
+        *,
+        template_id: str,
+        data: bytes,
+        mime: str,
+    ) -> None:
+        tid = template_id.strip()
+        template = await session.get(StoryTemplate, tid)
+        if template is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="story_template_not_found",
+            )
+        md = dict(template.metadata_json or {})
+        md.pop("cover_image_url", None)
+        template.metadata_json = md
+        template.cover_image_data = data
+        template.cover_image_mime = (
+            (mime or "").strip().lower()[:128] or "application/octet-stream"
+        )
+        template.cover_image_populated = True
+        template.updated_at = datetime.now(UTC)
+
+    async def clear_template_cover(
+        self, session: AsyncSession, *, template_id: str
+    ) -> None:
+        tid = template_id.strip()
+        template = await session.get(StoryTemplate, tid)
+        if template is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="story_template_not_found",
+            )
+        template.cover_image_data = None
+        template.cover_image_mime = None
+        template.cover_image_populated = False
+        template.updated_at = datetime.now(UTC)
 
     async def toggle_like(
         self, session: AsyncSession, *, template_id: str, user_id: str
@@ -196,6 +308,25 @@ class StoryLibraryService:
         views = {story_id: count for story_id, count in view_rows.all()}
         bookmarked = {story_id for (story_id,) in bookmark_rows.all()}
 
+        settings = get_settings()
+        api_prefix = settings.api_prefix
+        author_ids = list({item.author_user_id for item in templates})
+        author_labels: dict[str, str | None] = {aid: None for aid in author_ids}
+        if author_ids:
+            user_rows = await session.execute(
+                select(User.id, User.email).where(User.id.in_(author_ids))
+            )
+            emails = {row[0]: row[1] for row in user_rows.all()}
+            profile_rows = await session.execute(
+                select(UserProfile.user_id, UserProfile.display_name).where(
+                    UserProfile.user_id.in_(author_ids)
+                )
+            )
+            display = {row[0]: (row[1] or "").strip() for row in profile_rows.all()}
+            for aid in author_ids:
+                name = display.get(aid, "")
+                author_labels[aid] = name if name else emails.get(aid)
+
         responses = [
             StoryTemplateResponse(
                 id=item.id,
@@ -203,7 +334,16 @@ class StoryLibraryService:
                 summary=item.summary,
                 prompt_text=item.prompt_text,
                 setting=item.setting,
+                literary_genre_slug=item.literary_genre_slug,
+                cover_image_href=(
+                    f"{api_prefix}/story-templates/{item.id}/cover"
+                    if item.cover_image_populated
+                    else None
+                ),
                 is_public=item.is_public,
+                is_master_curated=item.is_master_curated,
+                metadata=dict(item.metadata_json or {}),
+                author_display_name=author_labels.get(item.author_user_id),
                 tags=sorted(tags_by_story[item.id]),
                 likes=int(likes.get(item.id, 0)),
                 views=int(views.get(item.id, 0)),

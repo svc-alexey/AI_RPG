@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
+import 'package:ai_prg/src/app/app_route_observer.dart';
 import 'package:ai_prg/src/app/hide_loader_web.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/app/theme.dart';
 import 'package:ai_prg/src/core/data/isar/app_database.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
+import 'package:ai_prg/src/core/repositories/story_library_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
@@ -48,6 +50,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
   late final SettingsRepository _settingsRepository;
   late final SymmetryAuthRepository _symmetryAuthRepository;
   late final SymmetryCampaignRepository _symmetryCampaignRepository;
+  late final StoryLibraryRepository _storyLibraryRepository;
   late final AiServiceFactory _aiServiceFactory;
   late final GameEngine _gameEngine;
   late final PortraitStorage _portraitStorage;
@@ -67,6 +70,9 @@ class _AiRpgAppState extends State<AiRpgApp> {
       settingsRepository: _settingsRepository,
     );
     _symmetryCampaignRepository = SymmetryCampaignRepository(
+      authRepository: _symmetryAuthRepository,
+    );
+    _storyLibraryRepository = StoryLibraryRepository(
       authRepository: _symmetryAuthRepository,
     );
     _aiServiceFactory = widget.aiServiceFactory ?? const AiServiceFactory();
@@ -159,6 +165,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
         settingsRepository: _settingsRepository,
         symmetryAuthRepository: _symmetryAuthRepository,
         symmetryCampaignRepository: _symmetryCampaignRepository,
+        storyLibraryRepository: _storyLibraryRepository,
         aiServiceFactory: _aiServiceFactory,
         gameEngine: _gameEngine,
         portraitStorage: _portraitStorage,
@@ -173,6 +180,7 @@ class _AiRpgAppState extends State<AiRpgApp> {
             child: MaterialApp(
               title: l10n.appTitle,
               debugShowCheckedModeBanner: false,
+              navigatorObservers: <NavigatorObserver>[appRouteObserver],
               theme: buildAppTheme(),
               builder: (final context, final child) => Theme(
                 data: adaptThemeForContext(context, Theme.of(context)),

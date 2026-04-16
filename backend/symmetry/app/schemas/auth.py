@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
     id: str
     email: EmailStr
     display_name: str = ""
+    is_admin: bool = False
 
 
 class AuthResponse(BaseModel):

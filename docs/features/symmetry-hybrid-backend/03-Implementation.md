@@ -52,3 +52,54 @@
   directories
 - [x] Keep web release artifacts (`version.json`, service worker, SEO files)
   aligned with backend release metadata
+
+## Story library — шаблоны миров и обложки
+
+Зафиксировано состояние на 2026-04: библиотека миров (`/v1/story-templates`),
+обложки в БД, клиентский UX для Web.
+
+### Backend (`backend/symmetry`)
+
+- Обложка хранится в PostgreSQL: `cover_image_data` (BYTEA), `cover_image_mime`,
+  флаг `cover_image_populated`; миграция `20260417_000009` (и далее по цепочке
+  Alembic).
+- В ответах каталога и карточки: `cover_image_href` вида
+  `{api_prefix}/story-templates/{id}/cover` при `cover_image_populated` (префикс
+  API — `/v1`).
+- Маршруты: `GET /v1/story-templates/{id}/cover` (требуется Bearer, любой
+  валидный пользователь, включая guest); админ: `PUT`/`DELETE`
+  `/v1/admin/story-templates/{id}/cover`.
+- При загрузке/снятии обложки обновляется `story_templates.updated_at` для
+  cache-busting на клиенте.
+- Список/карточка шаблонов доступны авторизованным пользователям согласно
+  правилам каталога (master/community и т.д.).
+
+### Flutter (`lib/src/...`)
+
+- `SymmetryApiClient`: базовый URL нормализуется до `.../v1` для loopback без
+  пути (`normalizeSymmetryApiBaseUrl`).
+- `StoryTemplate.resolveCoverDisplayUrl`: склейка `symmetryBaseUrl` + `href`
+  без дублирования `/v1` (если база уже `…/v1`, а `href` начинается с
+  `/v1/…`, лишний префикс отбрасывается).
+- Обложки с API: виджет `AuthenticatedCoverImage` — на **Web** `Image.network`
+  не передаёт `Authorization`; загрузка байтов через `http` + `Image.memory`.
+- `symmetrySessionProvider`: при отсутствии сессии на диске вызывается
+  `ensureSession()` (guest), чтобы до первого логина были `baseUrl` и токен для
+  запросов обложек.
+- Библиотека: `RouteAware` + `didPopNext` — тихая перезагрузка списка при возврате
+  с админки/деталей; к URL обложки добавляется `?v=<updatedAt ms>` против кэша
+  браузера.
+- Токен для `GET …/cover` передаётся и для **guest**-сессии (не только для
+  «полного» логина).
+
+### Ключевые файлы
+
+| Назначение | Путь |
+|------------|------|
+| Клиент API | `lib/src/core/services/symmetry_api_client.dart` |
+| Модель шаблона | `lib/src/core/models/story_template_model.dart` |
+| Обложка с Bearer (Web) | `lib/src/features/story_library/presentation/widgets/authenticated_cover_image.dart` |
+| Провайдер сессии | `lib/src/app/app_providers.dart` (`symmetrySessionProvider`) |
+| Route observer | `lib/src/app/app_route_observer.dart` |
+| Сервис библиотеки | `backend/symmetry/app/services/story_library.py` |
+| GET cover | `backend/symmetry/app/api/routes/stories.py` |

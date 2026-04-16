@@ -14,7 +14,10 @@ Feature packet for the server-first `Symmetry` platform layer.
 - added DB-backed butterfly simulation, dedicated worker processing, and
   world-rumor delivery for off-screen world events;
 - added transient user-provider credential support without server-side storage;
-- migrated Flutter runtime flow away from local campaign persistence.
+- migrated Flutter runtime flow away from local campaign persistence;
+- библиотека миров: обложки шаблонов в БД, маршруты cover, клиент (Web + guest
+  session + дедуп `/v1` в URL) — см. раздел **Story library** в
+  [03-Implementation.md](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/03-Implementation.md).
 
 ## Documents
 

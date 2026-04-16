@@ -1,6 +1,7 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
+import 'package:ai_prg/src/core/repositories/story_library_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/update_repository.dart';
@@ -29,6 +30,13 @@ final Provider<SymmetryCampaignRepository> symmetryCampaignRepositoryProvider =
     Provider<SymmetryCampaignRepository>((final ref) {
       throw UnimplementedError(
         'symmetryCampaignRepositoryProvider was not overridden.',
+      );
+    });
+
+final Provider<StoryLibraryRepository> storyLibraryRepositoryProvider =
+    Provider<StoryLibraryRepository>((final ref) {
+      throw UnimplementedError(
+        'storyLibraryRepositoryProvider was not overridden.',
       );
     });
 
@@ -74,7 +82,12 @@ final FutureProvider<SymmetrySession?> symmetrySessionProvider =
       final SymmetryAuthRepository repository = ref.read(
         symmetryAuthRepositoryProvider,
       );
-      return repository.loadSession();
+      final SymmetrySession? loaded =
+          await repository.loadSessionWithSyncedProfile();
+      if (loaded != null) {
+        return loaded;
+      }
+      return repository.ensureSession();
     });
 
 List<Override> buildAppProviderOverrides({
@@ -85,6 +98,7 @@ List<Override> buildAppProviderOverrides({
   required final ValueNotifier<AppLanguage> appLanguageListenable,
   final SymmetryAuthRepository? symmetryAuthRepository,
   final SymmetryCampaignRepository? symmetryCampaignRepository,
+  final StoryLibraryRepository? storyLibraryRepository,
 }) {
   final SymmetryAuthRepository resolvedAuthRepository =
       symmetryAuthRepository ??
@@ -94,11 +108,17 @@ List<Override> buildAppProviderOverrides({
   final SymmetryCampaignRepository resolvedCampaignRepository =
       symmetryCampaignRepository ??
       SymmetryCampaignRepository(authRepository: resolvedAuthRepository);
+  final StoryLibraryRepository resolvedStoryLibraryRepository =
+      storyLibraryRepository ??
+      StoryLibraryRepository(authRepository: resolvedAuthRepository);
   return <Override>[
     settingsRepositoryProvider.overrideWithValue(settingsRepository),
     symmetryAuthRepositoryProvider.overrideWithValue(resolvedAuthRepository),
     symmetryCampaignRepositoryProvider.overrideWithValue(
       resolvedCampaignRepository,
+    ),
+    storyLibraryRepositoryProvider.overrideWithValue(
+      resolvedStoryLibraryRepository,
     ),
     aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
     gameEngineProvider.overrideWithValue(gameEngine),

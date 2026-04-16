@@ -7,6 +7,7 @@ import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
+import 'package:ai_prg/src/features/story_library/presentation/story_library_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -190,6 +191,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 context,
                                 ref,
                                 const NewGameScreen(),
+                              ),
+                              onStoryLibrary: () => _openProtectedScreen(
+                                context,
+                                ref,
+                                const StoryLibraryScreen(),
                               ),
                               onContinue: () => _openProtectedScreen(
                                 context,
@@ -454,6 +460,7 @@ class _HomeBentoRow extends StatelessWidget {
     required this.responsive,
     required this.sessionState,
     required this.onNewGame,
+    required this.onStoryLibrary,
     required this.onContinue,
     required this.onAccountAction,
   });
@@ -463,22 +470,36 @@ class _HomeBentoRow extends StatelessWidget {
   final AppResponsiveData responsive;
   final AsyncValue<SymmetrySession?> sessionState;
   final VoidCallback onNewGame;
+  final VoidCallback onStoryLibrary;
   final VoidCallback onContinue;
   final Future<void> Function(SymmetrySession? session) onAccountAction;
 
   @override
   Widget build(final BuildContext context) {
+    final double stackGap = responsive.sectionSpacing - 2;
     if (responsive.isWide) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Expanded(
             flex: 2,
-            child: _HomeBentoPrimaryCard(
-              l10n: l10n,
-              theme: theme,
-              responsive: responsive,
-              onPressed: onNewGame,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _HomeBentoPrimaryCard(
+                  l10n: l10n,
+                  theme: theme,
+                  responsive: responsive,
+                  onPressed: onNewGame,
+                ),
+                SizedBox(height: stackGap),
+                _HomeStoryLibraryCard(
+                  l10n: l10n,
+                  theme: theme,
+                  responsive: responsive,
+                  onPressed: onStoryLibrary,
+                ),
+              ],
             ),
           ),
           SizedBox(width: responsive.sectionSpacing + 4),
@@ -492,7 +513,7 @@ class _HomeBentoRow extends StatelessWidget {
                   responsive: responsive,
                   onPressed: onContinue,
                 ),
-                SizedBox(height: responsive.sectionSpacing - 2),
+                SizedBox(height: stackGap),
                 _HomeLoginButton(
                   l10n: l10n,
                   theme: theme,
@@ -515,6 +536,13 @@ class _HomeBentoRow extends StatelessWidget {
           responsive: responsive,
           onPressed: onNewGame,
         ),
+        SizedBox(height: stackGap),
+        _HomeStoryLibraryCard(
+          l10n: l10n,
+          theme: theme,
+          responsive: responsive,
+          onPressed: onStoryLibrary,
+        ),
         SizedBox(height: responsive.sectionSpacing + 4),
         _HomeBentoSecondaryCard(
           l10n: l10n,
@@ -522,7 +550,7 @@ class _HomeBentoRow extends StatelessWidget {
           responsive: responsive,
           onPressed: onContinue,
         ),
-        SizedBox(height: responsive.sectionSpacing - 2),
+        SizedBox(height: stackGap),
         _HomeLoginButton(
           l10n: l10n,
           theme: theme,
@@ -749,6 +777,157 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
                       ),
                     ],
                   ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeStoryLibraryCard extends StatefulWidget {
+  const _HomeStoryLibraryCard({
+    required this.l10n,
+    required this.theme,
+    required this.responsive,
+    required this.onPressed,
+  });
+
+  final AppLocalizations l10n;
+  final ThemeData theme;
+  final AppResponsiveData responsive;
+  final VoidCallback onPressed;
+
+  @override
+  State<_HomeStoryLibraryCard> createState() => _HomeStoryLibraryCardState();
+}
+
+class _HomeStoryLibraryCardState extends State<_HomeStoryLibraryCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _hoverCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+    reverseDuration: const Duration(milliseconds: 320),
+  );
+  late final Animation<double> _hoverT = CurvedAnimation(
+    parent: _hoverCtrl,
+    curve: Curves.easeOutCubic,
+    reverseCurve: Curves.easeInCubic,
+  );
+
+  @override
+  void dispose() {
+    _hoverCtrl.dispose();
+    super.dispose();
+  }
+
+  void _setHover(final bool hovering) {
+    if (hovering) {
+      _hoverCtrl.forward();
+    } else {
+      _hoverCtrl.reverse();
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final BorderRadius radius = BorderRadius.circular(16);
+    final EdgeInsets pad = EdgeInsets.all(
+      widget.responsive.isCompact ? 20 : 24,
+    );
+    return MouseRegion(
+      onEnter: (_) => _setHover(true),
+      onExit: (_) => _setHover(false),
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _hoverT,
+            builder: (context, _) {
+              final double t = _hoverT.value;
+              final Color bg = Color.lerp(
+                AetherPalette.backgroundElevated,
+                AetherPalette.backgroundTop,
+                t,
+              )!;
+              final Color borderC = Color.lerp(
+                AetherPalette.panelBorderSolid,
+                AetherPalette.accent.withValues(alpha: 0.28),
+                t,
+              )!;
+              final Color iconBg = Color.lerp(
+                AetherPalette.panelSoft,
+                AetherPalette.accent.withValues(alpha: 0.12),
+                t,
+              )!;
+              final Color iconFg = Color.lerp(
+                AetherPalette.textMuted,
+                AetherPalette.accentHover,
+                t,
+              )!;
+              return Container(
+                padding: pad,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: radius,
+                  border: Border.all(color: borderC),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SizedBox(
+                      height: 42,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: <Widget>[
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: iconBg,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Icon(
+                                Icons.public_rounded,
+                                color: iconFg,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Color.lerp(
+                              AetherPalette.textMuted,
+                              AetherPalette.accent,
+                              t,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: widget.responsive.isCompact ? 14 : 16,
+                    ),
+                    Text(
+                      widget.l10n.homeStoryLibraryTitle,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: AetherPalette.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.l10n.homeStoryLibrarySubtitle,
+                      style: widget.theme.textTheme.bodySmall?.copyWith(
+                        color: AetherPalette.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

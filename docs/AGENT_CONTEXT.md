@@ -67,6 +67,17 @@
 5. UI-задача не считается завершённой, если она сделана только для одного из
    языков `ru/en`.
 
+## Библиотека миров (story templates)
+
+- Шаблоны и обложки обслуживает Symmetry: список/карточка `GET /v1/story-templates`,
+  байты обложки `GET /v1/story-templates/{id}/cover` (Bearer, в т.ч. guest).
+- Клиент: обложка на Web грузится через `AuthenticatedCoverImage` (не полагаться
+  на `Image.network` + заголовки); `symmetrySessionProvider` при пустом диске
+  вызывает `ensureSession()`; склейка URL без `/v1/v1/`.
+- Подробности и пути к файлам:
+  [docs/features/symmetry-hybrid-backend/03-Implementation.md](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/03-Implementation.md)
+  (раздел **Story library**).
+
 ## Реестр важных фич
 
 | Slug | Статус | Где смотреть |

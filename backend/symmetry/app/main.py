@@ -7,7 +7,17 @@ import re
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, campaigns, dev, feedback, prompts, providers, stories
+from app.api.routes import (
+    auth,
+    campaigns,
+    dev,
+    feedback,
+    literary_genres,
+    prompts,
+    providers,
+    stories,
+    story_admin,
+)
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.init_db import init_db
@@ -108,9 +118,11 @@ app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(campaigns.router, prefix=settings.api_prefix)
 app.include_router(dev.router, prefix=settings.api_prefix)
 app.include_router(feedback.router, prefix=settings.api_prefix)
+app.include_router(literary_genres.router, prefix=settings.api_prefix)
 app.include_router(prompts.router, prefix=settings.api_prefix)
 app.include_router(providers.router, prefix=settings.api_prefix)
 app.include_router(stories.router, prefix=settings.api_prefix)
+app.include_router(story_admin.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")

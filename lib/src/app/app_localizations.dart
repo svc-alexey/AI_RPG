@@ -713,6 +713,246 @@ class AppLocalizations {
     AppLanguage.en => 'Saved Campaigns',
   };
 
+  String get storyLibraryTitle => switch (language) {
+    AppLanguage.ru => 'Библиотека миров',
+    AppLanguage.en => 'World library',
+  };
+
+  String get storyLibraryTabMaster => switch (language) {
+    AppLanguage.ru => 'Миры от мастера',
+    AppLanguage.en => 'Master worlds',
+  };
+
+  String get storyLibraryTabCommunity => switch (language) {
+    AppLanguage.ru => 'Миры пользователей',
+    AppLanguage.en => 'Community worlds',
+  };
+
+  String get storyLibrarySearchHint => switch (language) {
+    AppLanguage.ru => 'Поиск историй…',
+    AppLanguage.en => 'Search stories…',
+  };
+
+  String get storyLibraryCreateYourStory => switch (language) {
+    AppLanguage.ru => 'Создай свою историю',
+    AppLanguage.en => 'Create your story',
+  };
+
+  String get storyLibraryGenresFilter => switch (language) {
+    AppLanguage.ru => 'Жанры',
+    AppLanguage.en => 'Genres',
+  };
+
+  String get storyLibraryAllGenres => switch (language) {
+    AppLanguage.ru => 'Все жанры',
+    AppLanguage.en => 'All genres',
+  };
+
+  String get storyLibraryLoadFailed => switch (language) {
+    AppLanguage.ru => 'Не удалось загрузить библиотеку.',
+    AppLanguage.en => 'Failed to load the library.',
+  };
+
+  String get storyLibraryEmptyCatalog => switch (language) {
+    AppLanguage.ru => 'Пока нет опубликованных историй в этом разделе.',
+    AppLanguage.en => 'No published stories in this section yet.',
+  };
+
+  String get storyLibraryNoSearchResults => switch (language) {
+    AppLanguage.ru => 'Ничего не найдено.',
+    AppLanguage.en => 'No results found.',
+  };
+
+  String storyTemplateAuthorLine(final String name) => switch (language) {
+    AppLanguage.ru => 'Автор: $name',
+    AppLanguage.en => 'Author: $name',
+  };
+
+  String get storyTemplateStartCampaign => switch (language) {
+    AppLanguage.ru => 'Начать кампанию',
+    AppLanguage.en => 'Start campaign',
+  };
+
+  String get storyTemplateLike => switch (language) {
+    AppLanguage.ru => 'Нравится',
+    AppLanguage.en => 'Like',
+  };
+
+  String get storyTemplateShare => switch (language) {
+    AppLanguage.ru => 'Поделиться',
+    AppLanguage.en => 'Share',
+  };
+
+  String get storyTemplateNarrativeEyebrow => switch (language) {
+    AppLanguage.ru => 'НАРРАТИВНАЯ RPG',
+    AppLanguage.en => 'NARRATIVE RPG',
+  };
+
+  String get storyTemplateViewsLabel => switch (language) {
+    AppLanguage.ru => 'Просмотры',
+    AppLanguage.en => 'Views',
+  };
+
+  String get storyTemplateLikesLabel => switch (language) {
+    AppLanguage.ru => 'Лайки',
+    AppLanguage.en => 'Likes',
+  };
+
+  String get storyTemplatePlaysLabel => switch (language) {
+    AppLanguage.ru => 'Прохождения',
+    AppLanguage.en => 'Plays',
+  };
+
+  String get homeStoryLibraryTitle => switch (language) {
+    AppLanguage.ru => 'Библиотека миров',
+    AppLanguage.en => 'World library',
+  };
+
+  String get homeStoryLibrarySubtitle => switch (language) {
+    AppLanguage.ru => 'Готовые истории и миры от мастера и сообщества',
+    AppLanguage.en => 'Ready-made stories and worlds from masters and the community',
+  };
+
+  String get storyTemplateShareCopied => switch (language) {
+    AppLanguage.ru => 'Описание скопировано в буфер обмена.',
+    AppLanguage.en => 'Description copied to clipboard.',
+  };
+
+  String get storyAdminTitle => switch (language) {
+    AppLanguage.ru => 'Управление библиотекой историй',
+    AppLanguage.en => 'Story library admin',
+  };
+
+  String get storyAdminMenuSubtitle => switch (language) {
+    AppLanguage.ru => 'Создание и редактирование карточек (только админ)',
+    AppLanguage.en => 'Create and edit story cards (admin only)',
+  };
+
+  String get storyAdminCreate => switch (language) {
+    AppLanguage.ru => 'Новая карточка',
+    AppLanguage.en => 'New card',
+  };
+
+  String get storyAdminEdit => switch (language) {
+    AppLanguage.ru => 'Редактировать',
+    AppLanguage.en => 'Edit',
+  };
+
+  String get storyAdminDelete => switch (language) {
+    AppLanguage.ru => 'Удалить',
+    AppLanguage.en => 'Delete',
+  };
+
+  String get storyAdminDeleteConfirm => switch (language) {
+    AppLanguage.ru => 'Удалить эту карточку?',
+    AppLanguage.en => 'Delete this story card?',
+  };
+
+  String get storyAdminDeleted => switch (language) {
+    AppLanguage.ru => 'Карточка удалена.',
+    AppLanguage.en => 'Story card deleted.',
+  };
+
+  String get storyAdminSave => switch (language) {
+    AppLanguage.ru => 'Сохранить',
+    AppLanguage.en => 'Save',
+  };
+
+  String get storyAdminFieldPrompt => switch (language) {
+    AppLanguage.ru => 'Промпт для ИИ (сюжет)',
+    AppLanguage.en => 'AI story prompt',
+  };
+
+  String get storyAdminFieldSetting => switch (language) {
+    AppLanguage.ru => 'Сеттинг (код, напр. grimdarkFantasy)',
+    AppLanguage.en => 'Setting code (e.g. grimdarkFantasy)',
+  };
+
+  String get storyAdminFieldTags => switch (language) {
+    AppLanguage.ru => 'Теги через запятую',
+    AppLanguage.en => 'Tags, comma-separated',
+  };
+
+  String get storyAdminFieldCoverUrl => switch (language) {
+    AppLanguage.ru => 'URL обложки',
+    AppLanguage.en => 'Cover image URL',
+  };
+
+  String get storyAdminCoverChooseFile => switch (language) {
+    AppLanguage.ru => 'Выбрать файл обложки',
+    AppLanguage.en => 'Choose cover image file',
+  };
+
+  String get storyAdminCoverRemove => switch (language) {
+    AppLanguage.ru => 'Убрать обложку',
+    AppLanguage.en => 'Remove cover',
+  };
+
+  String get storyAdminCoverTooLarge => switch (language) {
+    AppLanguage.ru => 'Файл слишком большой (макс. 6 МБ).',
+    AppLanguage.en => 'File is too large (max 6 MB).',
+  };
+
+  String get storyAdminFieldLiteraryGenre => switch (language) {
+    AppLanguage.ru => 'Литературный жанр',
+    AppLanguage.en => 'Literary genre',
+  };
+
+  String get storyAdminLiteraryGenreNone => switch (language) {
+    AppLanguage.ru => 'Не указан',
+    AppLanguage.en => 'Not set',
+  };
+
+  String get storyAdminPublic => switch (language) {
+    AppLanguage.ru => 'Публичная',
+    AppLanguage.en => 'Public',
+  };
+
+  String get storyAdminPrivate => switch (language) {
+    AppLanguage.ru => 'Не в каталоге',
+    AppLanguage.en => 'Not listed',
+  };
+
+  String get storyAdminMasterCurated => switch (language) {
+    AppLanguage.ru => 'Каталог мастера',
+    AppLanguage.en => 'Master catalog',
+  };
+
+  String get storyAdminAccessDenied => switch (language) {
+    AppLanguage.ru => 'Нужны права администратора.',
+    AppLanguage.en => 'Administrator access required.',
+  };
+
+  String get storyAdminFieldTitle => switch (language) {
+    AppLanguage.ru => 'Заголовок',
+    AppLanguage.en => 'Title',
+  };
+
+  String get storyAdminFieldSummary => switch (language) {
+    AppLanguage.ru => 'Краткое описание',
+    AppLanguage.en => 'Summary',
+  };
+
+  String get storyAdminMetadataJson => switch (language) {
+    AppLanguage.ru => 'Метаданные (JSON)',
+    AppLanguage.en => 'Metadata (JSON)',
+  };
+
+  String get storyAdminInvalidMetadata => switch (language) {
+    AppLanguage.ru => 'Некорректный JSON в метаданных.',
+    AppLanguage.en => 'Invalid metadata JSON.',
+  };
+
+  String get storyAdminSaved => switch (language) {
+    AppLanguage.ru => 'Карточка сохранена.',
+    AppLanguage.en => 'Story card saved.',
+  };
+
+  String get storyAdminFillTitlePrompt => switch (language) {
+    AppLanguage.ru => 'Укажите заголовок и промпт для ИИ.',
+    AppLanguage.en => 'Enter a title and AI story prompt.',
+  };
+
   String get noSavesYet => switch (language) {
     AppLanguage.ru =>
       'Пока нет сохранений. Создай новую кампанию на главном экране.',

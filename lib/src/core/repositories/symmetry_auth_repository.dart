@@ -30,6 +30,25 @@ class SymmetryAuthRepository {
   Future<SymmetrySession?> loadSession() =>
       _settingsRepository.loadSymmetrySession();
 
+  /// Reloads [SymmetryUser] from [GET /auth/me] for non-guest sessions so
+  /// server-side flags (e.g. [SymmetryUser.isAdmin]) stay current after DB changes.
+  Future<SymmetrySession?> loadSessionWithSyncedProfile() async {
+    final SymmetrySession? session = await loadSession();
+    if (session == null || session.isGuest) {
+      return session;
+    }
+    try {
+      final SymmetryUser user = await _client(session.baseUrl).getCurrentUser(
+        accessToken: session.tokens.accessToken,
+      );
+      final SymmetrySession synced = session.copyWith(user: user);
+      await _settingsRepository.saveSymmetrySession(synced);
+      return synced;
+    } catch (_) {
+      return session;
+    }
+  }
+
   Future<bool> hasSession() async =>
       (await _settingsRepository.loadSymmetrySession()) != null;
 

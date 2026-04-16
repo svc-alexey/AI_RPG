@@ -51,7 +51,15 @@ if (Test-Path $definesFile) {
   }
 }
 $buildDefines['AI_PRG_APP_VERSION'] = $metadata.app_version
-$buildDefines['AI_PRG_ASSET_VERSION'] = $metadata.asset_version
+# Keep AI_PRG_ASSET_VERSION from web_release_defines.json when set (e.g. dev-local
+# to match SYMMETRY_WEB_ASSET_VERSION); otherwise use a unique per-build id.
+$existingAsset = ''
+if ($buildDefines.ContainsKey('AI_PRG_ASSET_VERSION')) {
+  $existingAsset = [string]$buildDefines['AI_PRG_ASSET_VERSION']
+}
+if ([string]::IsNullOrWhiteSpace($existingAsset)) {
+  $buildDefines['AI_PRG_ASSET_VERSION'] = $metadata.asset_version
+}
 $buildDefines['AI_PRG_RELEASE_ID'] = $metadata.release_id
 
 $tempDefinesPath = Join-Path $toolRoot 'web_release_defines.generated.json'
