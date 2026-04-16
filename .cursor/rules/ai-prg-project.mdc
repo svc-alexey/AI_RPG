@@ -13,3 +13,4 @@ alwaysApply: true
 3. **Перезапуск** — после реализации, если нужен restart приложения — выполни его (`flutter run` или hot restart)
 4. **Локализация** — ru + en для UX; кириллица в файлах — UTF-8 без BOM (см. `project-settings.md` §2a)
 5. **Фичи** — architecture → prd → implementation → qa; feature packet в `docs/features/<slug>/`
+6. **Производительность и UI** — избегай тяжелых `CustomPaint` для фонов (чтобы не было мерцания), обязательно разбивай большие экраны и методы `_build...` на маленькие `StatelessWidget` (SOLID, не более 200 строк на виджет).

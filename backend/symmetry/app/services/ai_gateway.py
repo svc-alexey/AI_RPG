@@ -27,12 +27,15 @@ Rules:
 - choices: up to 3 concise options, usually 1-4 words, never full sentences.
 - location: human-readable place name in the target language, 2-4 words, no snake_case or kebab-case.
 - objective and quest_note: short goal summaries in the target language, not narration, <=56 characters.
+- omit empty arrays or objects in state_changes completely.
 - module_updates is optional; activate modules only when the story truly needs persistent UI/state support.
 - do not activate `vitality` by default for every campaign.
 - if `vitality` is activated for the first time, provide a full character_patch with hp, max_hp, energy, max_energy, might, wit, spirit.
 - if `vitality` is not active or not needed for the scene, keep combat stats untouched.
 - do not start titles, objectives, quest notes, or choices with filler words like "and" or "и".
-- impact seeds are optional compact follow-up traces for the background simulation, up to 2 for shortStory and up to 4 for longCampaign.
+- memory_entry must be a very short anchor phrase, 1-2 sentences max.
+- world_event_summary must be a very compact summary.
+- impact seeds are optional compact follow-up traces for the background simulation, up to 2 for shortStory and up to 2 for longCampaign.
 - impact seeds summarize possible consequences only; do not resolve them in the current narration.
 - needs_background_followup is true only if at least one impact seed is meaningful enough to expand later.
 """
@@ -160,7 +163,7 @@ class AiGatewayService:
         payload = {
             "model": credentials.model,
             "messages": messages,
-            "temperature": 0.8,
+            "temperature": 0.6,
             "response_format": {"type": "json_object"},
         }
         current_max_tokens = max_output_tokens
@@ -217,11 +220,31 @@ class AiGatewayService:
                     current_max_tokens = next_max_tokens
                     attempt += 1
                     continue
+                narration_chars = len(str(parsed_payload.get("narration") or ""))
+                memory_chars = len(str(parsed_payload.get("memory_entry") or ""))
+                world_summary_chars = len(str(parsed_payload.get("world_event_summary") or ""))
+                impact_seeds = parsed_payload.get("impact_seeds")
+                impact_seeds_count = len(impact_seeds) if isinstance(impact_seeds, list) else 0
+
                 request_meta = {
                     **current_meta,
                     "finish_reason": finish_reason or "",
                     "completion_truncated": response_was_truncated,
+                    "narration_chars": narration_chars,
+                    "memory_chars": memory_chars,
+                    "world_summary_chars": world_summary_chars,
+                    "impact_seeds_count": impact_seeds_count,
+                    "retry_count": attempt,
                 }
+                logger.info(
+                    "llm_turn_stats scenario=%s retry_count=%s narration_chars=%s memory_chars=%s world_summary_chars=%s impact_seeds_count=%s",
+                    scenario,
+                    attempt,
+                    narration_chars,
+                    memory_chars,
+                    world_summary_chars,
+                    impact_seeds_count,
+                )
                 break
             except ValueError:
                 if current_max_tokens is None or not response_was_truncated or attempt >= 2:

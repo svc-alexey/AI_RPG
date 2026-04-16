@@ -133,7 +133,9 @@ This `.mdc` is a style and patterns guide aligned with the **actual** AI_PRG sta
 - Use **ThemeData** via the app theme module.
 - Use **AppLocalizations** / project l10n for user-visible strings; respect ru/en parity per project rules.
 - Use **extensions** for small reusable context helpers where appropriate.
-- Prefer **const** constructors and flatter widget trees; split large widgets into focused children.
+- Prefer **const** constructors and flatter widget trees.
+- **CRITICAL**: Split large widgets into focused children (create separate `StatelessWidget` classes). DO NOT use large `_build...` methods inside a single Widget. Keep widgets under 200 lines.
+- **PERFORMANCE**: Avoid heavy `CustomPaint` operations (like loops with tens of thousands of `Rect`s) in backgrounds or continuous animations to prevent UI flickering and FPS drops.
 
 ### Testing
 

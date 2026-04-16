@@ -94,12 +94,6 @@ class _AetherBackdropState extends State<AetherBackdrop>
             ),
           ),
         ),
-        // if (!kIsWeb)
-        //   const Positioned.fill(
-        //     child: RepaintBoundary(
-        //       child: CustomPaint(painter: _FilmNoisePainter()),
-        //     ),
-        //   ),
         widget.child,
       ],
     ),
@@ -123,7 +117,7 @@ class _WarmGlowPainter extends CustomPainter {
         colors: <Color>[
           AetherPalette.accent.withValues(alpha: 0.16 + pulse * 0.16),
           AetherPalette.accent.withValues(alpha: 0.08 + pulse * 0.08),
-          Colors.transparent,
+          AetherPalette.accent.withValues(alpha: 0.0), // FIX: Prevents black interpolations
         ],
         stops: const <double>[0.0, 0.4, 0.72],
       ).createShader(rect);
@@ -133,34 +127,6 @@ class _WarmGlowPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _WarmGlowPainter oldDelegate) =>
       oldDelegate.pulse != pulse;
-}
-
-/// Sparse grain (~3% opacity) similar to SVG noise overlay in the JS mockup.
-class _FilmNoisePainter extends CustomPainter {
-  const _FilmNoisePainter();
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    final Paint paint = Paint()..style = PaintingStyle.fill;
-    const double step = 5;
-    for (double y = 0; y < size.height; y += step) {
-      for (double x = 0; x < size.width; x += step) {
-        final int ix = x.round();
-        final int iy = y.round();
-        final int hash = (ix * 92837111 ^ iy * 689287499) & 0xFF;
-        if (hash < 188) {
-          continue;
-        }
-        paint.color = AetherPalette.textPrimary.withValues(
-          alpha: 0.018 + (hash & 7) * 0.002,
-        );
-        canvas.drawRect(Rect.fromLTWH(x, y, 1.4, 1.4), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class AetherCard extends StatelessWidget {

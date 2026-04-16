@@ -114,7 +114,7 @@ def test_turn_budget_profiles_are_mode_aware():
     assert long_intro_budget.scenario == "turn_intro_long"
     assert short_intro_budget.max_output_tokens == 420
     assert short_budget.max_output_tokens == 280
-    assert long_intro_budget.max_output_tokens == 800
+    assert long_intro_budget.max_output_tokens == 900
 
 
 def test_prompt_generation_budget_profiles_match_story_modes():

@@ -459,14 +459,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              if (chatState.isSending)
-                const LinearProgressIndicator(
-                  minHeight: 2,
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AetherPalette.accent,
-                  ),
-                ),
+              SizedBox(
+                height: 2,
+                child: chatState.isSending
+                    ? const LinearProgressIndicator(
+                        backgroundColor: Colors.transparent,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AetherPalette.accent,
+                        ),
+                      )
+                    : null,
+              ),
               if (responsive.isPhoneSmall)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1423,9 +1426,9 @@ class _AnimatedNarrationMessageState extends State<_AnimatedNarrationMessage>
   @override
   void didUpdateWidget(covariant final _AnimatedNarrationMessage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text) {
-      _controller.forward(from: 0);
-    }
+    // Убрали перезапуск анимации при обновлении текста.
+    // Иначе при потоковой генерации (streaming) каждый новый токен 
+    // заставлял весь текст снова мигать (opacity 0) и прыгать (slide).
   }
 
   @override
@@ -1496,32 +1499,36 @@ class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
   }
 
   @override
-  Widget build(final BuildContext context) => SizedBox(
-    width: 34,
-    child: AnimatedBuilder(
-      animation: _controller,
-      builder: (final context, _) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List<Widget>.generate(3, (final index) {
-          final double phase = _wrappedPhase(
-            _controller.value - (index * 0.16),
-          );
-          final double intensity = (1 - ((phase * 2) - 1).abs()).clamp(
-            0.2,
-            1.0,
-          );
+  Widget build(final BuildContext context) => RepaintBoundary(
+    child: SizedBox(
+      width: 34,
+      height: 12, // Фиксируем высоту, чтобы не вызывать перерасчет layout списка каждый кадр
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (final context, _) => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: List<Widget>.generate(3, (final index) {
+            final double phase = _wrappedPhase(
+              _controller.value - (index * 0.16),
+            );
+            final double intensity = (1 - ((phase * 2) - 1).abs()).clamp(
+              0.2,
+              1.0,
+            );
 
-          return Container(
-            width: 6,
-            height: 6 + (2 * intensity),
-            decoration: BoxDecoration(
-              color: AetherPalette.accent.withValues(
-                alpha: 0.35 + (0.55 * intensity),
+            return Container(
+              width: 6,
+              height: 6 + (2 * intensity),
+              decoration: BoxDecoration(
+                color: AetherPalette.accent.withValues(
+                  alpha: 0.35 + (0.55 * intensity),
+                ),
+                borderRadius: BorderRadius.circular(999),
               ),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     ),
   );
