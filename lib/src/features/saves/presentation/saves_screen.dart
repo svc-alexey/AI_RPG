@@ -2,7 +2,9 @@ import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/story_library/presentation/story_library_screen.dart';
@@ -150,6 +152,8 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
                               ),
                             );
                           },
+                          onShareToLibrary: () =>
+                              _shareCampaignToLibrary(campaign),
                           onDelete: () => _delete(campaign.id),
                         ),
                       );
@@ -192,6 +196,75 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
     await ref.read(symmetryCampaignRepositoryProvider).deleteCampaign(id);
     await _load();
   }
+
+  Future<void> _shareCampaignToLibrary(final CampaignState campaign) async {
+    final AppLocalizations l10n = context.l10n;
+    final SymmetrySession? sym = ref.read(symmetrySessionProvider).value;
+    if (sym == null || sym.isGuest) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.savesShareRequiresAccount)),
+        );
+      return;
+    }
+    final String prompt = campaign.customStoryPrompt.trim();
+    if (prompt.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.savesShareMissingPrompt)),
+        );
+      return;
+    }
+    final String summaryLine = campaign.displayObjectiveLine.trim().isNotEmpty
+        ? campaign.displayObjectiveLine.trim()
+        : campaign.summary.trim();
+    final Map<String, Object?> payload = <String, Object?>{
+      'title': campaign.title.trim().isNotEmpty
+          ? campaign.title.trim()
+          : (l10n.language == AppLanguage.ru ? 'Мир игрока' : 'Player world'),
+      'summary': summaryLine,
+      'prompt_text': prompt,
+      'setting': campaign.setting.name,
+      if (campaign.literaryGenre != null)
+        'literary_genre_slug': campaign.literaryGenre!.name,
+      'tags': const <String>[],
+      'is_public': true,
+      'metadata': <String, Object?>{
+        'source_campaign_id': campaign.id,
+        'published_from': 'saves',
+      },
+    };
+    try {
+      await ref.read(storyLibraryRepositoryProvider).publishStoryTemplate(
+        payload: payload,
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.savesShareToLibrarySuccess)),
+        );
+    } catch (err) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.symmetryFriendlyError(err))),
+        );
+    }
+  }
 }
 
 class _SaveCard extends StatelessWidget {
@@ -199,12 +272,14 @@ class _SaveCard extends StatelessWidget {
     required this.campaign,
     required this.subtitle,
     required this.onOpen,
+    required this.onShareToLibrary,
     required this.onDelete,
   });
 
   final CampaignState campaign;
   final String subtitle;
   final VoidCallback onOpen;
+  final VoidCallback onShareToLibrary;
   final VoidCallback onDelete;
 
   @override
@@ -284,13 +359,19 @@ class _SaveCard extends StatelessWidget {
           if (isMobile)
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+              children: <Widget>[
                 SizedBox(
                   width: double.infinity,
                   child: _SavesActionButton(
                     label: l10n.loadCampaignAction,
                     onTap: onOpen,
                   ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: onShareToLibrary,
+                  icon: const Icon(Icons.public_rounded, size: 18),
+                  label: Text(l10n.savesPublishToLibrary),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
@@ -307,6 +388,14 @@ class _SaveCard extends StatelessWidget {
                 _SavesToolbarButton(
                   icon: Icons.delete_outline_rounded,
                   onTap: onDelete,
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: l10n.savesShareToLibraryTooltip,
+                  child: _SavesToolbarButton(
+                    icon: Icons.public_rounded,
+                    onTap: onShareToLibrary,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Flexible(

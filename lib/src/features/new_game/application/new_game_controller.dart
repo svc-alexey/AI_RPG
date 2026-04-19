@@ -184,12 +184,15 @@ class NewGameController extends StateNotifier<NewGameViewState> {
   void applyStoryTemplate(final StoryTemplate template) {
     setSetting(parseCampaignSetting(template.setting));
     setStoryInput(template.promptText);
+    final LiteraryGenre? genreFromTemplate =
+        parseLiteraryGenre(template.literaryGenreSlug);
     final String objective = template.summary.trim().isNotEmpty
         ? template.summary.trim()
         : template.title;
     state = state.copyWith(
       campaignTitleHint: template.title,
       objectiveHint: objective,
+      literaryGenre: genreFromTemplate ?? state.literaryGenre,
       formRevision: state.formRevision + 1,
     );
     _refreshPlannedModules();
@@ -469,6 +472,47 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     try {
       final AppLanguage currentLanguage = language;
       final AiSettings settings = await _settingsRepository.loadAiSettings();
+      final String storySeed = state.customStoryPrompt.trim().isNotEmpty
+          ? state.customStoryPrompt.trim()
+          : state.storyWish.trim();
+      if (storySeed.isNotEmpty) {
+        CharacterProfile charProfile =
+            state.characterProfile ?? _defaultCharacterProfile();
+        if (state.characterPrompt.trim().isNotEmpty) {
+          charProfile = charProfile.copyWith(
+            promptFragment: state.characterPrompt.trim(),
+          );
+        }
+        if (state.personality.trim().isNotEmpty) {
+          charProfile = charProfile.copyWith(
+            personality: state.personality.trim(),
+          );
+        }
+        charProfile = charProfile.copyWith(
+          name: _resolvedHeroName(currentLanguage),
+          gender: state.gender,
+        );
+        final String titleHint = state.campaignTitleHint.trim();
+        final String objectiveHint = state.objectiveHint.trim();
+        final CampaignDraft draft = CampaignDraft(
+          setting: state.setting,
+          literaryGenre: state.literaryGenre,
+          mode: state.storyMode,
+          difficulty: state.difficulty,
+          heroName: _resolvedHeroName(currentLanguage),
+          storyWish: storySeed,
+          customStoryPrompt: storySeed,
+          campaignTitle: titleHint,
+          objectiveHint:
+              objectiveHint.isNotEmpty ? objectiveHint : storySeed,
+          characterProfile: charProfile,
+        );
+        return _symmetryCampaignRepository.createCampaign(
+          draft: draft,
+          language: currentLanguage,
+          aiSettings: settings,
+        );
+      }
       final CampaignSetting rolledSetting = CampaignSetting
           .values[_random.nextInt(CampaignSetting.values.length)];
       final LiteraryGenre rolledGenre =

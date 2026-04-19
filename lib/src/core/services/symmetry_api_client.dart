@@ -400,6 +400,18 @@ class SymmetryApiClient {
         .toList();
   }
 
+  Future<StoryTemplate> createStoryTemplate({
+    required final String accessToken,
+    required final Map<String, Object?> body,
+  }) async {
+    final Map<String, Object?> response = await _post(
+      '/story-templates',
+      bearerToken: accessToken,
+      body: body,
+    );
+    return StoryTemplate.fromJson(response);
+  }
+
   Future<StoryTemplate> getStoryTemplate({
     required final String accessToken,
     required final String templateId,

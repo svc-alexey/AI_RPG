@@ -965,6 +965,32 @@ class AppLocalizations {
     AppLanguage.en => 'Failed to open saves.',
   };
 
+  String get savesShareToLibraryTooltip => switch (language) {
+    AppLanguage.ru => 'Опубликовать мир в библиотеке (пользовательские миры)',
+    AppLanguage.en => 'Publish world to the community library',
+  };
+
+  String get savesShareToLibrarySuccess => switch (language) {
+    AppLanguage.ru => 'Мир отправлен в библиотеку.',
+    AppLanguage.en => 'World published to the library.',
+  };
+
+  String get savesShareRequiresAccount => switch (language) {
+    AppLanguage.ru =>
+      'Войдите в аккаунт, чтобы опубликовать мир в библиотеке.',
+    AppLanguage.en => 'Sign in to publish a world to the library.',
+  };
+
+  String get savesShareMissingPrompt => switch (language) {
+    AppLanguage.ru => 'В этой кампании нет текста промпта для публикации.',
+    AppLanguage.en => 'This campaign has no story prompt to publish.',
+  };
+
+  String get savesPublishToLibrary => switch (language) {
+    AppLanguage.ru => 'В библиотеку',
+    AppLanguage.en => 'Publish',
+  };
+
   String get loadCampaignAction => switch (language) {
     AppLanguage.ru => 'Загрузить',
     AppLanguage.en => 'Load',

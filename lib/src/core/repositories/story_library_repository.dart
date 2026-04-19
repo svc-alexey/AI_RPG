@@ -53,6 +53,16 @@ class StoryLibraryRepository {
     );
   }
 
+  Future<StoryTemplate> publishStoryTemplate({
+    required final Map<String, Object?> payload,
+  }) async {
+    final SymmetrySession session = await _authRepository.ensureSession();
+    return _client(session.baseUrl).createStoryTemplate(
+      accessToken: session.tokens.accessToken,
+      body: payload,
+    );
+  }
+
   Future<void> recordView(final String templateId) async {
     final SymmetrySession session = await _authRepository.ensureSession();
     await _client(session.baseUrl).postStoryTemplateView(

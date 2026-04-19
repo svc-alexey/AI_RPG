@@ -293,24 +293,26 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      PopupMenuButton<String?>(
+                      PopupMenuButton<String>(
                         tooltip: l10n.storyLibraryGenresFilter,
-                        onSelected: (final String? value) {
-                          setState(() => _genreSlug = value);
+                        onSelected: (final String value) {
+                          setState(
+                            () => _genreSlug = value.isEmpty ? null : value,
+                          );
                           _load();
                         },
                         itemBuilder: (final BuildContext ctx) {
                           final bool ru = l10n.language == AppLanguage.ru;
-                          final List<PopupMenuEntry<String?>> items =
-                              <PopupMenuEntry<String?>>[
-                                PopupMenuItem<String?>(
-                                  value: null,
+                          final List<PopupMenuEntry<String>> items =
+                              <PopupMenuEntry<String>>[
+                                PopupMenuItem<String>(
+                                  value: '',
                                   child: Text(l10n.storyLibraryAllGenres),
                                 ),
                               ];
                           for (final LiteraryGenreCatalogItem g in _genreCatalog) {
                             items.add(
-                              PopupMenuItem<String?>(
+                              PopupMenuItem<String>(
                                 value: g.slug,
                                 child: Text(g.labelForLocale(isRussian: ru)),
                               ),

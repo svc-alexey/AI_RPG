@@ -7,7 +7,7 @@ from app.api.deps import get_current_user
 from app.db.models import StoryTemplate, User
 from app.db.session import get_db_session
 from app.schemas.common import MessageResponse
-from app.schemas.stories import StoryTemplateResponse
+from app.schemas.stories import StoryTemplateResponse, StoryTemplateUpsertRequest
 from app.services.story_library import StoryLibraryService
 
 router = APIRouter(prefix="/story-templates", tags=["story-templates"])
@@ -36,6 +36,32 @@ async def list_story_templates(
         sort=sort,
         scope=scope,
     )
+
+
+@router.post("", response_model=StoryTemplateResponse)
+async def create_story_template(
+    payload: StoryTemplateUpsertRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> StoryTemplateResponse:
+    """User-published world template (community tab); never master-curated."""
+    normalized = payload.model_copy(update={"is_master_curated": False})
+    template = await story_service.upsert_template(
+        session,
+        existing=None,
+        payload=normalized,
+        user_id=user.id,
+    )
+    await session.commit()
+    resolved = await story_service.get_template(
+        session, template_id=template.id, user_id=user.id
+    )
+    if resolved is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="story_template_create_failed",
+        )
+    return resolved
 
 
 @router.get("/{template_id}/cover")
