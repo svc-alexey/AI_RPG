@@ -13,6 +13,9 @@ Feature packet for the server-first `Symmetry` platform layer.
   library APIs to the server;
 - added DB-backed butterfly simulation, dedicated worker processing, and
   world-rumor delivery for off-screen world events;
+- removed setting-based opening-location bootstraps and stock world seeds so
+  the first concrete location, factions, companies, markets, and weather come
+  from the model/story state instead of reusable backend templates;
 - added transient user-provider credential support without server-side storage;
 - migrated Flutter runtime flow away from local campaign persistence;
 - библиотека миров: обложки шаблонов в БД, маршруты cover, клиент (Web + guest

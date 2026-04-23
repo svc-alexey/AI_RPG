@@ -78,11 +78,18 @@ processing.
 - the campaign screen now shows `Слухи мира` directly under `Сводка`.
 - chat/runtime bug fixes:
   - intro-turn no longer creates an empty player bubble;
-  - `Начальная точка` / `Starting Point` is replaced with a real opening
-    location on the first turn;
+  - `Начальная точка` / `Starting Point` is kept only as a technical
+    placeholder; the model must generate the first real location from the
+    story prompt and return it in `state_changes.location`;
   - chat autoscroll happens on player send, not on narrator growth;
   - `Слухи мира` and `Последние события` show only the latest 5 entries in
     descending freshness order;
+- narrative uniqueness guardrails:
+  - the backend no longer maps settings to hardcoded opening locations;
+  - butterfly world seeding no longer injects stock guilds, caravans, guards,
+    markets, or default weather before the model has created the scene;
+  - background entities beyond the current location are introduced only from
+    model-provided impact seeds or later story state.
 - campaign module logic is less hardcoded:
   - `vitality` is no longer enabled by setting preset alone;
   - server-backed campaigns no longer fabricate default RPG stats when the

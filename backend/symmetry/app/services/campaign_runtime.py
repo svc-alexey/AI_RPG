@@ -13,33 +13,6 @@ from app.services.presentation_text import (
 from app.services.text_normalization import normalize_compact_list, normalize_prompt_text
 
 
-LOCATION_BOOTSTRAPS = {
-    "ru": {
-        "romantasy": "Лунная гавань",
-        "cozyFantasy": "Садовый трактир",
-        "darkAcademia": "Сумрачный атриум",
-        "postApocalypse": "Пепельный коридор",
-        "litRpgProgression": "Зал первых рангов",
-        "grimdarkFantasy": "Черные ворота",
-        "nearFutureSciFi": "Сервисный отсек",
-        "horrorWeird": "Глухой вестибюль",
-        "cozyCrime": "Туманный причал",
-        "altHistorySecret": "Тайный кабинет",
-    },
-    "en": {
-        "romantasy": "Moon Harbor",
-        "cozyFantasy": "Garden Inn",
-        "darkAcademia": "Shadow Atrium",
-        "postApocalypse": "Ash Corridor",
-        "litRpgProgression": "Novice Hall",
-        "grimdarkFantasy": "Black Gate",
-        "nearFutureSciFi": "Service Deck",
-        "horrorWeird": "Hush Vestibule",
-        "cozyCrime": "Mist Harbor",
-        "altHistorySecret": "Hidden Cabinet",
-    },
-}
-
 ALLOWED_MODULES = {
     "vitality",
     "inventory",
@@ -331,39 +304,20 @@ class CampaignRuntimeService:
         next_state = self.ensure_bootstrap_state(state=state)
         language = str(next_state.get("language", "ru")).strip() or "ru"
         location = str(next_state.get("location", "")).strip()
-        if not is_placeholder_location(location, language=language):
+        if is_placeholder_location(location, language=language):
             return next_state
-
-        generated_location = generate_new_location(
-            setting=str(next_state.get("setting", "")).strip(),
-            language=language,
-            story_prompt=str(next_state.get("custom_story_prompt", "")).strip(),
-        )
-        next_state["location"] = generated_location
-        if state_changes is not None and not str(state_changes.get("location", "")).strip():
-            state_changes["location"] = generated_location
 
         bootstrap = next_state.setdefault("bootstrap", {})
         if is_placeholder_location(
             str(bootstrap.get("starting_location", "")).strip(),
             language=language,
         ):
-            bootstrap["starting_location"] = generated_location
+            normalized_location = normalize_location_label(location, language=language)
+            next_state["location"] = normalized_location
+            bootstrap["starting_location"] = normalized_location
+            if state_changes is not None and not str(state_changes.get("location", "")).strip():
+                state_changes["location"] = normalized_location
         return next_state
-
-
-def generate_new_location(*, setting: str, language: str, story_prompt: str) -> str:
-    locale = "ru" if language.startswith("ru") else "en"
-    mapped = LOCATION_BOOTSTRAPS.get(locale, {}).get(setting, "")
-    if mapped:
-        return normalize_location_label(mapped, language=language)
-    if story_prompt.strip():
-        return normalize_location_label(
-            story_prompt.split(",")[0].split(".")[0].strip(),
-            language=language,
-        )
-    fallback = "Первая сцена" if locale == "ru" else "Opening Scene"
-    return normalize_location_label(fallback, language=language)
 
 
 def normalize_character_patch(raw_patch: dict[str, Any]) -> dict[str, Any]:

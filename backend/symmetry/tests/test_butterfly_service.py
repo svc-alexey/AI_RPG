@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from app.services.butterfly import ButterflyService
 
 
-def test_default_entities_include_companies_in_both_modes():
+def test_default_entities_only_seed_generated_location():
     service = ButterflyService()
 
     short_entities = service.default_entities_for_mode(
@@ -17,9 +17,20 @@ def test_default_entities_include_companies_in_both_modes():
         location="Ash Harbor",
     )
 
-    assert any(item["entity_kind"] == "company" for item in short_entities)
-    assert any(item["entity_kind"] == "company" for item in long_entities)
-    assert any(item["entity_kind"] == "market" for item in long_entities)
+    assert short_entities == [
+        {
+            "slug": service.slugify("Тихая гавань"),
+            "title": "Тихая гавань",
+            "entity_kind": "location",
+        }
+    ]
+    assert long_entities == [
+        {
+            "slug": "ash-harbor",
+            "title": "Ash Harbor",
+            "entity_kind": "location",
+        }
+    ]
 
 
 def test_normalize_impact_seeds_clamps_short_story_payload():
@@ -79,7 +90,7 @@ def test_normalize_impact_seeds_clamps_short_story_payload():
     assert normalized[0]["delay_max_turns"] == 2
 
 
-def test_fallback_seed_targets_location_for_short_and_company_for_long():
+def test_fallback_seed_targets_location_in_both_modes():
     service = ButterflyService()
 
     short_seed = service.fallback_seed_from_turn(
@@ -97,7 +108,7 @@ def test_fallback_seed_targets_location_for_short_and_company_for_long():
 
     assert short_seed[0]["entity_kind"] == "location"
     assert short_seed[0]["visibility"] == "public"
-    assert long_seed[0]["entity_kind"] == "company"
+    assert long_seed[0]["entity_kind"] == "location"
     assert long_seed[0]["visibility"] == "hidden"
 
 

@@ -28,6 +28,7 @@ Rules:
 - location: human-readable place name in the target language, 2-4 words, no snake_case or kebab-case.
 - objective and quest_note: short goal summaries in the target language, not narration, <=56 characters.
 - omit empty arrays or objects in state_changes completely.
+- avoid stock default names for places, factions, companies, markets, and quests; derive names from the story prompt, hero, and current events.
 - module_updates is optional; activate modules only when the story truly needs persistent UI/state support.
 - do not activate `vitality` by default for every campaign.
 - if `vitality` is activated for the first time, provide a full character_patch with hp, max_hp, energy, max_energy, might, wit, spirit.
@@ -163,7 +164,7 @@ class AiGatewayService:
         payload = {
             "model": credentials.model,
             "messages": messages,
-            "temperature": 0.6,
+            "temperature": 0.8,
             "response_format": {"type": "json_object"},
         }
         current_max_tokens = max_output_tokens
@@ -541,7 +542,8 @@ def build_turn_system_prompt(
         "Respect the provided state. "
         f"Write narration and choices in language `{language}`. "
         "If the current location is a placeholder such as `Starting Point` or `Начальная точка`, "
-        "your first task is to replace it with a unique, concrete starting location that fits the setting. "
+        "your first task is to replace it with a unique, concrete starting location that fits the story prompt, "
+        "and you must include that place in `state_changes.location`. "
         "Only enable gameplay modules when they are justified by the genre, setting, current story pressure, and hero concept. "
         "Do not assume health bars or RPG stats are always required. "
         f"{style_rules}"

@@ -43,7 +43,7 @@ def test_apply_turn_result_skips_empty_player_message_for_intro_turn():
     assert next_state["memory"]["recent_turns"][0].get("player_action", "") == ""
 
 
-def test_ensure_playable_location_replaces_placeholder():
+def test_ensure_playable_location_preserves_placeholder_for_ai():
     state = build_initial_state(_Payload())
     service = CampaignRuntimeService()
     state_changes = {}
@@ -53,8 +53,8 @@ def test_ensure_playable_location_replaces_placeholder():
         state_changes=state_changes,
     )
 
-    assert next_state["location"] == "Туманный причал"
-    assert state_changes["location"] == "Туманный причал"
+    assert next_state["location"] == "Начальная точка"
+    assert state_changes == {}
 
 
 class _StubWorldState:
@@ -63,7 +63,7 @@ class _StubWorldState:
     global_vars = {"weather": "clear", "butterfly": {}}
 
 
-def test_build_turn_context_location_not_placeholder_after_ensure():
+def test_build_turn_context_keeps_placeholder_for_ai_location_generation():
     state = build_initial_state(_Payload())
     service = CampaignRuntimeService()
     resolved = service.ensure_playable_location(state=state)
@@ -76,11 +76,37 @@ def test_build_turn_context_location_not_placeholder_after_ensure():
     location = str(
         context["dynamic_context"]["state"].get("location", "")
     ).strip()
-    assert not is_placeholder_location(location, language="ru")
+    assert is_placeholder_location(location, language="ru")
     starting = str(
         context["world_bootstrap"].get("starting_location", "")
     ).strip()
-    assert not is_placeholder_location(starting, language="ru")
+    assert is_placeholder_location(starting, language="ru")
+
+
+def test_ai_generated_location_updates_starting_bootstrap():
+    state = build_initial_state(_Payload())
+    service = CampaignRuntimeService()
+
+    next_state, state_changes, _, _ = service.apply_turn_result(
+        state=state,
+        result={
+            "narration": "Ирис стоит у закрытого склада, где пахнет мокрой солью.",
+            "choices": ["Осмотреть склад"],
+            "state_changes": {
+                "location": "Склад у старого причала",
+            },
+            "memory_entry": "Ирис начинает расследование у склада на причале.",
+        },
+        player_action="",
+    )
+    next_state = service.ensure_playable_location(
+        state=next_state,
+        state_changes=state_changes,
+    )
+
+    assert next_state["location"] == "Склад у старого причала"
+    assert next_state["bootstrap"]["starting_location"] == "Склад у старого причала"
+    assert state_changes["location"] == "Склад у старого причала"
 
 
 def test_apply_turn_result_can_activate_vitality_and_assign_stats():

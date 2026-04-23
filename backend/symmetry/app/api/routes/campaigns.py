@@ -105,7 +105,7 @@ async def create_campaign(
         campaign_id=campaign.id,
         current_day=1,
         minute_of_day=8 * 60,
-        global_vars={"weather": "clear", "prices": {}, "factions": {}},
+        global_vars={"prices": {}, "factions": {}},
     )
     session.add(world_state)
     await session.flush()
@@ -293,6 +293,14 @@ async def process_turn(
     butterfly_service.apply_immediate_world_patch(
         world_state,
         global_vars_patch=state_changes.get("global_vars_patch"),
+    )
+    await butterfly_service.seed_world(
+        session,
+        campaign_id=campaign.id,
+        mode=campaign.mode,
+        language=campaign.language,
+        location=str(next_state.get("location", "")),
+        world_state=world_state,
     )
     world_state, tick = simulation_service.advance(world_state)
     session.add(tick)

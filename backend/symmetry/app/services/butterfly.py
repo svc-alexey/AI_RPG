@@ -1,11 +1,13 @@
 from copy import deepcopy
 from datetime import UTC, datetime
+from hashlib import sha1
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import PendingConsequence, SimulationJob, WorldChronicle, WorldEntity, WorldState
+from app.services.ai_gateway import is_placeholder_location
 from app.services.embeddings import get_embedding_service
 from app.services.ids import new_id
 from app.services.presentation_text import normalize_location_label
@@ -54,6 +56,13 @@ class ButterflyService:
         )
         entities = list(result.scalars().all())
         if not entities:
+            if is_placeholder_location(location, language=language):
+                self._write_butterfly_summary(
+                    world_state,
+                    mode=mode,
+                    entities=entities,
+                )
+                return entities
             defaults = self.default_entities_for_mode(
                 mode=mode,
                 language=language,
@@ -87,70 +96,13 @@ class ButterflyService:
     ) -> list[dict[str, str]]:
         location_title = normalize_location_label(location, language=language)
         location_slug = self.slugify(location_title) or "starting-point"
-        if language.startswith("ru"):
-            base = [
-                {
-                    "slug": location_slug,
-                    "title": location_title,
-                    "entity_kind": "location",
-                },
-                {
-                    "slug": "local-guild",
-                    "title": "Местная гильдия",
-                    "entity_kind": "company",
-                },
-                {
-                    "slug": "supply-caravan",
-                    "title": "Караван снабжения",
-                    "entity_kind": "company",
-                },
-                {
-                    "slug": "civic-watch",
-                    "title": "Городская стража",
-                    "entity_kind": "faction",
-                },
-            ]
-            if mode == "longCampaign":
-                base.append(
-                    {
-                        "slug": "shadow-market",
-                        "title": "Теневой рынок",
-                        "entity_kind": "market",
-                    }
-                )
-            return base
-
-        base = [
+        return [
             {
                 "slug": location_slug,
                 "title": location_title,
                 "entity_kind": "location",
             },
-            {
-                "slug": "local-guild",
-                "title": "Local Guild",
-                "entity_kind": "company",
-            },
-            {
-                "slug": "supply-caravan",
-                "title": "Supply Caravan",
-                "entity_kind": "company",
-            },
-            {
-                "slug": "civic-watch",
-                "title": "Civic Watch",
-                "entity_kind": "faction",
-            },
         ]
-        if mode == "longCampaign":
-            base.append(
-                {
-                    "slug": "shadow-market",
-                    "title": "Shadow Market",
-                    "entity_kind": "market",
-                }
-            )
-        return base
 
     def normalize_impact_seeds(
         self,
@@ -194,7 +146,7 @@ class ButterflyService:
                 visibility = "hidden" if mode == "longCampaign" else "public"
             summary = " ".join(str(raw.get("summary", "")).split()).strip()
             if not summary:
-                summary = self._fallback_summary(effect_type=effect_type, entity_kind=entity_kind, mode=mode)
+                continue
             normalized.append(
                 {
                     "entity_kind": entity_kind,
@@ -223,7 +175,7 @@ class ButterflyService:
         if not cleaned_summary:
             return []
         effect_type = "rumor" if importance < 7 else "instability"
-        entity_kind = "location" if mode == "shortStory" else "company"
+        entity_kind = "location"
         return self.normalize_impact_seeds(
             [
                 {
@@ -708,13 +660,8 @@ class ButterflyService:
     ) -> str:
         if entity_kind == "location":
             return self.slugify(current_location) or "starting-point"
-        if entity_kind == "faction":
-            return "civic-watch"
-        if entity_kind == "market":
-            return "shadow-market"
-        if entity_kind == "company":
-            return "local-guild"
-        return "world-state"
+        base_slug = self.slugify(current_location) or "story-world"
+        return f"{base_slug}-{entity_kind}"
 
     def _default_entity_title(
         self,
@@ -723,46 +670,8 @@ class ButterflyService:
         slug: str,
         language: str,
     ) -> str:
-        if language.startswith("ru"):
-            mapping = {
-                "company": "Местная компания",
-                "faction": "Новая сила",
-                "market": "Рынок",
-                "location": "Узел мира",
-            }
-        else:
-            mapping = {
-                "company": "Local Company",
-                "faction": "Rising Faction",
-                "market": "Market",
-                "location": "World Hub",
-            }
-        fallback = mapping.get(entity_kind, "World State" if not language.startswith("ru") else "Состояние мира")
-        if slug in {"local-guild", "supply-caravan", "civic-watch", "shadow-market"}:
-            return {
-                "local-guild": "Местная гильдия" if language.startswith("ru") else "Local Guild",
-                "supply-caravan": "Караван снабжения" if language.startswith("ru") else "Supply Caravan",
-                "civic-watch": "Городская стража" if language.startswith("ru") else "Civic Watch",
-                "shadow-market": "Теневой рынок" if language.startswith("ru") else "Shadow Market",
-            }[slug]
-        if entity_kind == "location":
-            return slug.replace("-", " ").title() or fallback
-        return fallback
-
-    def _fallback_summary(
-        self,
-        *,
-        effect_type: str,
-        entity_kind: str,
-        mode: str,
-    ) -> str:
-        if entity_kind == "company" and effect_type == "scarcity":
-            return "Supply lines tighten after the latest move"
-        if entity_kind == "faction" and effect_type == "alertness":
-            return "The local power structure becomes more alert"
-        if mode == "longCampaign":
-            return "A quiet consequence starts building in the background"
-        return "A small ripple forms behind the scene"
+        fallback = "Сущность истории" if language.startswith("ru") else "Story Entity"
+        return slug.replace("-", " ").title() or fallback
 
     def _pick_delay(self, seed: dict[str, Any]) -> int:
         minimum = seed["delay_min_turns"]
@@ -774,7 +683,8 @@ class ButterflyService:
 
     def slugify(self, text: str) -> str:
         allowed = []
-        for char in text.strip().lower():
+        normalized = text.strip().lower()
+        for char in normalized:
             if char.isascii() and char.isalnum():
                 allowed.append(char)
             elif char in {" ", "-", "_"}:
@@ -782,7 +692,11 @@ class ButterflyService:
         slug = "".join(allowed)
         while "--" in slug:
             slug = slug.replace("--", "-")
-        return slug.strip("-")
+        slug = slug.strip("-")
+        if slug or not normalized:
+            return slug
+        digest = sha1(normalized.encode("utf-8")).hexdigest()[:10]
+        return f"place-{digest}"
 
     def _clamp_int(self, value: Any, *, minimum: int, maximum: int) -> int:
         try:
