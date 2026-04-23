@@ -119,6 +119,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
       symmetrySessionProvider,
     );
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(l10n.storyAdminTitle)),
       floatingActionButton: sessionState.maybeWhen(
         data: (final SymmetrySession? session) {
@@ -135,8 +136,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
         },
         orElse: () => null,
       ),
-      body: AetherBackdrop(
-        child: sessionState.when(
+      body: sessionState.when(
           data: (final SymmetrySession? session) {
             final bool isAdmin =
                 session != null && !session.isGuest && session.user.isAdmin;
@@ -273,7 +273,6 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

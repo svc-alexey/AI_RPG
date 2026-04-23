@@ -40,6 +40,7 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
     final AppResponsiveData responsive = context.responsive;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leadingWidth: 68,
@@ -65,8 +66,7 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
           ),
         ],
       ),
-      body: AetherBackdrop(
-        child: _isLoading
+      body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
             ? Center(
@@ -161,7 +161,6 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
                   ),
                 ),
               ),
-      ),
     );
   }
 

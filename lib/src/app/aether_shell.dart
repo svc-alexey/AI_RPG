@@ -39,7 +39,9 @@ class _AetherBackdropState extends State<AetherBackdrop>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 4),
+    duration: kIsWeb
+        ? const Duration(seconds: 6)
+        : const Duration(seconds: 4),
   );
 
   late final Animation<double> _pulse = CurvedAnimation(
@@ -70,63 +72,133 @@ class _AetherBackdropState extends State<AetherBackdrop>
   }
 
   @override
-  Widget build(final BuildContext context) => DecoratedBox(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: <Color>[
-          AetherPalette.backgroundTop,
-          AetherPalette.background,
-        ],
+  Widget build(final BuildContext context) {
+    // Pulse amplitude: barely visible on web to avoid any perceptible flicker,
+    // full amplitude on native where shader recompilation isn't an issue.
+    const double pulseAmplitudeWeb = 0.12;
+    const double pulseAmplitudeNative = 0.32;
+    final double pulseAmplitude =
+        kIsWeb ? pulseAmplitudeWeb : pulseAmplitudeNative;
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            AetherPalette.backgroundTop,
+            AetherPalette.background,
+          ],
+        ),
       ),
-    ),
-    child: Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        Positioned.fill(
-          child: RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _pulse,
-              builder: (final context, final _) => CustomPaint(
-                painter: _WarmGlowPainter(pulse: _pulse.value),
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          // Static base glow: shader created once per size, no per-frame work.
+          const Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(painter: _StaticWarmGlowPainter()),
+            ),
+          ),
+          // Animated pulse overlay: only opacity is tweened, shader is static.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: RepaintBoundary(
+                child: FadeTransition(
+                  opacity: _pulse.drive(
+                    Tween<double>(begin: 0, end: pulseAmplitude),
+                  ),
+                  child: const CustomPaint(painter: _PulseGlowPainter()),
+                ),
               ),
             ),
           ),
-        ),
-        widget.child,
-      ],
-    ),
-  );
+          widget.child,
+        ],
+      ),
+    );
+  }
 }
 
-/// Central warm radial glow; strength follows CSS `glow-pulse` (~4s).
-class _WarmGlowPainter extends CustomPainter {
-  const _WarmGlowPainter({required this.pulse});
+/// Static warm radial glow. Shader is cached per size, so 60fps repaint of
+/// parent widgets doesn't recompile the gradient on CanvasKit.
+class _StaticWarmGlowPainter extends CustomPainter {
+  const _StaticWarmGlowPainter();
 
-  final double pulse;
+  // Shaders are cheap to share across instances since they only depend on size.
+  static Size? _cachedSize;
+  static Shader? _cachedShader;
+  static Offset? _cachedCenter;
+  static double? _cachedRadius;
 
   @override
   void paint(final Canvas canvas, final Size size) {
-    final Offset center = Offset(size.width * 0.5, size.height * 0.28);
-    final double radius =
-        size.shortestSide * 0.92 * (0.94 + pulse * 0.14);
-    final Rect rect = Rect.fromCircle(center: center, radius: radius);
-    final Paint paint = Paint()
-      ..shader = RadialGradient(
+    if (_cachedShader == null || size != _cachedSize) {
+      _cachedCenter = Offset(size.width * 0.5, size.height * 0.28);
+      _cachedRadius = size.shortestSide * 0.92;
+      final Rect rect = Rect.fromCircle(
+        center: _cachedCenter!,
+        radius: _cachedRadius!,
+      );
+      _cachedShader = const RadialGradient(
         colors: <Color>[
-          AetherPalette.accent.withValues(alpha: 0.16 + pulse * 0.16),
-          AetherPalette.accent.withValues(alpha: 0.08 + pulse * 0.08),
-          AetherPalette.accent.withValues(alpha: 0.0), // FIX: Prevents black interpolations
+          Color(0x29C87941),
+          Color(0x14C87941),
+          Color(0x00C87941),
         ],
-        stops: const <double>[0.0, 0.4, 0.72],
+        stops: <double>[0.0, 0.4, 0.72],
       ).createShader(rect);
-    canvas.drawCircle(center, radius, paint);
+      _cachedSize = size;
+    }
+    canvas.drawCircle(
+      _cachedCenter!,
+      _cachedRadius!,
+      Paint()..shader = _cachedShader,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _WarmGlowPainter oldDelegate) =>
-      oldDelegate.pulse != pulse;
+  bool shouldRepaint(covariant _StaticWarmGlowPainter oldDelegate) => false;
+}
+
+/// Extra warm layer that rides on top of the static glow. Its opacity is
+/// animated by a parent [FadeTransition]; the shader here never changes.
+class _PulseGlowPainter extends CustomPainter {
+  const _PulseGlowPainter();
+
+  static Size? _cachedSize;
+  static Shader? _cachedShader;
+  static Offset? _cachedCenter;
+  static double? _cachedRadius;
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    if (_cachedShader == null || size != _cachedSize) {
+      _cachedCenter = Offset(size.width * 0.5, size.height * 0.28);
+      _cachedRadius = size.shortestSide * 1.04;
+      final Rect rect = Rect.fromCircle(
+        center: _cachedCenter!,
+        radius: _cachedRadius!,
+      );
+      _cachedShader = const RadialGradient(
+        colors: <Color>[
+          Color(0x33C87941),
+          Color(0x14C87941),
+          Color(0x00C87941),
+        ],
+        stops: <double>[0.0, 0.45, 0.78],
+      ).createShader(rect);
+      _cachedSize = size;
+    }
+    canvas.drawCircle(
+      _cachedCenter!,
+      _cachedRadius!,
+      Paint()..shader = _cachedShader,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PulseGlowPainter oldDelegate) => false;
 }
 
 class AetherCard extends StatelessWidget {

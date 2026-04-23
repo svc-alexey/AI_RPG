@@ -91,6 +91,15 @@
   браузера.
 - Токен для `GET …/cover` передаётся и для **guest**-сессии (не только для
   «полного» логина).
+- Старт кампании из карточки библиотеки использует `NewGameScreen(storyTemplateId: ...)`:
+  шаблон загружается повторно, фиксируется как `StoryTemplateSeed`, после чего
+  пользователь выбирает `shortStory` или `longCampaign`.
+- Для `shortStory` открывается quick start с prompt шаблона и настройками
+  героя. Для `longCampaign` открывается custom setup со step `foundation`,
+  без повторного выбора жанра/сеттинга; на step `story` поле prompt уже
+  заполнено текстом шаблона и редактируется пользователем.
+- Backend API для этого flow не меняется: выбранный формат уходит как уже
+  существующий `CampaignDraft.mode`, а prompt шаблона — как `story_prompt`.
 
 ### Ключевые файлы
 
@@ -98,6 +107,8 @@
 |------------|------|
 | Клиент API | `lib/src/core/services/symmetry_api_client.dart` |
 | Модель шаблона | `lib/src/core/models/story_template_model.dart` |
+| Flow новой кампании | `lib/src/features/new_game/application/new_game_controller.dart` |
+| Выбор длины из библиотеки | `lib/src/features/new_game/presentation/widgets/story_template_length_selection_view.dart` |
 | Обложка с Bearer (Web) | `lib/src/features/story_library/presentation/widgets/authenticated_cover_image.dart` |
 | Провайдер сессии | `lib/src/app/app_providers.dart` (`symmetrySessionProvider`) |
 | Route observer | `lib/src/app/app_route_observer.dart` |

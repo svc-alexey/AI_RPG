@@ -80,6 +80,14 @@
 - Клиент: обложка на Web грузится через `AuthenticatedCoverImage` (не полагаться
   на `Image.network` + заголовки); `symmetrySessionProvider` при пустом диске
   вызывает `ensureSession()`; склейка URL без `/v1/v1/`.
+- Старт из карточки библиотеки не должен сразу запускать quick start: клиент
+  фиксирует выбранный шаблон как seed (`title`, `summary`, `promptText`,
+  `setting`, `literaryGenreSlug`), затем показывает выбор `Короткая история` /
+  `Длинная кампания`.
+- `Короткая история` открывает lightweight quick start с уже подставленным
+  prompt и возможностью поменять имя/пол. `Длинная кампания` открывает wizard
+  сразу со step `foundation`, пропуская повторный выбор жанра/сеттинга; prompt
+  шаблона уже стоит в поле story prompt и может быть отредактирован.
 - Подробности и пути к файлам:
   [docs/features/symmetry-hybrid-backend/03-Implementation.md](/D:/AI_PRG/docs/features/symmetry-hybrid-backend/03-Implementation.md)
   (раздел **Story library**).

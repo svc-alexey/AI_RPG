@@ -22,7 +22,7 @@ class LiteraryGenreStep extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -89,7 +89,7 @@ class WorldSettingStep extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -157,32 +157,40 @@ class FoundationStep extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final AppLocalizations l10n = context.l10n;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         SectionLabel(title: l10n.storyModeTitle),
         const SizedBox(height: 12),
-        DropdownButtonFormField<StoryMode>(
-          initialValue: state.storyMode,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AetherPalette.panelSoft.withValues(alpha: 0.3),
+        if (state.storyTemplateSeed == null)
+          DropdownButtonFormField<StoryMode>(
+            initialValue: state.storyMode,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AetherPalette.panelSoft.withValues(alpha: 0.3),
+            ),
+            items: StoryMode.values
+                .map(
+                  (final mode) => DropdownMenuItem(
+                    value: mode,
+                    child: Text(l10n.storyModeLabel(mode)),
+                  ),
+                )
+                .toList(),
+            onChanged: (final value) {
+              if (value != null) {
+                controller.setStoryMode(value);
+              }
+            },
+          )
+        else
+          Text(
+            l10n.storyModeLabel(state.storyMode),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: AetherPalette.textPrimary),
           ),
-          items: StoryMode.values
-              .map(
-                (final mode) => DropdownMenuItem(
-                  value: mode,
-                  child: Text(l10n.storyModeLabel(mode)),
-                ),
-              )
-              .toList(),
-          onChanged: (final value) {
-            if (value != null) {
-              controller.setStoryMode(value);
-            }
-          },
-        ),
         SizedBox(height: context.responsive.blockSpacing),
         SectionLabel(title: l10n.difficultyTitle),
         const SizedBox(height: 12),
@@ -238,7 +246,7 @@ class StoryStep extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -441,10 +449,7 @@ class CharacterStep extends StatelessWidget {
 }
 
 class ReviewStep extends StatelessWidget {
-  const ReviewStep({
-    required this.state,
-    super.key,
-  });
+  const ReviewStep({required this.state, super.key});
 
   final NewGameViewState state;
 

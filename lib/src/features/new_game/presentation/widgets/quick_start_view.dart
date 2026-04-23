@@ -31,11 +31,16 @@ class QuickStartView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             IconButton(
-              onPressed: controller.setModeSelection,
+              onPressed: state.storyTemplateSeed == null
+                  ? controller.setModeSelection
+                  : controller.setStoryLengthSelection,
               icon: const Icon(Icons.arrow_back_rounded),
             ),
             Expanded(
-              child: Text(l10n.quickStart, style: theme.textTheme.headlineMedium),
+              child: Text(
+                l10n.quickStart,
+                style: theme.textTheme.headlineMedium,
+              ),
             ),
           ],
         ),

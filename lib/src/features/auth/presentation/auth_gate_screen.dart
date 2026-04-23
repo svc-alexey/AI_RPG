@@ -221,6 +221,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
     }
     if (_handlingYandexCallback) {
       return Scaffold(
+        backgroundColor: Colors.transparent,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

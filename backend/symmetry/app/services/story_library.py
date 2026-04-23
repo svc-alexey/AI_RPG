@@ -21,6 +21,8 @@ from app.core.config import get_settings
 from app.schemas.stories import StoryTemplateResponse, StoryTemplateUpsertRequest
 from app.services.ids import new_id
 
+_CAMPAIGN_SETUP_METADATA_KEY = "campaign_setup"
+
 
 class StoryLibraryService:
     async def list_templates(
@@ -119,7 +121,7 @@ class StoryLibraryService:
         template.prompt_text = payload.prompt_text.strip()
         template.setting = payload.setting.strip()
         template.is_public = payload.is_public
-        template.metadata_json = payload.metadata
+        template.metadata_json = _metadata_with_campaign_setup(payload)
         await self._apply_literary_genre_slug(session, template, payload.literary_genre_slug)
         session.add(template)
         await session.flush()
@@ -328,28 +330,14 @@ class StoryLibraryService:
                 author_labels[aid] = name if name else emails.get(aid)
 
         responses = [
-            StoryTemplateResponse(
-                id=item.id,
-                title=item.title,
-                summary=item.summary,
-                prompt_text=item.prompt_text,
-                setting=item.setting,
-                literary_genre_slug=item.literary_genre_slug,
-                cover_image_href=(
-                    f"{api_prefix}/story-templates/{item.id}/cover"
-                    if item.cover_image_populated
-                    else None
-                ),
-                is_public=item.is_public,
-                is_master_curated=item.is_master_curated,
-                metadata=dict(item.metadata_json or {}),
+            self._serialize_one(
+                item,
                 author_display_name=author_labels.get(item.author_user_id),
                 tags=sorted(tags_by_story[item.id]),
                 likes=int(likes.get(item.id, 0)),
                 views=int(views.get(item.id, 0)),
                 bookmarked=item.id in bookmarked,
-                created_at=item.created_at,
-                updated_at=item.updated_at,
+                api_prefix=api_prefix,
             )
             for item in templates
         ]
@@ -363,3 +351,96 @@ class StoryLibraryService:
         else:
             responses.sort(key=lambda item: item.created_at, reverse=True)
         return responses
+
+    def _serialize_one(
+        self,
+        item: StoryTemplate,
+        *,
+        author_display_name: str | None,
+        tags: list[str],
+        likes: int,
+        views: int,
+        bookmarked: bool,
+        api_prefix: str,
+    ) -> StoryTemplateResponse:
+        metadata = dict(item.metadata_json or {})
+        campaign_setup = _campaign_setup_from_metadata(metadata)
+        story_prompt = (
+            _optional_text(campaign_setup.get("story_prompt")) or item.prompt_text
+        )
+        character = campaign_setup.get("character")
+        return StoryTemplateResponse(
+            id=item.id,
+            title=item.title,
+            summary=item.summary,
+            prompt_text=item.prompt_text,
+            setting=item.setting,
+            literary_genre_slug=item.literary_genre_slug,
+            literary_genre=_optional_text(campaign_setup.get("literary_genre")),
+            mode=_optional_text(campaign_setup.get("mode")),
+            difficulty=_optional_text(campaign_setup.get("difficulty")),
+            story_prompt=story_prompt,
+            character_prompt=_optional_text(campaign_setup.get("character_prompt")),
+            campaign_title=_optional_text(campaign_setup.get("campaign_title")),
+            objective_hint=_optional_text(campaign_setup.get("objective_hint")),
+            character=character if isinstance(character, dict) else None,
+            cover_image_href=(
+                f"{api_prefix}/story-templates/{item.id}/cover"
+                if item.cover_image_populated
+                else None
+            ),
+            is_public=item.is_public,
+            is_master_curated=item.is_master_curated,
+            metadata=metadata,
+            author_display_name=author_display_name,
+            tags=tags,
+            likes=likes,
+            views=views,
+            bookmarked=bookmarked,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+        )
+
+
+def _metadata_with_campaign_setup(payload: StoryTemplateUpsertRequest) -> dict:
+    metadata = dict(payload.metadata or {})
+    setup = _campaign_setup_from_metadata(metadata)
+
+    def set_optional(key: str, value: str | None) -> None:
+        normalized = (value or "").strip()
+        if normalized:
+            setup[key] = normalized
+        else:
+            setup.pop(key, None)
+
+    set_optional("literary_genre", payload.literary_genre)
+    set_optional("mode", payload.mode)
+    set_optional("difficulty", payload.difficulty)
+    set_optional("story_prompt", payload.story_prompt or payload.prompt_text)
+    set_optional("character_prompt", payload.character_prompt)
+    set_optional("campaign_title", payload.campaign_title)
+    set_optional("objective_hint", payload.objective_hint)
+    if payload.character is not None:
+        setup["character"] = payload.character.model_dump(mode="json")
+    else:
+        setup.pop("character", None)
+
+    if setup:
+        metadata[_CAMPAIGN_SETUP_METADATA_KEY] = setup
+    else:
+        metadata.pop(_CAMPAIGN_SETUP_METADATA_KEY, None)
+    return metadata
+
+
+def _campaign_setup_from_metadata(metadata: dict) -> dict:
+    raw = metadata.get(_CAMPAIGN_SETUP_METADATA_KEY)
+    if isinstance(raw, dict):
+        return dict(raw)
+    return {}
+
+
+def _optional_text(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None

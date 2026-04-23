@@ -1125,6 +1125,12 @@ class _FakeSymmetryCampaignRepository extends SymmetryCampaignRepository {
   Future<CampaignState?> loadCampaign(final String id) async => _campaigns[id];
 
   @override
+  Future<List<SymmetryWorldRumor>> loadCampaignRumors(
+    final String id, {
+    final int limit = 5,
+  }) async => const <SymmetryWorldRumor>[];
+
+  @override
   Future<CampaignState> createCampaign({
     required final CampaignDraft draft,
     required final AppLanguage language,

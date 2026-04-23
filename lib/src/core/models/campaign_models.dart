@@ -365,7 +365,8 @@ class CharacterProfile {
         ),
         race: _jsonString(json['race']),
         characterClass: CharacterClass.values.firstWhere(
-          (final item) => item.name == json['characterClass'],
+          (final item) =>
+              item.name == (json['characterClass'] ?? json['character_class']),
           orElse: () => CharacterClass.unspecified,
         ),
         skills: _jsonList(
@@ -375,7 +376,9 @@ class CharacterProfile {
         perks: _jsonList(
           json['perks'],
         ).map((final item) => item.toString()).toList(),
-        promptFragment: _jsonString(json['promptFragment']),
+        promptFragment: _jsonString(
+          json['promptFragment'] ?? json['prompt_fragment'],
+        ),
       );
 
   const CharacterProfile({

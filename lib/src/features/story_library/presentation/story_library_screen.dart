@@ -195,6 +195,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
     );
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leadingWidth: 68,
         leading: Padding(
@@ -207,9 +208,8 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
         title: Text(l10n.storyLibraryTitle),
         actions: adminActions,
       ),
-      body: AetherBackdrop(
-        child: SafeArea(
-          child: CustomScrollView(
+      body: SafeArea(
+        child: CustomScrollView(
             slivers: <Widget>[
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
@@ -432,7 +432,6 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                 ),
             ],
           ),
-        ),
       ),
     );
   }

@@ -90,11 +90,11 @@ def build_turn_budget(
             max_output_tokens=860,
             max_story_prompt_chars=600,
             max_character_prompt_chars=280,
-            max_recent_turns=4,
+            max_recent_turns=3,
             max_recent_turn_chars=160,
             max_memory_chars=260,
             max_chronicles=4,
-            max_chronicle_chars=200,
+            max_chronicle_chars=150,
             max_total_chronicle_chars=640,
         )
 

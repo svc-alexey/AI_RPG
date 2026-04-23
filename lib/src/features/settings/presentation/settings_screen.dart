@@ -99,9 +99,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(l10n.homeTertiaryCta)),
-      body: AetherBackdrop(
-        child: settingsState.isLoading
+      body: settingsState.isLoading
             ? const Center(child: CircularProgressIndicator())
             : Center(
                 child: ConstrainedBox(
@@ -437,7 +437,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-      ),
     );
   }
 }

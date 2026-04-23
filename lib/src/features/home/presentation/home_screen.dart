@@ -118,9 +118,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     return Scaffold(
-      body: AetherBackdrop(
-        child: SafeArea(
-          child: Column(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Padding(
@@ -230,7 +230,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ],
           ),
-        ),
       ),
     );
   }

@@ -48,13 +48,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final bool isBusy = _isSubmitting || _isYandexSubmitting;
 
     return Scaffold(
-      body: AetherBackdrop(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Padding(
-              padding: EdgeInsets.all(responsive.pagePadding),
-              child: AetherCard(
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(responsive.pagePadding),
+            child: AetherCard(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,7 +180,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 

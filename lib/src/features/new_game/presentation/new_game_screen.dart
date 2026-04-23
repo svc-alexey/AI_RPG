@@ -8,6 +8,7 @@ import 'package:ai_prg/src/features/new_game/application/new_game_controller.dar
 import 'package:ai_prg/src/features/new_game/presentation/widgets/custom_setup_view.dart';
 import 'package:ai_prg/src/features/new_game/presentation/widgets/mode_selection_view.dart';
 import 'package:ai_prg/src/features/new_game/presentation/widgets/quick_start_view.dart';
+import 'package:ai_prg/src/features/new_game/presentation/widgets/story_template_length_selection_view.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class NewGameScreen extends ConsumerStatefulWidget {
   const NewGameScreen({super.key, this.storyTemplateId});
 
-  /// When set, loads the template from Symmetry and prefills quick start.
+  /// When set, loads the template from Symmetry and prefills the library flow.
   final String? storyTemplateId;
 
   @override
@@ -50,7 +51,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         if (!mounted) {
           return;
         }
-        ref.read(newGameControllerProvider.notifier).applyStoryTemplate(template);
+        ref
+            .read(newGameControllerProvider.notifier)
+            .applyStoryTemplate(template);
       } catch (_) {
         if (!mounted) {
           return;
@@ -98,32 +101,37 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
 
     final Widget modeChild = switch (gameState.mode) {
       NewGameWizardMode.modeSelection => ModeSelectionView(
+        controller: controller,
+      ),
+      NewGameWizardMode.storyLengthSelection =>
+        StoryTemplateLengthSelectionView(
+          state: gameState,
           controller: controller,
         ),
       NewGameWizardMode.quickStart => QuickStartView(
-          state: gameState,
-          controller: controller,
-          heroController: _heroController,
-          onCreateQuickCampaign: _createQuickCampaign,
-        ),
+        state: gameState,
+        controller: controller,
+        heroController: _heroController,
+        onCreateQuickCampaign: _createQuickCampaign,
+      ),
       NewGameWizardMode.customSetup => CustomSetupView(
-          state: gameState,
-          controller: controller,
-          heroController: _heroController,
-          storyPromptController: _storyPromptController,
-          characterPromptController: _characterPromptController,
-          personalityController: _personalityController,
-          onCreateCampaign: _createCampaign,
-          onGeneratePrompts: _generatePrompts,
-        ),
+        state: gameState,
+        controller: controller,
+        heroController: _heroController,
+        storyPromptController: _storyPromptController,
+        characterPromptController: _characterPromptController,
+        personalityController: _personalityController,
+        onCreateCampaign: _createCampaign,
+        onGeneratePrompts: _generatePrompts,
+      ),
     };
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: gameState.mode == NewGameWizardMode.customSetup
           ? null
           : AppBar(title: Text(l10n.newCampaign)),
-      body: AetherBackdrop(
-        child: gameState.mode == NewGameWizardMode.customSetup
+      body: gameState.mode == NewGameWizardMode.customSetup
             ? SafeArea(
                 child: Center(
                   child: ConstrainedBox(
@@ -150,7 +158,6 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                   ),
                 ),
               ),
-      ),
     );
   }
 
@@ -178,7 +185,9 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          duration: kIsWeb ? const Duration(seconds: 8) : const Duration(seconds: 4),
+          duration: kIsWeb
+              ? const Duration(seconds: 8)
+              : const Duration(seconds: 4),
         ),
       );
     }
@@ -200,7 +209,8 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
         return;
       }
       final AppLocalizations l10n = context.l10n;
-      final String message = e is StateError && e.message == 'story_prompt_required'
+      final String message =
+          e is StateError && e.message == 'story_prompt_required'
           ? l10n.storyPromptRequired
           : l10n.symmetryFriendlyError(e);
       ScaffoldMessenger.of(

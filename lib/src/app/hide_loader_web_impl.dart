@@ -9,11 +9,13 @@ void hideHtmlLoader() {
 
 /// Notifies the landing page that Flutter has painted its first frame.
 void notifyHtmlLoaderFirstFrame() {
+  html.document.body?.classes.add('is-flutter-running');
   html.window.dispatchEvent(html.CustomEvent('codex:flutter-first-frame'));
 }
 
 /// Notifies the landing page that Flutter finished rendering the ready UI.
 void completeHtmlLoaderTransition() {
+  html.document.body?.classes.add('is-flutter-running');
   html.window.dispatchEvent(html.CustomEvent('codex:flutter-ready'));
   Timer(const Duration(milliseconds: 900), () {
     html.document.getElementById('loading-container')?.remove();

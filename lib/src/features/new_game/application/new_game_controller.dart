@@ -14,7 +14,26 @@ import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/character_prompt_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum NewGameWizardMode { modeSelection, quickStart, customSetup }
+enum NewGameWizardMode {
+  modeSelection,
+  storyLengthSelection,
+  quickStart,
+  customSetup,
+}
+
+class StoryTemplateSeed {
+  const StoryTemplateSeed({
+    required this.id,
+    required this.title,
+    required this.summary,
+    required this.promptText,
+  });
+
+  final String id;
+  final String title;
+  final String summary;
+  final String promptText;
+}
 
 enum NewGameCustomSetupStep {
   literaryGenre,
@@ -51,6 +70,7 @@ class NewGameViewState {
     required this.aiConfigured,
     required this.characterProfile,
     required this.plannedModules,
+    required this.storyTemplateSeed,
     required this.formRevision,
   });
 
@@ -74,6 +94,7 @@ class NewGameViewState {
       aiConfigured = false,
       characterProfile = null,
       plannedModules = const <CampaignModuleState>[],
+      storyTemplateSeed = null,
       formRevision = 0;
 
   final String heroName;
@@ -95,6 +116,7 @@ class NewGameViewState {
   final bool aiConfigured;
   final CharacterProfile? characterProfile;
   final List<CampaignModuleState> plannedModules;
+  final StoryTemplateSeed? storyTemplateSeed;
   final int formRevision;
 
   NewGameViewState copyWith({
@@ -117,6 +139,7 @@ class NewGameViewState {
     final bool? aiConfigured,
     final CharacterProfile? characterProfile,
     final List<CampaignModuleState>? plannedModules,
+    final StoryTemplateSeed? storyTemplateSeed,
     final int? formRevision,
   }) => NewGameViewState(
     heroName: heroName ?? this.heroName,
@@ -138,6 +161,7 @@ class NewGameViewState {
     aiConfigured: aiConfigured ?? this.aiConfigured,
     characterProfile: characterProfile ?? this.characterProfile,
     plannedModules: plannedModules ?? this.plannedModules,
+    storyTemplateSeed: storyTemplateSeed ?? this.storyTemplateSeed,
     formRevision: formRevision ?? this.formRevision,
   );
 }
@@ -181,22 +205,56 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     state = state.copyWith(mode: NewGameWizardMode.modeSelection);
   }
 
+  void setStoryLengthSelection() {
+    state = state.copyWith(mode: NewGameWizardMode.storyLengthSelection);
+  }
+
   void applyStoryTemplate(final StoryTemplate template) {
     setSetting(parseCampaignSetting(template.setting));
-    setStoryInput(template.promptText);
+    final String storyPrompt = template.storyPrompt?.trim().isNotEmpty == true
+        ? template.storyPrompt!.trim()
+        : template.promptText.trim();
+    setStoryInput(storyPrompt);
     final LiteraryGenre? genreFromTemplate =
+        parseLiteraryGenre(template.literaryGenre) ??
         parseLiteraryGenre(template.literaryGenreSlug);
-    final String objective = template.summary.trim().isNotEmpty
+    final String objective = template.objectiveHint?.trim().isNotEmpty == true
+        ? template.objectiveHint!.trim()
+        : template.summary.trim().isNotEmpty
         ? template.summary.trim()
         : template.title;
+    CharacterProfile? characterProfile = template.character;
+    final String characterPrompt =
+        template.characterPrompt?.trim().isNotEmpty == true
+        ? template.characterPrompt!.trim()
+        : characterProfile?.promptFragment.trim() ?? '';
+    if (characterProfile != null && characterPrompt.isNotEmpty) {
+      characterProfile = characterProfile.copyWith(
+        promptFragment: characterPrompt,
+      );
+    }
     state = state.copyWith(
-      campaignTitleHint: template.title,
+      campaignTitleHint: template.campaignTitle?.trim().isNotEmpty == true
+          ? template.campaignTitle!.trim()
+          : template.title,
       objectiveHint: objective,
+      characterPrompt: characterPrompt,
+      personality: characterProfile?.personality ?? state.personality,
+      characterProfile: characterProfile,
+      gender: characterProfile?.gender ?? state.gender,
       literaryGenre: genreFromTemplate ?? state.literaryGenre,
+      storyMode: template.mode ?? state.storyMode,
+      difficulty: template.difficulty ?? state.difficulty,
+      storyTemplateSeed: StoryTemplateSeed(
+        id: template.id,
+        title: template.title,
+        summary: template.summary,
+        promptText: storyPrompt,
+      ),
+      mode: NewGameWizardMode.storyLengthSelection,
       formRevision: state.formRevision + 1,
     );
     _refreshPlannedModules();
-    setQuickStartMode();
   }
 
   void setQuickStartMode() {
@@ -208,6 +266,23 @@ class NewGameController extends StateNotifier<NewGameViewState> {
       mode: NewGameWizardMode.customSetup,
       currentStep: NewGameCustomSetupStep.literaryGenre,
     );
+  }
+
+  void startTemplateShortStory() {
+    state = state.copyWith(
+      mode: NewGameWizardMode.quickStart,
+      storyMode: StoryMode.shortStory,
+    );
+    _refreshPlannedModules();
+  }
+
+  void startTemplateLongCampaign() {
+    state = state.copyWith(
+      mode: NewGameWizardMode.customSetup,
+      storyMode: StoryMode.longCampaign,
+      currentStep: NewGameCustomSetupStep.foundation,
+    );
+    _refreshPlannedModules();
   }
 
   void previousStep() {
@@ -321,6 +396,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
 
   void setStoryMode(final StoryMode value) {
     state = state.copyWith(storyMode: value);
+    _refreshPlannedModules();
   }
 
   void setDifficulty(final DifficultyLevel value) {
@@ -374,9 +450,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
     CharacterProfile profile =
         state.characterProfile ?? _defaultCharacterProfile();
     if (state.characterPrompt.trim().isNotEmpty) {
-      profile = profile.copyWith(
-        promptFragment: state.characterPrompt.trim(),
-      );
+      profile = profile.copyWith(promptFragment: state.characterPrompt.trim());
     }
     if (state.personality.trim().isNotEmpty) {
       profile = profile.copyWith(personality: state.personality.trim());
@@ -503,8 +577,7 @@ class NewGameController extends StateNotifier<NewGameViewState> {
           storyWish: storySeed,
           customStoryPrompt: storySeed,
           campaignTitle: titleHint,
-          objectiveHint:
-              objectiveHint.isNotEmpty ? objectiveHint : storySeed,
+          objectiveHint: objectiveHint.isNotEmpty ? objectiveHint : storySeed,
           characterProfile: charProfile,
         );
         return _symmetryCampaignRepository.createCampaign(

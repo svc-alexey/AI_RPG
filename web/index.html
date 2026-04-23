@@ -86,6 +86,17 @@
       opacity: 0.38;
     }
 
+    /* After Flutter canvas owns the viewport, drop decorative HTML layers that
+       can flash through during compositor repaints (CanvasKit / desktop). */
+    body.is-flutter-running {
+      background: #0a0908;
+      background-image: none;
+    }
+
+    body.is-flutter-running::before {
+      display: none;
+    }
+
     [hidden] {
       display: none !important;
     }
@@ -2602,7 +2613,12 @@
         }
       }
 
+      function markFlutterRunning() {
+        document.body.classList.add('is-flutter-running');
+      }
+
       function finishLaunchTransition() {
+        markFlutterRunning();
         if (launchCompleted) {
           return;
         }

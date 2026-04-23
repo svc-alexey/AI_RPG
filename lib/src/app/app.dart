@@ -186,8 +186,10 @@ class _AiRpgAppState extends State<AiRpgApp> {
                 data: adaptThemeForContext(context, Theme.of(context)),
                 child: ColoredBox(
                   color: AetherPalette.background,
-                  child: UpdateGateOverlay(
-                    child: child ?? const SizedBox.shrink(),
+                  child: AetherBackdrop(
+                    child: UpdateGateOverlay(
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ),
@@ -266,96 +268,93 @@ class _SplashScreenState extends State<_SplashScreen> {
     final String flavorLine = flavorLines[_flavorIndex % flavorLines.length];
 
     return Scaffold(
-      backgroundColor: AetherPalette.background,
-      body: AetherBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.responsive.pagePadding,
-                  vertical: context.responsive.pagePadding,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      l10n.brandName,
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: AetherPalette.textPrimary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: context.responsive.isCompact ? 48 : 72,
-                        letterSpacing: context.responsive.scaleLetterSpacing(8),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.responsive.pagePadding,
+                vertical: context.responsive.pagePadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    l10n.brandName,
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      color: AetherPalette.textPrimary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: context.responsive.isCompact ? 48 : 72,
+                      letterSpacing: context.responsive.scaleLetterSpacing(8),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.appLoadingTitle,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AetherPalette.textPrimary,
+                      fontSize: context.responsive.isCompact ? 24 : 28,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    stages[stageIndex],
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AetherPalette.textMuted,
+                      height: 1.6,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 10,
+                      backgroundColor: AetherPalette.panelSoft.withValues(
+                        alpha: 0.72,
+                      ),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AetherPalette.accent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.appLoadingEtaShort,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AetherPalette.textMuted,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      flavorLine,
+                      key: ValueKey<String>(flavorLine),
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AetherPalette.accent,
+                        letterSpacing: 0.6,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.appLoadingTitle,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: AetherPalette.textPrimary,
-                            fontSize: context.responsive.isCompact ? 24 : 28,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      stages[stageIndex],
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AetherPalette.textMuted,
-                        height: 1.6,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 28),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: 10,
-                        backgroundColor: AetherPalette.panelSoft.withValues(
-                          alpha: 0.72,
-                        ),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AetherPalette.accent,
-                        ),
+                  ),
+                  const SizedBox(height: 28),
+                  const SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AetherPalette.accent,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.appLoadingEtaShort,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AetherPalette.textMuted,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: Text(
-                        flavorLine,
-                        key: ValueKey<String>(flavorLine),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AetherPalette.accent,
-                          letterSpacing: 0.6,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    const SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AetherPalette.accent,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

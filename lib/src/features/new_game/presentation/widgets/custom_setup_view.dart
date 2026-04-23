@@ -34,12 +34,24 @@ class CustomSetupView extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;
 
-    final int stepCount = NewGameCustomSetupStep.values.length;
-    final bool isFirstStep =
-        state.currentStep == NewGameCustomSetupStep.literaryGenre;
+    final List<NewGameCustomSetupStep> visibleSteps =
+        state.storyTemplateSeed == null
+        ? NewGameCustomSetupStep.values
+        : NewGameCustomSetupStep.values
+              .where(
+                (final step) =>
+                    step != NewGameCustomSetupStep.literaryGenre &&
+                    step != NewGameCustomSetupStep.worldSetting,
+              )
+              .toList();
+    final int stepCount = visibleSteps.length;
+    final int currentStepIndex = visibleSteps.indexOf(state.currentStep);
+    final bool isFirstStep = currentStepIndex <= 0;
     final bool isLastStep = state.currentStep == NewGameCustomSetupStep.review;
     final VoidCallback onBack = isFirstStep
-        ? controller.setModeSelection
+        ? state.storyTemplateSeed == null
+              ? controller.setModeSelection
+              : controller.setStoryLengthSelection
         : controller.previousStep;
     final bool primaryBusy = state.isSaving || state.isGenerating;
 
@@ -77,13 +89,16 @@ class CustomSetupView extends StatelessWidget {
         ),
         SizedBox(height: context.responsive.sectionSpacing + 4),
         WizardSegmentProgress(
-          currentIndex: state.currentStep.index,
+          currentIndex: currentStepIndex < 0 ? 0 : currentStepIndex,
           segmentCount: stepCount,
         ),
         const SizedBox(height: 10),
         Center(
           child: Text(
-            l10n.stepXOfY(state.currentStep.index + 1, stepCount),
+            l10n.stepXOfY(
+              (currentStepIndex < 0 ? 0 : currentStepIndex) + 1,
+              stepCount,
+            ),
             style: theme.textTheme.bodySmall?.copyWith(
               color: AetherPalette.textDim,
               fontSize: 12,
@@ -97,30 +112,30 @@ class CustomSetupView extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: switch (state.currentStep) {
               NewGameCustomSetupStep.literaryGenre => LiteraryGenreStep(
-                  state: state,
-                  controller: controller,
-                ),
+                state: state,
+                controller: controller,
+              ),
               NewGameCustomSetupStep.worldSetting => WorldSettingStep(
-                  state: state,
-                  controller: controller,
-                ),
+                state: state,
+                controller: controller,
+              ),
               NewGameCustomSetupStep.foundation => FoundationStep(
-                  state: state,
-                  controller: controller,
-                  heroController: heroController,
-                ),
+                state: state,
+                controller: controller,
+                heroController: heroController,
+              ),
               NewGameCustomSetupStep.character => CharacterStep(
-                  state: state,
-                  controller: controller,
-                  personalityController: personalityController,
-                  characterPromptController: characterPromptController,
-                ),
+                state: state,
+                controller: controller,
+                personalityController: personalityController,
+                characterPromptController: characterPromptController,
+              ),
               NewGameCustomSetupStep.story => StoryStep(
-                  state: state,
-                  controller: controller,
-                  storyPromptController: storyPromptController,
-                  onGeneratePrompts: onGeneratePrompts,
-                ),
+                state: state,
+                controller: controller,
+                storyPromptController: storyPromptController,
+                onGeneratePrompts: onGeneratePrompts,
+              ),
               NewGameCustomSetupStep.review => ReviewStep(state: state),
             },
           ),

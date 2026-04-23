@@ -773,6 +773,35 @@ class AppLocalizations {
     AppLanguage.en => 'Start campaign',
   };
 
+  String get storyTemplateLengthTitle => switch (language) {
+    AppLanguage.ru => 'Какой формат запустить?',
+    AppLanguage.en => 'Which format do you want?',
+  };
+
+  String get storyTemplateSelectedLabel => switch (language) {
+    AppLanguage.ru => 'Выбранная история',
+    AppLanguage.en => 'Selected story',
+  };
+
+  String get storyTemplateSelectedFallbackTitle => switch (language) {
+    AppLanguage.ru => 'История из библиотеки',
+    AppLanguage.en => 'Story from the library',
+  };
+
+  String get storyTemplateShortStoryDesc => switch (language) {
+    AppLanguage.ru =>
+      'Быстрый старт: выберите имя и пол героя, затем сразу начните сцену.',
+    AppLanguage.en =>
+      'Quick start: choose hero name and gender, then jump into the scene.',
+  };
+
+  String get storyTemplateLongCampaignDesc => switch (language) {
+    AppLanguage.ru =>
+      'Пошаговая настройка: персонаж, промпт истории и финальная проверка.',
+    AppLanguage.en =>
+      'Step-by-step setup: character, story prompt, and final review.',
+  };
+
   String get storyTemplateLike => switch (language) {
     AppLanguage.ru => 'Нравится',
     AppLanguage.en => 'Like',
@@ -810,7 +839,8 @@ class AppLocalizations {
 
   String get homeStoryLibrarySubtitle => switch (language) {
     AppLanguage.ru => 'Готовые истории и миры от мастера и сообщества',
-    AppLanguage.en => 'Ready-made stories and worlds from masters and the community',
+    AppLanguage.en =>
+      'Ready-made stories and worlds from masters and the community',
   };
 
   String get storyTemplateShareCopied => switch (language) {
@@ -861,6 +891,108 @@ class AppLocalizations {
   String get storyAdminFieldPrompt => switch (language) {
     AppLanguage.ru => 'Промпт для ИИ (сюжет)',
     AppLanguage.en => 'AI story prompt',
+  };
+
+  String get storyAdminFieldCampaignTitle => switch (language) {
+    AppLanguage.ru => 'Название кампании',
+    AppLanguage.en => 'Campaign title',
+  };
+
+  String get storyAdminFieldObjectiveHint => switch (language) {
+    AppLanguage.ru => 'Начальная цель',
+    AppLanguage.en => 'Starting objective',
+  };
+
+  String get storyAdminFieldCharacterPrompt => switch (language) {
+    AppLanguage.ru => 'Промпт персонажа',
+    AppLanguage.en => 'Character prompt',
+  };
+
+  String get storyAdminFieldCharacterName => switch (language) {
+    AppLanguage.ru => 'Имя персонажа',
+    AppLanguage.en => 'Character name',
+  };
+
+  String get storyAdminFieldCharacterGender => switch (language) {
+    AppLanguage.ru => 'Пол персонажа',
+    AppLanguage.en => 'Character gender',
+  };
+
+  String get storyAdminFieldCharacterRace => switch (language) {
+    AppLanguage.ru => 'Раса / происхождение',
+    AppLanguage.en => 'Race / origin',
+  };
+
+  String get storyAdminFieldCharacterClass => switch (language) {
+    AppLanguage.ru => 'Класс персонажа',
+    AppLanguage.en => 'Character class',
+  };
+
+  String get storyAdminFieldCharacterPersonality => switch (language) {
+    AppLanguage.ru => 'Характер персонажа',
+    AppLanguage.en => 'Character personality',
+  };
+
+  String get storyAdminFieldCharacterSkills => switch (language) {
+    AppLanguage.ru => 'Навыки через запятую',
+    AppLanguage.en => 'Skills, comma-separated',
+  };
+
+  String get storyAdminFieldCharacterPerks => switch (language) {
+    AppLanguage.ru => 'Особенности через запятую',
+    AppLanguage.en => 'Perks, comma-separated',
+  };
+
+  String get storyAdminOptionalNone => switch (language) {
+    AppLanguage.ru => 'Не указывать',
+    AppLanguage.en => 'Do not set',
+  };
+
+  String get storyAdminImportFile => switch (language) {
+    AppLanguage.ru => 'Загрузить JSON',
+    AppLanguage.en => 'Upload JSON',
+  };
+
+  String get storyAdminImportPaste => switch (language) {
+    AppLanguage.ru => 'Вставить JSON',
+    AppLanguage.en => 'Paste JSON',
+  };
+
+  String get storyAdminImportPasteTitle => switch (language) {
+    AppLanguage.ru => 'Импорт структуры кампании',
+    AppLanguage.en => 'Import campaign structure',
+  };
+
+  String get storyAdminImportPasteHint => switch (language) {
+    AppLanguage.ru => '{"story_prompt": "..."}',
+    AppLanguage.en => '{"story_prompt": "..."}',
+  };
+
+  String get storyAdminImportApply => switch (language) {
+    AppLanguage.ru => 'Заполнить',
+    AppLanguage.en => 'Apply',
+  };
+
+  String get storyAdminImportOverwriteTitle => switch (language) {
+    AppLanguage.ru => 'Заполнить поля из JSON?',
+    AppLanguage.en => 'Fill fields from JSON?',
+  };
+
+  String get storyAdminImportOverwriteBody => switch (language) {
+    AppLanguage.ru =>
+      'В форме уже есть данные. Импорт заменит совпадающие заполненные поля.',
+    AppLanguage.en =>
+      'The form already has data. Import will replace matching filled fields.',
+  };
+
+  String get storyAdminImportInvalidJson => switch (language) {
+    AppLanguage.ru => 'Некорректный JSON для импорта.',
+    AppLanguage.en => 'Invalid import JSON.',
+  };
+
+  String get storyAdminImportApplied => switch (language) {
+    AppLanguage.ru => 'Поля заполнены из JSON.',
+    AppLanguage.en => 'Fields filled from JSON.',
   };
 
   String get storyAdminFieldSetting => switch (language) {
@@ -953,6 +1085,11 @@ class AppLocalizations {
     AppLanguage.en => 'Enter a title and AI story prompt.',
   };
 
+  String get storyAdminFillPrompt => switch (language) {
+    AppLanguage.ru => 'Укажите промпт для ИИ.',
+    AppLanguage.en => 'Enter an AI story prompt.',
+  };
+
   String get noSavesYet => switch (language) {
     AppLanguage.ru =>
       'Пока нет сохранений. Создай новую кампанию на главном экране.',
@@ -976,8 +1113,7 @@ class AppLocalizations {
   };
 
   String get savesShareRequiresAccount => switch (language) {
-    AppLanguage.ru =>
-      'Войдите в аккаунт, чтобы опубликовать мир в библиотеке.',
+    AppLanguage.ru => 'Войдите в аккаунт, чтобы опубликовать мир в библиотеке.',
     AppLanguage.en => 'Sign in to publish a world to the library.',
   };
 

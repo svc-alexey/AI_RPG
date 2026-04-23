@@ -138,11 +138,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     final CampaignState? campaign = chatState.campaign;
     if (chatState.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (campaign == null) {
       return Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(title: Text(l10n.campaignNotFound)),
         body: Center(child: Text(l10n.campaignOpenFailed)),
       );
@@ -152,6 +156,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: Colors.transparent,
       appBar: responsive.isPhoneSmall
           ? null
           : AppBar(
@@ -222,8 +227,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       drawer: wide || responsive.isPhoneSmall
           ? null
           : Drawer(
+              backgroundColor: Colors.transparent,
               width: responsive.width * 0.84,
-              child: AetherBackdrop(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      AetherPalette.backgroundTop,
+                      AetherPalette.background,
+                    ],
+                  ),
+                ),
                 child: SafeArea(
                   child: _buildSidebar(
                     campaign: campaign,
@@ -234,10 +250,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 ),
               ),
             ),
-      body: AetherBackdrop(
-        child: Padding(
-          padding: EdgeInsets.all(responsive.pagePadding),
-          child: Column(
+      body: Padding(
+        padding: EdgeInsets.all(responsive.pagePadding),
+        child: Column(
             children: <Widget>[
               if (responsive.isPhoneSmall && !keyboardVisible) ...<Widget>[
                 _CompactChatToolbar(
@@ -296,7 +311,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -626,7 +640,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     backgroundColor: Colors.transparent,
     builder: (final context) => FractionallySizedBox(
       heightFactor: 0.86,
-      child: AetherBackdrop(
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              AetherPalette.backgroundTop,
+              AetherPalette.background,
+            ],
+          ),
+        ),
         child: SafeArea(
           child: Padding(
             padding: EdgeInsets.all(context.responsive.pagePadding),

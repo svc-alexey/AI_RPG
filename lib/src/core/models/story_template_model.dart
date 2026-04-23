@@ -1,3 +1,5 @@
+import 'package:ai_prg/src/core/models/campaign_models.dart';
+
 /// Server-backed narrative world / story template from Symmetry `/v1/story-templates`.
 class StoryTemplate {
   const StoryTemplate({
@@ -17,6 +19,14 @@ class StoryTemplate {
     required this.createdAt,
     required this.updatedAt,
     this.literaryGenreSlug,
+    this.literaryGenre,
+    this.mode,
+    this.difficulty,
+    this.storyPrompt,
+    this.characterPrompt,
+    this.campaignTitle,
+    this.objectiveHint,
+    this.character,
     this.coverImageHref,
   });
 
@@ -48,13 +58,33 @@ class StoryTemplate {
       likes: (json['likes'] as int?) ?? 0,
       views: (json['views'] as int?) ?? 0,
       bookmarked: json['bookmarked'] as bool? ?? false,
-      createdAt: DateTime.tryParse((json['created_at'] as String?) ?? '') ??
+      createdAt:
+          DateTime.tryParse((json['created_at'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: DateTime.tryParse((json['updated_at'] as String?) ?? '') ??
+      updatedAt:
+          DateTime.tryParse((json['updated_at'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       literaryGenreSlug: _parseOptionalNonEmpty(
         json['literary_genre_slug'] as String?,
       ),
+      literaryGenre: _parseOptionalNonEmpty(
+        _optionalString(json['literary_genre'] ?? json['literaryGenre']),
+      ),
+      mode: _parseStoryMode(json['mode']),
+      difficulty: _parseDifficulty(json['difficulty']),
+      storyPrompt: _parseOptionalNonEmpty(
+        _optionalString(json['story_prompt'] ?? json['storyPrompt']),
+      ),
+      characterPrompt: _parseOptionalNonEmpty(
+        _optionalString(json['character_prompt'] ?? json['characterPrompt']),
+      ),
+      campaignTitle: _parseOptionalNonEmpty(
+        _optionalString(json['campaign_title'] ?? json['campaignTitle']),
+      ),
+      objectiveHint: _parseOptionalNonEmpty(
+        _optionalString(json['objective_hint'] ?? json['objectiveHint']),
+      ),
+      character: _parseCharacterProfile(json['character']),
       coverImageHref: _parseOptionalNonEmpty(
         json['cover_image_href'] as String?,
       ),
@@ -77,6 +107,14 @@ class StoryTemplate {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? literaryGenreSlug;
+  final String? literaryGenre;
+  final StoryMode? mode;
+  final DifficultyLevel? difficulty;
+  final String? storyPrompt;
+  final String? characterPrompt;
+  final String? campaignTitle;
+  final String? objectiveHint;
+  final CharacterProfile? character;
   final String? coverImageHref;
 
   /// External URL from legacy metadata (optional).
@@ -119,23 +157,59 @@ class StoryTemplate {
   }
 
   static String? _parseOptionalNonEmpty(final String? raw) {
-    if (raw == null) {
+    final String? t = raw?.trim();
+    if (t == null || t.isEmpty) {
       return null;
     }
-    final String t = raw.trim();
-    return t.isEmpty ? null : t;
+    return t;
   }
+
+  static String? _optionalString(final Object? raw) => raw?.toString();
 
   static Object? _normalizeMetadataValue(final Object? value) {
     if (value is Map<Object?, Object?>) {
       return value.map(
-        (final key, final Object? v) =>
-            MapEntry(key.toString(), _normalizeMetadataValue(v)),
+        (final key, v) => MapEntry(key.toString(), _normalizeMetadataValue(v)),
       );
     }
     if (value is List<Object?>) {
       return value.map(_normalizeMetadataValue).toList();
     }
     return value;
+  }
+
+  static StoryMode? _parseStoryMode(final Object? raw) {
+    final String value = raw?.toString().trim() ?? '';
+    if (value.isEmpty) {
+      return null;
+    }
+    for (final StoryMode item in StoryMode.values) {
+      if (item.name == value) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  static DifficultyLevel? _parseDifficulty(final Object? raw) {
+    final String value = raw?.toString().trim() ?? '';
+    if (value.isEmpty) {
+      return null;
+    }
+    for (final DifficultyLevel item in DifficultyLevel.values) {
+      if (item.name == value) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  static CharacterProfile? _parseCharacterProfile(final Object? raw) {
+    if (raw is! Map<Object?, Object?>) {
+      return null;
+    }
+    return CharacterProfile.fromJson(
+      raw.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
   }
 }
