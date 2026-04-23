@@ -38,10 +38,15 @@ class SymmetryAuthRepository {
       return session;
     }
     try {
-      final SymmetryUser user = await _client(session.baseUrl).getCurrentUser(
-        accessToken: session.tokens.accessToken,
+      final SymmetryUser user = await runWithAuthorizedSession(
+        (final authorizedSession) => _client(
+          authorizedSession.baseUrl,
+        ).getCurrentUser(accessToken: authorizedSession.tokens.accessToken),
+        allowGuest: false,
       );
-      final SymmetrySession synced = session.copyWith(user: user);
+      final SymmetrySession currentSession =
+          await _settingsRepository.loadSymmetrySession() ?? session;
+      final SymmetrySession synced = currentSession.copyWith(user: user);
       await _settingsRepository.saveSymmetrySession(synced);
       return synced;
     } catch (_) {
@@ -168,13 +173,12 @@ class SymmetryAuthRepository {
 
   Future<void> checkProviderConnection({
     required final AiSettings aiSettings,
-  }) async {
-    final SymmetrySession session = await ensureSession();
-    await _client(session.baseUrl).checkProviderConnection(
+  }) => runWithAuthorizedSession(
+    (final session) => _client(session.baseUrl).checkProviderConnection(
       accessToken: session.tokens.accessToken,
       aiSettings: aiSettings,
-    );
-  }
+    ),
+  );
 
   Future<void> checkBackendHealth({final String? baseUrlOverride}) async {
     final String baseUrl =
@@ -189,25 +193,68 @@ class SymmetryAuthRepository {
     required final AppLanguage language,
     required final CampaignPromptGenerationRequest request,
   }) async {
-    final SymmetrySession session = await ensureSession();
-    final SymmetryGeneratedPrompts generated = await _client(session.baseUrl)
-        .generatePrompts(
-          accessToken: session.tokens.accessToken,
-          setting: request.setting,
-          literaryGenre: request.literaryGenre,
-          mode: request.mode,
-          difficulty: request.difficulty,
-          languageCode: language.code,
-          storyWish: request.storyWish,
-          aiSettings: aiSettings,
-          characterProfile: request.characterProfile,
-        );
+    final SymmetryGeneratedPrompts generated = await runWithAuthorizedSession(
+      (final session) => _client(session.baseUrl).generatePrompts(
+        accessToken: session.tokens.accessToken,
+        setting: request.setting,
+        literaryGenre: request.literaryGenre,
+        mode: request.mode,
+        difficulty: request.difficulty,
+        languageCode: language.code,
+        storyWish: request.storyWish,
+        aiSettings: aiSettings,
+        characterProfile: request.characterProfile,
+      ),
+    );
     return GeneratedPrompts(
       storyPrompt: generated.storyPrompt,
       characterPrompt: generated.characterPrompt,
       campaignTitle: generated.campaignTitle,
       objectiveHint: generated.objectiveHint,
     );
+  }
+
+  Future<T> runWithAuthorizedSession<T>(
+    final Future<T> Function(SymmetrySession session) action, {
+    final bool allowGuest = true,
+  }) async {
+    SymmetrySession session = await ensureSession(allowGuest: allowGuest);
+    try {
+      return await action(session);
+    } catch (error) {
+      if (!_isUnauthorizedError(error)) {
+        rethrow;
+      }
+      session = await _recoverSessionAfterUnauthorized(
+        currentSession: session,
+        allowGuest: allowGuest,
+      );
+      return action(session);
+    }
+  }
+
+  Future<SymmetrySession> _recoverSessionAfterUnauthorized({
+    required final SymmetrySession currentSession,
+    required final bool allowGuest,
+  }) async {
+    try {
+      return await refreshSession();
+    } catch (error) {
+      if (currentSession.isGuest && allowGuest && _isUnauthorizedError(error)) {
+        return guestLogin();
+      }
+      if (_isUnauthorizedError(error)) {
+        await _settingsRepository.saveSymmetrySession(null);
+      }
+      rethrow;
+    }
+  }
+
+  bool _isUnauthorizedError(final Object error) {
+    if (error is! SymmetryApiException) {
+      return false;
+    }
+    return error.statusCode == 401 || error.statusCode == 403;
   }
 
   SymmetryApiClient _client(final String baseUrl) =>

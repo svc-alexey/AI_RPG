@@ -12,16 +12,22 @@ class SymmetryCampaignRepository {
   final SymmetryAuthRepository _authRepository;
 
   Future<List<CampaignState>> loadAllCampaigns() async {
-    final SymmetrySession session = await _authRepository.ensureSession();
-    final List<SymmetryCampaignSummary> summaries = await _client(
-      session.baseUrl,
-    ).listCampaigns(accessToken: session.tokens.accessToken);
+    final List<SymmetryCampaignSummary> summaries = await _authRepository
+        .runWithAuthorizedSession(
+          (final session) => _client(
+            session.baseUrl,
+          ).listCampaigns(accessToken: session.tokens.accessToken),
+          allowGuest: false,
+        );
     final List<CampaignState> campaigns = <CampaignState>[];
     for (final SymmetryCampaignSummary summary in summaries) {
-      final SymmetryCampaignStateResponse response =
-          await _client(session.baseUrl).getCampaignState(
-            accessToken: session.tokens.accessToken,
-            campaignId: summary.id,
+      final SymmetryCampaignStateResponse response = await _authRepository
+          .runWithAuthorizedSession(
+            (final session) => _client(session.baseUrl).getCampaignState(
+              accessToken: session.tokens.accessToken,
+              campaignId: summary.id,
+            ),
+            allowGuest: false,
           );
       campaigns.add(_campaignStateFromServer(response.state));
     }
@@ -29,76 +35,79 @@ class SymmetryCampaignRepository {
   }
 
   Future<CampaignState?> loadCampaign(final String id) async {
-    final SymmetrySession session = await _authRepository.ensureSession();
-    final SymmetryCampaignStateResponse response = await _client(
-      session.baseUrl,
-    ).getCampaignState(accessToken: session.tokens.accessToken, campaignId: id);
+    final SymmetryCampaignStateResponse response = await _authRepository
+        .runWithAuthorizedSession(
+          (final session) => _client(session.baseUrl).getCampaignState(
+            accessToken: session.tokens.accessToken,
+            campaignId: id,
+          ),
+        );
     return _campaignStateFromServer(response.state);
   }
 
   Future<List<SymmetryWorldRumor>> loadCampaignRumors(
     final String id, {
     final int limit = 5,
-  }) async {
-    final SymmetrySession session = await _authRepository.ensureSession();
-    return _client(session.baseUrl).getCampaignRumors(
+  }) => _authRepository.runWithAuthorizedSession(
+    (final session) => _client(session.baseUrl).getCampaignRumors(
       accessToken: session.tokens.accessToken,
       campaignId: id,
       limit: limit,
-    );
-  }
+    ),
+  );
 
   Future<CampaignState> createCampaign({
     required final CampaignDraft draft,
     required final AppLanguage language,
     required final AiSettings aiSettings,
   }) async {
-    final SymmetrySession session = await _authRepository.ensureSession();
     final SymmetryCampaignStateResponse
-    response = await _client(session.baseUrl).createCampaign(
-      accessToken: session.tokens.accessToken,
-      payload: <String, Object?>{
-        'title': draft.campaignTitle.trim().isNotEmpty
-            ? _normalizeCampaignTitle(
-                draft.campaignTitle.trim(),
-                language: language,
-              )
-            : draft.customStoryPrompt.trim().isNotEmpty
-            ? _campaignTitleFromPrompt(draft.customStoryPrompt, language)
-            : _fallbackTitle(language),
-        'setting': draft.setting.name,
-        'mode': draft.mode.name,
-        'difficulty': draft.difficulty.name,
-        'language': language.code,
-        'story_prompt': draft.customStoryPrompt.trim(),
-        'objective_hint': _normalizeObjective(
-          draft.objectiveHint.trim().isNotEmpty
-              ? draft.objectiveHint.trim()
-              : draft.storyWish.trim(),
-        ),
-        'character': <String, Object?>{
-          'name': draft.heroName,
-          'gender':
-              (draft.characterProfile?.gender ?? CharacterGender.other).name,
-          'race': draft.characterProfile?.race ?? '',
-          'character_class':
-              (draft.characterProfile?.characterClass ??
-                      CharacterClass.unspecified)
-                  .name,
-          'personality': draft.characterProfile?.personality ?? '',
-          'prompt_fragment': draft.characterProfile?.promptFragment ?? '',
-          'skills': draft.characterProfile?.skills ?? const <String>[],
-          'perks': draft.characterProfile?.perks ?? const <String>[],
-        },
-        if (aiSettings.baseUrl.trim().isNotEmpty &&
-            aiSettings.model.trim().isNotEmpty &&
-            aiSettings.apiKey.trim().isNotEmpty)
-          'provider_credentials': <String, Object?>{
-            'base_url': aiSettings.baseUrl.trim(),
-            'model': aiSettings.model.trim(),
-            'api_key': aiSettings.apiKey.trim(),
+    response = await _authRepository.runWithAuthorizedSession(
+      (final session) => _client(session.baseUrl).createCampaign(
+        accessToken: session.tokens.accessToken,
+        payload: <String, Object?>{
+          'title': draft.campaignTitle.trim().isNotEmpty
+              ? _normalizeCampaignTitle(
+                  draft.campaignTitle.trim(),
+                  language: language,
+                )
+              : draft.customStoryPrompt.trim().isNotEmpty
+              ? _campaignTitleFromPrompt(draft.customStoryPrompt, language)
+              : _fallbackTitle(language),
+          'setting': draft.setting.name,
+          'mode': draft.mode.name,
+          'difficulty': draft.difficulty.name,
+          'language': language.code,
+          'story_prompt': draft.customStoryPrompt.trim(),
+          'objective_hint': _normalizeObjective(
+            draft.objectiveHint.trim().isNotEmpty
+                ? draft.objectiveHint.trim()
+                : draft.storyWish.trim(),
+          ),
+          'character': <String, Object?>{
+            'name': draft.heroName,
+            'gender':
+                (draft.characterProfile?.gender ?? CharacterGender.other).name,
+            'race': draft.characterProfile?.race ?? '',
+            'character_class':
+                (draft.characterProfile?.characterClass ??
+                        CharacterClass.unspecified)
+                    .name,
+            'personality': draft.characterProfile?.personality ?? '',
+            'prompt_fragment': draft.characterProfile?.promptFragment ?? '',
+            'skills': draft.characterProfile?.skills ?? const <String>[],
+            'perks': draft.characterProfile?.perks ?? const <String>[],
           },
-      },
+          if (aiSettings.baseUrl.trim().isNotEmpty &&
+              aiSettings.model.trim().isNotEmpty &&
+              aiSettings.apiKey.trim().isNotEmpty)
+            'provider_credentials': <String, Object?>{
+              'base_url': aiSettings.baseUrl.trim(),
+              'model': aiSettings.model.trim(),
+              'api_key': aiSettings.apiKey.trim(),
+            },
+        },
+      ),
     );
     return _campaignStateFromServer(response.state);
   }
@@ -110,25 +119,27 @@ class SymmetryCampaignRepository {
     required final AiSettings aiSettings,
     final String triggerSource = 'manual',
   }) async {
-    final SymmetrySession session = await _authRepository.ensureSession();
-    final SymmetryTurnResponse response = await _client(session.baseUrl)
-        .processTurn(
-          accessToken: session.tokens.accessToken,
-          campaignId: campaign.id,
-          playerAction: playerAction,
-          languageCode: language.code,
-          aiSettings: aiSettings,
-          triggerSource: triggerSource,
+    final SymmetryTurnResponse response = await _authRepository
+        .runWithAuthorizedSession(
+          (final session) => _client(session.baseUrl).processTurn(
+            accessToken: session.tokens.accessToken,
+            campaignId: campaign.id,
+            playerAction: playerAction,
+            languageCode: language.code,
+            aiSettings: aiSettings,
+            triggerSource: triggerSource,
+          ),
         );
     return _campaignStateFromServer(response.state);
   }
 
-  Future<void> deleteCampaign(final String id) async {
-    final SymmetrySession session = await _authRepository.ensureSession();
-    await _client(
-      session.baseUrl,
-    ).deleteCampaign(accessToken: session.tokens.accessToken, campaignId: id);
-  }
+  Future<void> deleteCampaign(final String id) =>
+      _authRepository.runWithAuthorizedSession(
+        (final session) => _client(session.baseUrl).deleteCampaign(
+          accessToken: session.tokens.accessToken,
+          campaignId: id,
+        ),
+      );
 
   Future<void> saveCampaign(final CampaignState campaign) async {
     // Server snapshots are persisted during create/process-turn flows.
@@ -240,25 +251,22 @@ class SymmetryCampaignRepository {
       'companions': companions,
       'resources': resources,
       'checks': checks,
-      'modules':
-          modules.map((final item) {
-            final Map<Object?, Object?> map =
-                item as Map<Object?, Object?>? ?? const <Object?, Object?>{};
-            return <String, Object?>{
-              'module': map['module']?.toString() ?? '',
-              'isActive': map['isActive'] ?? map['is_active'] ?? true,
-              'activationReason':
-                  map['activationReason'] ?? map['activation_reason'] ?? '',
-              'activatedAt': map['activatedAt'] ?? map['activated_at'],
-            };
-          }).toList(),
-      'progression':
-          json['progression'] is Map<Object?, Object?>
-              ? (json['progression'] as Map<Object?, Object?>).map(
-                  (final key, final value) =>
-                      MapEntry(key.toString(), value),
-                )
-              : const <String, Object?>{},
+      'modules': modules.map((final item) {
+        final Map<Object?, Object?> map =
+            item as Map<Object?, Object?>? ?? const <Object?, Object?>{};
+        return <String, Object?>{
+          'module': map['module']?.toString() ?? '',
+          'isActive': map['isActive'] ?? map['is_active'] ?? true,
+          'activationReason':
+              map['activationReason'] ?? map['activation_reason'] ?? '',
+          'activatedAt': map['activatedAt'] ?? map['activated_at'],
+        };
+      }).toList(),
+      'progression': json['progression'] is Map<Object?, Object?>
+          ? (json['progression'] as Map<Object?, Object?>).map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            )
+          : const <String, Object?>{},
       'customStoryPrompt':
           json['custom_story_prompt'] ?? json['customStoryPrompt'] ?? '',
       'characterPrompt':
