@@ -169,6 +169,22 @@ def _resolve_update_mode(
     return "none"
 
 
+def _resolve_reload_required(
+    *,
+    current_asset_version: str | None,
+    latest_asset_version: str,
+) -> bool | None:
+    if current_asset_version is None:
+        return None
+    normalized_current = current_asset_version.strip()
+    if not normalized_current:
+        return None
+    normalized_latest = latest_asset_version.strip()
+    if not normalized_latest:
+        return None
+    return _compare_versions(normalized_current, normalized_latest) < 0
+
+
 @app.get("/version", response_model=VersionResponse)
 async def version(
     current_version: str | None = Query(default=None),
@@ -184,10 +200,9 @@ async def version(
         minimum_supported_version=settings.desktop_minimum_supported_version,
         latest_version=settings.desktop_latest_version,
     )
-    web_reload_required = (
-        current_asset_version.strip() != settings.web_asset_version.strip()
-        if current_asset_version is not None and current_asset_version.strip()
-        else None
+    web_reload_required = _resolve_reload_required(
+        current_asset_version=current_asset_version,
+        latest_asset_version=settings.web_asset_version,
     )
 
     return VersionResponse(

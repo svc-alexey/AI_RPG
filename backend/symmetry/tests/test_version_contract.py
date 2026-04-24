@@ -62,3 +62,22 @@ async def test_version_endpoint_returns_platform_contract(monkeypatch):
     assert response.platforms.web.reload_required is True
     assert response.platforms.desktop.update_mode == "force"
     assert response.platforms.desktop.update_url == "https://example.com/download"
+
+
+@pytest.mark.asyncio
+async def test_version_endpoint_does_not_force_reload_for_newer_web_assets(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main_module.settings,
+        "web_asset_version",
+        "web-20260423T150217Z",
+        raising=False,
+    )
+
+    response = await main_module.version(
+        current_version="1.0.0+1",
+        current_asset_version="web-20260424T084614Z",
+    )
+
+    assert response.platforms.web.reload_required is False
