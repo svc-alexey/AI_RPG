@@ -70,9 +70,6 @@ try {
   $replacement = @"
 window.__codexLaunchFlutterApp = async function () {
   return _flutter.loader.load({
-    serviceWorkerSettings: {
-      serviceWorkerVersion: serviceWorkerVersion
-    },
     onEntrypointLoaded: async function (engineInitializer) {
       const appRunner = await engineInitializer.initializeEngine();
       await appRunner.runApp();
