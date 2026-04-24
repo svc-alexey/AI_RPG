@@ -9,6 +9,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/literary_genre_model.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/features/story_library/presentation/widgets/authenticated_cover_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -179,14 +180,29 @@ class _StoryAdminEditorScreenState
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
+      withReadStream: true,
       allowMultiple: false,
     );
     if (result == null || result.files.isEmpty) {
       return;
     }
     final PlatformFile f = result.files.single;
-    final Uint8List? bytes = f.bytes;
+    final Uint8List? bytes = await _readPlatformFileBytes(f);
     if (bytes == null) {
+      AppLogger.logDiagnostic(
+        level: 'WARN',
+        event: 'story_cover_pick_failed',
+        message:
+            'Cover picker returned no bytes. name=${f.name} size=${f.size} ext=${f.extension ?? '-'}',
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(context.l10n.storyAdminCoverReadFailed)),
+        );
       return;
     }
     if (bytes.length > _maxCoverBytes) {
@@ -203,11 +219,37 @@ class _StoryAdminEditorScreenState
     if (!mounted) {
       return;
     }
+    AppLogger.logDiagnostic(
+      level: 'INFO',
+      event: 'story_cover_picked',
+      message:
+          'Picked cover bytes=${bytes.length} mime=${_mimeFromExtension(f.extension)} name=${f.name}',
+    );
     setState(() {
       _pickedCoverBytes = bytes;
       _pickedCoverMime = _mimeFromExtension(f.extension);
       _removeServerCover = false;
     });
+  }
+
+  Future<Uint8List?> _readPlatformFileBytes(final PlatformFile file) async {
+    final Uint8List? directBytes = file.bytes;
+    if (directBytes != null && directBytes.isNotEmpty) {
+      return directBytes;
+    }
+    final Stream<List<int>>? stream = file.readStream;
+    if (stream == null) {
+      return null;
+    }
+    final BytesBuilder builder = BytesBuilder(copy: false);
+    await for (final List<int> chunk in stream) {
+      builder.add(chunk);
+      if (builder.length > _maxCoverBytes) {
+        break;
+      }
+    }
+    final Uint8List resolved = builder.takeBytes();
+    return resolved.isEmpty ? null : resolved;
   }
 
   void _clearCoverChoice() {
@@ -659,6 +701,12 @@ class _StoryAdminEditorScreenState
           );
       final String templateId = saved.id;
       if (_pickedCoverBytes != null) {
+        AppLogger.logDiagnostic(
+          level: 'INFO',
+          event: 'story_cover_upload_started',
+          message:
+              'Uploading cover templateId=$templateId bytes=${_pickedCoverBytes!.length} mime=${_pickedCoverMime ?? 'image/jpeg'}',
+        );
         await ref
             .read(storyLibraryRepositoryProvider)
             .uploadStoryTemplateCover(
@@ -666,6 +714,11 @@ class _StoryAdminEditorScreenState
               bytes: _pickedCoverBytes!,
               contentType: _pickedCoverMime ?? 'image/jpeg',
             );
+        AppLogger.logDiagnostic(
+          level: 'INFO',
+          event: 'story_cover_upload_completed',
+          message: 'Cover upload completed for templateId=$templateId',
+        );
       } else if (_removeServerCover && widget.existing != null) {
         await ref
             .read(storyLibraryRepositoryProvider)
@@ -816,340 +869,338 @@ class _StoryAdminEditorScreenState
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: responsive.dialogMaxWidth),
           child: ListView(
-              padding: EdgeInsets.all(responsive.pagePadding),
-              children: <Widget>[
-                Wrap(
+            padding: EdgeInsets.all(responsive.pagePadding),
+            children: <Widget>[
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: <Widget>[
+                  OutlinedButton.icon(
+                    onPressed: _isSaving ? null : _importJsonFile,
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: Text(l10n.storyAdminImportFile),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _isSaving ? null : _showPasteJsonDialog,
+                    icon: const Icon(Icons.content_paste_rounded),
+                    label: Text(l10n.storyAdminImportPaste),
+                  ),
+                ],
+              ),
+              SizedBox(height: responsive.sectionSpacing),
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldTitle,
+                ),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _summaryController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldSummary,
+                ),
+                minLines: 2,
+                maxLines: 6,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _promptController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldPrompt,
+                ),
+                minLines: 4,
+                maxLines: 12,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _campaignTitleController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCampaignTitle,
+                ),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _objectiveHintController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldObjectiveHint,
+                ),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<StoryMode?>(
+                initialValue: _storyMode,
+                decoration: InputDecoration(labelText: l10n.storyModeTitle),
+                items: <DropdownMenuItem<StoryMode?>>[
+                  DropdownMenuItem<StoryMode?>(
+                    value: null,
+                    child: Text(l10n.storyAdminOptionalNone),
+                  ),
+                  ...StoryMode.values.map(
+                    (final StoryMode value) => DropdownMenuItem<StoryMode?>(
+                      value: value,
+                      child: Text(l10n.storyModeLabel(value)),
+                    ),
+                  ),
+                ],
+                onChanged: (final StoryMode? v) =>
+                    setState(() => _storyMode = v),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<DifficultyLevel?>(
+                initialValue: _difficulty,
+                decoration: InputDecoration(labelText: l10n.difficultyTitle),
+                items: <DropdownMenuItem<DifficultyLevel?>>[
+                  DropdownMenuItem<DifficultyLevel?>(
+                    value: null,
+                    child: Text(l10n.storyAdminOptionalNone),
+                  ),
+                  ...DifficultyLevel.values.map(
+                    (final DifficultyLevel value) =>
+                        DropdownMenuItem<DifficultyLevel?>(
+                          value: value,
+                          child: Text(l10n.difficultyLabel(value)),
+                        ),
+                  ),
+                ],
+                onChanged: (final DifficultyLevel? v) =>
+                    setState(() => _difficulty = v),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<LiteraryGenre?>(
+                initialValue: _campaignLiteraryGenre,
+                decoration: InputDecoration(labelText: l10n.literaryGenreTitle),
+                items: <DropdownMenuItem<LiteraryGenre?>>[
+                  DropdownMenuItem<LiteraryGenre?>(
+                    value: null,
+                    child: Text(l10n.storyAdminOptionalNone),
+                  ),
+                  ...LiteraryGenre.values.map(
+                    (final LiteraryGenre value) =>
+                        DropdownMenuItem<LiteraryGenre?>(
+                          value: value,
+                          child: Text(l10n.literaryGenreLabel(value)),
+                        ),
+                  ),
+                ],
+                onChanged: (final LiteraryGenre? v) =>
+                    setState(() => _campaignLiteraryGenre = v),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<String?>(
+                initialValue: _literaryGenreSlug,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldLiteraryGenre,
+                ),
+                items: <DropdownMenuItem<String?>>[
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text(l10n.storyAdminLiteraryGenreNone),
+                  ),
+                  ..._literaryGenres.map(
+                    (final g) => DropdownMenuItem<String?>(
+                      value: g.slug,
+                      child: Text(g.labelForLocale(isRussian: ru)),
+                    ),
+                  ),
+                ],
+                onChanged: (final String? v) =>
+                    setState(() => _literaryGenreSlug = v),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<CampaignSetting>(
+                initialValue: _campaignSetting,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldSetting,
+                ),
+                items: CampaignSetting.values
+                    .map(
+                      (final CampaignSetting s) =>
+                          DropdownMenuItem<CampaignSetting>(
+                            value: s,
+                            child: Text(l10n.settingLabel(s)),
+                          ),
+                    )
+                    .toList(),
+                onChanged: (final CampaignSetting? v) {
+                  if (v != null) {
+                    setState(() => _campaignSetting = v);
+                  }
+                },
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _characterPromptController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterPrompt,
+                ),
+                minLines: 2,
+                maxLines: 8,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _characterNameController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterName,
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<CharacterGender>(
+                initialValue: _characterGender,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterGender,
+                ),
+                items: CharacterGender.values
+                    .map(
+                      (final CharacterGender value) =>
+                          DropdownMenuItem<CharacterGender>(
+                            value: value,
+                            child: Text(value.name),
+                          ),
+                    )
+                    .toList(),
+                onChanged: (final CharacterGender? v) {
+                  if (v != null) {
+                    setState(() => _characterGender = v);
+                  }
+                },
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _characterRaceController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterRace,
+                ),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              DropdownButtonFormField<CharacterClass>(
+                initialValue: _characterClass,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterClass,
+                ),
+                items: CharacterClass.values
+                    .map(
+                      (final CharacterClass value) =>
+                          DropdownMenuItem<CharacterClass>(
+                            value: value,
+                            child: Text(value.name),
+                          ),
+                    )
+                    .toList(),
+                onChanged: (final CharacterClass? v) {
+                  if (v != null) {
+                    setState(() => _characterClass = v);
+                  }
+                },
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _characterPersonalityController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterPersonality,
+                ),
+                minLines: 1,
+                maxLines: 4,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _characterSkillsController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterSkills,
+                ),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _characterPerksController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldCharacterPerks,
+                ),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _tagsController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminFieldTags,
+                ),
+                autocorrect: false,
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
                   spacing: 12,
                   runSpacing: 8,
                   children: <Widget>[
                     OutlinedButton.icon(
-                      onPressed: _isSaving ? null : _importJsonFile,
-                      icon: const Icon(Icons.upload_file_outlined),
-                      label: Text(l10n.storyAdminImportFile),
+                      onPressed: _isSaving ? null : _pickCoverFile,
+                      icon: const Icon(Icons.image_outlined),
+                      label: Text(l10n.storyAdminCoverChooseFile),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: _isSaving ? null : _showPasteJsonDialog,
-                      icon: const Icon(Icons.content_paste_rounded),
-                      label: Text(l10n.storyAdminImportPaste),
-                    ),
-                  ],
-                ),
-                SizedBox(height: responsive.sectionSpacing),
-                TextField(
-                  controller: _titleController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldTitle,
-                  ),
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _summaryController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldSummary,
-                  ),
-                  minLines: 2,
-                  maxLines: 6,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _promptController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldPrompt,
-                  ),
-                  minLines: 4,
-                  maxLines: 12,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _campaignTitleController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCampaignTitle,
-                  ),
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _objectiveHintController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldObjectiveHint,
-                  ),
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<StoryMode?>(
-                  initialValue: _storyMode,
-                  decoration: InputDecoration(labelText: l10n.storyModeTitle),
-                  items: <DropdownMenuItem<StoryMode?>>[
-                    DropdownMenuItem<StoryMode?>(
-                      value: null,
-                      child: Text(l10n.storyAdminOptionalNone),
-                    ),
-                    ...StoryMode.values.map(
-                      (final StoryMode value) => DropdownMenuItem<StoryMode?>(
-                        value: value,
-                        child: Text(l10n.storyModeLabel(value)),
+                    if (_pickedCoverBytes != null ||
+                        (widget.existing != null &&
+                            !_removeServerCover &&
+                            (widget.existing!.coverImageHref != null &&
+                                    widget.existing!.coverImageHref!
+                                        .trim()
+                                        .isNotEmpty ||
+                                widget.existing!.coverImageUrlFromMetadata !=
+                                    null)))
+                      TextButton(
+                        onPressed: _isSaving ? null : _clearCoverChoice,
+                        child: Text(l10n.storyAdminCoverRemove),
                       ),
-                    ),
                   ],
-                  onChanged: (final StoryMode? v) =>
-                      setState(() => _storyMode = v),
                 ),
+              ),
+              if (showPreview) ...<Widget>[
                 SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<DifficultyLevel?>(
-                  initialValue: _difficulty,
-                  decoration: InputDecoration(labelText: l10n.difficultyTitle),
-                  items: <DropdownMenuItem<DifficultyLevel?>>[
-                    DropdownMenuItem<DifficultyLevel?>(
-                      value: null,
-                      child: Text(l10n.storyAdminOptionalNone),
-                    ),
-                    ...DifficultyLevel.values.map(
-                      (final DifficultyLevel value) =>
-                          DropdownMenuItem<DifficultyLevel?>(
-                            value: value,
-                            child: Text(l10n.difficultyLabel(value)),
-                          ),
-                    ),
-                  ],
-                  onChanged: (final DifficultyLevel? v) =>
-                      setState(() => _difficulty = v),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<LiteraryGenre?>(
-                  initialValue: _campaignLiteraryGenre,
-                  decoration: InputDecoration(
-                    labelText: l10n.literaryGenreTitle,
-                  ),
-                  items: <DropdownMenuItem<LiteraryGenre?>>[
-                    DropdownMenuItem<LiteraryGenre?>(
-                      value: null,
-                      child: Text(l10n.storyAdminOptionalNone),
-                    ),
-                    ...LiteraryGenre.values.map(
-                      (final LiteraryGenre value) =>
-                          DropdownMenuItem<LiteraryGenre?>(
-                            value: value,
-                            child: Text(l10n.literaryGenreLabel(value)),
-                          ),
-                    ),
-                  ],
-                  onChanged: (final LiteraryGenre? v) =>
-                      setState(() => _campaignLiteraryGenre = v),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<String?>(
-                  initialValue: _literaryGenreSlug,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldLiteraryGenre,
-                  ),
-                  items: <DropdownMenuItem<String?>>[
-                    DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text(l10n.storyAdminLiteraryGenreNone),
-                    ),
-                    ..._literaryGenres.map(
-                      (final g) => DropdownMenuItem<String?>(
-                        value: g.slug,
-                        child: Text(g.labelForLocale(isRussian: ru)),
-                      ),
-                    ),
-                  ],
-                  onChanged: (final String? v) =>
-                      setState(() => _literaryGenreSlug = v),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<CampaignSetting>(
-                  initialValue: _campaignSetting,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldSetting,
-                  ),
-                  items: CampaignSetting.values
-                      .map(
-                        (final CampaignSetting s) =>
-                            DropdownMenuItem<CampaignSetting>(
-                              value: s,
-                              child: Text(l10n.settingLabel(s)),
-                            ),
-                      )
-                      .toList(),
-                  onChanged: (final CampaignSetting? v) {
-                    if (v != null) {
-                      setState(() => _campaignSetting = v);
-                    }
-                  },
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _characterPromptController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterPrompt,
-                  ),
-                  minLines: 2,
-                  maxLines: 8,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _characterNameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterName,
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<CharacterGender>(
-                  initialValue: _characterGender,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterGender,
-                  ),
-                  items: CharacterGender.values
-                      .map(
-                        (final CharacterGender value) =>
-                            DropdownMenuItem<CharacterGender>(
-                              value: value,
-                              child: Text(value.name),
-                            ),
-                      )
-                      .toList(),
-                  onChanged: (final CharacterGender? v) {
-                    if (v != null) {
-                      setState(() => _characterGender = v);
-                    }
-                  },
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _characterRaceController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterRace,
-                  ),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                DropdownButtonFormField<CharacterClass>(
-                  initialValue: _characterClass,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterClass,
-                  ),
-                  items: CharacterClass.values
-                      .map(
-                        (final CharacterClass value) =>
-                            DropdownMenuItem<CharacterClass>(
-                              value: value,
-                              child: Text(value.name),
-                            ),
-                      )
-                      .toList(),
-                  onChanged: (final CharacterClass? v) {
-                    if (v != null) {
-                      setState(() => _characterClass = v);
-                    }
-                  },
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _characterPersonalityController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterPersonality,
-                  ),
-                  minLines: 1,
-                  maxLines: 4,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _characterSkillsController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterSkills,
-                  ),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _characterPerksController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldCharacterPerks,
-                  ),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _tagsController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminFieldTags,
-                  ),
-                  autocorrect: false,
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: <Widget>[
-                      OutlinedButton.icon(
-                        onPressed: _isSaving ? null : _pickCoverFile,
-                        icon: const Icon(Icons.image_outlined),
-                        label: Text(l10n.storyAdminCoverChooseFile),
-                      ),
-                      if (_pickedCoverBytes != null ||
-                          (widget.existing != null &&
-                              !_removeServerCover &&
-                              (widget.existing!.coverImageHref != null &&
-                                      widget.existing!.coverImageHref!
-                                          .trim()
-                                          .isNotEmpty ||
-                                  widget.existing!.coverImageUrlFromMetadata !=
-                                      null)))
-                        TextButton(
-                          onPressed: _isSaving ? null : _clearCoverChoice,
-                          child: Text(l10n.storyAdminCoverRemove),
-                        ),
-                    ],
-                  ),
-                ),
-                if (showPreview) ...<Widget>[
-                  SizedBox(height: responsive.blockSpacing),
-                  _buildCoverPreview(theme, symForCover),
-                ],
-                SizedBox(height: responsive.blockSpacing),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.storyAdminPublic),
-                  value: _isPublic,
-                  onChanged: (final bool v) => setState(() => _isPublic = v),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.storyAdminMasterCurated),
-                  value: _isMasterCurated,
-                  onChanged: (final bool v) =>
-                      setState(() => _isMasterCurated = v),
-                ),
-                SizedBox(height: responsive.blockSpacing),
-                TextField(
-                  controller: _metadataController,
-                  decoration: InputDecoration(
-                    labelText: l10n.storyAdminMetadataJson,
-                    alignLabelWithHint: true,
-                  ),
-                  minLines: 6,
-                  maxLines: 18,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontFamily: 'monospace',
-                  ),
-                  autocorrect: false,
-                ),
-                SizedBox(height: responsive.sectionSpacing),
-                FilledButton(
-                  onPressed: _isSaving ? null : _save,
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(l10n.storyAdminSave),
-                ),
+                _buildCoverPreview(theme, symForCover),
               ],
-            ),
+              SizedBox(height: responsive.blockSpacing),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.storyAdminPublic),
+                value: _isPublic,
+                onChanged: (final bool v) => setState(() => _isPublic = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.storyAdminMasterCurated),
+                value: _isMasterCurated,
+                onChanged: (final bool v) =>
+                    setState(() => _isMasterCurated = v),
+              ),
+              SizedBox(height: responsive.blockSpacing),
+              TextField(
+                controller: _metadataController,
+                decoration: InputDecoration(
+                  labelText: l10n.storyAdminMetadataJson,
+                  alignLabelWithHint: true,
+                ),
+                minLines: 6,
+                maxLines: 18,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontFamily: 'monospace',
+                ),
+                autocorrect: false,
+              ),
+              SizedBox(height: responsive.sectionSpacing),
+              FilledButton(
+                onPressed: _isSaving ? null : _save,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.storyAdminSave),
+              ),
+            ],
           ),
+        ),
       ),
     );
   }

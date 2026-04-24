@@ -1025,6 +1025,11 @@ class AppLocalizations {
     AppLanguage.en => 'File is too large (max 6 MB).',
   };
 
+  String get storyAdminCoverReadFailed => switch (language) {
+    AppLanguage.ru => 'Не удалось прочитать файл обложки.',
+    AppLanguage.en => 'Could not read the cover image file.',
+  };
+
   String get storyAdminFieldLiteraryGenre => switch (language) {
     AppLanguage.ru => 'Литературный жанр',
     AppLanguage.en => 'Literary genre',
