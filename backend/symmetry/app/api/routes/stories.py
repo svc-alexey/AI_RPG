@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import hashlib
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
@@ -67,6 +69,7 @@ async def create_story_template(
 @router.get("/{template_id}/cover")
 async def get_story_template_cover(
     template_id: str,
+    request: Request,
     _: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> Response:
@@ -81,9 +84,18 @@ async def get_story_template_cover(
     data, mime = one[0], one[1]
     if data is None or len(data) == 0:
         raise HTTPException(status_code=404, detail="story_template_cover_not_found")
+    content = bytes(data)
+    etag = f'"{hashlib.sha1(content).hexdigest()}"'
+    headers = {
+        "Cache-Control": "private, max-age=604800, immutable",
+        "ETag": etag,
+    }
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=headers)
     return Response(
-        content=bytes(data),
+        content=content,
         media_type=(mime or "application/octet-stream"),
+        headers=headers,
     )
 
 

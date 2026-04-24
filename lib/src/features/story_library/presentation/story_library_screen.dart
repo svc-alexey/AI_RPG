@@ -13,6 +13,7 @@ import 'package:ai_prg/src/features/story_library/presentation/story_template_de
 import 'package:ai_prg/src/features/story_library/presentation/widgets/story_template_grid_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 class StoryLibraryScreen extends ConsumerStatefulWidget {
   const StoryLibraryScreen({super.key});
 
@@ -166,8 +167,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
     final SymmetrySession? symSession = sessionState.value;
     final String symmetryBaseUrl = symSession?.baseUrl ?? '';
     final String? symmetryAccessToken =
-        symSession != null &&
-            symSession.tokens.accessToken.trim().isNotEmpty
+        symSession != null && symSession.tokens.accessToken.trim().isNotEmpty
         ? symSession.tokens.accessToken.trim()
         : null;
     final List<Widget> adminActions = sessionState.maybeWhen(
@@ -210,228 +210,231 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
       ),
       body: SafeArea(
         child: CustomScrollView(
-            slivers: <Widget>[
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  responsive.pagePadding,
-                  12,
-                  responsive.pagePadding,
-                  0,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: _LibraryHeader(
-                    l10n: l10n,
-                    responsive: responsive,
-                    scope: _scope,
-                    onScopeChanged: (final _LibraryScope s) {
-                      if (s == _scope) {
-                        return;
-                      }
-                      setState(() => _scope = s);
-                      _load();
-                    },
-                    onCreateStory: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (final _) => const NewGameScreen(),
-                        ),
-                      );
-                    },
-                  ),
+          cacheExtent: responsive.isCompact ? 1200 : 1800,
+          slivers: <Widget>[
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                responsive.pagePadding,
+                12,
+                responsive.pagePadding,
+                0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: _LibraryHeader(
+                  l10n: l10n,
+                  responsive: responsive,
+                  scope: _scope,
+                  onScopeChanged: (final _LibraryScope s) {
+                    if (s == _scope) {
+                      return;
+                    }
+                    setState(() => _scope = s);
+                    _load();
+                  },
+                  onCreateStory: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (final _) => const NewGameScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                responsive.pagePadding,
+                16,
+                responsive.pagePadding,
+                8,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AetherPalette.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: l10n.storyLibrarySearchHint,
+                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                            color: AetherPalette.textMuted,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: AetherPalette.textMuted,
+                          ),
+                          filled: true,
+                          fillColor: AetherPalette.backgroundElevated,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AetherPalette.panelBorderSolid,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AetherPalette.panelBorderSolid,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AetherPalette.accent.withValues(
+                                alpha: 0.55,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    PopupMenuButton<String>(
+                      tooltip: l10n.storyLibraryGenresFilter,
+                      onSelected: (final String value) {
+                        setState(
+                          () => _genreSlug = value.isEmpty ? null : value,
+                        );
+                        _load();
+                      },
+                      itemBuilder: (final BuildContext ctx) {
+                        final bool ru = l10n.language == AppLanguage.ru;
+                        final List<PopupMenuEntry<String>> items =
+                            <PopupMenuEntry<String>>[
+                              PopupMenuItem<String>(
+                                value: '',
+                                child: Text(l10n.storyLibraryAllGenres),
+                              ),
+                            ];
+                        for (final LiteraryGenreCatalogItem g
+                            in _genreCatalog) {
+                          items.add(
+                            PopupMenuItem<String>(
+                              value: g.slug,
+                              child: Text(g.labelForLocale(isRussian: ru)),
+                            ),
+                          );
+                        }
+                        return items;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AetherPalette.backgroundElevated,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AetherPalette.accent.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                              l10n.storyLibraryGenresFilter,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: AetherPalette.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.expand_more_rounded,
+                              color: AetherPalette.accent,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_isLoading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              SliverFillRemaining(
+                child: Center(
+                  child: AetherCard(
+                    child: Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ),
+                ),
+              )
+            else if (_templates.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    l10n.storyLibraryEmptyCatalog,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: AetherPalette.textMuted,
+                    ),
+                  ),
+                ),
+              )
+            else if (visible.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    l10n.storyLibraryNoSearchResults,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: AetherPalette.textMuted,
+                    ),
+                  ),
+                ),
+              )
+            else
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
-                  responsive.pagePadding,
-                  16,
                   responsive.pagePadding,
                   8,
+                  responsive.pagePadding,
+                  32,
                 ),
-                sliver: SliverToBoxAdapter(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (_) => setState(() {}),
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: AetherPalette.textPrimary,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: l10n.storyLibrarySearchHint,
-                            hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                              color: AetherPalette.textMuted,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search_rounded,
-                              color: AetherPalette.textMuted,
-                            ),
-                            filled: true,
-                            fillColor: AetherPalette.backgroundElevated,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: AetherPalette.panelBorderSolid,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: AetherPalette.panelBorderSolid,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: AetherPalette.accent.withValues(
-                                  alpha: 0.55,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      PopupMenuButton<String>(
-                        tooltip: l10n.storyLibraryGenresFilter,
-                        onSelected: (final String value) {
-                          setState(
-                            () => _genreSlug = value.isEmpty ? null : value,
-                          );
-                          _load();
-                        },
-                        itemBuilder: (final BuildContext ctx) {
-                          final bool ru = l10n.language == AppLanguage.ru;
-                          final List<PopupMenuEntry<String>> items =
-                              <PopupMenuEntry<String>>[
-                                PopupMenuItem<String>(
-                                  value: '',
-                                  child: Text(l10n.storyLibraryAllGenres),
-                                ),
-                              ];
-                          for (final LiteraryGenreCatalogItem g in _genreCatalog) {
-                            items.add(
-                              PopupMenuItem<String>(
-                                value: g.slug,
-                                child: Text(g.labelForLocale(isRussian: ru)),
-                              ),
-                            );
-                          }
-                          return items;
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AetherPalette.backgroundElevated,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AetherPalette.accent.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                l10n.storyLibraryGenresFilter,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: AetherPalette.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.expand_more_rounded,
-                                color: AetherPalette.accent,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: responsive.sectionSpacing + 4,
+                    crossAxisSpacing: responsive.sectionSpacing + 4,
+                    childAspectRatio: cardAspectRatio,
                   ),
-                ),
-              ),
-              if (_isLoading)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_error != null)
-                SliverFillRemaining(
-                  child: Center(
-                    child: AetherCard(
-                      child: Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                    ),
-                  ),
-                )
-              else if (_templates.isEmpty)
-                SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      l10n.storyLibraryEmptyCatalog,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: AetherPalette.textMuted,
-                      ),
-                    ),
-                  ),
-                )
-              else if (visible.isEmpty)
-                SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      l10n.storyLibraryNoSearchResults,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: AetherPalette.textMuted,
-                      ),
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    responsive.pagePadding,
-                    8,
-                    responsive.pagePadding,
-                    32,
-                  ),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: responsive.sectionSpacing + 4,
-                      crossAxisSpacing: responsive.sectionSpacing + 4,
-                      childAspectRatio: cardAspectRatio,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (final BuildContext context, final int index) {
-                        final StoryTemplate item = visible[index];
-                        return StoryTemplateGridCard(
-                          template: item,
-                          symmetryBaseUrl: symmetryBaseUrl,
-                          accessToken: symmetryAccessToken,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (final _) =>
-                                    StoryTemplateDetailScreen(template: item),
-                              ),
-                            );
-                          },
+                  delegate: SliverChildBuilderDelegate((
+                    final BuildContext context,
+                    final int index,
+                  ) {
+                    final StoryTemplate item = visible[index];
+                    return StoryTemplateGridCard(
+                      key: ValueKey<String>('story-card-${item.id}'),
+                      template: item,
+                      symmetryBaseUrl: symmetryBaseUrl,
+                      accessToken: symmetryAccessToken,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (final _) =>
+                                StoryTemplateDetailScreen(template: item),
+                          ),
                         );
                       },
-                      childCount: visible.length,
-                    ),
-                  ),
+                    );
+                  }, childCount: visible.length),
                 ),
-            ],
-          ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -461,11 +464,7 @@ class _LibraryHeader extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _ScopeTabs(
-            l10n: l10n,
-            scope: scope,
-            onScopeChanged: onScopeChanged,
-          ),
+          _ScopeTabs(l10n: l10n, scope: scope, onScopeChanged: onScopeChanged),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: onCreateStory,

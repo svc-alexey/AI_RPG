@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -26,6 +27,14 @@ class AuthenticatedCoverImage extends StatefulWidget {
 }
 
 class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
+  static const int _maxCacheEntries = 48;
+  static const int _maxCacheBytes = 24 * 1024 * 1024;
+  static final LinkedHashMap<String, Uint8List> _memoryCache =
+      LinkedHashMap<String, Uint8List>();
+  static final Map<String, Future<Uint8List>> _inFlightRequests =
+      <String, Future<Uint8List>>{};
+  static int _memoryCacheBytes = 0;
+
   Future<Uint8List>? _bytesFuture;
   Uint8List? _lastResolvedBytes;
 
@@ -35,9 +44,7 @@ class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
   @override
   void initState() {
     super.initState();
-    if (_needsFetch(widget.requestHeaders)) {
-      _bytesFuture = _fetchBytes();
-    }
+    _configureImageFuture();
   }
 
   @override
@@ -45,8 +52,70 @@ class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imageUrl != widget.imageUrl ||
         !_headersEqual(oldWidget.requestHeaders, widget.requestHeaders)) {
-      _bytesFuture =
-          _needsFetch(widget.requestHeaders) ? _fetchBytes() : null;
+      _configureImageFuture();
+    }
+  }
+
+  void _configureImageFuture() {
+    if (!_needsFetch(widget.requestHeaders)) {
+      _bytesFuture = null;
+      _lastResolvedBytes = null;
+      return;
+    }
+    final String cacheKey = _buildCacheKey(
+      imageUrl: widget.imageUrl,
+      headers: widget.requestHeaders!,
+    );
+    final Uint8List? cached = _takeCachedBytes(cacheKey);
+    if (cached != null) {
+      _lastResolvedBytes = cached;
+      _bytesFuture = Future<Uint8List>.value(cached);
+      return;
+    }
+    _lastResolvedBytes = null;
+    _bytesFuture = _inFlightRequests[cacheKey] ??= _fetchBytes()
+        .then((final bytes) {
+          _storeCachedBytes(cacheKey, bytes);
+          return bytes;
+        })
+        .whenComplete(() {
+          _inFlightRequests.remove(cacheKey);
+        });
+  }
+
+  static String _buildCacheKey({
+    required final String imageUrl,
+    required final Map<String, String> headers,
+  }) {
+    final List<String> pairs =
+        headers.entries
+            .map((final entry) => '${entry.key}:${entry.value}')
+            .toList()
+          ..sort();
+    return '$imageUrl|${pairs.join('|')}';
+  }
+
+  static Uint8List? _takeCachedBytes(final String cacheKey) {
+    final Uint8List? cached = _memoryCache.remove(cacheKey);
+    if (cached == null) {
+      return null;
+    }
+    _memoryCache[cacheKey] = cached;
+    return cached;
+  }
+
+  static void _storeCachedBytes(final String cacheKey, final Uint8List bytes) {
+    final Uint8List? replaced = _memoryCache.remove(cacheKey);
+    if (replaced != null) {
+      _memoryCacheBytes -= replaced.lengthInBytes;
+    }
+    _memoryCache[cacheKey] = bytes;
+    _memoryCacheBytes += bytes.lengthInBytes;
+    while (_memoryCache.length > _maxCacheEntries ||
+        _memoryCacheBytes > _maxCacheBytes) {
+      final MapEntry<String, Uint8List> oldest = _memoryCache.entries.first;
+      _memoryCache.remove(oldest.key);
+      _memoryCacheBytes -= oldest.value.lengthInBytes;
     }
   }
 
@@ -82,11 +151,8 @@ class _AuthenticatedCoverImageState extends State<AuthenticatedCoverImage> {
     return response.bodyBytes;
   }
 
-  Widget _buildResolvedImage(final Uint8List bytes) => Image.memory(
-    bytes,
-    fit: widget.fit,
-    gaplessPlayback: true,
-  );
+  Widget _buildResolvedImage(final Uint8List bytes) =>
+      Image.memory(bytes, fit: widget.fit, gaplessPlayback: true);
 
   @override
   Widget build(final BuildContext context) {

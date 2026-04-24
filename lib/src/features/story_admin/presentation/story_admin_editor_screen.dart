@@ -27,7 +27,7 @@ class StoryAdminEditorScreen extends ConsumerStatefulWidget {
 
 class _StoryAdminEditorScreenState
     extends ConsumerState<StoryAdminEditorScreen> {
-  static const int _maxCoverBytes = 6 * 1024 * 1024;
+  static const int _maxCoverBytes = 20 * 1024 * 1024;
 
   late final TextEditingController _titleController;
   late final TextEditingController _summaryController;

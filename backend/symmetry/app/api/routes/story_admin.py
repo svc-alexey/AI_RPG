@@ -6,12 +6,14 @@ from app.db.models import StoryTemplate, User
 from app.db.session import get_db_session
 from app.schemas.common import MessageResponse
 from app.schemas.stories import StoryTemplateResponse, StoryTemplateUpsertRequest
+from app.services.cover_image_optimizer import optimize_story_cover
 from app.services.story_library import StoryLibraryService
 
 router = APIRouter(prefix="/admin/story-templates", tags=["admin-story-templates"])
 story_service = StoryLibraryService()
 
-_MAX_COVER_BYTES = 6 * 1024 * 1024
+_MAX_RAW_COVER_BYTES = 20 * 1024 * 1024
+_MAX_STORED_COVER_BYTES = 2 * 1024 * 1024
 _ALLOWED_COVER_MIME = frozenset(
     {"image/jpeg", "image/png", "image/webp", "image/gif"},
 )
@@ -68,7 +70,7 @@ async def admin_put_story_template_cover(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="cover_body_empty",
         )
-    if len(body) > _MAX_COVER_BYTES:
+    if len(body) > _MAX_RAW_COVER_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="cover_too_large",
@@ -80,11 +82,17 @@ async def admin_put_story_template_cover(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="invalid_cover_mime",
         )
+    optimized_body, optimized_mime = optimize_story_cover(body, mime)
+    if len(optimized_body) > _MAX_STORED_COVER_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="cover_too_large",
+        )
     await story_service.set_template_cover(
         session,
         template_id=template_id,
-        data=body,
-        mime=mime,
+        data=optimized_body,
+        mime=optimized_mime,
     )
     await session.commit()
     return MessageResponse(message="cover_updated")
