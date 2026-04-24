@@ -37,25 +37,27 @@ class AetherBackdrop extends StatefulWidget {
 
 class _AetherBackdropState extends State<AetherBackdrop>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: kIsWeb
-        ? const Duration(seconds: 6)
-        : const Duration(seconds: 4),
-  );
-
-  late final Animation<double> _pulse = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeInOut,
-  );
+  AnimationController? _controller;
+  Animation<double>? _pulse;
 
   @override
   void initState() {
     super.initState();
-    if (_animationsEnabled) {
-      _controller.repeat(reverse: true);
-    } else {
-      _controller.value = 0.5;
+    if (!kIsWeb) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 4),
+      );
+      _pulse = CurvedAnimation(
+        parent: _controller!,
+        curve: Curves.easeInOut,
+      );
+
+      if (_animationsEnabled) {
+        _controller!.repeat(reverse: true);
+      } else {
+        _controller!.value = 0.5;
+      }
     }
   }
 
@@ -67,19 +69,12 @@ class _AetherBackdropState extends State<AetherBackdrop>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(final BuildContext context) {
-    // Pulse amplitude: barely visible on web to avoid any perceptible flicker,
-    // full amplitude on native where shader recompilation isn't an issue.
-    const double pulseAmplitudeWeb = 0.12;
-    const double pulseAmplitudeNative = 0.32;
-    final double pulseAmplitude =
-        kIsWeb ? pulseAmplitudeWeb : pulseAmplitudeNative;
-
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -101,19 +96,20 @@ class _AetherBackdropState extends State<AetherBackdrop>
             ),
           ),
           // Animated pulse overlay: only opacity is tweened, shader is static.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: RepaintBoundary(
-                child: FadeTransition(
-                  opacity: _pulse.drive(
-                    Tween<double>(begin: 0, end: pulseAmplitude),
+          if (!kIsWeb && _pulse != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: RepaintBoundary(
+                  child: FadeTransition(
+                    opacity: _pulse!.drive(
+                      Tween<double>(begin: 0, end: 0.32),
+                    ),
+                    child: const CustomPaint(painter: _PulseGlowPainter()),
                   ),
-                  child: const CustomPaint(painter: _PulseGlowPainter()),
                 ),
               ),
             ),
-          ),
-          widget.child,
+          RepaintBoundary(child: widget.child),
         ],
       ),
     );
