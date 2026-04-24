@@ -84,3 +84,4 @@ def test_short_story_system_prompt_stays_compact():
     assert "shortstory mode" in prompt.lower()
     assert "move the player into action quickly" in prompt.lower()
     assert "local and fast" in prompt.lower()
+    assert "do not re-introduce" in prompt.lower()

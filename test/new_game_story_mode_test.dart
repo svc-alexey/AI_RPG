@@ -136,7 +136,37 @@ void main() {
 
     expect(rumors, hasLength(1));
     expect(rumors.single.locationSlug, 'ash-harbor');
+    expect(rumors.single.locationTitle, isNull);
     expect(rumors.single.eventText, contains('supply caravan'));
+  });
+
+  test('SymmetryApiClient parses optional rumor location title', () async {
+    final _RecordingClient httpClient = _RecordingClient()
+      ..nextResponseBody = jsonEncode(<Object?>[
+        <String, Object?>{
+          'id': 'rumor_2',
+          'entity_type': 'location',
+          'event_text':
+              'While the hero was occupied, the situation shifted: students gather at the entrance.',
+          'importance': 4,
+          'location_slug': 'place-08d822431e',
+          'location_title': 'Great Hall',
+          'created_at': '2026-04-07T03:31:00Z',
+        },
+      ]);
+    final SymmetryApiClient client = SymmetryApiClient(
+      baseUrl: 'http://localhost:8080',
+      httpClient: httpClient,
+    );
+
+    final List<SymmetryWorldRumor> rumors = await client.getCampaignRumors(
+      accessToken: 'token',
+      campaignId: 'campaign_1',
+    );
+
+    expect(rumors, hasLength(1));
+    expect(rumors.single.locationSlug, 'place-08d822431e');
+    expect(rumors.single.locationTitle, 'Great Hall');
   });
 }
 

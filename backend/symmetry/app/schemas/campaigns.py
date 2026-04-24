@@ -145,6 +145,7 @@ class WorldRumorResponse(BaseModel):
     event_text: str
     importance: int
     location_slug: str = ""
+    location_title: str | None = None
     created_at: datetime
 
 

@@ -253,64 +253,64 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       body: Padding(
         padding: EdgeInsets.all(responsive.pagePadding),
         child: Column(
-            children: <Widget>[
-              if (responsive.isPhoneSmall && !keyboardVisible) ...<Widget>[
-                _CompactChatToolbar(
-                  title: campaign.title,
-                  onMenu: wide
-                      ? null
-                      : () => _showCompactCampaignSheet(
-                          campaign: campaign,
-                          highlightedModules: chatState.highlightedModules,
-                          newlyUnlockedModules: chatState.newlyUnlockedModules,
-                          worldRumors: chatState.worldRumors,
-                        ),
-                  onSave: () => controller.save(l10n: l10n),
-                  onSettings: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (final context) => const SettingsScreen(),
-                      ),
-                    );
-                  },
-                  onHome: _exitToMainMenu,
-                ),
-                SizedBox(height: responsive.sectionSpacing),
-              ],
-              Expanded(
-                child: wide
-                    ? Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: responsive.sidebarWidth,
-                            child: _buildSidebar(
-                              campaign: campaign,
-                              highlightedModules: chatState.highlightedModules,
-                              newlyUnlockedModules:
-                                  chatState.newlyUnlockedModules,
-                              worldRumors: chatState.worldRumors,
-                            ),
-                          ),
-                          SizedBox(width: responsive.sectionSpacing + 4),
-                          Expanded(
-                            child: _buildChatColumn(
-                              campaign: campaign,
-                              chatState: chatState,
-                              controller: controller,
-                              keyboardVisible: keyboardVisible,
-                            ),
-                          ),
-                        ],
-                      )
-                    : _buildChatColumn(
+          children: <Widget>[
+            if (responsive.isPhoneSmall && !keyboardVisible) ...<Widget>[
+              _CompactChatToolbar(
+                title: campaign.title,
+                onMenu: wide
+                    ? null
+                    : () => _showCompactCampaignSheet(
                         campaign: campaign,
-                        chatState: chatState,
-                        controller: controller,
-                        keyboardVisible: keyboardVisible,
+                        highlightedModules: chatState.highlightedModules,
+                        newlyUnlockedModules: chatState.newlyUnlockedModules,
+                        worldRumors: chatState.worldRumors,
                       ),
+                onSave: () => controller.save(l10n: l10n),
+                onSettings: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (final context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                onHome: _exitToMainMenu,
               ),
+              SizedBox(height: responsive.sectionSpacing),
             ],
-          ),
+            Expanded(
+              child: wide
+                  ? Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: responsive.sidebarWidth,
+                          child: _buildSidebar(
+                            campaign: campaign,
+                            highlightedModules: chatState.highlightedModules,
+                            newlyUnlockedModules:
+                                chatState.newlyUnlockedModules,
+                            worldRumors: chatState.worldRumors,
+                          ),
+                        ),
+                        SizedBox(width: responsive.sectionSpacing + 4),
+                        Expanded(
+                          child: _buildChatColumn(
+                            campaign: campaign,
+                            chatState: chatState,
+                            controller: controller,
+                            keyboardVisible: keyboardVisible,
+                          ),
+                        ),
+                      ],
+                    )
+                  : _buildChatColumn(
+                      campaign: campaign,
+                      chatState: chatState,
+                      controller: controller,
+                      keyboardVisible: keyboardVisible,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -684,11 +684,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             character.spirit > 0);
     final List<SymmetryWorldRumor> latestWorldRumors =
         List<SymmetryWorldRumor>.from(worldRumors)
-          ..sort(
-            (final a, final b) => b.createdAt.compareTo(a.createdAt),
-          );
+          ..sort((final a, final b) => b.createdAt.compareTo(a.createdAt));
     final List<RecentTurnSummary> latestRecentTurns =
-        List<RecentTurnSummary>.from(campaign.recentTurns.reversed).take(5).toList();
+        List<RecentTurnSummary>.from(
+          campaign.recentTurns.reversed,
+        ).take(5).toList();
     return AetherCard(
       padding: EdgeInsets.all(responsive.isCompact ? 8 : 14),
       child: ListView(
@@ -824,11 +824,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text('- ${item.eventText}'),
-                    if (item.locationSlug.trim().isNotEmpty)
+                    if ((item.locationTitle ?? '').trim().isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          item.locationSlug.replaceAll('-', ' '),
+                          item.locationTitle!.trim(),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AetherPalette.textDim),
                         ),
@@ -1451,7 +1451,7 @@ class _AnimatedNarrationMessageState extends State<_AnimatedNarrationMessage>
   void didUpdateWidget(covariant final _AnimatedNarrationMessage oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Убрали перезапуск анимации при обновлении текста.
-    // Иначе при потоковой генерации (streaming) каждый новый токен 
+    // Иначе при потоковой генерации (streaming) каждый новый токен
     // заставлял весь текст снова мигать (opacity 0) и прыгать (slide).
   }
 
@@ -1526,7 +1526,8 @@ class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
   Widget build(final BuildContext context) => RepaintBoundary(
     child: SizedBox(
       width: 34,
-      height: 12, // Фиксируем высоту, чтобы не вызывать перерасчет layout списка каждый кадр
+      height:
+          12, // Фиксируем высоту, чтобы не вызывать перерасчет layout списка каждый кадр
       child: AnimatedBuilder(
         animation: _controller,
         builder: (final context, _) => Row(

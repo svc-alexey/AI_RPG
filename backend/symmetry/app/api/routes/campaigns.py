@@ -15,7 +15,11 @@ from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
 from app.services.ids import new_id
 from app.services.prompt_budget import build_turn_budget
-from app.services.presentation_text import normalize_campaign_title
+from app.services.presentation_text import (
+    build_location_display_name,
+    normalize_campaign_title,
+    sanitize_world_rumor_event_text,
+)
 from app.services.rag import RagService
 from app.services.simulation import SimulationService
 from app.services.text_normalization import normalize_prompt_text
@@ -27,6 +31,26 @@ rag_service = RagService()
 simulation_service = SimulationService()
 ai_gateway = AiGatewayService()
 butterfly_service = ButterflyService()
+
+
+def _resolve_rumor_location_title(
+    *,
+    item: WorldChronicle,
+    language: str,
+) -> str | None:
+    metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+    for candidate in (
+        metadata.get("location_title"),
+        metadata.get("location"),
+        item.location_slug,
+    ):
+        display_name = build_location_display_name(
+            str(candidate or ""),
+            language=language,
+        )
+        if display_name:
+            return display_name
+    return None
 
 
 def _build_turn_usage_meta(
@@ -196,6 +220,7 @@ async def get_campaign_rumors(
     session: AsyncSession = Depends(get_db_session),
 ) -> list[WorldRumorResponse]:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
+    language = str(campaign.language or "ru").strip() or "ru"
     result = await session.execute(
         select(WorldChronicle)
         .where(
@@ -209,9 +234,16 @@ async def get_campaign_rumors(
         WorldRumorResponse(
             id=item.id,
             entity_type=item.entity_type,
-            event_text=item.event_text,
+            event_text=sanitize_world_rumor_event_text(
+                item.event_text,
+                language=language,
+            ),
             importance=item.importance,
             location_slug=item.location_slug,
+            location_title=_resolve_rumor_location_title(
+                item=item,
+                language=language,
+            ),
             created_at=item.created_at,
         )
         for item in result.scalars().all()
@@ -252,7 +284,11 @@ async def process_turn(
     await session.flush()
 
     embedding_service = get_embedding_service()
-    query_vector = embedding_service.encode_query(normalized_player_action)
+    query_text = runtime_service.build_rag_query_text(
+        state=current_state,
+        player_action=normalized_player_action,
+    )
+    query_vector = embedding_service.encode_query(query_text)
     chronicles = await rag_service.search_relevant_events(
         session,
         campaign_id=campaign.id,

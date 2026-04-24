@@ -5,6 +5,7 @@ TITLE_MAX_LENGTH = 30
 LOCATION_MAX_LENGTH = 32
 OBJECTIVE_MAX_LENGTH = 56
 CHOICE_MAX_LENGTH = 24
+_OPAQUE_REFERENCE_PREFIXES = {"place", "location", "entity"}
 
 
 def normalize_campaign_title(text: str, *, language: str) -> str:
@@ -24,12 +25,57 @@ def normalize_campaign_title(text: str, *, language: str) -> str:
 
 
 def normalize_location_label(text: str, *, language: str) -> str:
+    if looks_like_opaque_reference(text):
+        return _fallback_unknown_location(language)
     cleaned = _clean_display_text(text.replace("_", " ").replace("-", " "))
     if language.startswith("ru") and _looks_like_english_slug_source(text):
         return _fallback_unknown_location(language)
     cleaned = _limit_words(cleaned, max_words=4)
     cleaned = _truncate(cleaned, LOCATION_MAX_LENGTH)
     return _sentence_case(cleaned, language=language) or _fallback_location(language)
+
+
+def looks_like_opaque_reference(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return False
+    normalized = re.sub(r"[\s_-]+", " ", stripped).strip().lower()
+    tokens = [token for token in normalized.split(" ") if token]
+    if len(tokens) < 2 or tokens[0] not in _OPAQUE_REFERENCE_PREFIXES:
+        return False
+    suffix = "".join(tokens[1:])
+    return (
+        len(suffix) >= 8
+        and suffix.isascii()
+        and suffix.isalnum()
+        and any(char.isdigit() for char in suffix)
+    )
+
+
+def build_location_display_name(text: str, *, language: str) -> str | None:
+    if looks_like_opaque_reference(text):
+        return None
+    cleaned = _clean_display_text(text.replace("_", " ").replace("-", " "))
+    if not cleaned:
+        return None
+    cleaned = _limit_words(cleaned, max_words=4)
+    cleaned = _truncate(cleaned, LOCATION_MAX_LENGTH)
+    cleaned = _sentence_case(cleaned, language=language)
+    return cleaned or None
+
+
+def sanitize_world_rumor_event_text(text: str, *, language: str) -> str:
+    normalized = " ".join(text.split()).strip()
+    if not normalized:
+        return normalized
+    sanitized = _replace_opaque_reference_prefixes(normalized, language=language)
+    if looks_like_opaque_reference(sanitized):
+        return (
+            "Пока герой был занят, обстановка изменилась."
+            if language.startswith("ru")
+            else "While the hero was occupied, the situation shifted."
+        )
+    return sanitized
 
 
 def normalize_objective_text(text: str, *, language: str) -> str:
@@ -194,3 +240,24 @@ def _fallback_objective(language: str) -> str:
         if language.startswith("ru")
         else "Understand what is happening"
     )
+
+
+def _replace_opaque_reference_prefixes(text: str, *, language: str) -> str:
+    pattern = re.compile(
+        r"^(?P<prefix>(?:Пока герой был занят|While the hero was occupied),\s+)"
+        r"(?P<entity>(?:place|location|entity)[\s_-]+[A-Za-z0-9][A-Za-z0-9\s_-]{6,})"
+        r"(?P<suffix>\s+(?:сдвинула ситуацию|shifte?d the situation):\s*)",
+        flags=re.IGNORECASE,
+    )
+    match = pattern.match(text)
+    if not match:
+        return text
+    entity = match.group("entity")
+    if not looks_like_opaque_reference(entity):
+        return text
+    replacement = (
+        "обстановка изменилась: "
+        if language.startswith("ru")
+        else "the situation shifted: "
+    )
+    return f'{match.group("prefix")}{replacement}{text[match.end():].lstrip()}'

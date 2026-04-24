@@ -10,7 +10,11 @@ from app.db.models import PendingConsequence, SimulationJob, WorldChronicle, Wor
 from app.services.ai_gateway import is_placeholder_location
 from app.services.embeddings import get_embedding_service
 from app.services.ids import new_id
-from app.services.presentation_text import normalize_location_label
+from app.services.presentation_text import (
+    looks_like_opaque_reference,
+    normalize_location_label,
+    sanitize_world_rumor_event_text,
+)
 
 
 class ButterflyService:
@@ -419,14 +423,20 @@ class ButterflyService:
         language: str,
     ) -> str:
         entity_title = str(consequence.payload_json.get("entity_title", "")).strip()
+        if looks_like_opaque_reference(entity_title):
+            entity_title = ""
         summary = consequence.summary.strip()
+        event_text = ""
         if language.startswith("ru"):
             if entity_title:
-                return f"Пока герой был занят, {entity_title} сдвинула ситуацию: {summary}."
-            return f"Пока герой был занят, мир изменился: {summary}."
-        if entity_title:
-            return f"While the hero was occupied, {entity_title} shifted the situation: {summary}."
-        return f"While the hero was occupied, the world shifted: {summary}."
+                event_text = f"Пока герой был занят, {entity_title} сдвинула ситуацию: {summary}."
+            else:
+                event_text = f"Пока герой был занят, обстановка изменилась: {summary}."
+        elif entity_title:
+            event_text = f"While the hero was occupied, {entity_title} shifted the situation: {summary}."
+        else:
+            event_text = f"While the hero was occupied, the situation shifted: {summary}."
+        return sanitize_world_rumor_event_text(event_text, language=language)
 
     def _apply_world_delta(
         self,
@@ -670,6 +680,8 @@ class ButterflyService:
         slug: str,
         language: str,
     ) -> str:
+        if looks_like_opaque_reference(slug):
+            return "Сущность истории" if language.startswith("ru") else "Story Entity"
         fallback = "Сущность истории" if language.startswith("ru") else "Story Entity"
         return slug.replace("-", " ").title() or fallback
 

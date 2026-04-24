@@ -109,6 +109,27 @@ def test_ai_generated_location_updates_starting_bootstrap():
     assert state_changes["location"] == "Склад у старого причала"
 
 
+def test_apply_turn_result_ignores_opaque_location_identifier():
+    state = build_initial_state(_Payload())
+    state["location"] = "Большой зал Хогвартса"
+    service = CampaignRuntimeService()
+
+    next_state, _, _, _ = service.apply_turn_result(
+        state=state,
+        result={
+            "narration": "Шепот прокатывается по столам, пока первокурсники оглядываются по сторонам.",
+            "choices": ["Оглядеться"],
+            "state_changes": {
+                "location": "Place 08D822431E",
+            },
+            "memory_entry": "В зале нарастает тревожное ожидание.",
+        },
+        player_action="",
+    )
+
+    assert next_state["location"] == "Большой зал Хогвартса"
+
+
 def test_apply_turn_result_can_activate_vitality_and_assign_stats():
     state = build_initial_state(_Payload())
     service = CampaignRuntimeService()

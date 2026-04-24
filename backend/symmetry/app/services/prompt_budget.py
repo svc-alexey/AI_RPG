@@ -62,12 +62,12 @@ def build_turn_budget(
             max_output_tokens=140,
             max_story_prompt_chars=240,
             max_character_prompt_chars=160,
-            max_recent_turns=1,
+            max_recent_turns=2,
             max_recent_turn_chars=120,
-            max_memory_chars=140,
-            max_chronicles=1,
+            max_memory_chars=180,
+            max_chronicles=2,
             max_chronicle_chars=140,
-            max_total_chronicle_chars=140,
+            max_total_chronicle_chars=220,
         )
 
     if mode == "longCampaign" and is_intro:
@@ -104,12 +104,12 @@ def build_turn_budget(
             max_output_tokens=420,
             max_story_prompt_chars=340,
             max_character_prompt_chars=180,
-            max_recent_turns=1,
+            max_recent_turns=2,
             max_recent_turn_chars=120,
-            max_memory_chars=140,
-            max_chronicles=2,
+            max_memory_chars=180,
+            max_chronicles=3,
             max_chronicle_chars=140,
-            max_total_chronicle_chars=240,
+            max_total_chronicle_chars=280,
         )
 
     return PromptBudgetProfile(
@@ -117,10 +117,10 @@ def build_turn_budget(
         max_output_tokens=280,
         max_story_prompt_chars=280,
         max_character_prompt_chars=160,
-        max_recent_turns=2,
+        max_recent_turns=3,
         max_recent_turn_chars=120,
-        max_memory_chars=140,
-        max_chronicles=2,
+        max_memory_chars=220,
+        max_chronicles=3,
         max_chronicle_chars=130,
-        max_total_chronicle_chars=220,
+        max_total_chronicle_chars=320,
     )

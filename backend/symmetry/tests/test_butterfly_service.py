@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from app.db.models import PendingConsequence
 from app.services.butterfly import ButterflyService
 
 
@@ -132,3 +133,28 @@ def test_apply_immediate_world_patch_merges_nested_global_vars():
     assert world_state.global_vars["weather"] == "fog"
     assert world_state.global_vars["prices"]["local-guild"] == 3
     assert world_state.global_vars["prices"]["shadow-market"] == -1
+
+
+def test_render_offscreen_event_text_hides_opaque_entity_identifier():
+    service = ButterflyService()
+    consequence = PendingConsequence(
+        id="pending-1",
+        campaign_id="camp-1",
+        entity_kind="company",
+        entity_slug="place-08d822431e",
+        effect_type="rumor",
+        strength=2,
+        due_turn_number=1,
+        visibility="hidden",
+        summary="Обстановка меняется: Первокурсники собираются у входа.",
+        payload_json={"entity_title": "Place 08D822431E"},
+        status="pending",
+    )
+
+    text = service.render_offscreen_event_text(
+        consequence=consequence,
+        language="ru",
+    )
+
+    assert "08D822431E" not in text
+    assert "обстановка изменилась" in text.lower()

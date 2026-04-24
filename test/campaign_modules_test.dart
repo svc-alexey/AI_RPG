@@ -707,6 +707,93 @@ void main() {
     expect(find.text('Vitality'), findsNothing);
   });
 
+  testWidgets('Chat sidebar uses rumor location title and hides opaque slug', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final CampaignState campaign = CampaignState(
+      id: 'rumor-location-title',
+      schemaVersion: 3,
+      title: 'Sorting Night',
+      setting: CampaignSetting.romantasy,
+      mode: StoryMode.longCampaign,
+      difficulty: DifficultyLevel.medium,
+      character: const CharacterStats(
+        name: 'Iris',
+        hp: 12,
+        maxHp: 12,
+        energy: 8,
+        maxEnergy: 8,
+        might: 2,
+        wit: 4,
+        spirit: 3,
+      ),
+      location: 'Great Hall',
+      objective: 'Meet the other students',
+      turnNumber: 4,
+      memory: const CampaignMemory(
+        rollingSummary: 'The sorting ceremony begins under floating candles.',
+        activeGoal: 'Meet the other students',
+        activeSituation: 'The hall hums with nervous whispers.',
+        recentTurns: <RecentTurnSummary>[],
+      ),
+      modules: const <CampaignModuleState>[
+        CampaignModuleState(
+          module: CampaignModule.notes,
+          isActive: true,
+          activationReason: 'test',
+        ),
+      ],
+      inventory: const <String>[],
+      companions: const <CampaignCompanion>[],
+      notes: const <String>['Watch the sorting table'],
+      resources: const <CampaignResource>[],
+      progression: null,
+      messages: <ChatMessage>[
+        ChatMessage(
+          id: 'n1',
+          role: ChatRole.narrator,
+          text: 'Candles sway above the tables as the hall quiets down.',
+          createdAt: DateTime(2026, 3, 20, 10),
+        ),
+      ],
+      choices: const <String>[],
+      updatedAt: DateTime(2026, 3, 20, 10, 5),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: _buildServerOverrides(
+          campaign: campaign,
+          aiClient: const _NotesOnlyAiClient(),
+          worldRumors: <SymmetryWorldRumor>[
+            SymmetryWorldRumor(
+              id: 'rumor-1',
+              entityType: 'location',
+              eventText:
+                  'While the hero was occupied, the situation shifted: students gather at the entrance.',
+              importance: 4,
+              locationSlug: 'place-08d822431e',
+              locationTitle: 'Great Hall',
+              createdAt: DateTime(2026, 3, 20, 10, 4),
+            ),
+          ],
+        ),
+        child: const AppLocalizationsScope(
+          localizations: AppLocalizations(AppLanguage.en),
+          child: MaterialApp(
+            home: ChatScreen(campaignId: 'rumor-location-title'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Great Hall'), findsOneWidget);
+    expect(find.textContaining('place-08d822431e'), findsNothing);
+    expect(find.textContaining('place 08d822431e'), findsNothing);
+  });
+
   testWidgets('Detective campaigns keep irrelevant RPG chrome hidden', (
     tester,
   ) async {
@@ -1021,6 +1108,7 @@ void main() {
 List<Override> _buildServerOverrides({
   required final CampaignState campaign,
   required final AiClient aiClient,
+  final List<SymmetryWorldRumor> worldRumors = const <SymmetryWorldRumor>[],
 }) {
   final SettingsRepository settingsRepository =
       _FakeConfiguredSettingsRepository();
@@ -1032,6 +1120,9 @@ List<Override> _buildServerOverrides({
         aiClient: aiClient,
         gameEngine: const GameEngine(),
         initialCampaigns: <CampaignState>[campaign],
+        initialRumorsByCampaign: <String, List<SymmetryWorldRumor>>{
+          campaign.id: worldRumors,
+        },
       );
 
   return buildAppProviderOverrides(
@@ -1108,14 +1199,22 @@ class _FakeSymmetryCampaignRepository extends SymmetryCampaignRepository {
     required this.aiClient,
     required this.gameEngine,
     required final List<CampaignState> initialCampaigns,
+    final Map<String, List<SymmetryWorldRumor>> initialRumorsByCampaign =
+        const <String, List<SymmetryWorldRumor>>{},
   }) : _campaigns = <String, CampaignState>{
          for (final CampaignState campaign in initialCampaigns)
            campaign.id: campaign,
+       },
+       _worldRumorsByCampaign = <String, List<SymmetryWorldRumor>>{
+         for (final MapEntry<String, List<SymmetryWorldRumor>> entry
+             in initialRumorsByCampaign.entries)
+           entry.key: List<SymmetryWorldRumor>.from(entry.value),
        };
 
   final AiClient aiClient;
   final GameEngine gameEngine;
   final Map<String, CampaignState> _campaigns;
+  final Map<String, List<SymmetryWorldRumor>> _worldRumorsByCampaign;
 
   @override
   Future<List<CampaignState>> loadAllCampaigns() async =>
@@ -1128,7 +1227,9 @@ class _FakeSymmetryCampaignRepository extends SymmetryCampaignRepository {
   Future<List<SymmetryWorldRumor>> loadCampaignRumors(
     final String id, {
     final int limit = 5,
-  }) async => const <SymmetryWorldRumor>[];
+  }) async => List<SymmetryWorldRumor>.from(
+    _worldRumorsByCampaign[id] ?? const <SymmetryWorldRumor>[],
+  ).take(limit).toList(growable: false);
 
   @override
   Future<CampaignState> createCampaign({

@@ -39,6 +39,9 @@ Rules:
 - impact seeds are optional compact follow-up traces for the background simulation, up to 2 for shortStory and up to 2 for longCampaign.
 - impact seeds summarize possible consequences only; do not resolve them in the current narration.
 - needs_background_followup is true only if at least one impact seed is meaningful enough to expand later.
+- if memory or relevant chronicles show that the hero already knows a character, do not re-introduce, re-meet, or offer "get acquainted" choices with that character.
+- if dynamic_context.memory.known_characters lists a character, continue from that existing relationship naturally.
+- if the player references something that was established in the immediately previous scene or recent_turns, treat it as an already known fact and answer coherently instead of forgetting it.
 """
 
 

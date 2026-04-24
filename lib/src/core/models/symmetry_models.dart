@@ -176,6 +176,7 @@ class SymmetryWorldRumor {
     required this.eventText,
     required this.importance,
     required this.locationSlug,
+    this.locationTitle,
     required this.createdAt,
   });
 
@@ -186,6 +187,7 @@ class SymmetryWorldRumor {
         eventText: (json['event_text'] as String?) ?? '',
         importance: (json['importance'] as int?) ?? 0,
         locationSlug: (json['location_slug'] as String?) ?? '',
+        locationTitle: (json['location_title'] as String?)?.trim(),
         createdAt:
             DateTime.tryParse((json['created_at'] as String?) ?? '') ??
             DateTime.fromMillisecondsSinceEpoch(0),
@@ -196,6 +198,7 @@ class SymmetryWorldRumor {
   final String eventText;
   final int importance;
   final String locationSlug;
+  final String? locationTitle;
   final DateTime createdAt;
 }
 
