@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     refresh_token_ttl_days: int = 30
 
     server_llm_base_url: str = "https://api.deepseek.com/v1"
-    server_llm_model: str = "deepseek-chat"
+    server_llm_model: str = "deepseek-v4-flash"
     server_llm_api_key: str = ""
     server_llm_timeout_seconds: int = 90
 

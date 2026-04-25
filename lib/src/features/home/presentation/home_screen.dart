@@ -8,6 +8,7 @@ import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
 import 'package:ai_prg/src/features/story_library/presentation/story_library_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -281,40 +282,62 @@ class _HomeHeroBlock extends StatelessWidget {
         const SizedBox(height: 2),
         AetherPageReveal(
           delay: const Duration(milliseconds: 60),
-          child: ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: (bounds) => const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                AetherPalette.textPrimary,
-                AetherPalette.accentHover,
-                AetherPalette.gold,
-              ],
-              stops: <double>[0.0, 0.52, 1.0],
-            ).createShader(bounds),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: responsive.isCompact ? 2 : 4,
-              ),
-              child: Text(
-                l10n.brandNameLine2,
-                textAlign: TextAlign.center,
-                strutStyle: StrutStyle(
-                  fontSize: line2FontSize,
-                  height: 1.04,
-                  forceStrutHeight: true,
+          child: kIsWeb
+              ? Padding(
+                  padding: EdgeInsets.symmetric(
+                    vertical: responsive.isCompact ? 2 : 4,
+                  ),
+                  child: Text(
+                    l10n.brandNameLine2,
+                    textAlign: TextAlign.center,
+                    strutStyle: StrutStyle(
+                      fontSize: line2FontSize,
+                      height: 1.04,
+                      forceStrutHeight: true,
+                    ),
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      fontSize: line2FontSize,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: -2,
+                      height: 1.04,
+                      color: AetherPalette.accentHover,
+                    ),
+                  ),
+                )
+              : ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[
+                      AetherPalette.textPrimary,
+                      AetherPalette.accentHover,
+                      AetherPalette.gold,
+                    ],
+                    stops: <double>[0.0, 0.52, 1.0],
+                  ).createShader(bounds),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: responsive.isCompact ? 2 : 4,
+                    ),
+                    child: Text(
+                      l10n.brandNameLine2,
+                      textAlign: TextAlign.center,
+                      strutStyle: StrutStyle(
+                        fontSize: line2FontSize,
+                        height: 1.04,
+                        forceStrutHeight: true,
+                      ),
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: line2FontSize,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -2,
+                        height: 1.04,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
-                style: theme.textTheme.displayLarge?.copyWith(
-                  fontSize: line2FontSize,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: -2,
-                  height: 1.04,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
         ),
         SizedBox(height: responsive.isCompact ? 16 : 22),
         AetherPageReveal(
@@ -421,7 +444,7 @@ class _WarmFlickerSparkleState extends State<_WarmFlickerSparkle>
   @override
   void initState() {
     super.initState();
-    if (_animationsEnabled) {
+    if (_animationsEnabled && !kIsWeb) {
       _controller.repeat(reverse: true);
     } else {
       _controller.value = 0.5;

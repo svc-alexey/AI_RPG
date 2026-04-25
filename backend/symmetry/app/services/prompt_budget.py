@@ -73,7 +73,7 @@ def build_turn_budget(
     if mode == "longCampaign" and is_intro:
         return PromptBudgetProfile(
             scenario="turn_intro_long",
-            max_output_tokens=900,
+            max_output_tokens=3072,
             max_story_prompt_chars=720,
             max_character_prompt_chars=320,
             max_recent_turns=3,
@@ -87,7 +87,7 @@ def build_turn_budget(
     if mode == "longCampaign":
         return PromptBudgetProfile(
             scenario="turn_standard_long",
-            max_output_tokens=860,
+            max_output_tokens=2048,
             max_story_prompt_chars=600,
             max_character_prompt_chars=280,
             max_recent_turns=3,

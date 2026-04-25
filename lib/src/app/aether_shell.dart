@@ -24,177 +24,32 @@ class AetherPalette {
   static const Color accentHover = Color(0xFFD4956A);
   static const Color gold = Color(0xFFBFA76F);
   static const Color success = Color(0xFF34D399);
+
+  /// Full-window static backdrop (noir, low contrast). One [BoxDecoration]
+  /// layer — same on web and native (avoids stacked shaders/opacity and prior
+  /// CanvasKit flicker from multi-pass full-viewport effects).
+  static const LinearGradient appWindowBackdrop = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment(0.12, 1.0),
+    colors: <Color>[
+      Color(0xFF151210),
+      backgroundTop,
+      background,
+    ],
+    stops: <double>[0.0, 0.5, 1.0],
+  );
 }
 
-class AetherBackdrop extends StatefulWidget {
+class AetherBackdrop extends StatelessWidget {
   const AetherBackdrop({required this.child, super.key});
 
   final Widget child;
 
   @override
-  State<AetherBackdrop> createState() => _AetherBackdropState();
-}
-
-class _AetherBackdropState extends State<AetherBackdrop>
-    with SingleTickerProviderStateMixin {
-  AnimationController? _controller;
-  Animation<double>? _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!kIsWeb) {
-      _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 4),
+  Widget build(final BuildContext context) => DecoratedBox(
+        decoration: const BoxDecoration(gradient: AetherPalette.appWindowBackdrop),
+        child: RepaintBoundary(child: child),
       );
-      _pulse = CurvedAnimation(
-        parent: _controller!,
-        curve: Curves.easeInOut,
-      );
-
-      if (_animationsEnabled) {
-        _controller!.repeat(reverse: true);
-      } else {
-        _controller!.value = 0.5;
-      }
-    }
-  }
-
-  bool get _animationsEnabled {
-    final String bindingName = WidgetsBinding.instance.runtimeType.toString();
-    return bindingName != 'AutomatedTestWidgetsFlutterBinding' &&
-        bindingName != 'LiveTestWidgetsFlutterBinding';
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            AetherPalette.backgroundTop,
-            AetherPalette.background,
-          ],
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          // Static base glow: shader created once per size, no per-frame work.
-          const Positioned.fill(
-            child: RepaintBoundary(
-              child: CustomPaint(painter: _StaticWarmGlowPainter()),
-            ),
-          ),
-          // Animated pulse overlay: only opacity is tweened, shader is static.
-          if (!kIsWeb && _pulse != null)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: FadeTransition(
-                    opacity: _pulse!.drive(
-                      Tween<double>(begin: 0, end: 0.32),
-                    ),
-                    child: const CustomPaint(painter: _PulseGlowPainter()),
-                  ),
-                ),
-              ),
-            ),
-          RepaintBoundary(child: widget.child),
-        ],
-      ),
-    );
-  }
-}
-
-/// Static warm radial glow. Shader is cached per size, so 60fps repaint of
-/// parent widgets doesn't recompile the gradient on CanvasKit.
-class _StaticWarmGlowPainter extends CustomPainter {
-  const _StaticWarmGlowPainter();
-
-  // Shaders are cheap to share across instances since they only depend on size.
-  static Size? _cachedSize;
-  static Shader? _cachedShader;
-  static Offset? _cachedCenter;
-  static double? _cachedRadius;
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    if (_cachedShader == null || size != _cachedSize) {
-      _cachedCenter = Offset(size.width * 0.5, size.height * 0.28);
-      _cachedRadius = size.shortestSide * 0.92;
-      final Rect rect = Rect.fromCircle(
-        center: _cachedCenter!,
-        radius: _cachedRadius!,
-      );
-      _cachedShader = const RadialGradient(
-        colors: <Color>[
-          Color(0x29C87941),
-          Color(0x14C87941),
-          Color(0x00C87941),
-        ],
-        stops: <double>[0.0, 0.4, 0.72],
-      ).createShader(rect);
-      _cachedSize = size;
-    }
-    canvas.drawCircle(
-      _cachedCenter!,
-      _cachedRadius!,
-      Paint()..shader = _cachedShader,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _StaticWarmGlowPainter oldDelegate) => false;
-}
-
-/// Extra warm layer that rides on top of the static glow. Its opacity is
-/// animated by a parent [FadeTransition]; the shader here never changes.
-class _PulseGlowPainter extends CustomPainter {
-  const _PulseGlowPainter();
-
-  static Size? _cachedSize;
-  static Shader? _cachedShader;
-  static Offset? _cachedCenter;
-  static double? _cachedRadius;
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    if (_cachedShader == null || size != _cachedSize) {
-      _cachedCenter = Offset(size.width * 0.5, size.height * 0.28);
-      _cachedRadius = size.shortestSide * 1.04;
-      final Rect rect = Rect.fromCircle(
-        center: _cachedCenter!,
-        radius: _cachedRadius!,
-      );
-      _cachedShader = const RadialGradient(
-        colors: <Color>[
-          Color(0x33C87941),
-          Color(0x14C87941),
-          Color(0x00C87941),
-        ],
-        stops: <double>[0.0, 0.45, 0.78],
-      ).createShader(rect);
-      _cachedSize = size;
-    }
-    canvas.drawCircle(
-      _cachedCenter!,
-      _cachedRadius!,
-      Paint()..shader = _cachedShader,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _PulseGlowPainter oldDelegate) => false;
 }
 
 class AetherCard extends StatelessWidget {
@@ -289,6 +144,10 @@ class _AetherPageRevealState extends State<AetherPageReveal>
       _controller.value = 1;
       return;
     }
+    if (kIsWeb) {
+      _controller.value = 1;
+      return;
+    }
 
     if (widget.delay == Duration.zero) {
       _controller.forward();
@@ -311,11 +170,16 @@ class _AetherPageRevealState extends State<AetherPageReveal>
   }
 
   @override
-  Widget build(final BuildContext context) => FadeTransition(
-    opacity: _fade,
-    child: SlideTransition(
-      position: _slide,
-      child: ScaleTransition(scale: _scale, child: widget.child),
-    ),
-  );
+  Widget build(final BuildContext context) {
+    if (kIsWeb) {
+      return widget.child;
+    }
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: ScaleTransition(scale: _scale, child: widget.child),
+      ),
+    );
+  }
 }

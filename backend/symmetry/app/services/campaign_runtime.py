@@ -343,7 +343,7 @@ class CampaignRuntimeService:
             )
             state_changes["module_updates"] = module_updates
 
-        narration = normalize_prompt_text(str(result.get("narration", "")), limit=1200)
+        narration = normalize_prompt_text(str(result.get("narration", "")))
         memory_entry = normalize_prompt_text(
             str(result.get("memory_entry", narration)),
             limit=240,

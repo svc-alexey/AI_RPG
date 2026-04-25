@@ -17,7 +17,7 @@ abstract final class AiRuntimeEnv {
 
   static const String defaultModel = String.fromEnvironment(
     'AI_PRG_MODEL',
-    defaultValue: 'deepseek-chat',
+    defaultValue: 'deepseek-v4-flash',
   );
 
   static const String defaultApiKey = String.fromEnvironment('AI_PRG_API_KEY');

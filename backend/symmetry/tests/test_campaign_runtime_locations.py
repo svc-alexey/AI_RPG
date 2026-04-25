@@ -168,3 +168,22 @@ def test_apply_turn_result_can_activate_vitality_and_assign_stats():
     assert next_state["character"]["max_hp"] == 11
     assert next_state["character"]["spirit"] == 3
     assert state_changes["module_updates"]["activate"] == ["vitality"]
+
+
+def test_apply_turn_result_preserves_full_narration_without_server_trim():
+    state = build_initial_state(_Payload())
+    service = CampaignRuntimeService()
+    long_narration = " ".join(["Длинная сцена"] * 180)
+
+    next_state, _, _, _ = service.apply_turn_result(
+        state=state,
+        result={
+            "narration": long_narration,
+            "choices": ["Продолжить"],
+            "state_changes": {},
+            "memory_entry": "Ирис замечает, что сцена тянется дольше обычного.",
+        },
+        player_action="Слушаю дальше",
+    )
+
+    assert next_state["messages"][-1]["text"] == long_narration

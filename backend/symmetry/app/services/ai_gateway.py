@@ -170,6 +170,8 @@ class AiGatewayService:
             "temperature": 0.8,
             "response_format": {"type": "json_object"},
         }
+        if _requires_disabled_thinking(credentials.model):
+            payload["thinking"] = {"type": "disabled"}
         current_max_tokens = max_output_tokens
         current_payload = dict(payload)
         attempt = 0
@@ -493,6 +495,11 @@ def _build_request_meta(
         "dynamic_characters": dynamic_characters,
         "max_output_tokens": max_output_tokens or 0,
     }
+
+
+def _requires_disabled_thinking(model: str) -> bool:
+    normalized = str(model or "").strip().lower()
+    return normalized.startswith("deepseek-v4-")
 
 
 def classify_provider_error(exc: Exception) -> tuple[int, str]:

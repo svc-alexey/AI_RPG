@@ -10,6 +10,7 @@ import 'package:ai_prg/src/features/chat/widgets/portrait_image.dart';
 import 'package:ai_prg/src/features/chat/widgets/state_change_overlay_stack.dart';
 import 'package:ai_prg/src/features/home/presentation/home_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -231,14 +232,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               width: responsive.width * 0.84,
               child: DecoratedBox(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: <Color>[
-                      AetherPalette.backgroundTop,
-                      AetherPalette.background,
-                    ],
-                  ),
+                  gradient: AetherPalette.appWindowBackdrop,
                 ),
                 child: SafeArea(
                   child: _buildSidebar(
@@ -642,14 +636,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       heightFactor: 0.86,
       child: DecoratedBox(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              AetherPalette.backgroundTop,
-              AetherPalette.background,
-            ],
-          ),
+          gradient: AetherPalette.appWindowBackdrop,
         ),
         child: SafeArea(
           child: Padding(
@@ -1511,52 +1498,84 @@ class _TypingPulseIndicator extends StatefulWidget {
 
 class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat();
+  AnimationController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1100),
+      )..repeat();
+    }
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(final BuildContext context) => RepaintBoundary(
-    child: SizedBox(
-      width: 34,
-      height:
-          12, // Фиксируем высоту, чтобы не вызывать перерасчет layout списка каждый кадр
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (final context, _) => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: List<Widget>.generate(3, (final index) {
-            final double phase = _wrappedPhase(
-              _controller.value - (index * 0.16),
-            );
-            final double intensity = (1 - ((phase * 2) - 1).abs()).clamp(
-              0.2,
-              1.0,
-            );
-
-            return Container(
-              width: 6,
-              height: 6 + (2 * intensity),
-              decoration: BoxDecoration(
-                color: AetherPalette.accent.withValues(
-                  alpha: 0.35 + (0.55 * intensity),
+  Widget build(final BuildContext context) {
+    if (kIsWeb) {
+      return RepaintBoundary(
+        child: SizedBox(
+          width: 34,
+          height: 12,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: List<Widget>.generate(3, (final int index) {
+              return Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: AetherPalette.accent.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
+        ),
+      );
+    }
+    return RepaintBoundary(
+      child: SizedBox(
+        width: 34,
+        height:
+            12, // Фиксируем высоту, чтобы не вызывать перерасчет layout списка каждый кадр
+        child: AnimatedBuilder(
+          animation: _controller!,
+          builder: (final context, _) => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: List<Widget>.generate(3, (final index) {
+              final double phase = _wrappedPhase(
+                _controller!.value - (index * 0.16),
+              );
+              final double intensity = (1 - ((phase * 2) - 1).abs()).clamp(
+                0.2,
+                1.0,
+              );
+
+              return Container(
+                width: 6,
+                height: 6 + (2 * intensity),
+                decoration: BoxDecoration(
+                  color: AetherPalette.accent.withValues(
+                    alpha: 0.35 + (0.55 * intensity),
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              );
+            }),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   double _wrappedPhase(final double value) {
     if (value >= 0) {

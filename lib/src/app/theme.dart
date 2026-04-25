@@ -84,7 +84,7 @@ ThemeData buildAppTheme() {
     highlightColor: Colors.transparent,
     splashColor: Colors.transparent,
     colorScheme: colorScheme,
-    scaffoldBackgroundColor: AetherPalette.background,
+    scaffoldBackgroundColor: Colors.transparent,
     textTheme: textTheme,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,

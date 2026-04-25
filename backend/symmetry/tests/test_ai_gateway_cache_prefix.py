@@ -114,7 +114,16 @@ def test_turn_budget_profiles_are_mode_aware():
     assert long_intro_budget.scenario == "turn_intro_long"
     assert short_intro_budget.max_output_tokens == 420
     assert short_budget.max_output_tokens == 280
-    assert long_intro_budget.max_output_tokens == 900
+    assert long_intro_budget.max_output_tokens == 3072
+
+    long_budget = build_turn_budget(
+        mode="longCampaign",
+        turn_number=1,
+        trigger_source="manual",
+    )
+
+    assert long_budget.scenario == "turn_standard_long"
+    assert long_budget.max_output_tokens == 2048
 
 
 def test_prompt_generation_budget_profiles_match_story_modes():
@@ -195,6 +204,98 @@ async def test_generate_json_retries_when_provider_reports_length_truncation():
     assert observed_max_tokens == [280, 440]
     assert result.meta["finish_reason"] == "stop"
     assert result.meta["completion_truncated"] is False
+
+
+@pytest.mark.asyncio
+async def test_generate_json_disables_thinking_for_deepseek_v4_models():
+    service = AiGatewayService()
+    observed_payloads: list[dict[str, object]] = []
+
+    async def _fake_post_json_completion(*, payload, **_kwargs):
+        observed_payloads.append(dict(payload))
+        return (
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"narration":"full","choices":["Go"],"state_changes":{},"memory_entry":"full","importance":4}'
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"completion_tokens": 64, "total_tokens": 120},
+            },
+            LlmUsage(completion_tokens=64, total_tokens=120),
+            "stop",
+        )
+
+    service._post_json_completion = _fake_post_json_completion  # type: ignore[method-assign]
+
+    await service.generate_json(
+        credentials=type(
+            "_Creds",
+            (),
+            {
+                "model": "deepseek-v4-flash",
+                "base_url": "https://example.invalid/v1",
+                "api_key": "secret",
+                "timeout_seconds": 60,
+                "safe_summary": "test-creds",
+            },
+        )(),
+        system_prompt="Return JSON",
+        user_payload={"hello": "world"},
+        max_output_tokens=128,
+        scenario="turn_standard_long",
+    )
+
+    assert observed_payloads[0]["thinking"] == {"type": "disabled"}
+
+
+@pytest.mark.asyncio
+async def test_generate_json_keeps_thinking_unset_for_non_v4_models():
+    service = AiGatewayService()
+    observed_payloads: list[dict[str, object]] = []
+
+    async def _fake_post_json_completion(*, payload, **_kwargs):
+        observed_payloads.append(dict(payload))
+        return (
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"narration":"full","choices":["Go"],"state_changes":{},"memory_entry":"full","importance":4}'
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"completion_tokens": 64, "total_tokens": 120},
+            },
+            LlmUsage(completion_tokens=64, total_tokens=120),
+            "stop",
+        )
+
+    service._post_json_completion = _fake_post_json_completion  # type: ignore[method-assign]
+
+    await service.generate_json(
+        credentials=type(
+            "_Creds",
+            (),
+            {
+                "model": "gpt-4o-mini",
+                "base_url": "https://example.invalid/v1",
+                "api_key": "secret",
+                "timeout_seconds": 60,
+                "safe_summary": "test-creds",
+            },
+        )(),
+        system_prompt="Return JSON",
+        user_payload={"hello": "world"},
+        max_output_tokens=128,
+        scenario="turn_standard_long",
+    )
+
+    assert "thinking" not in observed_payloads[0]
 
 
 def test_build_messages_preserves_stable_prefix_and_dynamic_tail():
