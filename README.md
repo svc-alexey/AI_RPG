@@ -48,6 +48,11 @@ processing.
   - `longCampaign`: broader delayed effects for companies, factions,
     locations, and markets;
 - server-side RAG over `world_chronicles`;
+- structured scene continuity for turn-to-turn narration:
+  - campaign snapshots now persist `scene_state` alongside memory;
+  - immediate continuity such as "the hero already sat down" or
+    "the greeting already started" is carried by runtime state instead of
+    relying on vector recall for the previous beat;
 - background persistence of important story events plus off-screen world
   rumors into vector memory;
 - story-template backend/API foundation with tags, likes, views, and bookmarks;
@@ -84,6 +89,13 @@ processing.
   - chat autoscroll happens on player send, not on narrator growth;
   - `Слухи мира` and `Последние события` show only the latest 5 entries in
     descending freshness order;
+- turn-processing safety and diagnostics:
+  - `POST /v1/campaigns/{id}/turns/process` accepts `client_turn_id` /
+    `clientTurnId` for idempotent replays;
+  - processed turns persist a per-request `request_id` plus compact admin-only
+    debug context with chosen memory, `scene_state`, and RAG summary;
+  - the backend can expose `GET /v1/dev/campaigns/{id}/turn-debug` when a dev
+    admin token is configured;
 - narrative uniqueness guardrails:
   - the backend no longer maps settings to hardcoded opening locations;
   - butterfly world seeding no longer injects stock guilds, caravans, guards,
@@ -190,19 +202,21 @@ Important rule:
 - the backend must not write them to the database, snapshots, logs, or
   background jobs.
 
-## Dev usage report
+## Dev admin endpoints
 
-For server-side token analysis, the backend now exposes a private usage report
-endpoint:
+For server-side token analysis and production forensics, the backend can expose
+private admin endpoints:
 
 - `GET /v1/dev/usage`
+- `GET /v1/dev/campaigns/{id}/turn-debug`
 
 It is intentionally not public:
 
 - the endpoint is disabled unless `SYMMETRY_DEV_ADMIN_TOKEN` is configured on
   the server;
 - access requires header `X-Symmetry-Dev-Token`;
-- this endpoint is intended for direct server/admin usage, not for client UI.
+- these endpoints are intended for direct server/admin usage, not for client
+  UI.
 
 Related env vars:
 
@@ -251,6 +265,7 @@ Important callback note:
   - `GET /health`
   - `GET /version`
   - `GET /v1/dev/usage` with `X-Symmetry-Dev-Token`
+  - `GET /v1/dev/campaigns/{id}/turn-debug` with `X-Symmetry-Dev-Token`
 - auth:
   - `POST /v1/auth/guest`
   - `POST /v1/auth/register`
@@ -315,6 +330,10 @@ Recent production hardening on `beyondtheverge.online` included:
   and web no longer loops on forced refresh prompts;
 - hardening backend turn generation against truncated JSON and loose provider
   output types;
+- persisting structured `scene_state` so the model stops replaying already
+  completed scene transitions on the next turn;
+- adding admin turn-debug payloads plus `client_turn_id` idempotency support
+  for production turn investigations;
 - expanding token/output budgets separately for `shortStory` and
   `longCampaign`;
 - fixing settings-side provider checks so authenticated users can verify the

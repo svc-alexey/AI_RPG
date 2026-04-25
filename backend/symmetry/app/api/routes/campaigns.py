@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
@@ -77,6 +78,86 @@ def _build_turn_usage_meta(
         if prompt_tokens > 0
         else 0.0,
     }
+
+
+def _build_turn_debug_payload(
+    *,
+    context: dict[str, Any],
+    chronicles: list[WorldChronicle],
+    query_text: str,
+) -> dict[str, Any]:
+    dynamic_context = context.get("dynamic_context", {}) if isinstance(context, dict) else {}
+    rag_results: list[dict[str, Any]] = []
+    for item in chronicles:
+        metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+        rag_results.append(
+            {
+                "id": item.id,
+                "event_text": str(item.event_text or "")[:220],
+                "importance": int(item.importance or 0),
+                "location_slug": str(item.location_slug or ""),
+                "source": str(metadata.get("source", "") or ""),
+            }
+        )
+    return {
+        "scene_state": dict(dynamic_context.get("scene_state", {}) or {}),
+        "context": {
+            "campaign_bootstrap": dict(context.get("campaign_bootstrap", {}) or {}),
+            "world_bootstrap": dict(context.get("world_bootstrap", {}) or {}),
+            "character_brief": dict(context.get("character_brief", {}) or {}),
+            "dynamic_context": {
+                "turn_number": int(dynamic_context.get("turn_number", 0) or 0),
+                "memory": dict(dynamic_context.get("memory", {}) or {}),
+                "scene_state": dict(dynamic_context.get("scene_state", {}) or {}),
+                "state": dict(dynamic_context.get("state", {}) or {}),
+                "request": dict(dynamic_context.get("request", {}) or {}),
+            },
+        },
+        "rag": {
+            "query_text": query_text[:1200],
+            "result_count": len(rag_results),
+            "results": rag_results,
+        },
+    }
+
+
+async def _load_existing_turn_by_client_id(
+    session: AsyncSession,
+    *,
+    campaign_id: str,
+    client_turn_id: str,
+) -> CampaignTurn | None:
+    normalized_client_turn_id = normalize_prompt_text(client_turn_id, limit=120)
+    if not normalized_client_turn_id:
+        return None
+    stmt = (
+        select(CampaignTurn)
+        .where(
+            CampaignTurn.campaign_id == campaign_id,
+            CampaignTurn.llm_usage_json["client_turn_id"].astext == normalized_client_turn_id,
+        )
+        .order_by(desc(CampaignTurn.created_at))
+        .limit(1)
+    )
+    return await session.scalar(stmt)
+
+
+def _build_process_turn_response(
+    *,
+    turn: CampaignTurn,
+    snapshot: CampaignSnapshot,
+) -> ProcessTurnResponse:
+    llm_payload = turn.llm_response_json if isinstance(turn.llm_response_json, dict) else {}
+    usage_payload = turn.llm_usage_json if isinstance(turn.llm_usage_json, dict) else {}
+    return ProcessTurnResponse(
+        narration=str(llm_payload.get("narration", "")).strip(),
+        choices=[str(item) for item in llm_payload.get("choices", []) if str(item).strip()],
+        state_changes=llm_payload.get("state_changes", {}) or {},
+        memory_entry=str(llm_payload.get("memory_entry", "")).strip(),
+        request_id=str(usage_payload.get("request_id", "") or ""),
+        campaign_snapshot_version=snapshot.version,
+        state=snapshot.state_json,
+    )
 
 
 @router.post("", response_model=CampaignStateResponse)
@@ -258,6 +339,18 @@ async def process_turn(
     session: AsyncSession = Depends(get_db_session),
 ) -> ProcessTurnResponse:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
+    existing_turn = await _load_existing_turn_by_client_id(
+        session,
+        campaign_id=campaign.id,
+        client_turn_id=payload.client_turn_id,
+    )
+    if existing_turn is not None:
+        existing_snapshot = await session.get(CampaignSnapshot, existing_turn.snapshot_id)
+        if existing_snapshot is not None:
+            return _build_process_turn_response(
+                turn=existing_turn,
+                snapshot=existing_snapshot,
+            )
     snapshot = await session.get(CampaignSnapshot, campaign.current_snapshot_id)
     world_state = await session.scalar(select(WorldState).where(WorldState.campaign_id == campaign.id))
     if snapshot is None or world_state is None:
@@ -300,6 +393,12 @@ async def process_turn(
         world_state=world_state,
         chronicles=chronicles,
         trigger_source=payload.trigger_source,
+    )
+    request_id = new_id()
+    turn_debug = _build_turn_debug_payload(
+        context=context,
+        chronicles=chronicles,
+        query_text=query_text,
     )
     try:
         credentials = credential_service.resolve(payload.provider_credentials)
@@ -364,6 +463,9 @@ async def process_turn(
                 trigger_source=payload.trigger_source,
                 usage=llm_result.usage.to_dict(),
             ),
+            "request_id": request_id,
+            "client_turn_id": payload.client_turn_id,
+            "turn_debug": turn_debug,
         },
     )
     session.add(turn)
@@ -414,7 +516,7 @@ async def process_turn(
         choices=[str(item) for item in llm_payload.get("choices", []) if str(item).strip()],
         state_changes=state_changes,
         memory_entry=str(llm_payload.get("memory_entry", "")).strip(),
-        request_id=new_id(),
+        request_id=request_id,
         campaign_snapshot_version=next_snapshot.version,
         state=next_state,
     )

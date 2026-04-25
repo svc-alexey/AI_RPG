@@ -39,8 +39,82 @@ CHARACTER_NUMERIC_KEYS = {
 MAX_STORED_RECENT_TURNS = 8
 MAX_STORED_KEY_FACTS = 14
 MAX_STORED_KNOWN_CHARACTERS = 10
+MAX_SCENE_INTERACTION_TARGETS = 4
 ROLLING_SUMMARY_STORAGE_LIMIT = 420
 MEMORY_FACT_TEXT_LIMIT = 180
+SCENE_TEXT_LIMIT = 180
+SCENE_PHASE_LIMIT = 48
+
+SCENE_PHASE_RANKS = {
+    "opening_scene": 0,
+    "sorting_hat_choice": 10,
+    "sorted_to_house": 20,
+    "walking_to_table": 30,
+    "seated_at_table": 40,
+    "first_greeting_started": 50,
+    "conversation_started": 60,
+    "ongoing_scene": 70,
+}
+
+SCENE_APPROACH_MARKERS = (
+    "направляешься",
+    "подходишь",
+    "спускаешься с табурета",
+    "присоединиться к факультету",
+    "идешь к столу",
+    "идёшь к столу",
+    "walk toward",
+    "approach the table",
+)
+
+SCENE_SEATED_MARKERS = (
+    "садишься",
+    "садись",
+    "опускаешься на скамью",
+    "садится рядом",
+    "сидит напротив",
+    "за столом",
+    "take your seat",
+    "sit beside",
+    "sit at the table",
+)
+
+SCENE_GREETING_MARKERS = (
+    "поздор",
+    "привет",
+    "здравств",
+    "рад буду",
+    "hello",
+    "hi ",
+    "greet",
+    "introduce",
+)
+
+SCENE_SORTING_MARKERS = (
+    "распределя",
+    "шляпа",
+    "гриффиндор",
+    "слизерин",
+    "когтевран",
+    "пуффендуй",
+    "sorting hat",
+    "sorted into",
+)
+
+SCENE_DIALOGUE_MARKERS = (
+    "говорит",
+    "спрашивает",
+    "улыбается",
+    "кивает",
+    "смеётся",
+    "смеется",
+    "отвечает",
+    "says",
+    "asks",
+    "smiles",
+    "nods",
+    "answers",
+)
 
 DURABLE_FACT_MARKERS = (
     "познаком",
@@ -105,6 +179,12 @@ def build_initial_state(payload) -> dict[str, Any]:
             "key_facts": [],
             "known_characters": [],
         },
+        "scene_state": _build_initial_scene_state(
+            story_prompt=story_prompt,
+            objective=objective,
+            location=location,
+            language=language,
+        ),
         "messages": [],
         "choices": [],
         "modules": [],
@@ -142,6 +222,14 @@ class CampaignRuntimeService:
             fallback_goal=str(next_state.get("objective", "")).strip(),
             fallback_situation=str(next_state.get("objective", "")).strip(),
         )
+        next_state["scene_state"] = _normalize_scene_state(
+            next_state.get("scene_state", {}) or {},
+            memory=next_state["memory"],
+            messages=next_state.get("messages", []) or [],
+            location=str(next_state.get("location", "")),
+            objective=str(next_state.get("objective", "")),
+            language=language,
+        )
         return next_state
 
     def build_turn_context(
@@ -163,6 +251,10 @@ class CampaignRuntimeService:
         compact_character = _compact_character_state(character)
         compact_memory = _compact_memory(
             current_state.get("memory", {}) or {},
+            budget=budget,
+        )
+        compact_scene_state = _compact_scene_state(
+            current_state.get("scene_state", {}) or {},
             budget=budget,
         )
         compact_chronicles = _compact_chronicles(chronicles, budget=budget)
@@ -203,6 +295,7 @@ class CampaignRuntimeService:
             "dynamic_context": {
                 "turn_number": current_state.get("turn_number", 0),
                 "memory": compact_memory,
+                "scene_state": compact_scene_state,
                 "world_state": {
                     "current_day": world_state.current_day,
                     "minute_of_day": world_state.minute_of_day,
@@ -268,6 +361,33 @@ class CampaignRuntimeService:
         _append("rolling_summary", str(memory.get("rolling_summary", "")), limit=220)
         _append("active_goal", str(memory.get("active_goal", "")), limit=96)
         _append("active_situation", str(memory.get("active_situation", "")), limit=140)
+        scene_state = _normalize_scene_state(
+            current_state.get("scene_state", {}) or {},
+            memory=memory,
+            messages=current_state.get("messages", []) or [],
+            location=str(current_state.get("location", "")),
+            objective=str(current_state.get("objective", "")),
+            language=str(current_state.get("language", "ru")).strip() or "ru",
+        )
+        _append("scene_anchor", str(scene_state.get("scene_anchor", "")), limit=120)
+        _append("current_scene_phase", str(scene_state.get("current_phase", "")), limit=48)
+        _append(
+            "last_completed_beat",
+            str(scene_state.get("last_completed_beat", "")),
+            limit=160,
+        )
+        _append(
+            "latest_player_intent",
+            str(scene_state.get("latest_player_intent", "")),
+            limit=140,
+        )
+        interaction_targets = normalize_compact_list(
+            scene_state.get("interaction_targets") or [],
+            item_limit=MAX_SCENE_INTERACTION_TARGETS,
+            text_limit=40,
+        )
+        if interaction_targets:
+            query_parts.append("interaction_targets: " + ", ".join(interaction_targets))
 
         known_characters = normalize_compact_list(
             memory.get("known_characters") or [],
@@ -395,6 +515,20 @@ class CampaignRuntimeService:
                 language=language,
             )
         memory["active_situation"] = narration
+        next_state["scene_state"] = _build_next_scene_state(
+            state=next_state,
+            state_changes=state_changes,
+            narration=narration,
+            memory_entry=memory_entry,
+            player_action=trimmed_player_action,
+            language=language,
+            raw_scene_state_patch=(
+                result.get("scene_state_patch")
+                or result.get("sceneStatePatch")
+                or result.get("scene_progress")
+                or result.get("sceneProgress")
+            ),
+        )
         world_event_summary = normalize_prompt_text(
             str(result.get("world_event_summary", "")),
             limit=240,
@@ -643,6 +777,45 @@ def _compact_memory(memory: dict[str, Any], *, budget: PromptBudgetProfile) -> d
     return compact_memory
 
 
+def _compact_scene_state(
+    scene_state: dict[str, Any],
+    *,
+    budget: PromptBudgetProfile,
+) -> dict[str, Any]:
+    normalized = dict(scene_state) if isinstance(scene_state, dict) else {}
+    limit = max(96, min(180, budget.max_memory_chars))
+    compact = {
+        "scene_anchor": normalize_prompt_text(
+            str(normalized.get("scene_anchor", "")),
+            limit=limit,
+        ),
+        "current_phase": _normalize_scene_phase(
+            str(normalized.get("current_phase", ""))
+        ),
+        "last_completed_beat": normalize_prompt_text(
+            str(normalized.get("last_completed_beat", "")),
+            limit=limit,
+        ),
+        "next_story_beat": normalize_prompt_text(
+            str(normalized.get("next_story_beat", "")),
+            limit=limit,
+        ),
+        "latest_player_intent": normalize_prompt_text(
+            str(normalized.get("latest_player_intent", "")),
+            limit=140,
+        ),
+        "continuation_required": bool(normalized.get("continuation_required", True)),
+    }
+    targets = normalize_compact_list(
+        normalized.get("interaction_targets") or [],
+        item_limit=min(3, MAX_SCENE_INTERACTION_TARGETS),
+        text_limit=40,
+    )
+    if targets:
+        compact["interaction_targets"] = targets
+    return compact
+
+
 def _compact_chronicles(
     chronicles: list[WorldChronicle],
     *,
@@ -722,6 +895,335 @@ def _normalize_memory_state(
         limit=320,
     )
     return normalized
+
+
+def _build_initial_scene_state(
+    *,
+    story_prompt: str,
+    objective: str,
+    location: str,
+    language: str,
+) -> dict[str, Any]:
+    anchor = _resolve_scene_anchor(
+        location=location,
+        objective=objective,
+        fallback=story_prompt,
+        language=language,
+    )
+    return {
+        "scene_anchor": anchor,
+        "current_phase": "opening_scene",
+        "last_completed_beat": "",
+        "interaction_targets": [],
+        "next_story_beat": normalize_objective_text(objective, language=language),
+        "latest_player_intent": "",
+        "continuation_required": True,
+    }
+
+
+def _normalize_scene_state(
+    scene_state: dict[str, Any],
+    *,
+    memory: dict[str, Any],
+    messages: list[Any],
+    location: str,
+    objective: str,
+    language: str,
+) -> dict[str, Any]:
+    normalized = dict(scene_state) if isinstance(scene_state, dict) else {}
+    known_characters = _merge_known_characters(
+        normalized.get("interaction_targets") or [],
+        _extract_known_characters_from_messages(messages),
+    )
+    known_characters = _merge_known_characters(
+        known_characters,
+        normalize_compact_list(
+            memory.get("known_characters") or [],
+            item_limit=MAX_SCENE_INTERACTION_TARGETS,
+            text_limit=48,
+        ),
+    )
+    scene_anchor = normalize_prompt_text(
+        str(normalized.get("scene_anchor", "")),
+        limit=SCENE_TEXT_LIMIT,
+    ) or _resolve_scene_anchor(
+        location=location,
+        objective=objective,
+        fallback=str(memory.get("active_situation", "")),
+        language=language,
+    )
+    current_phase = _normalize_scene_phase(str(normalized.get("current_phase", "")))
+    if not current_phase:
+        current_phase = "ongoing_scene" if scene_anchor else "opening_scene"
+    last_completed_beat = normalize_prompt_text(
+        str(normalized.get("last_completed_beat", "")),
+        limit=SCENE_TEXT_LIMIT,
+    ) or normalize_prompt_text(
+        str(memory.get("active_situation", "")),
+        limit=SCENE_TEXT_LIMIT,
+    )
+    next_story_beat = normalize_prompt_text(
+        str(normalized.get("next_story_beat", "")),
+        limit=SCENE_TEXT_LIMIT,
+    ) or normalize_objective_text(
+        str(memory.get("active_goal", "") or objective),
+        language=language,
+    )
+    latest_player_intent = normalize_prompt_text(
+        str(normalized.get("latest_player_intent", "")),
+        limit=140,
+    ) or _latest_player_action_from_memory(memory)
+    return {
+        "scene_anchor": scene_anchor,
+        "current_phase": current_phase,
+        "last_completed_beat": last_completed_beat,
+        "interaction_targets": known_characters[-MAX_SCENE_INTERACTION_TARGETS:],
+        "next_story_beat": next_story_beat,
+        "latest_player_intent": latest_player_intent,
+        "continuation_required": bool(normalized.get("continuation_required", True)),
+    }
+
+
+def _normalize_scene_state_patch(raw_patch: Any) -> dict[str, Any]:
+    patch = raw_patch if isinstance(raw_patch, dict) else {}
+    targets = patch.get("interaction_targets")
+    if targets is None:
+        targets = patch.get("interactionTargets")
+    continuation_required = patch.get("continuation_required")
+    if continuation_required is None:
+        continuation_required = patch.get("continuationRequired")
+    return {
+        "scene_anchor": normalize_prompt_text(
+            str(patch.get("scene_anchor", patch.get("sceneAnchor", ""))),
+            limit=SCENE_TEXT_LIMIT,
+        ),
+        "current_phase": _normalize_scene_phase(
+            str(patch.get("current_phase", patch.get("currentPhase", "")))
+        ),
+        "last_completed_beat": normalize_prompt_text(
+            str(
+                patch.get(
+                    "last_completed_beat",
+                    patch.get("lastCompletedBeat", ""),
+                )
+            ),
+            limit=SCENE_TEXT_LIMIT,
+        ),
+        "interaction_targets": normalize_compact_list(
+            targets or [],
+            item_limit=MAX_SCENE_INTERACTION_TARGETS,
+            text_limit=48,
+        ),
+        "next_story_beat": normalize_prompt_text(
+            str(patch.get("next_story_beat", patch.get("nextStoryBeat", ""))),
+            limit=SCENE_TEXT_LIMIT,
+        ),
+        "latest_player_intent": normalize_prompt_text(
+            str(
+                patch.get(
+                    "latest_player_intent",
+                    patch.get("latestPlayerIntent", ""),
+                )
+            ),
+            limit=140,
+        ),
+        "continuation_required": _coerce_scene_bool(continuation_required, default=True),
+    }
+
+
+def _build_next_scene_state(
+    *,
+    state: dict[str, Any],
+    state_changes: dict[str, Any],
+    narration: str,
+    memory_entry: str,
+    player_action: str,
+    language: str,
+    raw_scene_state_patch: Any,
+) -> dict[str, Any]:
+    memory = state.get("memory", {}) or {}
+    previous = _normalize_scene_state(
+        state.get("scene_state", {}) or {},
+        memory=memory,
+        messages=state.get("messages", []) or [],
+        location=str(state.get("location", "")),
+        objective=str(state.get("objective", "")),
+        language=language,
+    )
+    patch = _normalize_scene_state_patch(raw_scene_state_patch)
+    inferred = _infer_scene_state(
+        previous_scene_state=previous,
+        narration=narration,
+        memory_entry=memory_entry,
+        player_action=player_action,
+        location=str(state_changes.get("location", state.get("location", ""))),
+        objective=str(state_changes.get("objective", state.get("objective", ""))),
+        language=language,
+    )
+
+    next_scene_state = dict(previous)
+    next_scene_state["scene_anchor"] = (
+        patch["scene_anchor"]
+        or inferred["scene_anchor"]
+        or previous["scene_anchor"]
+    )
+
+    previous_phase = str(previous.get("current_phase", ""))
+    phase_candidate = patch["current_phase"] or inferred["current_phase"] or previous_phase
+    if patch["current_phase"]:
+        next_scene_state["current_phase"] = phase_candidate
+    elif _scene_phase_rank(phase_candidate) >= _scene_phase_rank(previous_phase):
+        next_scene_state["current_phase"] = phase_candidate
+    else:
+        next_scene_state["current_phase"] = previous_phase or phase_candidate
+
+    next_scene_state["last_completed_beat"] = (
+        patch["last_completed_beat"]
+        or normalize_prompt_text(memory_entry, limit=SCENE_TEXT_LIMIT)
+        or inferred["last_completed_beat"]
+        or previous["last_completed_beat"]
+    )
+    next_scene_state["interaction_targets"] = _merge_known_characters(
+        previous.get("interaction_targets", []) or [],
+        patch["interaction_targets"] or inferred["interaction_targets"],
+    )[-MAX_SCENE_INTERACTION_TARGETS:]
+    next_scene_state["next_story_beat"] = (
+        patch["next_story_beat"]
+        or inferred["next_story_beat"]
+        or previous["next_story_beat"]
+    )
+    next_scene_state["latest_player_intent"] = (
+        patch["latest_player_intent"]
+        or normalize_prompt_text(player_action, limit=140)
+        or inferred["latest_player_intent"]
+        or previous["latest_player_intent"]
+    )
+    next_scene_state["continuation_required"] = patch["continuation_required"]
+    return next_scene_state
+
+
+def _infer_scene_state(
+    *,
+    previous_scene_state: dict[str, Any],
+    narration: str,
+    memory_entry: str,
+    player_action: str,
+    location: str,
+    objective: str,
+    language: str,
+) -> dict[str, Any]:
+    normalized_player_action = normalize_prompt_text(player_action, limit=140)
+    normalized_narration = normalize_prompt_text(narration)
+    normalized_memory_entry = normalize_prompt_text(memory_entry, limit=SCENE_TEXT_LIMIT)
+    combined_text = " ".join(
+        item
+        for item in (
+            normalized_player_action,
+            normalized_memory_entry,
+            normalized_narration,
+        )
+        if item
+    )
+    combined_lower = combined_text.lower()
+    player_action_lower = normalized_player_action.lower()
+    interaction_targets = _extract_known_characters(
+        normalized_memory_entry,
+        normalized_narration,
+    )
+    scene_anchor = _resolve_scene_anchor(
+        location=location,
+        objective=objective,
+        fallback=previous_scene_state.get("scene_anchor", "") or normalized_memory_entry,
+        language=language,
+    )
+    current_phase = ""
+    greeting_intent = any(marker in player_action_lower for marker in SCENE_GREETING_MARKERS)
+    seated_scene = any(marker in combined_lower for marker in SCENE_SEATED_MARKERS)
+    approach_scene = any(marker in combined_lower for marker in SCENE_APPROACH_MARKERS)
+    sorting_scene = any(marker in combined_lower for marker in SCENE_SORTING_MARKERS)
+    active_dialogue = any(marker in combined_lower for marker in SCENE_DIALOGUE_MARKERS)
+
+    if greeting_intent and interaction_targets and (seated_scene or active_dialogue):
+        current_phase = "conversation_started"
+    elif greeting_intent:
+        current_phase = "first_greeting_started"
+    elif seated_scene and interaction_targets and active_dialogue:
+        current_phase = "conversation_started"
+    elif seated_scene:
+        current_phase = "seated_at_table"
+    elif approach_scene:
+        current_phase = "walking_to_table"
+    elif sorting_scene and ("гриффиндор" in combined_lower or "слизерин" in combined_lower):
+        current_phase = "sorted_to_house"
+    elif sorting_scene:
+        current_phase = "sorting_hat_choice"
+    else:
+        current_phase = previous_scene_state.get("current_phase", "") or "ongoing_scene"
+
+    next_story_beat = normalize_objective_text(objective, language=language)
+    return {
+        "scene_anchor": scene_anchor,
+        "current_phase": current_phase,
+        "last_completed_beat": normalized_memory_entry,
+        "interaction_targets": interaction_targets,
+        "next_story_beat": next_story_beat,
+        "latest_player_intent": normalized_player_action,
+    }
+
+
+def _resolve_scene_anchor(
+    *,
+    location: str,
+    objective: str,
+    fallback: str,
+    language: str,
+) -> str:
+    normalized_location = normalize_prompt_text(location, limit=96)
+    if normalized_location and not is_placeholder_location(
+        normalized_location,
+        language=language,
+    ):
+        return normalized_location
+    normalized_objective = normalize_objective_text(objective, language=language)
+    if normalized_objective:
+        return normalized_objective
+    return normalize_prompt_text(fallback, limit=96)
+
+
+def _latest_player_action_from_memory(memory: dict[str, Any]) -> str:
+    recent_turns = _normalize_recent_turns(memory.get("recent_turns", []) or [])
+    for item in reversed(recent_turns):
+        player_action = normalize_prompt_text(
+            str(item.get("player_action", "")),
+            limit=140,
+        )
+        if player_action:
+            return player_action
+    return ""
+
+
+def _normalize_scene_phase(value: str) -> str:
+    normalized = normalize_prompt_text(value, limit=SCENE_PHASE_LIMIT).lower()
+    if not normalized:
+        return ""
+    normalized = re.sub(r"[^a-z0-9_]+", "_", normalized)
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    return normalized[:SCENE_PHASE_LIMIT]
+
+
+def _scene_phase_rank(phase: str) -> int:
+    return SCENE_PHASE_RANKS.get(_normalize_scene_phase(phase), 0)
+
+
+def _coerce_scene_bool(value: Any, *, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    normalized = str(value or "").strip().lower()
+    if normalized in {"1", "true", "yes", "y"}:
+        return True
+    if normalized in {"0", "false", "no", "n"}:
+        return False
+    return default
 
 
 def _normalize_recent_turns(items: Any) -> list[dict[str, str]]:

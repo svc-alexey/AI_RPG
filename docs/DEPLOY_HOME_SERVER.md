@@ -336,6 +336,44 @@ deploy нужно обязательно прогонять такой мини�
 - `health=ok` сам по себе не гарантирует, что LLM-генерация реально работает
 - web мог отвечать `502`, даже когда сам API-контейнер уже был `healthy`
 
+### Проверка идемпотентности turn processing
+
+После основного smoke test стоит отдельно проверить защиту от повторной
+отправки одного и того же хода:
+
+1. Отправить `POST /v1/campaigns/{id}/turns/process` с заполненным
+   `client_turn_id`
+2. Повторить тот же запрос без изменения `client_turn_id`
+3. Убедиться, что:
+   - `request_id` в ответе совпадает
+   - `campaign_snapshot_version` не увеличился второй раз
+   - narration совпадает, а новый turn в БД не создаётся
+
+Это важно, чтобы отличать:
+
+- реальный повтор narration от модели
+- дубль из UI
+- повторный HTTP retry после refresh/401/сетевого сбоя
+
+### Проверка `turn-debug`, если включен admin token
+
+Если на production задан `SYMMETRY_DEV_ADMIN_TOKEN`, дополнительно проверить:
+
+1. `GET /v1/dev/campaigns/{id}/turn-debug` с заголовком
+   `X-Symmetry-Dev-Token`
+2. Убедиться, что в ответе есть:
+   - `request_id`
+   - `client_turn_id`
+   - `scene_state`
+   - `context.dynamic_context.memory`
+   - `rag.result_count`
+
+Это самый быстрый способ понять, сломалась ли continuity из-за:
+
+- нехватки compact context
+- неудачного RAG retrieval
+- игнора уже переданного `scene_state` со стороны модели
+
 ## 8.1. Зафиксированные production hotfix notes
 
 Ниже список исправлений, которые уже были нужны на production и которые важно
@@ -358,6 +396,15 @@ deploy нужно обязательно прогонять такой мини�
 - бюджеты вывода разделены по режимам:
   - `shortStory`: быстрые, но безопасные лимиты
   - `longCampaign`: заметно более широкие лимиты для атмосферы и контекста
+- immediate continuity между соседними ходами больше не должна зависеть от
+  RAG по прошлому beat:
+  - snapshot хранит `scene_state`
+  - runtime передаёт `scene_state` в dynamic context
+  - модель возвращает `scene_state_patch` для продвижения сцены
+- `POST /turns/process` теперь поддерживает `client_turn_id` для
+  идемпотентности повторного запроса
+- для расследований добавлен admin endpoint
+  `GET /v1/dev/campaigns/{id}/turn-debug`
 
 ### Web/runtime release
 
@@ -366,6 +413,10 @@ deploy нужно обязательно прогонять такой мини�
 - если этого не сделать, web-клиент может бесконечно просить обновление
 - backend `/version` и web bundle должны быть синхронизированы по одному
   `release_id`
+- если production был обновлён ручным копированием файлов поверх рабочего
+  дерева, эти изменения нужно сразу закоммитить и запушить; иначе следующий
+  deploy-скрипт с `git reset --hard origin/master` откатит сервер к состоянию
+  удалённой ветки
 
 ### Reverse proxy / nginx
 

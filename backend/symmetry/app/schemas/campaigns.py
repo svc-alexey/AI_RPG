@@ -112,8 +112,18 @@ class ProcessTurnRequest(BaseModel):
         default=None,
         validation_alias=AliasChoices("provider_credentials", "providerCredentials"),
     )
+    client_turn_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("client_turn_id", "clientTurnId"),
+    )
 
-    @field_validator("player_action", "language", "trigger_source", mode="before")
+    @field_validator(
+        "player_action",
+        "language",
+        "trigger_source",
+        "client_turn_id",
+        mode="before",
+    )
     @classmethod
     def _normalize_turn_text(cls, value: object) -> str:
         return normalize_prompt_text(str(value or ""))

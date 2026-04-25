@@ -322,6 +322,7 @@ class SymmetryApiClient {
     required final String playerAction,
     required final String languageCode,
     required final AiSettings aiSettings,
+    final String clientTurnId = '',
     final String triggerSource = 'manual',
   }) async {
     final Map<String, Object?> response = await _post(
@@ -331,6 +332,7 @@ class SymmetryApiClient {
         'player_action': playerAction,
         'language': languageCode,
         'trigger_source': triggerSource,
+        if (clientTurnId.trim().isNotEmpty) 'client_turn_id': clientTurnId.trim(),
         if (aiSettings.baseUrl.trim().isNotEmpty &&
             aiSettings.model.trim().isNotEmpty &&
             aiSettings.apiKey.trim().isNotEmpty)

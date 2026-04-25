@@ -86,6 +86,15 @@ def test_build_turn_context_exposes_continuity_memory_for_prompt():
         ],
         "known_characters": ["Гарри Поттер", "Гермиона", "Рон"],
     }
+    state["scene_state"] = {
+        "scene_anchor": "Большой зал Хогвартса",
+        "current_phase": "conversation_started",
+        "last_completed_beat": "Уже сидит за столом Гриффиндора.",
+        "interaction_targets": ["Гарри Поттер", "Гермиона", "Рон"],
+        "next_story_beat": "Понять, почему все обсуждают книгу Флитвика",
+        "latest_player_intent": "Сесть к Рону",
+        "continuation_required": True,
+    }
 
     context = service.build_turn_context(
         state=state,
@@ -99,6 +108,10 @@ def test_build_turn_context_exposes_continuity_memory_for_prompt():
     assert "known_characters" in memory
     assert "Гарри Поттер" in memory["known_characters"]
     assert any("книгу Флитвика" in item for item in memory["key_facts"])
+    scene_state = context["dynamic_context"]["scene_state"]
+    assert scene_state["current_phase"] == "conversation_started"
+    assert scene_state["last_completed_beat"] == "Уже сидит за столом Гриффиндора."
+    assert "Гарри Поттер" in scene_state["interaction_targets"]
 
 
 def test_ensure_bootstrap_state_backfills_known_characters_from_old_messages():
@@ -124,3 +137,51 @@ def test_ensure_bootstrap_state_backfills_known_characters_from_old_messages():
     normalized = service.ensure_bootstrap_state(state=state)
 
     assert any(item.startswith("Гарри") for item in normalized["memory"]["known_characters"])
+
+
+def test_scene_state_advances_after_sorting_instead_of_replaying_transition():
+    service = CampaignRuntimeService()
+    state = build_initial_state(_Payload())
+
+    state, _, _, _ = service.apply_turn_result(
+        state=state,
+        result={
+            "narration": (
+                "Шляпа громко объявляет: «ГРИФФИНДОР!». "
+                "Ты снимаешь Шляпу и направляешься к гриффиндорскому столу."
+            ),
+            "choices": ["Поздороваться"],
+            "state_changes": {},
+            "memory_entry": "Шляпа распределила в Гриффиндор; идёт к столу факультета.",
+            "importance": 7,
+        },
+        player_action="Решиться на Гриффиндор",
+    )
+
+    assert state["scene_state"]["current_phase"] == "walking_to_table"
+    assert "Гриффиндор" in state["scene_state"]["last_completed_beat"]
+
+    state, _, _, _ = service.apply_turn_result(
+        state=state,
+        result={
+            "narration": (
+                "Ты спускаешься с табурета под аплодисменты и подходишь к столу. "
+                "Рон хлопает тебя по плечу, Гермиона внимательно смотрит на тебя, "
+                "а Гарри смущённо кивает."
+            ),
+            "choices": ["Ответить Рону"],
+            "state_changes": {},
+            "memory_entry": "Распределён в Гриффиндор, знаком с Роном, Гермионой и Гарри.",
+            "importance": 6,
+        },
+        player_action="Поздороваться",
+    )
+
+    assert state["scene_state"]["current_phase"] in {
+        "first_greeting_started",
+        "conversation_started",
+    }
+    assert state["scene_state"]["current_phase"] != "sorted_to_house"
+    assert state["scene_state"]["current_phase"] != "walking_to_table"
+    assert state["scene_state"]["latest_player_intent"] == "Поздороваться"
+    assert "Распределён в Гриффиндор" in state["scene_state"]["last_completed_beat"]

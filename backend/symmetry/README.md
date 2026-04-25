@@ -25,8 +25,12 @@ should not expose it unless there is a deliberate product reason.
     first auto intro-turn
 - stable-prefix LLM request architecture for prompt caching
 - persisted LLM usage metadata on each processed campaign turn
+- structured scene continuity state persisted in campaign snapshots and passed
+  to the model for immediate beat-to-beat narration
 - scenario-aware token budgets and compact turn context assembly
 - dev-only usage analytics endpoint protected by a server token
+- dev-only turn-debug endpoint for inspecting the exact compact context, scene
+  state, and RAG summary used for a processed turn
 - root `/version` contract for `web` and `desktop` clients
 - `world rumors` API for compact off-screen event summaries consumed by the
   Flutter campaign screen
@@ -161,12 +165,15 @@ for web-client compatibility. Examples:
 - `story_prompt` or `storyPrompt`
 - `provider_credentials` or `providerCredentials`
 - `player_action` or `playerAction`
+- `client_turn_id` or `clientTurnId`
 
 ## Dev usage analytics
 
-The backend now supports a dev-only usage report endpoint for token analysis:
+The backend now supports dev-only admin endpoints for token analysis and turn
+forensics:
 
 - `GET /v1/dev/usage`
+- `GET /v1/dev/campaigns/{id}/turn-debug`
 
 Protection model:
 
@@ -185,6 +192,7 @@ Useful env vars:
 - `GET /health`
 - `GET /version`
 - `GET /v1/dev/usage` with `X-Symmetry-Dev-Token`
+- `GET /v1/dev/campaigns/{id}/turn-debug` with `X-Symmetry-Dev-Token`
 - `POST /v1/auth/guest`
 - `POST /v1/auth/register`
 - `POST /v1/auth/login`
@@ -214,8 +222,20 @@ Useful env vars:
   at the start of the `messages` array for provider cache hits
 - mutable turn state, recent memory, relevant chronicles, and player action
   are sent only in the dynamic tail
+- immediate continuity is carried by `scene_state`, including:
+  - `scene_anchor`
+  - `current_phase`
+  - `last_completed_beat`
+  - `interaction_targets`
+  - `latest_player_intent`
+- the model is expected to return `scene_state_patch` so the runtime can
+  advance the current scene instead of replaying already completed beats
+- RAG remains responsible for world/background recall, not for "what happened
+  one turn ago"
 - turn and prompt-generation requests now use scenario-aware output budgets
   instead of one implicit shared output size
+- turn processing accepts optional `client_turn_id` to make retried requests
+  idempotent when the same turn submission is replayed
 - processed turns persist both the parsed LLM payload and normalized usage
   fields such as:
   - `prompt_cache_hit_tokens`
@@ -224,6 +244,10 @@ Useful env vars:
   - `total_tokens`
   - `budget_scenario`
   - `prompt_cache_hit_ratio`
+- processed turn usage may also include:
+  - `request_id`
+  - `client_turn_id`
+  - `turn_debug`
 - intro-turns do not store an empty player message
 - if the current location is still `Starting Point` / `Начальная точка`, the
   runtime replaces it with a concrete opening location before snapshot save

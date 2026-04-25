@@ -19,6 +19,7 @@ Return valid JSON only with keys:
 - choices
 - state_changes {location, objective, quest_note, module_updates, global_vars_patch, character_patch}
 - memory_entry
+- scene_state_patch {scene_anchor, current_phase, last_completed_beat, interaction_targets, next_story_beat, latest_player_intent, continuation_required}
 - importance
 - world_event_summary
 - needs_background_followup
@@ -42,6 +43,14 @@ Rules:
 - if memory or relevant chronicles show that the hero already knows a character, do not re-introduce, re-meet, or offer "get acquainted" choices with that character.
 - if dynamic_context.memory.known_characters lists a character, continue from that existing relationship naturally.
 - if the player references something that was established in the immediately previous scene or recent_turns, treat it as an already known fact and answer coherently instead of forgetting it.
+- use dynamic_context.scene_state as the source of truth for immediate scene continuity.
+- last_completed_beat describes what has already happened in the current scene; do not narrate that beat again unless the player explicitly rewinds, leaves, or changes the scene.
+- if current_phase already implies that the hero approached, sat down, entered, opened, greeted, or otherwise completed a transition, continue from after that transition instead of replaying it.
+- scene_state_patch.current_phase must advance or hold the scene logically; do not move it backward just to restage the same beat.
+- when the player chooses a social follow-up like greeting, replying, asking, or sitting with people who are already present, continue the interaction from that point instead of re-describing how the hero walked up to them.
+- fill scene_state_patch.last_completed_beat with a short factual statement of what has just become true by the end of this turn.
+- fill scene_state_patch.current_phase with a compact snake_case phase name that reflects the new point in the scene.
+- fill scene_state_patch.interaction_targets with the main people involved in the current beat when relevant.
 """
 
 

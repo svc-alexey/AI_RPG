@@ -95,6 +95,7 @@ def test_process_turn_request_accepts_camel_case_fields():
             "playerAction": "Inspect the lantern shop after sunset.",
             "language": "ru",
             "triggerSource": "manual",
+            "clientTurnId": "campaign-1:2:123456",
             "providerCredentials": {
                 "baseUrl": "https://example.invalid/v1",
                 "model": "gpt-test",
@@ -105,5 +106,6 @@ def test_process_turn_request_accepts_camel_case_fields():
 
     assert payload.player_action == "Inspect the lantern shop after sunset."
     assert payload.trigger_source == "manual"
+    assert payload.client_turn_id == "campaign-1:2:123456"
     assert payload.provider_credentials is not None
     assert payload.provider_credentials.api_key == "secret"

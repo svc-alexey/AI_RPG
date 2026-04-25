@@ -119,6 +119,7 @@ class SymmetryCampaignRepository {
     required final AiSettings aiSettings,
     final String triggerSource = 'manual',
   }) async {
+    final String clientTurnId = _buildClientTurnId(campaign);
     final SymmetryTurnResponse response = await _authRepository
         .runWithAuthorizedSession(
           (final session) => _client(session.baseUrl).processTurn(
@@ -127,6 +128,7 @@ class SymmetryCampaignRepository {
             playerAction: playerAction,
             languageCode: language.code,
             aiSettings: aiSettings,
+            clientTurnId: clientTurnId,
             triggerSource: triggerSource,
           ),
         );
@@ -149,6 +151,12 @@ class SymmetryCampaignRepository {
 
   SymmetryApiClient _client(final String baseUrl) =>
       SymmetryApiClient(baseUrl: baseUrl);
+
+  String _buildClientTurnId(final CampaignState campaign) {
+    final int nextTurnNumber = campaign.turnNumber + 1;
+    final int timestamp = DateTime.now().microsecondsSinceEpoch;
+    return '${campaign.id}:$nextTurnNumber:$timestamp';
+  }
 
   CampaignState _campaignStateFromServer(final Map<String, Object?> json) =>
       CampaignState.fromJson(_normalizeServerState(json));
