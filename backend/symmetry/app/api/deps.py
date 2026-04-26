@@ -11,6 +11,19 @@ from app.db.session import get_db_session
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+async def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    session: AsyncSession = Depends(get_db_session),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        subject = decode_access_token(credentials.credentials)
+    except ValueError:
+        return None
+    return await session.scalar(select(User).where(User.id == subject, User.is_active.is_(True)))
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db_session),

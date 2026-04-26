@@ -261,6 +261,234 @@ class SymmetryGeneratedPrompts {
   final String objectiveHint;
 }
 
+class SymmetryBillingCatalogItem {
+  const SymmetryBillingCatalogItem({
+    required this.code,
+    required this.kind,
+    required this.title,
+    required this.description,
+    required this.currency,
+    required this.basePriceMinor,
+    required this.finalPriceMinor,
+    required this.salePriceMinor,
+    required this.isSaleActive,
+    required this.saleBadgeText,
+    required this.salePercent,
+    required this.tokenGrant,
+    required this.monthlyQuota,
+    required this.fairUseLimit,
+  });
+
+  factory SymmetryBillingCatalogItem.fromJson(
+    final Map<String, Object?> json,
+  ) => SymmetryBillingCatalogItem(
+    code: (json['code'] as String?) ?? '',
+    kind: (json['kind'] as String?) ?? 'token_pack',
+    title: (json['title'] as String?) ?? '',
+    description: (json['description'] as String?) ?? '',
+    currency: (json['currency'] as String?) ?? 'RUB',
+    basePriceMinor: (json['base_price_minor'] as num?)?.toInt() ?? 0,
+    finalPriceMinor: (json['final_price_minor'] as num?)?.toInt() ?? 0,
+    salePriceMinor: (json['sale_price_minor'] as num?)?.toInt(),
+    isSaleActive: _jsonBool(json['is_sale_active']),
+    saleBadgeText: (json['sale_badge_text'] as String?) ?? '',
+    salePercent: (json['sale_percent'] as num?)?.toInt() ?? 0,
+    tokenGrant: (json['token_grant'] as num?)?.toInt() ?? 0,
+    monthlyQuota: (json['monthly_quota'] as num?)?.toInt() ?? 0,
+    fairUseLimit: (json['fair_use_limit'] as num?)?.toInt() ?? 0,
+  );
+
+  final String code;
+  final String kind;
+  final String title;
+  final String description;
+  final String currency;
+  final int basePriceMinor;
+  final int finalPriceMinor;
+  final int? salePriceMinor;
+  final bool isSaleActive;
+  final String saleBadgeText;
+  final int salePercent;
+  final int tokenGrant;
+  final int monthlyQuota;
+  final int fairUseLimit;
+
+  bool get isSubscription => kind == 'subscription';
+}
+
+class SymmetryBillingSummary {
+  const SymmetryBillingSummary({
+    required this.isAuthenticated,
+    required this.isGuest,
+    required this.entitlementStatus,
+    required this.paywallReason,
+    required this.activePlanCode,
+    required this.activePlanTitle,
+    required this.subscriptionStatus,
+    required this.cancelAtPeriodEnd,
+    required this.currentPeriodEndAt,
+    required this.nextChargeAt,
+    required this.welcomeTokensRemaining,
+    required this.paidTokensRemaining,
+    required this.subscriptionTokensRemaining,
+    required this.totalTokensRemaining,
+    required this.welcomeExpiresAt,
+    required this.subscriptionQuotaResetsAt,
+    required this.maskedPaymentMethodLabel,
+  });
+
+  factory SymmetryBillingSummary.fromJson(final Map<String, Object?> json) =>
+      SymmetryBillingSummary(
+        isAuthenticated: _jsonBool(json['is_authenticated']),
+        isGuest: _jsonBool(json['is_guest']),
+        entitlementStatus: (json['entitlement_status'] as String?) ?? 'guest',
+        paywallReason: (json['paywall_reason'] as String?)?.trim(),
+        activePlanCode: (json['active_plan_code'] as String?)?.trim(),
+        activePlanTitle: (json['active_plan_title'] as String?)?.trim(),
+        subscriptionStatus: (json['subscription_status'] as String?)?.trim(),
+        cancelAtPeriodEnd: _jsonBool(json['cancel_at_period_end']),
+        currentPeriodEndAt: _jsonDateTime(json['current_period_end_at']),
+        nextChargeAt: _jsonDateTime(json['next_charge_at']),
+        welcomeTokensRemaining:
+            (json['welcome_tokens_remaining'] as num?)?.toInt() ?? 0,
+        paidTokensRemaining:
+            (json['paid_tokens_remaining'] as num?)?.toInt() ?? 0,
+        subscriptionTokensRemaining:
+            (json['subscription_tokens_remaining'] as num?)?.toInt() ?? 0,
+        totalTokensRemaining:
+            (json['total_tokens_remaining'] as num?)?.toInt() ?? 0,
+        welcomeExpiresAt: _jsonDateTime(json['welcome_expires_at']),
+        subscriptionQuotaResetsAt: _jsonDateTime(
+          json['subscription_quota_resets_at'],
+        ),
+        maskedPaymentMethodLabel:
+            (json['masked_payment_method_label'] as String?) ?? '',
+      );
+
+  final bool isAuthenticated;
+  final bool isGuest;
+  final String entitlementStatus;
+  final String? paywallReason;
+  final String? activePlanCode;
+  final String? activePlanTitle;
+  final String? subscriptionStatus;
+  final bool cancelAtPeriodEnd;
+  final DateTime? currentPeriodEndAt;
+  final DateTime? nextChargeAt;
+  final int welcomeTokensRemaining;
+  final int paidTokensRemaining;
+  final int subscriptionTokensRemaining;
+  final int totalTokensRemaining;
+  final DateTime? welcomeExpiresAt;
+  final DateTime? subscriptionQuotaResetsAt;
+  final String maskedPaymentMethodLabel;
+}
+
+class SymmetryBillingHistoryItem {
+  const SymmetryBillingHistoryItem({
+    required this.orderId,
+    required this.planCode,
+    required this.title,
+    required this.kind,
+    required this.provider,
+    required this.providerPaymentId,
+    required this.status,
+    required this.amountMinor,
+    required this.currency,
+    required this.createdAt,
+  });
+
+  factory SymmetryBillingHistoryItem.fromJson(
+    final Map<String, Object?> json,
+  ) => SymmetryBillingHistoryItem(
+    orderId: (json['order_id'] as String?) ?? '',
+    planCode: (json['plan_code'] as String?) ?? '',
+    title: (json['title'] as String?) ?? '',
+    kind: (json['kind'] as String?) ?? '',
+    provider: (json['provider'] as String?) ?? '',
+    providerPaymentId: (json['provider_payment_id'] as String?) ?? '',
+    status: (json['status'] as String?) ?? '',
+    amountMinor: (json['amount_minor'] as num?)?.toInt() ?? 0,
+    currency: (json['currency'] as String?) ?? 'RUB',
+    createdAt:
+        _jsonDateTime(json['created_at']) ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+  );
+
+  final String orderId;
+  final String planCode;
+  final String title;
+  final String kind;
+  final String provider;
+  final String providerPaymentId;
+  final String status;
+  final int amountMinor;
+  final String currency;
+  final DateTime createdAt;
+}
+
+class SymmetryBillingCheckout {
+  const SymmetryBillingCheckout({
+    required this.orderId,
+    required this.providerPaymentId,
+    required this.confirmationUrl,
+    required this.status,
+    required this.expiresAt,
+  });
+
+  factory SymmetryBillingCheckout.fromJson(final Map<String, Object?> json) =>
+      SymmetryBillingCheckout(
+        orderId: (json['order_id'] as String?) ?? '',
+        providerPaymentId: (json['provider_payment_id'] as String?) ?? '',
+        confirmationUrl: (json['confirmation_url'] as String?) ?? '',
+        status: (json['status'] as String?) ?? 'pending',
+        expiresAt: _jsonDateTime(json['expires_at']),
+      );
+
+  final String orderId;
+  final String providerPaymentId;
+  final String confirmationUrl;
+  final String status;
+  final DateTime? expiresAt;
+}
+
+class SymmetryBillingOrderStatus {
+  const SymmetryBillingOrderStatus({
+    required this.orderId,
+    required this.planCode,
+    required this.status,
+    required this.confirmationUrl,
+    required this.providerPaymentId,
+    required this.amountMinor,
+    required this.currency,
+    required this.updatedAt,
+  });
+
+  factory SymmetryBillingOrderStatus.fromJson(
+    final Map<String, Object?> json,
+  ) => SymmetryBillingOrderStatus(
+    orderId: (json['order_id'] as String?) ?? '',
+    planCode: (json['plan_code'] as String?) ?? '',
+    status: (json['status'] as String?) ?? 'pending',
+    confirmationUrl: (json['confirmation_url'] as String?) ?? '',
+    providerPaymentId: (json['provider_payment_id'] as String?) ?? '',
+    amountMinor: (json['amount_minor'] as num?)?.toInt() ?? 0,
+    currency: (json['currency'] as String?) ?? 'RUB',
+    updatedAt:
+        _jsonDateTime(json['updated_at']) ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+  );
+
+  final String orderId;
+  final String planCode;
+  final String status;
+  final String confirmationUrl;
+  final String providerPaymentId;
+  final int amountMinor;
+  final String currency;
+  final DateTime updatedAt;
+}
+
 class SymmetryApiException implements Exception {
   const SymmetryApiException({
     required this.message,
@@ -301,6 +529,14 @@ bool _jsonBool(final Object? value, {final bool fallback = false}) {
     return normalized == 'true' || normalized == '1' || normalized == 'yes';
   }
   return fallback;
+}
+
+DateTime? _jsonDateTime(final Object? value) {
+  final String raw = (value as String?)?.trim() ?? '';
+  if (raw.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(raw);
 }
 
 enum SymmetryUpdateMode { none, soft, force }

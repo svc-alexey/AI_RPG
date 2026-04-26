@@ -18,6 +18,7 @@ from app.core.security import (
 )
 from app.db.models import AuthHandoff, AuthIdentity, AuthSession, User, UserProfile
 from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, TokenPair, UserResponse
+from app.services.billing import BillingService
 from app.services.ids import new_id
 
 
@@ -33,6 +34,7 @@ def user_response_from_models(*, user: User, display_name: str) -> UserResponse:
 class AuthService:
     def __init__(self) -> None:
         self._settings = get_settings()
+        self._billing = BillingService()
 
     async def register(
         self, session: AsyncSession, payload: RegisterRequest, request: Request
@@ -60,6 +62,7 @@ class AuthService:
             provider_email=user.email,
         )
         session.add_all([user, profile, identity])
+        await self._billing.grant_welcome_tokens(session, user_id=user.id)
         tokens = self._issue_tokens(request, user.id)
         session.add(tokens["session"])
         await session.commit()
@@ -333,6 +336,7 @@ class AuthService:
                         display_name=str(yandex_profile.get("display_name", "")).strip(),
                     )
                 )
+                await self._billing.grant_welcome_tokens(session, user_id=user.id)
             session.add(
                 AuthIdentity(
                     id=new_id(),

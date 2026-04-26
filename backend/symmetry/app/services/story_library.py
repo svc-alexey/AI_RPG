@@ -29,7 +29,7 @@ class StoryLibraryService:
         self,
         session: AsyncSession,
         *,
-        user_id: str,
+        user_id: str | None,
         tag: str | None,
         genre: str | None,
         sort: str,
@@ -61,7 +61,7 @@ class StoryLibraryService:
         self,
         session: AsyncSession,
         *,
-        user_id: str,
+        user_id: str | None,
         tag: str | None,
         genre: str | None,
         sort: str,
@@ -84,7 +84,7 @@ class StoryLibraryService:
         return await self._serialize_many(session, templates, user_id=user_id, sort=sort)
 
     async def get_template(
-        self, session: AsyncSession, *, template_id: str, user_id: str
+        self, session: AsyncSession, *, template_id: str, user_id: str | None
     ) -> StoryTemplateResponse | None:
         template = await session.get(
             StoryTemplate,
@@ -272,7 +272,7 @@ class StoryLibraryService:
         session: AsyncSession,
         templates: list[StoryTemplate],
         *,
-        user_id: str,
+        user_id: str | None,
         sort: str,
     ) -> list[StoryTemplateResponse]:
         if not templates:
@@ -294,13 +294,14 @@ class StoryLibraryService:
             .where(StoryTemplateView.story_template_id.in_(ids))
             .group_by(StoryTemplateView.story_template_id)
         )
-        bookmark_rows = await session.execute(
-            select(StoryTemplateBookmark.story_template_id)
-            .where(
-                StoryTemplateBookmark.story_template_id.in_(ids),
-                StoryTemplateBookmark.user_id == user_id,
+        bookmark_rows = None
+        if user_id is not None:
+            bookmark_rows = await session.execute(
+                select(StoryTemplateBookmark.story_template_id).where(
+                    StoryTemplateBookmark.story_template_id.in_(ids),
+                    StoryTemplateBookmark.user_id == user_id,
+                )
             )
-        )
 
         tags_by_story: dict[str, list[str]] = defaultdict(list)
         for story_id, slug in tag_rows.all():
@@ -308,7 +309,11 @@ class StoryLibraryService:
 
         likes = {story_id: count for story_id, count in like_rows.all()}
         views = {story_id: count for story_id, count in view_rows.all()}
-        bookmarked = {story_id for (story_id,) in bookmark_rows.all()}
+        bookmarked = (
+            {story_id for (story_id,) in bookmark_rows.all()}
+            if bookmark_rows is not None
+            else set()
+        )
 
         settings = get_settings()
         api_prefix = settings.api_prefix

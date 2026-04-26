@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
     auth,
+    billing,
     campaigns,
     dev,
     feedback,
@@ -115,6 +116,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 app.include_router(auth.router, prefix=settings.api_prefix)
+app.include_router(billing.router, prefix=settings.api_prefix)
 app.include_router(campaigns.router, prefix=settings.api_prefix)
 app.include_router(dev.router, prefix=settings.api_prefix)
 app.include_router(feedback.router, prefix=settings.api_prefix)

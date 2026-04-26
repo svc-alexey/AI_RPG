@@ -10,6 +10,7 @@ from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTu
 from app.db.session import get_db_session
 from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
 from app.services.ai_gateway import AiGatewayService, classify_provider_error
+from app.services.billing import BillingService
 from app.services.butterfly import ButterflyService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 from app.services.credentials import CredentialResolutionService
@@ -32,6 +33,7 @@ rag_service = RagService()
 simulation_service = SimulationService()
 ai_gateway = AiGatewayService()
 butterfly_service = ButterflyService()
+billing_service = BillingService()
 
 
 def _resolve_rumor_location_title(
@@ -338,6 +340,7 @@ async def process_turn(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> ProcessTurnResponse:
+    await billing_service.ensure_ai_access(session, user=user)
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
     existing_turn = await _load_existing_turn_by_client_id(
         session,
@@ -471,6 +474,17 @@ async def process_turn(
     session.add(turn)
     campaign.current_snapshot_id = next_snapshot.id
     campaign.updated_at = datetime.utcnow()
+    await billing_service.consume_tokens(
+        session,
+        user_id=user.id,
+        total_tokens=int(llm_result.usage.total_tokens or 0),
+        reason="turn_process",
+        metadata={
+            "campaign_id": campaign.id,
+            "trigger_source": payload.trigger_source,
+            "turn_number": int(next_state.get("turn_number", 0)),
+        },
+    )
 
     impact_seeds = butterfly_service.normalize_impact_seeds(
         llm_payload.get("impact_seeds"),

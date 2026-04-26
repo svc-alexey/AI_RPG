@@ -28,9 +28,7 @@ String normalizeSymmetryApiBaseUrl(String raw) {
     return noTrailingSlash;
   }
   final bool loopback =
-      u.host == 'localhost' ||
-      u.host == '127.0.0.1' ||
-      u.host == '::1';
+      u.host == 'localhost' || u.host == '127.0.0.1' || u.host == '::1';
   final bool pathEmptyOrRoot = u.path.isEmpty || u.path == '/';
   if (loopback && pathEmptyOrRoot) {
     return '$noTrailingSlash/v1';
@@ -145,10 +143,7 @@ class SymmetryApiClient {
   Future<SymmetryUser> getCurrentUser({
     required final String accessToken,
   }) async {
-    final Object? decoded = await _get(
-      '/auth/me',
-      bearerToken: accessToken,
-    );
+    final Object? decoded = await _get('/auth/me', bearerToken: accessToken);
     if (decoded is! Map<Object?, Object?>) {
       throw StateError('symmetry_invalid_response');
     }
@@ -332,7 +327,8 @@ class SymmetryApiClient {
         'player_action': playerAction,
         'language': languageCode,
         'trigger_source': triggerSource,
-        if (clientTurnId.trim().isNotEmpty) 'client_turn_id': clientTurnId.trim(),
+        if (clientTurnId.trim().isNotEmpty)
+          'client_turn_id': clientTurnId.trim(),
         if (aiSettings.baseUrl.trim().isNotEmpty &&
             aiSettings.model.trim().isNotEmpty &&
             aiSettings.apiKey.trim().isNotEmpty)
@@ -347,7 +343,7 @@ class SymmetryApiClient {
   }
 
   Future<List<LiteraryGenreCatalogItem>> listLiteraryGenres({
-    required final String accessToken,
+    final String? accessToken,
   }) async {
     final Object? decoded = await _get(
       '/literary-genres',
@@ -369,7 +365,7 @@ class SymmetryApiClient {
   }
 
   Future<List<StoryTemplate>> listStoryTemplates({
-    required final String accessToken,
+    final String? accessToken,
     final String? tag,
     final String? genre,
     final String sort = 'new',
@@ -415,8 +411,8 @@ class SymmetryApiClient {
   }
 
   Future<StoryTemplate> getStoryTemplate({
-    required final String accessToken,
     required final String templateId,
+    final String? accessToken,
   }) async {
     final Object? decoded = await _get(
       '/story-templates/$templateId',
@@ -431,8 +427,8 @@ class SymmetryApiClient {
   }
 
   Future<void> postStoryTemplateView({
-    required final String accessToken,
     required final String templateId,
+    final String? accessToken,
   }) async {
     await _post(
       '/story-templates/$templateId/view',
@@ -538,6 +534,101 @@ class SymmetryApiClient {
       '/admin/story-templates/${templateId.trim()}/cover',
       bearerToken: accessToken,
     );
+  }
+
+  Future<List<SymmetryBillingCatalogItem>> getBillingCatalog({
+    final String? accessToken,
+  }) async {
+    final Object? decoded = await _get(
+      '/billing/catalog',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => SymmetryBillingCatalogItem.fromJson(
+            item.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<SymmetryBillingSummary> getBillingSummary({
+    final String? accessToken,
+  }) async {
+    final Object? decoded = await _get('/billing/me', bearerToken: accessToken);
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return SymmetryBillingSummary.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
+  }
+
+  Future<List<SymmetryBillingHistoryItem>> getBillingHistory({
+    required final String accessToken,
+  }) async {
+    final Object? decoded = await _get(
+      '/billing/history',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => SymmetryBillingHistoryItem.fromJson(
+            item.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<SymmetryBillingCheckout> createBillingCheckout({
+    required final String accessToken,
+    required final String planCode,
+  }) async {
+    final Map<String, Object?> response = await _post(
+      '/billing/checkout',
+      bearerToken: accessToken,
+      body: <String, Object?>{'plan_code': planCode},
+    );
+    return SymmetryBillingCheckout.fromJson(response);
+  }
+
+  Future<SymmetryBillingOrderStatus> getBillingOrderStatus({
+    required final String accessToken,
+    required final String orderId,
+  }) async {
+    final Object? decoded = await _get(
+      '/billing/checkout/$orderId',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return SymmetryBillingOrderStatus.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
+  }
+
+  Future<SymmetryBillingSummary> cancelBillingSubscription({
+    required final String accessToken,
+  }) async {
+    final Map<String, Object?> response = await _post(
+      '/billing/subscription/cancel',
+      bearerToken: accessToken,
+      body: const <String, Object?>{},
+    );
+    return SymmetryBillingSummary.fromJson(response);
   }
 
   Future<Map<String, Object?>> _post(

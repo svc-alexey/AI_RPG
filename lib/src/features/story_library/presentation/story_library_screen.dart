@@ -7,6 +7,7 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/literary_genre_model.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/features/auth/presentation/require_account.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/story_admin/presentation/story_admin_screen.dart';
 import 'package:ai_prg/src/features/story_library/presentation/story_template_detail_screen.dart';
@@ -232,11 +233,16 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                     _load();
                   },
                   onCreateStory: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (final _) => const NewGameScreen(),
-                      ),
-                    );
+                    requireRegisteredAccount(context, ref).then((final ready) {
+                      if (!ready || !context.mounted) {
+                        return;
+                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (final _) => const NewGameScreen(),
+                        ),
+                      );
+                    });
                   },
                 ),
               ),

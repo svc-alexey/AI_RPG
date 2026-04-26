@@ -5,6 +5,7 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
+import 'package:ai_prg/src/features/billing/presentation/billing_screen.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
 import 'package:ai_prg/src/features/story_admin/presentation/story_admin_screen.dart';
 import 'package:flutter/material.dart';
@@ -102,341 +103,358 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(l10n.homeTertiaryCta)),
       body: settingsState.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: responsive.dialogMaxWidth,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(responsive.pagePadding),
-                    child: AetherPageReveal(
-                      child: ListView(
-                        children: <Widget>[
-                          Text(
-                            l10n.homeTertiaryCta,
-                            style: theme.textTheme.headlineLarge,
-                            maxLines: 2,
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: responsive.dialogMaxWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(responsive.pagePadding),
+                  child: AetherPageReveal(
+                    child: ListView(
+                      children: <Widget>[
+                        Text(
+                          l10n.homeTertiaryCta,
+                          style: theme.textTheme.headlineLarge,
+                          maxLines: 2,
+                        ),
+                        SizedBox(height: responsive.blockSpacing - 4),
+                        _SettingsSection(
+                          title: l10n.contentRatingTitle,
+                          child: SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(l10n.confirm18Plus),
+                            subtitle: Text(l10n.contentRatingSubtitle),
+                            value: settingsState.confirmed18Plus,
+                            onChanged: controller.setConfirmed18Plus,
                           ),
-                          SizedBox(height: responsive.blockSpacing - 4),
-                          _SettingsSection(
-                            title: l10n.contentRatingTitle,
-                            child: SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(l10n.confirm18Plus),
-                              subtitle: Text(l10n.contentRatingSubtitle),
-                              value: settingsState.confirmed18Plus,
-                              onChanged: controller.setConfirmed18Plus,
-                            ),
-                          ),
-                          SizedBox(height: responsive.sectionSpacing),
-                          _SettingsSection(
-                            title: l10n.languageTitle,
-                            child: SegmentedButton<AppLanguage>(
-                              segments: <ButtonSegment<AppLanguage>>[
-                                ButtonSegment<AppLanguage>(
-                                  value: AppLanguage.ru,
-                                  label: Text(l10n.russian),
-                                ),
-                                ButtonSegment<AppLanguage>(
-                                  value: AppLanguage.en,
-                                  label: Text(l10n.english),
-                                ),
-                              ],
-                              selected: <AppLanguage>{
-                                settingsState.appLanguage,
-                              },
-                              onSelectionChanged: (final selection) =>
-                                  controller.setAppLanguage(selection.first),
-                            ),
-                          ),
-                          SizedBox(height: responsive.sectionSpacing),
-                          _SettingsSection(
-                            title: l10n.accountTitle,
-                            child: sessionState.when(
-                              data: (final session) {
-                                final bool isSignedIn =
-                                    session != null && !session.isGuest;
-                                final String email =
-                                    session?.user.email.trim() ?? '';
-                                final String displayName =
-                                    session?.user.displayName.trim() ?? '';
-                                final String primaryIdentity =
-                                    displayName.isNotEmpty
-                                    ? displayName
-                                    : email;
-
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      isSignedIn
-                                          ? l10n.homeSignedInCardSubtitle(
-                                              primaryIdentity,
-                                            )
-                                          : l10n.accountSignedOutDescription,
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(height: 1.3),
-                                    ),
-                                    if (isSignedIn &&
-                                        email.isNotEmpty &&
-                                        email != primaryIdentity) ...<Widget>[
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        email,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                              color: AetherPalette.textMuted,
-                                            ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 16),
-                                    OutlinedButton.icon(
-                                      onPressed: () =>
-                                          _handleAccountAction(session),
-                                      icon: Icon(
-                                        isSignedIn
-                                            ? Icons.logout_rounded
-                                            : Icons.login_rounded,
-                                      ),
-                                      label: Text(
-                                        isSignedIn
-                                            ? l10n.signOutAction
-                                            : l10n.loginAction,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                              loading: () => const SizedBox(
-                                height: 32,
-                                width: 32,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                        ),
+                        SizedBox(height: responsive.sectionSpacing),
+                        _SettingsSection(
+                          title: l10n.languageTitle,
+                          child: SegmentedButton<AppLanguage>(
+                            segments: <ButtonSegment<AppLanguage>>[
+                              ButtonSegment<AppLanguage>(
+                                value: AppLanguage.ru,
+                                label: Text(l10n.russian),
                               ),
-                              error: (final error, final stackTrace) => Column(
+                              ButtonSegment<AppLanguage>(
+                                value: AppLanguage.en,
+                                label: Text(l10n.english),
+                              ),
+                            ],
+                            selected: <AppLanguage>{settingsState.appLanguage},
+                            onSelectionChanged: (final selection) =>
+                                controller.setAppLanguage(selection.first),
+                          ),
+                        ),
+                        SizedBox(height: responsive.sectionSpacing),
+                        _SettingsSection(
+                          title: l10n.accountTitle,
+                          child: sessionState.when(
+                            data: (final session) {
+                              final bool isSignedIn =
+                                  session != null && !session.isGuest;
+                              final String email =
+                                  session?.user.email.trim() ?? '';
+                              final String displayName =
+                                  session?.user.displayName.trim() ?? '';
+                              final String primaryIdentity =
+                                  displayName.isNotEmpty ? displayName : email;
+
+                              return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   Text(
-                                    l10n.accountSignedOutDescription,
+                                    isSignedIn
+                                        ? l10n.homeSignedInCardSubtitle(
+                                            primaryIdentity,
+                                          )
+                                        : l10n.accountSignedOutDescription,
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(height: 1.3),
                                   ),
+                                  if (isSignedIn &&
+                                      email.isNotEmpty &&
+                                      email != primaryIdentity) ...<Widget>[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      email,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: AetherPalette.textMuted,
+                                          ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 16),
                                   OutlinedButton.icon(
-                                    onPressed: _openAuthScreen,
-                                    icon: const Icon(Icons.login_rounded),
-                                    label: Text(l10n.loginAction),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          sessionState.maybeWhen(
-                            data: (final SymmetrySession? session) {
-                              final bool showAdmin =
-                                  session != null &&
-                                  !session.isGuest &&
-                                  session.user.isAdmin;
-                              if (!showAdmin) {
-                                return const SizedBox.shrink();
-                              }
-                              return Column(
-                                children: <Widget>[
-                                  SizedBox(height: responsive.sectionSpacing),
-                                  _SettingsSection(
-                                    title: l10n.storyAdminTitle,
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: const Icon(
-                                        Icons.library_books_outlined,
-                                      ),
-                                      title: Text(l10n.storyAdminTitle),
-                                      subtitle: Text(
-                                        l10n.storyAdminMenuSubtitle,
-                                      ),
-                                      trailing: const Icon(
-                                        Icons.chevron_right_rounded,
-                                      ),
-                                      onTap: () {
-                                        Navigator.of(context).push<void>(
-                                          MaterialPageRoute<void>(
-                                            builder: (final BuildContext ctx) =>
-                                                const StoryAdminScreen(),
-                                          ),
-                                        );
-                                      },
+                                    onPressed: () =>
+                                        _handleAccountAction(session),
+                                    icon: Icon(
+                                      isSignedIn
+                                          ? Icons.logout_rounded
+                                          : Icons.login_rounded,
+                                    ),
+                                    label: Text(
+                                      isSignedIn
+                                          ? l10n.signOutAction
+                                          : l10n.loginAction,
                                     ),
                                   ),
                                 ],
                               );
                             },
-                            orElse: () => const SizedBox.shrink(),
-                          ),
-                          SizedBox(height: responsive.sectionSpacing),
-                          _SettingsSection(
-                            title: l10n.personalModelTitle,
-                            child: Column(
+                            loading: () => const SizedBox(
+                              height: 32,
+                              width: 32,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            error: (final error, final stackTrace) => Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
-                                  l10n.personalModelHint,
+                                  l10n.accountSignedOutDescription,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    height: 1.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                OutlinedButton.icon(
+                                  onPressed: _openAuthScreen,
+                                  icon: const Icon(Icons.login_rounded),
+                                  label: Text(l10n.loginAction),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: responsive.sectionSpacing),
+                        _SettingsSection(
+                          title: l10n.language.name == 'ru'
+                              ? 'Монетизация'
+                              : 'Billing',
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(
+                              Icons.workspace_premium_outlined,
+                            ),
+                            title: Text(
+                              l10n.language.name == 'ru'
+                                  ? 'Подписка и токены'
+                                  : 'Billing & tokens',
+                            ),
+                            subtitle: Text(
+                              l10n.language.name == 'ru'
+                                  ? 'Тарифы, история платежей и управление подпиской.'
+                                  : 'Plans, payment history, and subscription controls.',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {
+                              Navigator.of(context).push<void>(
+                                MaterialPageRoute<void>(
+                                  builder: (final BuildContext ctx) =>
+                                      const BillingScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        sessionState.maybeWhen(
+                          data: (final SymmetrySession? session) {
+                            final bool showAdmin =
+                                session != null &&
+                                !session.isGuest &&
+                                session.user.isAdmin;
+                            if (!showAdmin) {
+                              return const SizedBox.shrink();
+                            }
+                            return Column(
+                              children: <Widget>[
+                                SizedBox(height: responsive.sectionSpacing),
+                                _SettingsSection(
+                                  title: l10n.storyAdminTitle,
+                                  child: ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: const Icon(
+                                      Icons.library_books_outlined,
+                                    ),
+                                    title: Text(l10n.storyAdminTitle),
+                                    subtitle: Text(l10n.storyAdminMenuSubtitle),
+                                    trailing: const Icon(
+                                      Icons.chevron_right_rounded,
+                                    ),
+                                    onTap: () {
+                                      Navigator.of(context).push<void>(
+                                        MaterialPageRoute<void>(
+                                          builder: (final BuildContext ctx) =>
+                                              const StoryAdminScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                        SizedBox(height: responsive.sectionSpacing),
+                        _SettingsSection(
+                          title: l10n.personalModelTitle,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                l10n.personalModelHint,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _baseUrlController,
+                                onChanged: controller.setBaseUrl,
+                                keyboardType: TextInputType.url,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: InputDecoration(
+                                  labelText: l10n.baseUrl,
+                                  hintText: 'https://api.example.com/v1',
+                                ),
+                              ),
+                              if (settingsState.showEndpointBuildDefaultsHint)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    l10n.endpointBuildDefaultsHint,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AetherPalette.textMuted,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _modelController,
+                                onChanged: controller.setModel,
+                                decoration: InputDecoration(
+                                  labelText: l10n.model,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _apiKeyController,
+                                obscureText: _apiKeyObscured,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                keyboardType: TextInputType.visiblePassword,
+                                onChanged: controller.setApiKey,
+                                decoration: InputDecoration(
+                                  labelText: l10n.apiKey,
+                                  hintText: l10n.apiKeyHint,
+                                  suffixIcon: IconButton(
+                                    tooltip: _apiKeyObscured
+                                        ? l10n.showApiKey
+                                        : l10n.hideApiKey,
+                                    icon: Icon(
+                                      _apiKeyObscured
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _apiKeyObscured = !_apiKeyObscured,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (settingsState.showApiKeyFromBuildHint)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    l10n.apiKeyBuildTimeHiddenHint,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AetherPalette.textMuted,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _timeoutController,
+                                onChanged: controller.setTimeoutText,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: l10n.timeoutSeconds,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (settingsState.status != null) ...<Widget>[
+                          SizedBox(height: responsive.sectionSpacing),
+                          Row(
+                            children: <Widget>[
+                              Icon(
+                                settingsState.status!.contains('успешно') ||
+                                        settingsState.status!.contains(
+                                          'successful',
+                                        )
+                                    ? Icons.check_circle_outline_rounded
+                                    : Icons.info_outline_rounded,
+                                size: 18,
+                                color:
+                                    settingsState.status!.contains('успешно') ||
+                                        settingsState.status!.contains(
+                                          'successful',
+                                        )
+                                    ? Colors.green
+                                    : AetherPalette.textMuted,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  settingsState.status!,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _baseUrlController,
-                                  onChanged: controller.setBaseUrl,
-                                  keyboardType: TextInputType.url,
-                                  autocorrect: false,
-                                  enableSuggestions: false,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.baseUrl,
-                                    hintText: 'https://api.example.com/v1',
-                                  ),
-                                ),
-                                if (settingsState.showEndpointBuildDefaultsHint)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      l10n.endpointBuildDefaultsHint,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: AetherPalette.textMuted,
-                                            height: 1.35,
-                                          ),
-                                    ),
-                                  ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _modelController,
-                                  onChanged: controller.setModel,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.model,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _apiKeyController,
-                                  obscureText: _apiKeyObscured,
-                                  autocorrect: false,
-                                  enableSuggestions: false,
-                                  keyboardType: TextInputType.visiblePassword,
-                                  onChanged: controller.setApiKey,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.apiKey,
-                                    hintText: l10n.apiKeyHint,
-                                    suffixIcon: IconButton(
-                                      tooltip: _apiKeyObscured
-                                          ? l10n.showApiKey
-                                          : l10n.hideApiKey,
-                                      icon: Icon(
-                                        _apiKeyObscured
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                      ),
-                                      onPressed: () => setState(
-                                        () =>
-                                            _apiKeyObscured = !_apiKeyObscured,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (settingsState.showApiKeyFromBuildHint)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      l10n.apiKeyBuildTimeHiddenHint,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: AetherPalette.textMuted,
-                                            height: 1.35,
-                                          ),
-                                    ),
-                                  ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _timeoutController,
-                                  onChanged: controller.setTimeoutText,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.timeoutSeconds,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (settingsState.status != null) ...<Widget>[
-                            SizedBox(height: responsive.sectionSpacing),
-                            Row(
-                              children: <Widget>[
-                                Icon(
-                                  settingsState.status!.contains('успешно') ||
-                                          settingsState.status!.contains(
-                                            'successful',
-                                          )
-                                      ? Icons.check_circle_outline_rounded
-                                      : Icons.info_outline_rounded,
-                                  size: 18,
-                                  color:
-                                      settingsState.status!.contains(
-                                            'успешно',
-                                          ) ||
-                                          settingsState.status!.contains(
-                                            'successful',
-                                          )
-                                      ? Colors.green
-                                      : AetherPalette.textMuted,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    settingsState.status!,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          SizedBox(height: responsive.blockSpacing),
-                          FilledButton(
-                            onPressed: settingsState.isSaving
-                                ? null
-                                : () => controller.save(l10n: l10n),
-                            child: settingsState.isSaving
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(l10n.saveSettings),
-                          ),
-                          const SizedBox(height: 10),
-                          OutlinedButton(
-                            onPressed: settingsState.isChecking
-                                ? null
-                                : () => controller.checkConnection(l10n: l10n),
-                            child: settingsState.isChecking
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(l10n.checkConnection),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
+                        SizedBox(height: responsive.blockSpacing),
+                        FilledButton(
+                          onPressed: settingsState.isSaving
+                              ? null
+                              : () => controller.save(l10n: l10n),
+                          child: settingsState.isSaving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(l10n.saveSettings),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          onPressed: settingsState.isChecking
+                              ? null
+                              : () => controller.checkConnection(l10n: l10n),
+                          child: settingsState.isChecking
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(l10n.checkConnection),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
+            ),
     );
   }
 }

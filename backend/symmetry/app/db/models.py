@@ -383,6 +383,7 @@ class BillingCustomer(Base):
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
@@ -391,7 +392,23 @@ class BillingPlan(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     code: Mapped[str] = mapped_column(String(80), unique=True)
+    kind: Mapped[str] = mapped_column(String(32), default="token_pack")
     title: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(Text, default="")
+    currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    base_price_minor: Mapped[int] = mapped_column(Integer, default=0)
+    sale_price_minor: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sale_badge_text: Mapped[str] = mapped_column(String(80), default="")
+    sale_percent: Mapped[int] = mapped_column(Integer, default=0)
+    sale_starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sale_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    token_grant: Mapped[int] = mapped_column(Integer, default=0)
+    monthly_quota: Mapped[int] = mapped_column(Integer, default=0)
+    fair_use_limit: Mapped[int] = mapped_column(Integer, default=0)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
@@ -405,7 +422,61 @@ class BillingSubscription(Base):
     billing_plan_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("billing_plans.id", ondelete="CASCADE")
     )
+    provider: Mapped[str] = mapped_column(String(32), default="yookassa")
+    provider_subscription_ref: Mapped[str] = mapped_column(String(128), default="")
+    payment_method_id: Mapped[str] = mapped_column(String(128), default="")
     status: Mapped[str] = mapped_column(String(32), default="draft")
+    current_period_start_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    current_period_end_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    next_charge_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_payment_id: Mapped[str] = mapped_column(String(128), default="")
+    last_failure_code: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class BillingWallet(Base):
+    __tablename__ = "billing_wallets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    welcome_tokens_remaining: Mapped[int] = mapped_column(Integer, default=0)
+    paid_tokens_remaining: Mapped[int] = mapped_column(Integer, default=0)
+    subscription_tokens_remaining: Mapped[int] = mapped_column(Integer, default=0)
+    subscription_quota_resets_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    welcome_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class BillingOrder(Base):
+    __tablename__ = "billing_orders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    plan_code: Mapped[str] = mapped_column(String(80), index=True)
+    kind: Mapped[str] = mapped_column(String(32), default="token_pack")
+    provider: Mapped[str] = mapped_column(String(32), default="yookassa")
+    provider_payment_id: Mapped[str] = mapped_column(String(128), default="", index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    amount_minor: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    idempotence_key: Mapped[str] = mapped_column(String(128), unique=True)
+    return_url: Mapped[str] = mapped_column(String(500), default="")
+    confirmation_url: Mapped[str] = mapped_column(String(1000), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
@@ -428,6 +499,7 @@ class PaymentEvent(Base):
         String(36), ForeignKey("billing_customers.id", ondelete="SET NULL"), nullable=True
     )
     provider: Mapped[str] = mapped_column(String(80))
+    provider_event_id: Mapped[str] = mapped_column(String(160), default="", index=True)
     event_type: Mapped[str] = mapped_column(String(120))
     payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

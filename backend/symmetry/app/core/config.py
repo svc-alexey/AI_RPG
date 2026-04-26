@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     feedback_max_attachments: int = 5
     feedback_max_attachment_bytes: int = 5_000_000
     feedback_max_total_attachment_bytes: int = 15_000_000
+    yookassa_shop_id: str = ""
+    yookassa_secret_key: str = ""
+    yookassa_return_url: str = ""
+    yookassa_webhook_public_url: str = ""
+    yookassa_test_mode: bool = True
+    billing_renewal_poll_interval_seconds: float = 900.0
 
 
 @lru_cache

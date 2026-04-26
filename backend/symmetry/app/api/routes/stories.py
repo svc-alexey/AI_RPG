@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_current_user
 from app.db.models import StoryTemplate, User
 from app.db.session import get_db_session
 from app.schemas.common import MessageResponse
@@ -22,7 +22,7 @@ async def list_story_templates(
     genre: str | None = Query(default=None),
     sort: str = Query(default="new"),
     scope: str = Query(default="all"),
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_optional_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> list[StoryTemplateResponse]:
     if scope not in ("all", "master", "community"):
@@ -32,7 +32,7 @@ async def list_story_templates(
         )
     return await story_service.list_templates(
         session,
-        user_id=user.id,
+        user_id=user.id if user is not None else None,
         tag=tag,
         genre=genre,
         sort=sort,
@@ -70,7 +70,6 @@ async def create_story_template(
 async def get_story_template_cover(
     template_id: str,
     request: Request,
-    _: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> Response:
     row = await session.execute(
@@ -102,13 +101,13 @@ async def get_story_template_cover(
 @router.get("/{template_id}", response_model=StoryTemplateResponse)
 async def get_story_template(
     template_id: str,
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_optional_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> StoryTemplateResponse:
     template = await story_service.get_template(
         session,
         template_id=template_id,
-        user_id=user.id,
+        user_id=user.id if user is not None else None,
     )
     if template is None:
         raise HTTPException(status_code=404, detail="story_template_not_found")
@@ -129,10 +128,14 @@ async def toggle_like(
 @router.post("/{template_id}/view", response_model=MessageResponse)
 async def add_view(
     template_id: str,
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_optional_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> MessageResponse:
-    await story_service.add_view(session, template_id=template_id, user_id=user.id)
+    await story_service.add_view(
+        session,
+        template_id=template_id,
+        user_id=user.id if user is not None else None,
+    )
     await session.commit()
     return MessageResponse(message="view_recorded")
 

@@ -4,6 +4,7 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/features/auth/presentation/require_account.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/story_library/presentation/widgets/authenticated_cover_image.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class StoryTemplateDetailScreen extends ConsumerStatefulWidget {
-  const StoryTemplateDetailScreen({
-    required this.template,
-    super.key,
-  });
+  const StoryTemplateDetailScreen({required this.template, super.key});
 
   final StoryTemplate template;
 
@@ -52,6 +50,10 @@ class _StoryTemplateDetailScreenState
   }
 
   Future<void> _onLike() async {
+    final bool ready = await requireRegisteredAccount(context, ref);
+    if (!ready) {
+      return;
+    }
     try {
       await ref.read(storyLibraryRepositoryProvider).toggleLike(_template.id);
       final StoryTemplate fresh = await ref
@@ -86,11 +88,14 @@ class _StoryTemplateDetailScreenState
       ..showSnackBar(SnackBar(content: Text(l10n.storyTemplateShareCopied)));
   }
 
-  void _onStartCampaign() {
-    Navigator.of(context).push(
+  Future<void> _onStartCampaign() async {
+    final bool ready = await requireRegisteredAccount(context, ref);
+    if (!ready || !mounted) {
+      return;
+    }
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (final _) =>
-            NewGameScreen(storyTemplateId: _template.id),
+        builder: (final _) => NewGameScreen(storyTemplateId: _template.id),
       ),
     );
   }
@@ -111,9 +116,7 @@ class _StoryTemplateDetailScreenState
             sym.tokens.accessToken.trim().isNotEmpty &&
             symBase.isNotEmpty &&
             cover.startsWith(symBase)
-        ? <String, String>{
-            'Authorization': 'Bearer ${sym.tokens.accessToken}',
-          }
+        ? <String, String>{'Authorization': 'Bearer ${sym.tokens.accessToken}'}
         : null;
     final String authorName =
         _template.authorDisplayName?.trim().isNotEmpty == true
@@ -184,9 +187,7 @@ class _StoryTemplateDetailScreenState
                       ],
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(
-                        responsive.isCompact ? 20 : 28,
-                      ),
+                      padding: EdgeInsets.all(responsive.isCompact ? 20 : 28),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
@@ -291,74 +292,79 @@ class _StoryTemplateDetailScreenState
                           ),
                           SizedBox(height: responsive.isCompact ? 22 : 28),
                           LayoutBuilder(
-                            builder: (
-                              final BuildContext context,
-                              final BoxConstraints constraints,
-                            ) {
-                              final bool stack = constraints.maxWidth < 420;
-                              final Widget primary = _GradientCta(
-                                label: l10n.storyTemplateStartCampaign,
-                                onPressed: _onStartCampaign,
-                              );
-                              final Widget secondaryLike = OutlinedButton.icon(
-                                onPressed: _onLike,
-                                icon: const Icon(Icons.favorite_border_rounded),
-                                label: Text(l10n.storyTemplateLike),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AetherPalette.textPrimary,
-                                  side: BorderSide(
-                                    color: AetherPalette.accent.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                ),
-                              );
-                              final Widget secondaryShare = OutlinedButton.icon(
-                                onPressed: _onShare,
-                                icon: const Icon(Icons.share_outlined),
-                                label: Text(l10n.storyTemplateShare),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AetherPalette.textPrimary,
-                                  side: BorderSide(
-                                    color: AetherPalette.accent.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                ),
-                              );
-                              if (stack) {
-                                return Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: <Widget>[
-                                    primary,
-                                    const SizedBox(height: 10),
-                                    secondaryLike,
-                                    const SizedBox(height: 10),
-                                    secondaryShare,
-                                  ],
-                                );
-                              }
-                              return Column(
-                                children: <Widget>[
-                                  primary,
-                                  const SizedBox(height: 12),
-                                  Row(
+                            builder:
+                                (
+                                  final BuildContext context,
+                                  final BoxConstraints constraints,
+                                ) {
+                                  final bool stack = constraints.maxWidth < 420;
+                                  final Widget primary = _GradientCta(
+                                    label: l10n.storyTemplateStartCampaign,
+                                    onPressed: _onStartCampaign,
+                                  );
+                                  final Widget secondaryLike =
+                                      OutlinedButton.icon(
+                                        onPressed: _onLike,
+                                        icon: const Icon(
+                                          Icons.favorite_border_rounded,
+                                        ),
+                                        label: Text(l10n.storyTemplateLike),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              AetherPalette.textPrimary,
+                                          side: BorderSide(
+                                            color: AetherPalette.accent
+                                                .withValues(alpha: 0.35),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                          ),
+                                        ),
+                                      );
+                                  final Widget secondaryShare =
+                                      OutlinedButton.icon(
+                                        onPressed: _onShare,
+                                        icon: const Icon(Icons.share_outlined),
+                                        label: Text(l10n.storyTemplateShare),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              AetherPalette.textPrimary,
+                                          side: BorderSide(
+                                            color: AetherPalette.accent
+                                                .withValues(alpha: 0.35),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                          ),
+                                        ),
+                                      );
+                                  if (stack) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: <Widget>[
+                                        primary,
+                                        const SizedBox(height: 10),
+                                        secondaryLike,
+                                        const SizedBox(height: 10),
+                                        secondaryShare,
+                                      ],
+                                    );
+                                  }
+                                  return Column(
                                     children: <Widget>[
-                                      Expanded(child: secondaryLike),
-                                      const SizedBox(width: 12),
-                                      Expanded(child: secondaryShare),
+                                      primary,
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: <Widget>[
+                                          Expanded(child: secondaryLike),
+                                          const SizedBox(width: 12),
+                                          Expanded(child: secondaryShare),
+                                        ],
+                                      ),
                                     ],
-                                  ),
-                                ],
-                              );
-                            },
+                                  );
+                                },
                           ),
                         ],
                       ),
@@ -433,10 +439,7 @@ class _GradientCta extends StatelessWidget {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: <Color>[
-          AetherPalette.gold,
-          AetherPalette.accent,
-        ],
+        colors: <Color>[AetherPalette.gold, AetherPalette.accent],
       ),
       boxShadow: <BoxShadow>[
         BoxShadow(
@@ -465,10 +468,7 @@ class _GradientCta extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: Color(0xFF2A1E10),
-              ),
+              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF2A1E10)),
             ],
           ),
         ),

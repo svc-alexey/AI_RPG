@@ -1,6 +1,8 @@
 import asyncio
 import time
+from datetime import UTC, datetime, timedelta
 
+from app.services.billing import BillingService
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.init_db import init_db
@@ -13,6 +15,7 @@ settings = get_settings()
 configure_logging(settings)
 logger = get_logger("symmetry.butterfly_worker")
 butterfly_service = ButterflyService()
+billing_service = BillingService()
 
 
 async def _run_loop() -> None:
@@ -25,6 +28,9 @@ async def _run_loop() -> None:
         settings.worker_batch_size,
     )
 
+    last_billing_check_at = datetime.now(UTC) - timedelta(
+        seconds=max(0.0, settings.billing_renewal_poll_interval_seconds)
+    )
     while True:
         started_at = time.perf_counter()
         processed = 0
@@ -35,6 +41,11 @@ async def _run_loop() -> None:
                     campaign_id=None,
                     limit=max(1, settings.worker_batch_size),
                 )
+                if (
+                    datetime.now(UTC) - last_billing_check_at
+                ).total_seconds() >= max(30.0, settings.billing_renewal_poll_interval_seconds):
+                    await billing_service.run_due_renewals(session)
+                    last_billing_check_at = datetime.now(UTC)
                 await session.commit()
         except Exception:
             logger.exception("butterfly_worker_cycle_failed")

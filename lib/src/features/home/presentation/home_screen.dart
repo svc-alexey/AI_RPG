@@ -1,9 +1,12 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
+import 'package:ai_prg/src/app/browser_location.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
+import 'package:ai_prg/src/features/auth/presentation/require_account.dart';
+import 'package:ai_prg/src/features/billing/presentation/billing_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
@@ -12,6 +15,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Web/desktop [MaterialScrollBehavior] adds a [RawScrollbar] around scrollables.
 /// On the home landing the column usually fits the viewport; the track then reads
@@ -35,30 +39,40 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  Future<bool> _ensureSessionReady(
-    final BuildContext context,
-    final WidgetRef ref,
-  ) async {
-    final authRepository = ref.read(symmetryAuthRepositoryProvider);
-    try {
-      await authRepository.ensureSession();
-      return true;
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.symmetryFriendlyError(error))),
-        );
-      }
-      return false;
+  bool _didHandleBillingReturn = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didHandleBillingReturn) {
+      return;
     }
+    _didHandleBillingReturn = true;
+    final String? openBilling = Uri.base.queryParameters['openBilling']?.trim();
+    final String? orderId = Uri.base.queryParameters['checkout_order_id']
+        ?.trim();
+    if (openBilling != '1') {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+      replaceBrowserUrl('/');
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (final _) => BillingScreen(initialOrderId: orderId),
+        ),
+      );
+    });
   }
 
-  Future<void> _openProtectedScreen(
+  Future<void> _openAccountRequiredScreen(
     final BuildContext context,
     final WidgetRef ref,
     final Widget screen,
   ) async {
-    final bool ready = await _ensureSessionReady(context, ref);
+    final bool ready = await requireRegisteredAccount(context, ref);
     if (!context.mounted || !ready) {
       return;
     }
@@ -109,6 +123,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _openBillingScreen(final BuildContext context) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (final _) => const BillingScreen()),
+    );
+  }
+
   @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -122,118 +142,171 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  responsive.pagePadding + 4,
-                  8,
-                  responsive.pagePadding + 4,
-                  0,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        l10n.homeTagline.toUpperCase(),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          letterSpacing: 3.2,
-                          color: AetherPalette.textMuted,
-                          fontWeight: FontWeight.w500,
-                          fontSize: responsive.isCompact ? 9 : 10,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (context) => const SettingsScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.settings_outlined, size: 22),
-                      tooltip: l10n.homeTertiaryCta,
-                      style: IconButton.styleFrom(
-                        foregroundColor: AetherPalette.textMuted,
-                        hoverColor: AetherPalette.panelSoft,
-                      ),
-                    ),
-                  ],
-                ),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                responsive.pagePadding + 4,
+                8,
+                responsive.pagePadding + 4,
+                0,
               ),
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: responsive.isWide
-                          ? 920
-                          : responsive.dialogMaxWidth,
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      l10n.homeTagline.toUpperCase(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        letterSpacing: 3.2,
+                        color: AetherPalette.textMuted,
+                        fontWeight: FontWeight.w500,
+                        fontSize: responsive.isCompact ? 9 : 10,
+                      ),
                     ),
-                    child: ScrollConfiguration(
-                      behavior: const _HomeLandingScrollBehavior(),
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: responsive.pagePadding,
-                          vertical: responsive.blockSpacing,
-                        ),
-                        child: Column(
-                          children: <Widget>[
-                            _HomeHeroBlock(
-                              l10n: l10n,
-                              theme: theme,
-                              responsive: responsive,
+                  ),
+                  IconButton(
+                    onPressed: () => _openBillingScreen(context),
+                    icon: const Icon(
+                      Icons.workspace_premium_outlined,
+                      size: 22,
+                    ),
+                    tooltip: _billingLabel(l10n),
+                    style: IconButton.styleFrom(
+                      foregroundColor: AetherPalette.textMuted,
+                      hoverColor: AetherPalette.panelSoft,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.settings_outlined, size: 22),
+                    tooltip: l10n.homeTertiaryCta,
+                    style: IconButton.styleFrom(
+                      foregroundColor: AetherPalette.textMuted,
+                      hoverColor: AetherPalette.panelSoft,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.isWide
+                        ? 920
+                        : responsive.dialogMaxWidth,
+                  ),
+                  child: ScrollConfiguration(
+                    behavior: const _HomeLandingScrollBehavior(),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsive.pagePadding,
+                        vertical: responsive.blockSpacing,
+                      ),
+                      child: Column(
+                        children: <Widget>[
+                          _HomeHeroBlock(
+                            l10n: l10n,
+                            theme: theme,
+                            responsive: responsive,
+                          ),
+                          SizedBox(height: responsive.blockSpacing + 8),
+                          _HomeBentoRow(
+                            l10n: l10n,
+                            theme: theme,
+                            responsive: responsive,
+                            sessionState: sessionState,
+                            onNewGame: () => _openAccountRequiredScreen(
+                              context,
+                              ref,
+                              const NewGameScreen(),
                             ),
-                            SizedBox(height: responsive.blockSpacing + 8),
-                            _HomeBentoRow(
-                              l10n: l10n,
-                              theme: theme,
-                              responsive: responsive,
-                              sessionState: sessionState,
-                              onNewGame: () => _openProtectedScreen(
-                                context,
-                                ref,
-                                const NewGameScreen(),
-                              ),
-                              onStoryLibrary: () => _openProtectedScreen(
-                                context,
-                                ref,
-                                const StoryLibraryScreen(),
-                              ),
-                              onContinue: () => _openProtectedScreen(
-                                context,
-                                ref,
-                                const SavesScreen(),
-                              ),
-                              onAccountAction: (final session) =>
-                                  _handleAccountAction(context, ref, session),
-                            ),
-                            SizedBox(height: responsive.blockSpacing + 20),
-                            _HomeFeatureTags(
-                              lines: l10n.homeFeatureLines,
-                              theme: theme,
-                              responsive: responsive,
-                            ),
-                            SizedBox(height: responsive.blockSpacing + 12),
-                            Text(
-                              l10n.homeTagline.toUpperCase(),
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                letterSpacing: 3.6,
-                                color: const Color(0xFF3A3530),
-                                fontSize: 10,
+                            onStoryLibrary: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (final _) =>
+                                    const StoryLibraryScreen(),
                               ),
                             ),
-                          ],
-                        ),
+                            onContinue: () => _openAccountRequiredScreen(
+                              context,
+                              ref,
+                              const SavesScreen(),
+                            ),
+                            onAccountAction: (final session) =>
+                                _handleAccountAction(context, ref, session),
+                          ),
+                          SizedBox(height: responsive.blockSpacing + 20),
+                          _HomeFeatureTags(
+                            lines: l10n.homeFeatureLines,
+                            theme: theme,
+                            responsive: responsive,
+                          ),
+                          SizedBox(height: responsive.blockSpacing + 12),
+                          _HomeLegalFooter(responsive: responsive),
+                          SizedBox(height: responsive.blockSpacing),
+                          Text(
+                            l10n.homeTagline.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              letterSpacing: 3.6,
+                              color: const Color(0xFF3A3530),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  String _billingLabel(final AppLocalizations l10n) =>
+      l10n.language.name == 'ru' ? 'Подписка' : 'Billing';
+}
+
+class _HomeLegalFooter extends StatelessWidget {
+  const _HomeLegalFooter({required this.responsive});
+
+  final AppResponsiveData responsive;
+
+  Future<void> _open(final String path) async {
+    await launchUrl(Uri.base.resolve(path), webOnlyWindowName: '_blank');
+  }
+
+  @override
+  Widget build(final BuildContext context) => Wrap(
+    alignment: WrapAlignment.center,
+    spacing: responsive.isCompact ? 8 : 12,
+    runSpacing: 8,
+    children: <Widget>[
+      TextButton(
+        onPressed: () => _open('/offer.html'),
+        child: const Text('Оферта'),
+      ),
+      TextButton(
+        onPressed: () => _open('/privacy.html'),
+        child: const Text('Privacy'),
+      ),
+      TextButton(
+        onPressed: () => _open('/refunds.html'),
+        child: const Text('Refunds'),
+      ),
+      TextButton(
+        onPressed: () => _open('/contacts.html'),
+        child: const Text('ИНН / Contacts'),
+      ),
+    ],
+  );
 }
 
 class _HomeHeroBlock extends StatelessWidget {
@@ -931,9 +1004,7 @@ class _HomeStoryLibraryCardState extends State<_HomeStoryLibraryCard>
                         ],
                       ),
                     ),
-                    SizedBox(
-                      height: widget.responsive.isCompact ? 14 : 16,
-                    ),
+                    SizedBox(height: widget.responsive.isCompact ? 14 : 16),
                     Text(
                       widget.l10n.homeStoryLibraryTitle,
                       style: GoogleFonts.playfairDisplay(

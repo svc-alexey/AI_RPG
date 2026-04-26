@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/core/models/literary_genre_model.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
+import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/services/symmetry_api_client.dart';
 
@@ -12,13 +13,17 @@ class StoryLibraryRepository {
   SymmetryApiClient _client(final String baseUrl) =>
       SymmetryApiClient(baseUrl: baseUrl);
 
+  Future<SymmetrySession?> _optionalSession() =>
+      _authRepository.loadSessionWithSyncedProfile();
+
+  Future<String> _baseUrl() => _authRepository.loadBaseUrl();
+
   Future<List<LiteraryGenreCatalogItem>> loadLiteraryGenres() async {
-    final List<LiteraryGenreCatalogItem> rows = await _authRepository
-        .runWithAuthorizedSession(
-          (final session) => _client(
-            session.baseUrl,
-          ).listLiteraryGenres(accessToken: session.tokens.accessToken),
-        );
+    final SymmetrySession? session = await _optionalSession();
+    final String baseUrl = session?.baseUrl ?? await _baseUrl();
+    final List<LiteraryGenreCatalogItem> rows = await _client(
+      baseUrl,
+    ).listLiteraryGenres(accessToken: session?.tokens.accessToken);
     rows.sort((final a, final b) {
       final int byOrder = a.sortOrder.compareTo(b.sortOrder);
       if (byOrder != 0) {
@@ -34,23 +39,26 @@ class StoryLibraryRepository {
     final String? genre,
     final String sort = 'new',
     final String scope = 'all',
-  }) => _authRepository.runWithAuthorizedSession(
-    (final session) => _client(session.baseUrl).listStoryTemplates(
-      accessToken: session.tokens.accessToken,
+  }) async {
+    final SymmetrySession? session = await _optionalSession();
+    final String baseUrl = session?.baseUrl ?? await _baseUrl();
+    return _client(baseUrl).listStoryTemplates(
+      accessToken: session?.tokens.accessToken,
       tag: tag,
       genre: genre,
       sort: sort,
       scope: scope,
-    ),
-  );
+    );
+  }
 
-  Future<StoryTemplate> loadTemplate(final String templateId) =>
-      _authRepository.runWithAuthorizedSession(
-        (final session) => _client(session.baseUrl).getStoryTemplate(
-          accessToken: session.tokens.accessToken,
-          templateId: templateId,
-        ),
-      );
+  Future<StoryTemplate> loadTemplate(final String templateId) async {
+    final SymmetrySession? session = await _optionalSession();
+    final String baseUrl = session?.baseUrl ?? await _baseUrl();
+    return _client(baseUrl).getStoryTemplate(
+      accessToken: session?.tokens.accessToken,
+      templateId: templateId,
+    );
+  }
 
   Future<StoryTemplate> publishStoryTemplate({
     required final Map<String, Object?> payload,
@@ -61,13 +69,14 @@ class StoryLibraryRepository {
     ),
   );
 
-  Future<void> recordView(final String templateId) =>
-      _authRepository.runWithAuthorizedSession(
-        (final session) => _client(session.baseUrl).postStoryTemplateView(
-          accessToken: session.tokens.accessToken,
-          templateId: templateId,
-        ),
-      );
+  Future<void> recordView(final String templateId) async {
+    final SymmetrySession? session = await _optionalSession();
+    final String baseUrl = session?.baseUrl ?? await _baseUrl();
+    await _client(baseUrl).postStoryTemplateView(
+      accessToken: session?.tokens.accessToken,
+      templateId: templateId,
+    );
+  }
 
   Future<void> toggleLike(final String templateId) =>
       _authRepository.runWithAuthorizedSession(

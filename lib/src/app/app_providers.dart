@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/repositories/billing_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/repositories/story_library_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
@@ -38,6 +39,11 @@ final Provider<StoryLibraryRepository> storyLibraryRepositoryProvider =
       throw UnimplementedError(
         'storyLibraryRepositoryProvider was not overridden.',
       );
+    });
+
+final Provider<BillingRepository> billingRepositoryProvider =
+    Provider<BillingRepository>((final ref) {
+      throw UnimplementedError('billingRepositoryProvider was not overridden.');
     });
 
 final Provider<AiServiceFactory> aiServiceFactoryProvider =
@@ -82,12 +88,9 @@ final FutureProvider<SymmetrySession?> symmetrySessionProvider =
       final SymmetryAuthRepository repository = ref.read(
         symmetryAuthRepositoryProvider,
       );
-      final SymmetrySession? loaded =
-          await repository.loadSessionWithSyncedProfile();
-      if (loaded != null) {
-        return loaded;
-      }
-      return repository.ensureSession();
+      final SymmetrySession? loaded = await repository
+          .loadSessionWithSyncedProfile();
+      return loaded;
     });
 
 List<Override> buildAppProviderOverrides({
@@ -111,6 +114,9 @@ List<Override> buildAppProviderOverrides({
   final StoryLibraryRepository resolvedStoryLibraryRepository =
       storyLibraryRepository ??
       StoryLibraryRepository(authRepository: resolvedAuthRepository);
+  final BillingRepository resolvedBillingRepository = BillingRepository(
+    authRepository: resolvedAuthRepository,
+  );
   return <Override>[
     settingsRepositoryProvider.overrideWithValue(settingsRepository),
     symmetryAuthRepositoryProvider.overrideWithValue(resolvedAuthRepository),
@@ -120,6 +126,7 @@ List<Override> buildAppProviderOverrides({
     storyLibraryRepositoryProvider.overrideWithValue(
       resolvedStoryLibraryRepository,
     ),
+    billingRepositoryProvider.overrideWithValue(resolvedBillingRepository),
     aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
     gameEngineProvider.overrideWithValue(gameEngine),
     portraitStorageProvider.overrideWithValue(portraitStorage),

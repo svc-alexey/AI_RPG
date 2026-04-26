@@ -1998,6 +1998,26 @@ class AppLocalizations {
       AppLanguage.ru => 'Шаблон истории не найден.',
       AppLanguage.en => 'Story template not found.',
     },
+    'billing_account_required' => switch (language) {
+      AppLanguage.ru => 'Чтобы продолжить, войдите или зарегистрируйтесь.',
+      AppLanguage.en => 'Sign in or create an account to continue.',
+    },
+    'free_quota_exhausted' => switch (language) {
+      AppLanguage.ru =>
+        'Бесплатный лимит закончился. Пора выбрать тариф или пакет токенов.',
+      AppLanguage.en =>
+        'Your free quota is exhausted. Choose a plan or a token pack.',
+    },
+    'subscription_required' => switch (language) {
+      AppLanguage.ru => 'Для продолжения нужен активный тариф или токены.',
+      AppLanguage.en => 'You need an active plan or tokens to continue.',
+    },
+    'subscription_past_due' => switch (language) {
+      AppLanguage.ru =>
+        'Не удалось продлить подписку. Обновите оплату или выберите другой вариант.',
+      AppLanguage.en =>
+        'The subscription renewal failed. Update your payment method or choose another option.',
+    },
     'missing_code' => switch (language) {
       AppLanguage.ru => 'Не получен код авторизации.',
       AppLanguage.en => 'Authorization code is missing.',
