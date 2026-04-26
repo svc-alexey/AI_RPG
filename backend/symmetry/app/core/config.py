@@ -92,6 +92,7 @@ class Settings(BaseSettings):
     yookassa_return_url: str = ""
     yookassa_webhook_public_url: str = ""
     yookassa_test_mode: bool = True
+    billing_fake_provider_enabled: bool = False
     billing_renewal_poll_interval_seconds: float = 900.0
 
 

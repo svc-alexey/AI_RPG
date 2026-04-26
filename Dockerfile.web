@@ -1,0 +1,21 @@
+FROM ghcr.io/cirruslabs/flutter:3.41.4 AS build
+
+WORKDIR /app
+
+ARG AI_PRG_SYMMETRY_BASE_URL=http://127.0.0.1:3010/v1
+
+COPY pubspec.yaml pubspec.lock* ./
+RUN flutter config --enable-web && flutter pub get
+
+COPY . .
+
+RUN flutter build web --release --no-tree-shake-icons \
+    --dart-define=AI_PRG_SYMMETRY_BASE_URL=${AI_PRG_SYMMETRY_BASE_URL}
+
+
+FROM nginx:alpine
+
+COPY deploy/nginx/default.prod.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build/web /usr/share/nginx/html
+
+EXPOSE 80

@@ -47,6 +47,10 @@ class BillingService:
         self._settings = get_settings()
         self._yookassa = YooKassaClient()
 
+    @property
+    def fake_provider_enabled(self) -> bool:
+        return bool(self._settings.billing_fake_provider_enabled)
+
     async def ensure_catalog_seeded(self, session: AsyncSession) -> None:
         existing = await session.execute(select(BillingPlan.code))
         existing_codes = {code for (code,) in existing.all()}
@@ -307,6 +311,17 @@ class BillingService:
             updated_at=order.updated_at,
         )
 
+    async def get_order_by_id(
+        self,
+        session: AsyncSession,
+        *,
+        order_id: str,
+    ) -> BillingOrder:
+        order = await session.get(BillingOrder, order_id)
+        if order is None:
+            raise HTTPException(status_code=404, detail="billing_order_not_found")
+        return order
+
     async def cancel_subscription(
         self,
         session: AsyncSession,
@@ -328,6 +343,23 @@ class BillingService:
         await session.flush()
         user = await session.get(User, user_id)
         return await self.build_summary(session, user=user)
+
+    async def complete_fake_checkout(
+        self,
+        session: AsyncSession,
+        *,
+        order_id: str,
+        outcome: str,
+    ) -> str:
+        if not self.fake_provider_enabled:
+            raise HTTPException(status_code=404, detail="billing_fake_provider_disabled")
+        order = await self.get_order_by_id(session, order_id=order_id)
+        normalized_outcome = outcome.strip().lower()
+        if normalized_outcome == "canceled":
+            await self._handle_fake_payment_canceled(session, order=order)
+        else:
+            await self._handle_fake_payment_succeeded(session, order=order)
+        return self._append_checkout_status(order.return_url, order.status)
 
     async def grant_welcome_tokens(self, session: AsyncSession, *, user_id: str) -> None:
         await self.ensure_catalog_seeded(session)
@@ -557,6 +589,33 @@ class BillingService:
             return
         await self._apply_paid_order(session, order=order, payment=payment)
 
+    async def _handle_fake_payment_succeeded(
+        self,
+        session: AsyncSession,
+        *,
+        order: BillingOrder,
+    ) -> None:
+        if order.status == "paid":
+            return
+        plan = await session.scalar(select(BillingPlan).where(BillingPlan.code == order.plan_code))
+        if plan is None:
+            raise HTTPException(status_code=404, detail="billing_plan_not_found")
+        payment = self._yookassa.build_fake_completed_payment(
+            order_id=order.id,
+            amount_minor=order.amount_minor,
+            currency=order.currency,
+            description=plan.title,
+            metadata={
+                "order_id": order.id,
+                "user_id": order.user_id,
+                "plan_code": plan.code,
+                "billing_customer_id": str((order.metadata_json or {}).get("billing_customer_id", "")),
+                "kind": order.kind,
+            },
+            saved_payment_method=order.kind == "subscription",
+        )
+        await self._apply_paid_order(session, order=order, payment=payment)
+
     async def _handle_payment_canceled(
         self,
         session: AsyncSession,
@@ -570,6 +629,18 @@ class BillingService:
             provider_payment_id=str(payment.get("id", "")).strip(),
         )
         if order is None:
+            return
+        order.status = "canceled"
+        order.updated_at = datetime.now(UTC)
+        await session.flush()
+
+    async def _handle_fake_payment_canceled(
+        self,
+        session: AsyncSession,
+        *,
+        order: BillingOrder,
+    ) -> None:
+        if order.status == "paid":
             return
         order.status = "canceled"
         order.updated_at = datetime.now(UTC)
@@ -882,6 +953,12 @@ class BillingService:
         query = dict(parse_qsl(parts.query, keep_blank_values=True))
         query["openBilling"] = "1"
         query["checkout_order_id"] = order_id
+        return urlunsplit((parts.scheme, parts.netloc, parts.path or "/", urlencode(query), parts.fragment))
+
+    def _append_checkout_status(self, url: str, status_value: str) -> str:
+        parts = urlsplit(url)
+        query = dict(parse_qsl(parts.query, keep_blank_values=True))
+        query["checkout_status"] = status_value
         return urlunsplit((parts.scheme, parts.netloc, parts.path or "/", urlencode(query), parts.fragment))
 
     def _masked_payment_method_label(self, payment: dict[str, Any]) -> str:
