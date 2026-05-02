@@ -5,6 +5,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
+import 'package:ai_prg/src/features/chat/presentation/campaign_map_screen.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
 import 'package:ai_prg/src/features/chat/widgets/portrait_image.dart';
 import 'package:ai_prg/src/features/chat/widgets/state_change_overlay_stack.dart';
@@ -81,6 +82,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final ChatController controller = ref.read(
       chatControllerProvider(widget.campaignId).notifier,
     );
+    final int unreadMapEvents =
+        chatState.campaign?.mapContext?.newReturnEventsCount ?? 0;
 
     ref.listen<ChatViewState>(chatControllerProvider(widget.campaignId), (
       final previous,
@@ -139,9 +142,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     final CampaignState? campaign = chatState.campaign;
     if (chatState.isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.transparent,
-        body: const Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -203,6 +206,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     ),
               actions: <Widget>[
                 _ChatChromeIconButton(
+                  icon: Icons.map_outlined,
+                  tooltip: _campaignMapLabel(),
+                  badgeCount: unreadMapEvents,
+                  onPressed: () => _openMap(campaign),
+                ),
+                _ChatChromeIconButton(
                   icon: Icons.bookmark_add_outlined,
                   tooltip: l10n.saveTooltip,
                   onPressed: () => controller.save(l10n: l10n),
@@ -259,6 +268,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         newlyUnlockedModules: chatState.newlyUnlockedModules,
                         worldRumors: chatState.worldRumors,
                       ),
+                onMap: () => _openMap(campaign),
+                mapBadgeCount: unreadMapEvents,
                 onSave: () => controller.save(l10n: l10n),
                 onSettings: () {
                   Navigator.of(context).push(
@@ -836,6 +847,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
           const SizedBox(height: 24),
           ListTile(
+            leading: const Icon(Icons.map_outlined),
+            title: Text(_campaignMapLabel()),
+            trailing:
+                campaign.mapContext != null &&
+                    campaign.mapContext!.newReturnEventsCount > 0
+                ? _UnreadBadge(count: campaign.mapContext!.newReturnEventsCount)
+                : null,
+            subtitle:
+                campaign.mapContext?.newReturnEventsCount != null &&
+                    campaign.mapContext!.newReturnEventsCount > 0
+                ? Text(
+                    _campaignMapUnreadLabel(
+                      campaign.mapContext!.newReturnEventsCount,
+                    ),
+                  )
+                : null,
+            onTap: () => _openMap(campaign),
+          ),
+          ListTile(
             leading: const Icon(Icons.home_outlined),
             title: Text(l10n.exitToMainMenu),
             onTap: _exitToMainMenu,
@@ -843,6 +873,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _openMap(final CampaignState campaign) async {
+    final ChatController controller = ref.read(
+      chatControllerProvider(widget.campaignId).notifier,
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (final context) => CampaignMapScreen(
+          campaignId: widget.campaignId,
+          campaignTitle: campaign.title,
+          onTravelIntent: (final prompt) => controller.runTurn(
+            l10n: context.l10n,
+            action: prompt,
+            suggestionsOnly: false,
+            triggerSource: 'map',
+          ),
+        ),
+      ),
+    );
+    await controller.refreshCampaign();
+  }
+
+  String _campaignMapLabel() {
+    final bool isRussian = Localizations.localeOf(
+      context,
+    ).languageCode.toLowerCase().startsWith('ru');
+    return isRussian ? 'Карта мира' : 'World Map';
+  }
+
+  String _campaignMapUnreadLabel(final int count) {
+    final bool isRussian = Localizations.localeOf(
+      context,
+    ).languageCode.toLowerCase().startsWith('ru');
+    return isRussian
+        ? '$count новых мировых сдвигов'
+        : '$count new world shifts';
   }
 
   void _exitToMainMenu() {
@@ -927,11 +994,13 @@ class _ChatChromeIconButton extends StatefulWidget {
     required this.icon,
     required this.onPressed,
     required this.tooltip,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
   final String tooltip;
+  final int badgeCount;
 
   @override
   State<_ChatChromeIconButton> createState() => _ChatChromeIconButtonState();
@@ -953,32 +1022,77 @@ class _ChatChromeIconButtonState extends State<_ChatChromeIconButton> {
           child: InkWell(
             onTap: widget.onPressed,
             borderRadius: BorderRadius.circular(20),
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: _hover
-                      ? AetherPalette.accent.withValues(alpha: 0.35)
-                      : AetherPalette.panelBorderSolid,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _hover || widget.badgeCount > 0
+                          ? AetherPalette.accent.withValues(alpha: 0.35)
+                          : AetherPalette.panelBorderSolid,
+                    ),
+                    color: AetherPalette.backgroundElevated,
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    size: 18,
+                    color: _hover || widget.badgeCount > 0
+                        ? AetherPalette.accentHover
+                        : AetherPalette.textMuted,
+                  ),
                 ),
-                color: AetherPalette.backgroundElevated,
-              ),
-              child: Icon(
-                widget.icon,
-                size: 18,
-                color: _hover
-                    ? AetherPalette.accentHover
-                    : AetherPalette.textMuted,
-              ),
+                if (widget.badgeCount > 0)
+                  Positioned(
+                    right: -1,
+                    top: -3,
+                    child: _UnreadBadge(count: widget.badgeCount),
+                  ),
+              ],
             ),
           ),
         ),
       ),
     ),
   );
+}
+
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(final BuildContext context) {
+    final String label = count > 9 ? '9+' : '$count';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AetherPalette.accent,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AetherPalette.background, width: 1.2),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AetherPalette.accent.withValues(alpha: 0.35),
+            blurRadius: 12,
+            spreadRadius: -4,
+          ),
+        ],
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AetherPalette.background,
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
 }
 
 class _SidebarSectionTitle extends StatelessWidget {
@@ -1002,6 +1116,8 @@ class _CompactChatToolbar extends StatelessWidget {
   const _CompactChatToolbar({
     required this.title,
     required this.onMenu,
+    required this.onMap,
+    required this.mapBadgeCount,
     required this.onSave,
     required this.onSettings,
     required this.onHome,
@@ -1009,6 +1125,8 @@ class _CompactChatToolbar extends StatelessWidget {
 
   final String title;
   final VoidCallback? onMenu;
+  final VoidCallback onMap;
+  final int mapBadgeCount;
   final VoidCallback onSave;
   final VoidCallback onSettings;
   final VoidCallback onHome;
@@ -1037,6 +1155,17 @@ class _CompactChatToolbar extends StatelessWidget {
                 onPressed: onMenu!,
               ),
             _CompactToolbarButton(
+              icon: Icons.map_outlined,
+              tooltip:
+                  Localizations.localeOf(
+                    context,
+                  ).languageCode.toLowerCase().startsWith('ru')
+                  ? 'Карта мира'
+                  : 'World Map',
+              badgeCount: mapBadgeCount,
+              onPressed: onMap,
+            ),
+            _CompactToolbarButton(
               icon: Icons.save_outlined,
               tooltip: context.l10n.saveTooltip,
               onPressed: onSave,
@@ -1063,11 +1192,13 @@ class _CompactToolbarButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onPressed,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
+  final int badgeCount;
 
   @override
   Widget build(final BuildContext context) => Tooltip(
@@ -1075,15 +1206,30 @@ class _CompactToolbarButton extends StatelessWidget {
     child: InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: AetherPalette.backgroundElevated,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AetherPalette.panelBorderSolid),
-        ),
-        child: Icon(icon, size: 18),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AetherPalette.backgroundElevated,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: badgeCount > 0
+                    ? AetherPalette.accent.withValues(alpha: 0.35)
+                    : AetherPalette.panelBorderSolid,
+              ),
+            ),
+            child: Icon(icon, size: 18),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              right: -2,
+              top: -4,
+              child: _UnreadBadge(count: badgeCount),
+            ),
+        ],
       ),
     ),
   );
@@ -1526,17 +1672,17 @@ class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
           height: 12,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: List<Widget>.generate(3, (final int index) {
-              return Container(
+            children: List<Widget>.generate(
+              3,
+              (_) => Container(
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
                   color: AetherPalette.accent.withValues(alpha: 0.65),
                   borderRadius: BorderRadius.circular(999),
                 ),
-              );
-            }),
+              ),
+            ),
           ),
         ),
       );
@@ -1550,7 +1696,6 @@ class _TypingPulseIndicatorState extends State<_TypingPulseIndicator>
           animation: _controller!,
           builder: (final context, _) => Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: List<Widget>.generate(3, (final index) {
               final double phase = _wrappedPhase(
                 _controller!.value - (index * 0.16),

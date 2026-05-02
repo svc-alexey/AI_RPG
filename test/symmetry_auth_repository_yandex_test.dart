@@ -68,6 +68,7 @@ class _FakeSettingsStorage implements SettingsStorage {
 
   SymmetrySession? _symmetrySession;
   String? _symmetryBaseUrl;
+  Map<String, String> _campaignMapMarks = <String, String>{};
 
   @override
   Future<AiSettings> loadAiSettings() async => const AiSettings.defaults();
@@ -99,6 +100,19 @@ class _FakeSettingsStorage implements SettingsStorage {
   @override
   Future<void> saveSymmetrySession(final SymmetrySession? session) async {
     _symmetrySession = session;
+  }
+
+  @override
+  Future<Map<String, String>> loadCampaignMapMarks(
+    final String campaignId,
+  ) async => _campaignMapMarks;
+
+  @override
+  Future<void> saveCampaignMapMarks(
+    final String campaignId,
+    final Map<String, String> marks,
+  ) async {
+    _campaignMapMarks = marks;
   }
 
   SymmetrySession? get symmetrySession => _symmetrySession;

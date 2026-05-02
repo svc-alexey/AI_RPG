@@ -2,6 +2,7 @@ import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/browser_location.dart';
+import 'package:ai_prg/src/app/legal_links.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
@@ -279,34 +280,43 @@ class _HomeLegalFooter extends StatelessWidget {
 
   final AppResponsiveData responsive;
 
-  Future<void> _open(final String path) async {
-    await launchUrl(Uri.base.resolve(path), webOnlyWindowName: '_blank');
+  Future<void> _open(
+    final BuildContext context,
+    final LandingLegalTab tab,
+  ) async {
+    await launchUrl(
+      buildLandingLegalUri(tab: tab, language: context.l10n.language.name),
+      webOnlyWindowName: '_blank',
+    );
   }
 
   @override
-  Widget build(final BuildContext context) => Wrap(
-    alignment: WrapAlignment.center,
-    spacing: responsive.isCompact ? 8 : 12,
-    runSpacing: 8,
-    children: <Widget>[
-      TextButton(
-        onPressed: () => _open('/offer.html'),
-        child: const Text('Оферта'),
-      ),
-      TextButton(
-        onPressed: () => _open('/privacy.html'),
-        child: const Text('Privacy'),
-      ),
-      TextButton(
-        onPressed: () => _open('/refunds.html'),
-        child: const Text('Refunds'),
-      ),
-      TextButton(
-        onPressed: () => _open('/contacts.html'),
-        child: const Text('ИНН / Contacts'),
-      ),
-    ],
-  );
+  Widget build(final BuildContext context) {
+    final bool isRu = context.l10n.language.name == 'ru';
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: responsive.isCompact ? 8 : 12,
+      runSpacing: 8,
+      children: <Widget>[
+        TextButton(
+          onPressed: () => _open(context, LandingLegalTab.offer),
+          child: Text(isRu ? 'Оферта' : 'License'),
+        ),
+        TextButton(
+          onPressed: () => _open(context, LandingLegalTab.privacy),
+          child: Text(isRu ? 'Конфиденциальность' : 'Privacy'),
+        ),
+        TextButton(
+          onPressed: () => _open(context, LandingLegalTab.refunds),
+          child: Text(isRu ? 'Возвраты' : 'Refunds'),
+        ),
+        TextButton(
+          onPressed: () => _open(context, LandingLegalTab.contacts),
+          child: Text(isRu ? 'Контакты' : 'Contacts'),
+        ),
+      ],
+    );
+  }
 }
 
 class _HomeHeroBlock extends StatelessWidget {
@@ -976,7 +986,6 @@ class _HomeStoryLibraryCardState extends State<_HomeStoryLibraryCard>
                     SizedBox(
                       height: 42,
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: <Widget>[
                           DecoratedBox(
                             decoration: BoxDecoration(

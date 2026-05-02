@@ -1,9 +1,17 @@
 import 'package:ai_prg/src/core/models/ai_settings.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
+import 'package:ai_prg/src/core/models/campaign_map_models.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/services/symmetry_api_client.dart';
+
+Map<String, Object?> _jsonMap(final Object? value) {
+  if (value is Map) {
+    return value.map((final key, final item) => MapEntry(key.toString(), item));
+  }
+  return const <String, Object?>{};
+}
 
 class SymmetryCampaignRepository {
   SymmetryCampaignRepository({required SymmetryAuthRepository authRepository})
@@ -29,7 +37,11 @@ class SymmetryCampaignRepository {
             ),
             allowGuest: false,
           );
-      campaigns.add(_campaignStateFromServer(response.state));
+      campaigns.add(
+        _campaignStateFromServer(
+          _mergeStateAndMapContext(response.state, response.mapContext),
+        ),
+      );
     }
     return campaigns;
   }
@@ -42,7 +54,9 @@ class SymmetryCampaignRepository {
             campaignId: id,
           ),
         );
-    return _campaignStateFromServer(response.state);
+    return _campaignStateFromServer(
+      _mergeStateAndMapContext(response.state, response.mapContext),
+    );
   }
 
   Future<List<SymmetryWorldRumor>> loadCampaignRumors(
@@ -55,6 +69,22 @@ class SymmetryCampaignRepository {
       limit: limit,
     ),
   );
+
+  Future<CampaignMapView> loadCampaignMap(final String id) =>
+      _authRepository.runWithAuthorizedSession(
+        (final session) => _client(session.baseUrl).getCampaignMap(
+          accessToken: session.tokens.accessToken,
+          campaignId: id,
+        ),
+      );
+
+  Future<CampaignReturnSummary> loadCampaignReturnSummary(final String id) =>
+      _authRepository.runWithAuthorizedSession(
+        (final session) => _client(session.baseUrl).getCampaignReturnSummary(
+          accessToken: session.tokens.accessToken,
+          campaignId: id,
+        ),
+      );
 
   Future<CampaignState> createCampaign({
     required final CampaignDraft draft,
@@ -109,7 +139,9 @@ class SymmetryCampaignRepository {
         },
       ),
     );
-    return _campaignStateFromServer(response.state);
+    return _campaignStateFromServer(
+      _mergeStateAndMapContext(response.state, response.mapContext),
+    );
   }
 
   Future<CampaignState> processTurn({
@@ -132,7 +164,9 @@ class SymmetryCampaignRepository {
             triggerSource: triggerSource,
           ),
         );
-    return _campaignStateFromServer(response.state);
+    return _campaignStateFromServer(
+      _mergeStateAndMapContext(response.state, response.mapContext),
+    );
   }
 
   Future<void> deleteCampaign(final String id) =>
@@ -151,6 +185,16 @@ class SymmetryCampaignRepository {
 
   SymmetryApiClient _client(final String baseUrl) =>
       SymmetryApiClient(baseUrl: baseUrl);
+
+  Map<String, Object?> _mergeStateAndMapContext(
+    final Map<String, Object?> state,
+    final Map<String, Object?> mapContext,
+  ) {
+    if (mapContext.isEmpty) {
+      return state;
+    }
+    return <String, Object?>{...state, 'map_context': mapContext};
+  }
 
   String _buildClientTurnId(final CampaignState campaign) {
     final int nextTurnNumber = campaign.turnNumber + 1;
@@ -275,6 +319,8 @@ class SymmetryCampaignRepository {
               (final key, final value) => MapEntry(key.toString(), value),
             )
           : const <String, Object?>{},
+      if (_jsonMap(json['map_context'] ?? json['mapContext']).isNotEmpty)
+        'mapContext': _jsonMap(json['map_context'] ?? json['mapContext']),
       'customStoryPrompt':
           json['custom_story_prompt'] ?? json['customStoryPrompt'] ?? '',
       'characterPrompt':

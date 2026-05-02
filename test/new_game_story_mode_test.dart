@@ -205,6 +205,7 @@ class _MemorySettingsStorage implements SettingsStorage {
   AppLanguage appLanguage = AppLanguage.ru;
   String? symmetryBaseUrl;
   SymmetrySession? session;
+  Map<String, String> campaignMapMarks = <String, String>{};
 
   @override
   Future<AiSettings> loadAiSettings() async => aiSettings;
@@ -239,6 +240,19 @@ class _MemorySettingsStorage implements SettingsStorage {
   @override
   Future<void> saveSymmetrySession(final SymmetrySession? session) async {
     this.session = session;
+  }
+
+  @override
+  Future<Map<String, String>> loadCampaignMapMarks(
+    final String campaignId,
+  ) async => campaignMapMarks;
+
+  @override
+  Future<void> saveCampaignMapMarks(
+    final String campaignId,
+    final Map<String, String> marks,
+  ) async {
+    campaignMapMarks = marks;
   }
 }
 

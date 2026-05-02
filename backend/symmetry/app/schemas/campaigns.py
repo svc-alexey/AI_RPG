@@ -147,6 +147,7 @@ class CampaignStateResponse(BaseModel):
     campaign: CampaignResponse
     snapshot_version: int
     state: dict[str, Any]
+    map_context: dict[str, Any] | None = None
 
 
 class WorldRumorResponse(BaseModel):
@@ -167,3 +168,26 @@ class ProcessTurnResponse(BaseModel):
     request_id: str
     campaign_snapshot_version: int
     state: dict[str, Any]
+    map_context: dict[str, Any] | None = None
+
+
+class CampaignMapResponse(BaseModel):
+    active_scale: str
+    breadcrumbs: list[dict[str, Any]] = Field(default_factory=list)
+    current_node_id: str = ""
+    focus_node_id: str = ""
+    available_scales: list[str] = Field(default_factory=list)
+    changed_node_ids: list[str] = Field(default_factory=list)
+    local_view: dict[str, Any]
+    global_view: dict[str, Any]
+    fronts: list[dict[str, Any]] = Field(default_factory=list)
+    return_events: list[dict[str, Any]] = Field(default_factory=list)
+    last_seen_delta: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReturnSummaryResponse(BaseModel):
+    unseen_count: int = 0
+    changed_node_ids: list[str] = Field(default_factory=list)
+    fronts_changed: list[str] = Field(default_factory=list)
+    events: list[dict[str, Any]] = Field(default_factory=list)
+    generated_at: datetime

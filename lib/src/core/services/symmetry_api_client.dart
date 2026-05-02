@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:ai_prg/src/core/config/symmetry_runtime_env.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
+import 'package:ai_prg/src/core/models/campaign_map_models.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/literary_genre_model.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
@@ -148,10 +149,7 @@ class SymmetryApiClient {
       throw StateError('symmetry_invalid_response');
     }
     return SymmetryUser.fromJson(
-      decoded.map(
-        (final Object? key, final Object? value) =>
-            MapEntry(key.toString(), value),
-      ),
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
     );
   }
 
@@ -309,6 +307,38 @@ class SymmetryApiClient {
           ),
         )
         .toList();
+  }
+
+  Future<CampaignMapView> getCampaignMap({
+    required final String accessToken,
+    required final String campaignId,
+  }) async {
+    final Object? decoded = await _get(
+      '/campaigns/$campaignId/map',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return CampaignMapView.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
+  }
+
+  Future<CampaignReturnSummary> getCampaignReturnSummary({
+    required final String accessToken,
+    required final String campaignId,
+  }) async {
+    final Object? decoded = await _get(
+      '/campaigns/$campaignId/return-summary',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return CampaignReturnSummary.fromJson(
+      decoded.map((final key, final value) => MapEntry(key.toString(), value)),
+    );
   }
 
   Future<SymmetryTurnResponse> processTurn({

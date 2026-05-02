@@ -20,9 +20,8 @@ class AdaptiveSettingsStorage implements SettingsStorage {
   final SettingsLocalDataSource _isarDataSource;
   final SettingsPreferencesDataSource _preferencesDataSource;
 
-  AiSettings _withFixedRuntime(final AiSettings settings) => settings.copyWith(
-    runtimeSettings: ModelRuntimeSettings.defaults,
-  );
+  AiSettings _withFixedRuntime(final AiSettings settings) =>
+      settings.copyWith(runtimeSettings: ModelRuntimeSettings.defaults);
 
   Future<AiSettings> _loadAiSettingsPersistedBody() async {
     await _database.ensureReady();
@@ -123,5 +122,34 @@ class AdaptiveSettingsStorage implements SettingsStorage {
       await _isarDataSource.saveSymmetrySession(isar, session);
     }
     await _preferencesDataSource.saveSymmetrySession(session);
+  }
+
+  @override
+  Future<Map<String, String>> loadCampaignMapMarks(
+    final String campaignId,
+  ) async {
+    await _database.ensureReady();
+    if (_database.backend == StorageBackend.isar) {
+      final isar = await _database.isar;
+      final Map<String, String> marks = await _isarDataSource
+          .loadCampaignMapMarks(isar, campaignId);
+      if (marks.isNotEmpty) {
+        return marks;
+      }
+    }
+    return _preferencesDataSource.loadCampaignMapMarks(campaignId);
+  }
+
+  @override
+  Future<void> saveCampaignMapMarks(
+    final String campaignId,
+    final Map<String, String> marks,
+  ) async {
+    await _database.ensureReady();
+    if (_database.backend == StorageBackend.isar) {
+      final isar = await _database.isar;
+      await _isarDataSource.saveCampaignMapMarks(isar, campaignId, marks);
+    }
+    await _preferencesDataSource.saveCampaignMapMarks(campaignId, marks);
   }
 }

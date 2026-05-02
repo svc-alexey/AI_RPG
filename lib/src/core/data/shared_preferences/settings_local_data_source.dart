@@ -12,6 +12,7 @@ class SettingsPreferencesDataSource {
   static const String _appLanguageKey = 'settings.app_language';
   static const String _symmetryBaseUrlKey = 'settings.symmetry_base_url';
   static const String _symmetrySessionKey = 'settings.symmetry_session';
+  static const String _campaignMapMarksPrefix = 'settings.campaign_map_marks.';
 
   Future<AiSettings> loadAiSettings() async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
@@ -80,6 +81,35 @@ class SettingsPreferencesDataSource {
     await preferences.setString(
       _symmetrySessionKey,
       jsonEncode(session.toJson()),
+    );
+  }
+
+  Future<Map<String, String>> loadCampaignMapMarks(
+    final String campaignId,
+  ) async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    final String raw =
+        preferences.getString('$_campaignMapMarksPrefix$campaignId') ?? '';
+    if (raw.isEmpty) {
+      return const <String, String>{};
+    }
+    final Object? decoded = jsonDecode(raw);
+    if (decoded is! Map<String, Object?>) {
+      return const <String, String>{};
+    }
+    return decoded.map(
+      (final key, final value) => MapEntry(key, value?.toString() ?? ''),
+    );
+  }
+
+  Future<void> saveCampaignMapMarks(
+    final String campaignId,
+    final Map<String, String> marks,
+  ) async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      '$_campaignMapMarksPrefix$campaignId',
+      jsonEncode(marks),
     );
   }
 }

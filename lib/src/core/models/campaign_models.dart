@@ -1,3 +1,5 @@
+import 'package:ai_prg/src/core/models/campaign_map_models.dart';
+
 /// World-frame presets for narrative (soft anchors; genre mixing allowed).
 enum CampaignSetting {
   romantasy,
@@ -897,6 +899,11 @@ class CampaignState {
       customStoryPrompt: _jsonString(
         json['customStoryPrompt'] ?? json['custom_story_prompt'],
       ),
+      mapContext: _jsonMap(json['mapContext'] ?? json['map_context']).isEmpty
+          ? null
+          : CampaignMapContext.fromJson(
+              _jsonMap(json['mapContext'] ?? json['map_context']),
+            ),
       characterPrompt: _jsonString(
         json['characterPrompt'] ?? json['character_prompt'],
       ),
@@ -929,6 +936,7 @@ class CampaignState {
     this.literaryGenre,
     this.checks = const <CampaignCheck>[],
     this.customStoryPrompt = '',
+    this.mapContext,
     this.characterPrompt = '',
     this.portraitPath = '',
     this.portraitPrompt = '',
@@ -957,6 +965,7 @@ class CampaignState {
   final List<String> choices;
   final DateTime updatedAt;
   final String customStoryPrompt;
+  final CampaignMapContext? mapContext;
   final String characterPrompt;
   final String portraitPath;
   final String portraitPrompt;
@@ -1014,6 +1023,7 @@ class CampaignState {
     final List<String>? choices,
     final DateTime? updatedAt,
     final String? customStoryPrompt,
+    final CampaignMapContext? mapContext,
     final String? characterPrompt,
     final String? portraitPath,
     final String? portraitPrompt,
@@ -1041,6 +1051,7 @@ class CampaignState {
     literaryGenre: literaryGenre ?? this.literaryGenre,
     checks: checks ?? this.checks,
     customStoryPrompt: customStoryPrompt ?? this.customStoryPrompt,
+    mapContext: mapContext ?? this.mapContext,
     characterPrompt: characterPrompt ?? this.characterPrompt,
     portraitPath: portraitPath ?? this.portraitPath,
     portraitPrompt: portraitPrompt ?? this.portraitPrompt,
@@ -1072,6 +1083,7 @@ class CampaignState {
     'choices': choices,
     'updatedAt': updatedAt.toIso8601String(),
     'customStoryPrompt': customStoryPrompt,
+    if (mapContext != null) 'mapContext': mapContext!.toJson(),
     'characterPrompt': characterPrompt,
     'portraitPath': portraitPath,
     'portraitPrompt': portraitPrompt,

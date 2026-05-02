@@ -33,6 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&display=swap" rel="stylesheet">
 
   <style>
     :root {
@@ -60,6 +61,22 @@
 
     * {
       box-sizing: border-box;
+    }
+
+    .material-symbols-outlined {
+      font-family: "Material Symbols Outlined";
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: "liga";
+      -webkit-font-smoothing: antialiased;
     }
 
     html,
@@ -1100,6 +1117,281 @@
       height: 22px;
     }
 
+    .legal-view {
+      padding: 12px 0 24px;
+    }
+
+    .legal-page-hero {
+      margin-top: 10px;
+    }
+
+    .legal-hero-card,
+    .legal-sidebar,
+    .legal-document-shell,
+    .legal-contact-panel {
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(191, 167, 111, 0.22);
+      background:
+        radial-gradient(circle at top left, rgba(191, 167, 111, 0.08), transparent 42%),
+        linear-gradient(180deg, rgba(18, 15, 13, 0.98), rgba(10, 9, 8, 0.95));
+      box-shadow: var(--shadow);
+    }
+
+    .legal-hero-card {
+      padding: clamp(28px, 4vw, 42px);
+    }
+
+    .legal-layout {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: minmax(248px, 0.34fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .legal-sidebar {
+      position: sticky;
+      top: 18px;
+      padding: 24px 20px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .legal-nav-title {
+      margin: 0;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .legal-nav-list,
+    .legal-mobile-nav-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legal-nav-button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .legal-nav-button:hover {
+      transform: translateY(-1px);
+      color: var(--text);
+      border-color: rgba(191, 167, 111, 0.2);
+    }
+
+    .legal-nav-button.is-active {
+      border-color: rgba(191, 167, 111, 0.38);
+      background: rgba(191, 167, 111, 0.12);
+      color: #f3eadb;
+      box-shadow: inset 0 0 0 1px rgba(191, 167, 111, 0.24);
+    }
+
+    .legal-nav-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
+      flex: 0 0 auto;
+      font-variation-settings: 'FILL' 1, 'wght' 350, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .legal-nav-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .legal-nav-label {
+      color: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .legal-nav-hint {
+      color: var(--dim);
+      font-size: 12px;
+      line-height: 1.45;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .legal-main {
+      min-width: 0;
+      display: grid;
+      gap: 18px;
+    }
+
+    .legal-mobile-tabs {
+      display: none;
+      position: sticky;
+      top: 10px;
+      z-index: 4;
+    }
+
+    .legal-mobile-nav-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(191, 167, 111, 0.22);
+      background: rgba(10, 9, 8, 0.94);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .legal-document-shell,
+    .legal-contact-panel {
+      padding: clamp(24px, 3vw, 32px);
+    }
+
+    .legal-document-title {
+      margin: 16px 0 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(34px, 4vw, 58px);
+      line-height: 0.98;
+      text-transform: uppercase;
+      letter-spacing: -0.04em;
+    }
+
+    .legal-document-copy {
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.72;
+      font-size: 17px;
+      max-width: 860px;
+    }
+
+    .legal-summary-grid {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .legal-summary-card {
+      padding: 18px 18px 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .legal-summary-card.is-accent {
+      border-color: rgba(191, 167, 111, 0.2);
+      background: linear-gradient(180deg, rgba(191, 167, 111, 0.12), rgba(255, 255, 255, 0.025));
+    }
+
+    .legal-summary-eyebrow {
+      margin: 0;
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .legal-summary-title {
+      margin: 12px 0 0;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.3;
+    }
+
+    .legal-summary-copy {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .legal-article {
+      margin-top: 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .legal-section {
+      padding: 22px 22px 24px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .legal-section-title {
+      margin: 0;
+      color: var(--text);
+      font-family: "Playfair Display", serif;
+      font-size: clamp(24px, 2.4vw, 32px);
+      line-height: 1.1;
+    }
+
+    .legal-section p,
+    .legal-section li {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .legal-section p {
+      margin: 14px 0 0;
+    }
+
+    .legal-section ul {
+      margin: 14px 0 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .legal-section-callout {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-left: 3px solid rgba(191, 167, 111, 0.42);
+      border-radius: 0 16px 16px 0;
+      background: rgba(191, 167, 111, 0.08);
+      color: #f2e6d2;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .legal-inline-link {
+      color: #f0d9b7;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(240, 217, 183, 0.22);
+      transition: color 180ms ease, border-color 180ms ease;
+    }
+
+    .legal-inline-link:hover {
+      color: #fff2dc;
+      border-color: rgba(255, 242, 220, 0.42);
+    }
+
+    .legal-contact-panel {
+      display: grid;
+      gap: 18px;
+    }
+
+    .legal-contact-copy {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 720px;
+    }
+
     .landing-footer {
       margin-top: 36px;
       padding: 22px 8px 10px;
@@ -1108,6 +1400,39 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 24px;
       align-items: start;
+    }
+
+    .footer-legal-nav {
+      grid-column: 1 / -1;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      justify-content: center;
+      justify-self: center;
+      align-self: center;
+      width: min(100%, 760px);
+      padding: 16px 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(191, 167, 111, 0.18);
+      background:
+        radial-gradient(circle at top center, rgba(191, 167, 111, 0.08), transparent 60%),
+        rgba(255, 255, 255, 0.02);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(14px);
+    }
+
+    .footer-legal-link {
+      color: #f0d9b7;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: color 180ms ease, transform 180ms ease;
+    }
+
+    .footer-legal-link:hover {
+      color: #fff2dc;
+      transform: translateY(-1px);
     }
 
     .footer-brand {
@@ -1212,6 +1537,19 @@
         grid-template-columns: 1fr;
       }
 
+      .legal-layout,
+      .legal-summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .legal-sidebar {
+        display: none;
+      }
+
+      .legal-mobile-tabs {
+        display: block;
+      }
+
       .feedback-cta {
         min-height: 320px;
       }
@@ -1222,6 +1560,10 @@
 
       .landing-footer {
         grid-template-columns: 1fr;
+      }
+
+      .footer-legal-nav {
+        width: 100%;
       }
     }
 
@@ -1269,7 +1611,11 @@
       .feedback-hero-card,
       .feedback-form-panel,
       .feedback-aside,
-      .feedback-contacts-panel {
+      .feedback-contacts-panel,
+      .legal-hero-card,
+      .legal-document-shell,
+      .legal-contact-panel,
+      .legal-mobile-nav-list {
         border-radius: 24px;
       }
 
@@ -1300,6 +1646,16 @@
 
       .feedback-cta-copy {
         max-width: 100%;
+      }
+
+      .legal-mobile-nav-list {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-legal-nav {
+        padding: 16px 18px;
+        gap: 12px 20px;
+        border-radius: 26px;
       }
 
       .feedback-topic-options {
@@ -1426,6 +1782,12 @@
         </section>
 
         <footer class="landing-footer section" data-reveal>
+          <div id="footer-legal-nav" class="footer-legal-nav">
+            <a id="footer-legal-offer" class="footer-legal-link" data-legal-tab="offer" href="/?view=legal&tab=offer&lang=ru"></a>
+            <a id="footer-legal-privacy" class="footer-legal-link" data-legal-tab="privacy" href="/?view=legal&tab=privacy&lang=ru"></a>
+            <a id="footer-legal-refunds" class="footer-legal-link" data-legal-tab="refunds" href="/?view=legal&tab=refunds&lang=ru"></a>
+            <a id="footer-legal-contacts" class="footer-legal-link" data-legal-tab="contacts" href="/?view=legal&tab=contacts&lang=ru"></a>
+          </div>
           <div class="footer-brand">
             <p id="footer-brand-name" class="footer-brand-name"></p>
             <p id="footer-brand-copy" class="footer-brand-copy"></p>
@@ -1543,6 +1905,72 @@
           </div>
         </section>
       </div>
+
+      <div id="legal-view" class="legal-view" hidden>
+        <section class="legal-page-hero section is-hero">
+          <div class="legal-hero-card">
+            <a id="legal-back-link" class="feedback-back-link" href="?lang=ru">
+              <span aria-hidden="true">←</span>
+              <span id="legal-back-link-label"></span>
+            </a>
+            <p id="legal-page-eyebrow" class="feedback-kicker"></p>
+            <h1 id="legal-page-title" class="feedback-page-title"></h1>
+            <p id="legal-page-subtitle" class="feedback-page-subtitle"></p>
+          </div>
+        </section>
+
+        <section class="legal-layout section is-visible">
+          <aside class="legal-sidebar">
+            <p id="legal-nav-title" class="legal-nav-title"></p>
+            <nav id="legal-sidebar-nav" class="legal-nav-list" aria-label="Legal navigation"></nav>
+          </aside>
+
+          <div class="legal-main">
+            <div class="legal-mobile-tabs">
+              <div id="legal-mobile-nav" class="legal-mobile-nav-list" aria-label="Legal tabs"></div>
+            </div>
+
+            <section class="legal-document-shell">
+              <div class="legal-document-header">
+                <p id="legal-document-kicker" class="feedback-kicker"></p>
+                <h2 id="legal-document-title" class="legal-document-title"></h2>
+                <p id="legal-document-copy" class="legal-document-copy"></p>
+              </div>
+              <div id="legal-summary-grid" class="legal-summary-grid"></div>
+              <article id="legal-article" class="legal-article"></article>
+            </section>
+
+            <section class="legal-contact-panel">
+              <div>
+                <p id="legal-contact-title" class="footer-contacts-title"></p>
+                <p id="legal-contact-copy" class="legal-contact-copy"></p>
+              </div>
+              <div class="feedback-contact-grid">
+                <a class="feedback-contact-card" href="mailto:a@svc-code.ru">
+                  <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="m4 8 8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="footer-contact-meta">
+                    <span id="legal-email-label" class="footer-contact-label"></span>
+                    <span class="footer-contact-value">a@svc-code.ru</span>
+                  </span>
+                </a>
+                <a class="feedback-contact-card" href="https://t.me/svc_alexey" target="_blank" rel="noreferrer">
+                  <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 4 3.8 10.5c-.8.3-.8 1.4.1 1.6l4.4 1.4 1.7 5c.3.9 1.4 1 1.8.2l2.5-4 4.4 3.3c.7.5 1.7.1 1.9-.7L22.5 5.3C22.7 4.5 21.8 3.7 21 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    <path d="m8.2 13.5 10.3-7.2M10 18.5l1.1-4.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="footer-contact-meta">
+                    <span id="legal-telegram-label" class="footer-contact-label"></span>
+                    <span class="footer-contact-value">@svc_alexey</span>
+                  </span>
+                </a>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
   <script>
@@ -1572,6 +2000,10 @@
           footerBrandCopy: 'Нарративная ИИ RPG',
           footerEmailLabel: 'Почта',
           footerTelegramLabel: 'Телеграм',
+          footerLegalOffer: 'Оферта',
+          footerLegalPrivacy: 'Конфиденциальность',
+          footerLegalRefunds: 'Возвраты',
+          footerLegalContacts: 'Контакты',
           feedbackCtaEyebrow: 'Ваш голос меняет игру',
           feedbackCtaTitle: 'Подскажите, куда вести следующую главу',
           feedbackCtaText: 'Оставьте обратную связь или рекомендацию по приложению. Мы читаем каждое сообщение и используем его для следующих обновлений.',
@@ -1605,6 +2037,233 @@
             'Что сбивает или мешает войти в историю',
             'Какие жанры, механики и функции вы ждете следующими'
           ],
+          legalPageEyebrow: 'Документы, правила и реквизиты',
+          legalPageTitle: 'Правовой центр',
+          legalPageSubtitle: 'Все основные условия собраны на одной странице: лицензия, конфиденциальность, возвраты и публичные контакты проекта.',
+          legalBack: 'Вернутся',
+          legalNavTitle: 'Разделы',
+          legalContactTitle: 'Нужен ответ по документам',
+          legalContactCopy: 'Если вам нужен официальный ответ по оплате, удалению данных или условиям доступа, напишите на почту или в Telegram. Мы используем эти каналы и для юридических запросов.',
+          legalDocuments: {
+            offer: {
+              navLabel: 'Оферта',
+              navHint: 'Доступ, подписки и токен-паки',
+              icon: 'description',
+              kicker: 'Лицензионная оферта',
+              title: 'Доступ к сервису по подписке и токен-пакетам',
+              copy: 'Документ описывает модель доступа к сервису «Стирая Грань», правила автопродления, момент оказания услуги и базовые ограничения разумного использования.',
+              summary: [
+                {
+                  eyebrow: 'Модель доступа',
+                  title: 'Подписка и пакеты токенов',
+                  copy: 'Пользователь получает доступ либо на оплаченный период, либо в пределах оплаченного токен-баланса.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Автопродление',
+                  title: 'Отмена до следующего списания',
+                  copy: 'Подписка продлевается автоматически, пока пользователь не отключит автопродление в личном кабинете.'
+                },
+                {
+                  eyebrow: 'Возвраты',
+                  title: 'Правила вынесены отдельно',
+                  copy: 'Отдельная вкладка фиксирует условия отмены подписки и обработки запросов на возврат.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Предмет',
+                  paragraphs: [
+                    'Исполнитель предоставляет Пользователю ограниченное, неисключительное право доступа к функциональности сервиса, AI-генерации и связанным цифровым материалам проекта «Стирая Грань».',
+                    'Доступ предоставляется на срок оплаченного периода подписки либо в пределах объема токенов, начисленных после оплаты соответствующего пакета.'
+                  ]
+                },
+                {
+                  title: '2. Подписка и автопродление',
+                  paragraphs: [
+                    'Подписка продлевается автоматически, если Пользователь не отключил автопродление до даты следующего списания.',
+                    'Отключение автопродления прекращает будущие списания, но не прерывает уже оплаченный период и не аннулирует ранее предоставленный доступ.'
+                  ]
+                },
+                {
+                  title: '3. Момент оказания услуги',
+                  paragraphs: [
+                    'Услуга считается оказанной с момента предоставления доступа к сервису, начисления квоты подписки либо зачисления токенов на аккаунт Пользователя.',
+                    'После открытия доступа Пользователь может использовать функциональность сервиса в рамках доступного тарифа и внутренних технических лимитов.'
+                  ]
+                },
+                {
+                  title: '4. Fair use и ограничения',
+                  paragraphs: [
+                    'Планы с расширенным или условно безлимитным доступом работают по модели разумного использования и могут ограничиваться антиабьюз-правилами, очередями генерации и служебными лимитами.',
+                    'Сервис оставляет за собой право временно ограничивать подозрительную активность, если она угрожает стабильности инфраструктуры или качеству доступа для других пользователей.'
+                  ],
+                  callout: 'Порядок отмены и возвратов описан во <a href="#" class="legal-inline-link" data-legal-tab="refunds">вкладке возвратов</a>.'
+                },
+                {
+                  title: '5. Контакты и реквизиты',
+                  paragraphs: [
+                    'Официальные контакты проекта публикуются во <a href="#" class="legal-inline-link" data-legal-tab="contacts">вкладке контактов</a> на этой странице.',
+                    'Если перед публичным запуском изменятся реквизиты или расчетная модель, обновленная редакция оферты будет опубликована в этом же legal center.'
+                  ]
+                }
+              ]
+            },
+            privacy: {
+              navLabel: 'Конфиденциальность',
+              navHint: 'Какие данные обрабатываются',
+              icon: 'policy',
+              kicker: 'Политика конфиденциальности',
+              title: 'Как сервис работает с данными аккаунта и платежей',
+              copy: 'Здесь зафиксировано, какие данные мы обрабатываем, для чего используем их внутри сервиса и каким каналом принимать запросы на удаление или исправление.',
+              summary: [
+                {
+                  eyebrow: 'Категории данных',
+                  title: 'Аккаунт, контент, логи',
+                  copy: 'Сервис может обрабатывать email, отображаемое имя, игровые промпты, сюжетный контент и технические события.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Платежи',
+                  title: 'Минимально необходимая передача',
+                  copy: 'Платежному провайдеру передаются только данные, необходимые для приема оплаты и подтверждения транзакции.'
+                },
+                {
+                  eyebrow: 'Запросы',
+                  title: 'Удаление, исправление, выгрузка',
+                  copy: 'Запросы субъекта данных принимаются по публичным контактам, указанным в legal center.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Какие данные обрабатываются',
+                  paragraphs: [
+                    'В рамках работы сервиса могут обрабатываться email, отображаемое имя, сценарные промпты, сюжетный контент, служебные логи, статистика использования и технические данные, необходимые для авторизации и стабильной работы AI-функций.',
+                    'Если пользователь оформляет оплату, дополнительно обрабатываются сведения, связанные с транзакцией и ее подтверждением у платежного провайдера.'
+                  ]
+                },
+                {
+                  title: '2. Цели обработки',
+                  paragraphs: [
+                    'Данные используются для авторизации, предоставления доступа к функциональности сервиса, генерации контента, поддержки пользователей, защиты от злоупотреблений и обработки платежей.',
+                    'Технические события и журналы могут анализироваться для диагностики ошибок, контроля нагрузки и улучшения качества продукта.'
+                  ]
+                },
+                {
+                  title: '3. Платежные данные',
+                  paragraphs: [
+                    'Платежная обработка выполняется через YooKassa / ЮMoney или иного подключенного провайдера.',
+                    'В адрес платежного партнера передаются только данные, необходимые для приема оплаты, статуса платежа и подтверждения транзакции. Сам legal center не хранит чувствительные реквизиты карты.'
+                  ]
+                },
+                {
+                  title: '4. Хранение и запросы субъекта данных',
+                  paragraphs: [
+                    'Данные учетной записи и журналы использования хранятся в течение срока обслуживания аккаунта и разумного периода после его прекращения, если это требуется для безопасности, обработки обращений и исполнения обязательств.',
+                    'Для запроса на удаление, исправление или выгрузку персональных данных используйте контакты из <a href="#" class="legal-inline-link" data-legal-tab="contacts">вкладки контактов</a>.'
+                  ]
+                }
+              ]
+            },
+            refunds: {
+              navLabel: 'Возвраты',
+              navHint: 'Отмена подписки и возвраты',
+              icon: 'receipt_long',
+              kicker: 'Отмена и возвраты',
+              title: 'Как отключается подписка и когда рассматривается возврат',
+              copy: 'Эта вкладка описывает базовый порядок отмены автопродления и правила обработки возвратов по подписке и токен-пакетам.',
+              summary: [
+                {
+                  eyebrow: 'Подписка',
+                  title: 'Отмена с конца периода',
+                  copy: 'После отключения автопродления доступ сохраняется до конца уже оплаченного периода.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Запросы на возврат',
+                  title: 'Проверяются по факту использования',
+                  copy: 'Возврат рассматривается с учетом времени после оплаты и того, использовались ли AI-функции или токены.'
+                },
+                {
+                  eyebrow: 'Канал связи',
+                  title: 'Через публичные контакты',
+                  copy: 'Любой запрос направляется через email или Telegram из legal center.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Отмена подписки',
+                  paragraphs: [
+                    'Подписка отключается в личном кабинете. После отмены доступ сохраняется до конца уже оплаченного периода, а будущие списания прекращаются.',
+                    'Если в аккаунте активен статус canceling, это означает, что подписка уже остановлена на следующий цикл, но текущий период еще действует.'
+                  ]
+                },
+                {
+                  title: '2. Возврат по подписке',
+                  paragraphs: [
+                    'Базовое правило текущей версии: запрос на возврат рассматривается в течение 24 часов с момента оплаты, если по соответствующему периоду не было использования AI-функций или иного существенного потребления оплаченного доступа.',
+                    'Если доступ уже был использован, решение о возврате принимается индивидуально с учетом характера использования и ограничений платежного провайдера.'
+                  ]
+                },
+                {
+                  title: '3. Возврат по токен-паку',
+                  paragraphs: [
+                    'Возврат токен-пака возможен, если токены не были израсходованы полностью или частично и если возврат допускается правилами платежного провайдера и действующим законодательством.',
+                    'Если токены были списаны на генерации, это считается фактическим оказанием цифровой услуги.'
+                  ]
+                },
+                {
+                  title: '4. Как отправить запрос',
+                  paragraphs: [
+                    'При обращении укажите email аккаунта, дату платежа и краткое описание ситуации. Это ускорит проверку статуса и решение по заявке.',
+                    'Актуальные каналы связи указаны во <a href="#" class="legal-inline-link" data-legal-tab="contacts">вкладке контактов</a>.'
+                  ]
+                }
+              ]
+            },
+            contacts: {
+              navLabel: 'Контакты',
+              navHint: 'Публичные каналы связи',
+              icon: 'mail',
+              kicker: 'Контакты проекта',
+              title: 'Куда писать по оплате, данным и работе сервиса',
+              copy: 'Публичные каналы ниже используются для поддержки, юридических запросов и уточнений по доступу к сервису. Если реквизиты будут расширены перед публичным запуском, они появятся на этой вкладке.',
+              summary: [
+                {
+                  eyebrow: 'Почта',
+                  title: 'a@svc-code.ru',
+                  copy: 'Основной канал для запросов по оплате, данным и официальным обращениям.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Telegram',
+                  title: '@svc_alexey',
+                  copy: 'Быстрый канал для уточнений и поддержки по продукту.'
+                },
+                {
+                  eyebrow: 'Платежный партнер',
+                  title: 'YooKassa / ЮMoney',
+                  copy: 'Платежная обработка и подтверждение транзакций выполняются через подключенного провайдера.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Поддержка и юридические запросы',
+                  paragraphs: [
+                    'Для вопросов по доступу к сервису, подписке, возвратам или обработке персональных данных используйте email a@svc-code.ru.',
+                    'Если нужен быстрый контакт по продуктовым вопросам, можно написать в Telegram @svc_alexey.'
+                  ]
+                },
+                {
+                  title: '2. Реквизиты и публикация обновлений',
+                  paragraphs: [
+                    'Финальная редакция оферты, платежные реквизиты и иные обязательные публикации будут поддерживаться в актуальном состоянии внутри этого legal center.',
+                    'Если в процессе запуска изменятся расчетная модель, платежный партнер или набор публичных реквизитов, эта вкладка будет обновлена одновременно с основной офертой.'
+                  ]
+                }
+              ]
+            }
+          },
           worlds: [
             {
               title: 'КИБЕР-НУАР',
@@ -1685,6 +2344,10 @@
           footerBrandCopy: 'Narrative AI RPG',
           footerEmailLabel: 'Email',
           footerTelegramLabel: 'Telegram',
+          footerLegalOffer: 'License',
+          footerLegalPrivacy: 'Privacy',
+          footerLegalRefunds: 'Refunds',
+          footerLegalContacts: 'Contacts',
           feedbackCtaEyebrow: 'Your voice shapes the world',
           feedbackCtaTitle: 'Tell us where the next chapter should go',
           feedbackCtaText: 'Share feedback or recommendations about the app. We read every message and use it to guide the next updates.',
@@ -1718,6 +2381,233 @@
             'What interrupts the feeling of being inside the story',
             'Which genres, mechanics, or features you want next'
           ],
+          legalPageEyebrow: 'Documents, rules, and contacts',
+          legalPageTitle: 'Legal center',
+          legalPageSubtitle: 'All core terms live on one page: license, privacy, refunds, and public project contacts.',
+          legalBack: 'Back to landing',
+          legalNavTitle: 'Sections',
+          legalContactTitle: 'Need an answer about the documents',
+          legalContactCopy: 'If you need an official answer about billing, data deletion, or access terms, use email or Telegram below. These are the same channels we use for legal requests.',
+          legalDocuments: {
+            offer: {
+              navLabel: 'License',
+              navHint: 'Access, subscriptions, token packs',
+              icon: 'description',
+              kicker: 'License offer',
+              title: 'Access to the service through subscriptions and token packs',
+              copy: 'This document explains the access model for Beyond the Verge, subscription renewal, the moment of service delivery, and baseline fair-use limits.',
+              summary: [
+                {
+                  eyebrow: 'Access model',
+                  title: 'Subscriptions and token packs',
+                  copy: 'Users receive access for a paid billing period or within the limits of the purchased token balance.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Auto-renew',
+                  title: 'Cancel before the next charge',
+                  copy: 'Subscriptions renew automatically until the user disables renewal in the account area.'
+                },
+                {
+                  eyebrow: 'Refunds',
+                  title: 'Handled in a separate section',
+                  copy: 'A dedicated tab defines cancellation timing and how refund requests are reviewed.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Scope of access',
+                  paragraphs: [
+                    'The service grants the user a limited, non-exclusive right to access the product, AI generation flows, and related digital materials of the Beyond the Verge project.',
+                    'Access is provided for the duration of a paid subscription period or within the number of tokens credited after the purchase of a token pack.'
+                  ]
+                },
+                {
+                  title: '2. Subscription renewal',
+                  paragraphs: [
+                    'A subscription renews automatically unless the user disables auto-renewal before the next billing date.',
+                    'Disabling auto-renewal stops future charges but does not interrupt the already paid period or revoke access that has already been granted.'
+                  ]
+                },
+                {
+                  title: '3. When the service is considered delivered',
+                  paragraphs: [
+                    'The service is considered delivered once access to the product is granted, a subscription quota becomes available, or tokens are credited to the user account.',
+                    'After access is opened, the user may consume the service within the limits of the selected plan and the internal technical constraints of the platform.'
+                  ]
+                },
+                {
+                  title: '4. Fair use and technical limits',
+                  paragraphs: [
+                    'Plans marketed as extended or effectively unlimited access still operate under a fair-use model and may be constrained by anti-abuse rules, generation queues, or service-level safeguards.',
+                    'The service may temporarily limit suspicious activity if it threatens infrastructure stability or the quality of access for other users.'
+                  ],
+                  callout: 'The cancellation and refund flow is described in the <a href="#" class="legal-inline-link" data-legal-tab="refunds">refunds tab</a>.'
+                },
+                {
+                  title: '5. Contacts and future updates',
+                  paragraphs: [
+                    'Official project contacts are published in the <a href="#" class="legal-inline-link" data-legal-tab="contacts">contacts tab</a> on this page.',
+                    'If payment details or the commercial model change before a wider launch, the updated offer will be published in this same legal center.'
+                  ]
+                }
+              ]
+            },
+            privacy: {
+              navLabel: 'Privacy',
+              navHint: 'What data is processed',
+              icon: 'policy',
+              kicker: 'Privacy policy',
+              title: 'How the service handles account and payment data',
+              copy: 'This section records which types of data we process, why they are used inside the service, and how users can request deletion or correction.',
+              summary: [
+                {
+                  eyebrow: 'Data groups',
+                  title: 'Account, content, logs',
+                  copy: 'The service may process email, display name, prompts, narrative content, and technical events.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Payments',
+                  title: 'Minimum necessary transfer',
+                  copy: 'Only the data required to accept a payment and confirm the transaction is shared with the payment provider.'
+                },
+                {
+                  eyebrow: 'Requests',
+                  title: 'Deletion, correction, export',
+                  copy: 'Data subject requests are handled through the public contacts listed in this legal center.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Types of data processed',
+                  paragraphs: [
+                    'The service may process email, display name, story prompts, generated narrative content, service logs, usage statistics, and technical data needed for authentication and stable AI operation.',
+                    'If a user makes a payment, the system also processes transaction-related data required for billing confirmation.'
+                  ]
+                },
+                {
+                  title: '2. Purposes of processing',
+                  paragraphs: [
+                    'Data is used for authentication, access control, content generation, user support, fraud prevention, and payment handling.',
+                    'Technical events and logs may also be reviewed for error diagnosis, load control, and product quality improvements.'
+                  ]
+                },
+                {
+                  title: '3. Payment data',
+                  paragraphs: [
+                    'Payment processing is carried out through YooKassa / ЮMoney or another connected payment partner.',
+                    'Only the information necessary to accept a payment, determine its status, and confirm the transaction is transferred to the provider. Sensitive card credentials are not stored in the legal center itself.'
+                  ]
+                },
+                {
+                  title: '4. Storage and data subject requests',
+                  paragraphs: [
+                    'Account data and usage records are stored for the lifetime of the account and for a reasonable period afterward when needed for security, support, or legal obligations.',
+                    'To request deletion, correction, or export of personal data, use the contacts listed in the <a href="#" class="legal-inline-link" data-legal-tab="contacts">contacts tab</a>.'
+                  ]
+                }
+              ]
+            },
+            refunds: {
+              navLabel: 'Refunds',
+              navHint: 'Cancellation and refund handling',
+              icon: 'receipt_long',
+              kicker: 'Cancellation and refunds',
+              title: 'How auto-renewal is stopped and when refunds are reviewed',
+              copy: 'This tab explains the baseline rules for stopping recurring billing and how refund requests are evaluated for subscriptions and token packs.',
+              summary: [
+                {
+                  eyebrow: 'Subscription',
+                  title: 'Cancels at period end',
+                  copy: 'Once auto-renewal is disabled, access remains active until the already paid period ends.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Refund review',
+                  title: 'Depends on actual usage',
+                  copy: 'Refund requests are reviewed against the time since payment and whether AI access or tokens have already been consumed.'
+                },
+                {
+                  eyebrow: 'Contact channel',
+                  title: 'Handled through public contacts',
+                  copy: 'Every request should be submitted through the email or Telegram channels listed in this legal center.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Subscription cancellation',
+                  paragraphs: [
+                    'Subscriptions are stopped from the account area. After cancellation, access remains active until the end of the already paid period and future charges are prevented.',
+                    'If an account shows a canceling state, it means the next renewal has been stopped while the current period is still active.'
+                  ]
+                },
+                {
+                  title: '2. Subscription refunds',
+                  paragraphs: [
+                    'Current baseline rule: a refund request may be reviewed within 24 hours of payment if no AI features or materially paid access have been consumed for the corresponding period.',
+                    'If the paid period has already been used, the decision is reviewed individually based on usage and the constraints of the payment provider.'
+                  ]
+                },
+                {
+                  title: '3. Token pack refunds',
+                  paragraphs: [
+                    'A token pack may be refunded if the tokens were not spent in whole or in part and if the request is compatible with the rules of the payment provider and applicable law.',
+                    'If tokens have already been consumed for generation, that is treated as a delivered digital service.'
+                  ]
+                },
+                {
+                  title: '4. How to submit a request',
+                  paragraphs: [
+                    'Include the account email, payment date, and a short description of the issue when you contact support. This speeds up the review.',
+                    'The active support channels are listed in the <a href="#" class="legal-inline-link" data-legal-tab="contacts">contacts tab</a>.'
+                  ]
+                }
+              ]
+            },
+            contacts: {
+              navLabel: 'Contacts',
+              navHint: 'Public support channels',
+              icon: 'mail',
+              kicker: 'Project contacts',
+              title: 'Where to write about billing, data, or service operation',
+              copy: 'The channels below are used for product support, legal requests, and questions about access to the service. If billing details expand before a public launch, they will be published on this tab.',
+              summary: [
+                {
+                  eyebrow: 'Email',
+                  title: 'a@svc-code.ru',
+                  copy: 'Primary channel for billing, privacy, and formal support requests.',
+                  tone: 'accent'
+                },
+                {
+                  eyebrow: 'Telegram',
+                  title: '@svc_alexey',
+                  copy: 'Fast channel for product clarifications and general support.'
+                },
+                {
+                  eyebrow: 'Payment partner',
+                  title: 'YooKassa / ЮMoney',
+                  copy: 'Payment processing and transaction confirmation are handled through the connected provider.'
+                }
+              ],
+              sections: [
+                {
+                  title: '1. Support and legal requests',
+                  paragraphs: [
+                    'For questions about access, subscriptions, refunds, or personal data, contact a@svc-code.ru.',
+                    'If you need a faster product conversation, you can also write to @svc_alexey on Telegram.'
+                  ]
+                },
+                {
+                  title: '2. Publication of future details',
+                  paragraphs: [
+                    'The final public offer, payment details, and any required publication updates will be maintained inside this legal center.',
+                    'If the commercial model, provider, or public business details change during launch, this tab will be updated together with the offer.'
+                  ]
+                }
+              ]
+            }
+          },
           worlds: [
             {
               title: 'CYBER-NOIR',
@@ -1781,6 +2671,7 @@
 
       const stageProgress = [0.12, 0.34, 0.58, 0.8, 1];
       const supportedLanguages = ['ru', 'en'];
+      const legalTabOrder = ['offer', 'privacy', 'refunds', 'contacts'];
       const languageStorageKey = 'aether.landing_language';
 
       const loadingContainer = document.getElementById('loading-container');
@@ -1808,11 +2699,18 @@
       const languageButtons = [languageRuButton, languageEnButton];
       const urlParams = new URLSearchParams(window.location.search);
       const landingView = document.getElementById('landing-view');
+      const footerLegalNav = document.getElementById('footer-legal-nav');
       const feedbackView = document.getElementById('feedback-view');
+      const legalView = document.getElementById('legal-view');
       const feedbackCtaButton = document.getElementById('feedback-cta-button');
       const feedbackBackButton = document.getElementById('feedback-back-button');
       const feedbackSubmitButton = document.getElementById('feedback-submit-button');
       const feedbackBackLink = document.getElementById('feedback-back-link');
+      const legalBackLink = document.getElementById('legal-back-link');
+      const legalSidebarNav = document.getElementById('legal-sidebar-nav');
+      const legalMobileNav = document.getElementById('legal-mobile-nav');
+      const legalSummaryGrid = document.getElementById('legal-summary-grid');
+      const legalArticle = document.getElementById('legal-article');
       const feedbackForm = document.getElementById('feedback-form');
       const feedbackStatus = document.getElementById('feedback-status');
       const feedbackAsideList = document.getElementById('feedback-aside-list');
@@ -1826,6 +2724,7 @@
       let currentLanguage = resolveInitialLanguage();
       let text = copy[currentLanguage];
       let currentView = resolveView(urlParams.get('view'));
+      let currentLegalTab = resolveLegalTab(urlParams.get('tab'));
       const isYandexCallbackPath = window.location.pathname === '/auth/yandex/callback';
       const hasYandexLegacyCode = Boolean(urlParams.get('code'));
       const hasYandexLegacyState = Boolean(urlParams.get('state'));
@@ -1878,7 +2777,11 @@
       }
 
       function resolveView(value) {
-        return value === 'feedback' ? 'feedback' : 'landing';
+        return value === 'feedback' || value === 'legal' ? value : 'landing';
+      }
+
+      function resolveLegalTab(value) {
+        return legalTabOrder.includes(value) ? value : 'offer';
       }
 
       function redirectLegacyYandexCallbackToBackend() {
@@ -1962,13 +2865,22 @@
         nextParams.set('lang', currentLanguage);
         if (currentView === 'feedback') {
           nextParams.set('view', 'feedback');
+          nextParams.delete('tab');
+        } else if (currentView === 'legal') {
+          nextParams.set('view', 'legal');
+          nextParams.set('tab', currentLegalTab);
         } else {
           nextParams.delete('view');
+          nextParams.delete('tab');
         }
         const nextQuery = nextParams.toString();
         const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
         const method = mode === 'push' ? 'pushState' : 'replaceState';
-        window.history[method]({ view: currentView, lang: currentLanguage }, '', nextUrl);
+        window.history[method](
+          { view: currentView, lang: currentLanguage, tab: currentLegalTab },
+          '',
+          nextUrl
+        );
       }
 
       function persistLanguage() {
@@ -1999,9 +2911,27 @@
 
       function updateDocumentTitle() {
         document.documentElement.lang = currentLanguage;
-        document.title = currentView === 'feedback'
-          ? `${text.feedbackCtaButton} • ${text.brand}`
-          : text.brand;
+        if (currentView === 'feedback') {
+          document.title = `${text.feedbackCtaButton} • ${text.brand}`;
+          return;
+        }
+        if (currentView === 'legal') {
+          document.title = `${getCurrentLegalDocument().navLabel} • ${text.brand}`;
+          return;
+        }
+        document.title = text.brand;
+      }
+
+      function getCurrentLegalDocument() {
+        return text.legalDocuments[currentLegalTab] || text.legalDocuments.offer;
+      }
+
+      function buildLegalViewHref(tabId) {
+        const href = new URL(window.location.pathname, window.location.origin);
+        href.searchParams.set('view', 'legal');
+        href.searchParams.set('tab', resolveLegalTab(tabId));
+        href.searchParams.set('lang', currentLanguage);
+        return `${href.pathname}${href.search}${window.location.hash}`;
       }
 
       function createTeaserMessage(role, textValue, extra) {
@@ -2230,13 +3160,146 @@
         }
       }
 
+      function renderFooterLegalLinks() {
+        const mappings = [
+          ['footer-legal-offer', text.footerLegalOffer, 'offer'],
+          ['footer-legal-privacy', text.footerLegalPrivacy, 'privacy'],
+          ['footer-legal-refunds', text.footerLegalRefunds, 'refunds'],
+          ['footer-legal-contacts', text.footerLegalContacts, 'contacts']
+        ];
+        mappings.forEach(([id, label, tabId]) => {
+          const link = document.getElementById(id);
+          if (!link) {
+            return;
+          }
+          link.textContent = label;
+          link.setAttribute('href', buildLegalViewHref(tabId));
+        });
+      }
+
+      function createLegalNavButton(tabId, documentData) {
+        const button = document.createElement('button');
+        const isActive = tabId === currentLegalTab;
+        button.type = 'button';
+        button.className = `legal-nav-button${isActive ? ' is-active' : ''}`;
+        button.dataset.legalTab = tabId;
+        button.setAttribute('aria-pressed', String(isActive));
+        button.innerHTML = `
+          <span class="material-symbols-outlined legal-nav-icon" aria-hidden="true">${documentData.icon || 'description'}</span>
+          <span class="legal-nav-copy">
+            <span class="legal-nav-label">${documentData.navLabel}</span>
+            <span class="legal-nav-hint">${documentData.navHint}</span>
+          </span>
+        `;
+        return button;
+      }
+
+      function renderLegalNavigation() {
+        [legalSidebarNav, legalMobileNav].forEach((host) => {
+          host.innerHTML = '';
+          legalTabOrder.forEach((tabId) => {
+            host.appendChild(createLegalNavButton(tabId, text.legalDocuments[tabId]));
+          });
+        });
+      }
+
+      function renderLegalSummaryCards(items) {
+        legalSummaryGrid.innerHTML = '';
+        items.forEach((item) => {
+          const card = document.createElement('article');
+          card.className = `legal-summary-card${item.tone === 'accent' ? ' is-accent' : ''}`;
+          card.innerHTML = `
+            <p class="legal-summary-eyebrow">${item.eyebrow}</p>
+            <h3 class="legal-summary-title">${item.title}</h3>
+            <p class="legal-summary-copy">${item.copy}</p>
+          `;
+          legalSummaryGrid.appendChild(card);
+        });
+      }
+
+      function renderLegalSections(sections) {
+        legalArticle.innerHTML = '';
+        sections.forEach((section) => {
+          const block = document.createElement('section');
+          block.className = 'legal-section';
+          const title = document.createElement('h3');
+          title.className = 'legal-section-title';
+          title.textContent = section.title;
+          block.appendChild(title);
+          (section.paragraphs || []).forEach((paragraphHtml) => {
+            const paragraph = document.createElement('p');
+            paragraph.innerHTML = paragraphHtml;
+            block.appendChild(paragraph);
+          });
+          if (Array.isArray(section.list) && section.list.length) {
+            const list = document.createElement('ul');
+            section.list.forEach((entry) => {
+              const item = document.createElement('li');
+              item.innerHTML = entry;
+              list.appendChild(item);
+            });
+            block.appendChild(list);
+          }
+          if (section.callout) {
+            const callout = document.createElement('div');
+            callout.className = 'legal-section-callout';
+            callout.innerHTML = section.callout;
+            block.appendChild(callout);
+          }
+          legalArticle.appendChild(block);
+        });
+      }
+
+      function renderLegalView() {
+        const legalDocument = getCurrentLegalDocument();
+        setText('legal-back-link-label', text.legalBack);
+        setText('legal-page-eyebrow', text.legalPageEyebrow);
+        setText('legal-page-title', text.legalPageTitle);
+        setText('legal-page-subtitle', text.legalPageSubtitle);
+        setText('legal-nav-title', text.legalNavTitle);
+        setText('legal-document-kicker', legalDocument.kicker);
+        setText('legal-document-title', legalDocument.title);
+        setText('legal-document-copy', legalDocument.copy);
+        setText('legal-contact-title', text.legalContactTitle);
+        setText('legal-contact-copy', text.legalContactCopy);
+        setText('legal-email-label', text.footerEmailLabel);
+        setText('legal-telegram-label', text.footerTelegramLabel);
+        legalBackLink.href = `${window.location.pathname}?lang=${currentLanguage}`;
+        renderLegalNavigation();
+        renderLegalSummaryCards(legalDocument.summary || []);
+        renderLegalSections(legalDocument.sections || []);
+      }
+
+      function snapToTop() {
+        const root = document.scrollingElement || document.documentElement;
+        root.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0, 0);
+      }
+
+      function setLegalTab(nextTab, options) {
+        currentLegalTab = resolveLegalTab(nextTab);
+        renderLegalView();
+        updateDocumentTitle();
+        if (options && options.updateUrl) {
+          syncLanguageUrl(options.historyMode || 'push');
+        } else if (currentView === 'legal') {
+          syncLanguageUrl();
+        }
+      }
+
       function setView(nextView, options) {
         currentView = resolveView(nextView);
         landingView.hidden = currentView !== 'landing';
         feedbackView.hidden = currentView !== 'feedback';
+        legalView.hidden = currentView !== 'legal';
+        if (currentView === 'legal') {
+          renderLegalView();
+        }
+        snapToTop();
         updateDocumentTitle();
         if (!(options && options.skipScroll)) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.requestAnimationFrame(snapToTop);
         }
         if (options && options.updateUrl) {
           syncLanguageUrl(options.historyMode || 'push');
@@ -2251,6 +3314,14 @@
 
       function openLandingView() {
         setView('landing', { updateUrl: true, historyMode: 'push' });
+      }
+
+      function openLegalView(tabId, options) {
+        currentLegalTab = resolveLegalTab(tabId);
+        setView('legal', {
+          updateUrl: true,
+          historyMode: options && options.historyMode ? options.historyMode : 'push'
+        });
       }
 
       function syncRenderedSectionState() {
@@ -2285,6 +3356,7 @@
         setText('footer-contacts-title', text.footerContactsTitle);
         setText('footer-email-label', text.footerEmailLabel);
         setText('footer-telegram-label', text.footerTelegramLabel);
+        renderFooterLegalLinks();
         launchButton.textContent = text.launch;
         howButton.textContent = text.how;
         teaserSend.textContent = text.teaserSend;
@@ -2308,6 +3380,7 @@
         renderWorlds();
         renderTechCards();
         renderFeedbackView();
+        renderLegalView();
         updateDocumentTitle();
         syncRenderedSectionState();
       }
@@ -2930,6 +4003,36 @@
         event.preventDefault();
         openLandingView();
       });
+      legalBackLink.addEventListener('click', function (event) {
+        event.preventDefault();
+        openLandingView();
+      });
+      footerLegalNav.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-legal-tab]');
+        if (!trigger) {
+          return;
+        }
+        event.preventDefault();
+        openLegalView(trigger.dataset.legalTab, { historyMode: 'push' });
+      });
+      [legalSidebarNav, legalMobileNav].forEach((host) => {
+        host.addEventListener('click', function (event) {
+          const trigger = event.target.closest('[data-legal-tab]');
+          if (!trigger) {
+            return;
+          }
+          event.preventDefault();
+          setLegalTab(trigger.dataset.legalTab, { updateUrl: true, historyMode: 'push' });
+        });
+      });
+      legalArticle.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-legal-tab]');
+        if (!trigger) {
+          return;
+        }
+        event.preventDefault();
+        setLegalTab(trigger.dataset.legalTab, { updateUrl: true, historyMode: 'push' });
+      });
       feedbackForm.addEventListener('submit', function (event) {
         event.preventDefault();
         submitFeedbackForm();
@@ -2959,7 +4062,9 @@
         runStartupVersionCheck();
       });
       window.addEventListener('popstate', function () {
-        currentView = resolveView(new URLSearchParams(window.location.search).get('view'));
+        const params = new URLSearchParams(window.location.search);
+        currentView = resolveView(params.get('view'));
+        currentLegalTab = resolveLegalTab(params.get('tab'));
         setView(currentView, { updateUrl: false, skipScroll: true });
       });
       document.addEventListener('visibilitychange', function () {

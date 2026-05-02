@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
 from app.db.session import get_db_session
-from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
+from app.schemas.campaigns import CampaignMapResponse, CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, ReturnSummaryResponse, WorldRumorResponse
 from app.services.ai_gateway import AiGatewayService, classify_provider_error
 from app.services.billing import BillingService
 from app.services.butterfly import ButterflyService
+from app.services.campaign_map import CampaignMapService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
@@ -33,6 +34,7 @@ rag_service = RagService()
 simulation_service = SimulationService()
 ai_gateway = AiGatewayService()
 butterfly_service = ButterflyService()
+map_service = CampaignMapService()
 billing_service = BillingService()
 
 
@@ -148,9 +150,13 @@ def _build_process_turn_response(
     *,
     turn: CampaignTurn,
     snapshot: CampaignSnapshot,
+    map_context: dict[str, Any] | None = None,
 ) -> ProcessTurnResponse:
     llm_payload = turn.llm_response_json if isinstance(turn.llm_response_json, dict) else {}
     usage_payload = turn.llm_usage_json if isinstance(turn.llm_usage_json, dict) else {}
+    response_state = dict(snapshot.state_json or {})
+    if map_context:
+        response_state["map_context"] = map_context
     return ProcessTurnResponse(
         narration=str(llm_payload.get("narration", "")).strip(),
         choices=[str(item) for item in llm_payload.get("choices", []) if str(item).strip()],
@@ -158,7 +164,8 @@ def _build_process_turn_response(
         memory_entry=str(llm_payload.get("memory_entry", "")).strip(),
         request_id=str(usage_payload.get("request_id", "") or ""),
         campaign_snapshot_version=snapshot.version,
-        state=snapshot.state_json,
+        state=response_state,
+        map_context=map_context,
     )
 
 
@@ -224,11 +231,21 @@ async def create_campaign(
         location=str(state.get("location", "")),
         world_state=world_state,
     )
+    map_context = await map_service.build_map_context_for_user(
+        session,
+        campaign=campaign,
+        state=state,
+        world_state=world_state,
+        user_id=user.id,
+    )
     await session.commit()
+    response_state = dict(state)
+    response_state["map_context"] = map_context
     return CampaignStateResponse(
         campaign=CampaignResponse.model_validate(campaign),
         snapshot_version=snapshot.version,
-        state=state,
+        state=response_state,
+        map_context=map_context,
     )
 
 
@@ -288,10 +305,24 @@ async def get_campaign_state(
     snapshot = await session.get(CampaignSnapshot, campaign.current_snapshot_id)
     if snapshot is None:
         raise HTTPException(status_code=404, detail="snapshot_not_found")
+    world_state = await session.scalar(select(WorldState).where(WorldState.campaign_id == campaign.id))
+    map_context: dict[str, Any] | None = None
+    response_state = dict(snapshot.state_json or {})
+    if world_state is not None:
+        map_context = await map_service.build_map_context_for_user(
+            session,
+            campaign=campaign,
+            state=response_state,
+            world_state=world_state,
+            user_id=user.id,
+        )
+        response_state["map_context"] = map_context
+        await session.commit()
     return CampaignStateResponse(
         campaign=CampaignResponse.model_validate(campaign),
         snapshot_version=snapshot.version,
-        state=snapshot.state_json,
+        state=response_state,
+        map_context=map_context,
     )
 
 
@@ -333,6 +364,47 @@ async def get_campaign_rumors(
     ]
 
 
+@router.get("/{campaign_id}/map", response_model=CampaignMapResponse)
+async def get_campaign_map(
+    campaign_id: str,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> CampaignMapResponse:
+    campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
+    snapshot = await session.get(CampaignSnapshot, campaign.current_snapshot_id)
+    world_state = await session.scalar(select(WorldState).where(WorldState.campaign_id == campaign.id))
+    if snapshot is None or world_state is None:
+        raise HTTPException(status_code=404, detail="campaign_runtime_not_found")
+    payload = await map_service.build_map(
+        session,
+        campaign=campaign,
+        state=dict(snapshot.state_json or {}),
+        world_state=world_state,
+        user_id=user.id,
+    )
+    await session.commit()
+    return CampaignMapResponse(**payload)
+
+
+@router.get("/{campaign_id}/return-summary", response_model=ReturnSummaryResponse)
+async def get_campaign_return_summary(
+    campaign_id: str,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> ReturnSummaryResponse:
+    campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
+    world_state = await session.scalar(select(WorldState).where(WorldState.campaign_id == campaign.id))
+    if world_state is None:
+        raise HTTPException(status_code=404, detail="campaign_runtime_not_found")
+    payload = await map_service.build_return_summary(
+        session,
+        campaign=campaign,
+        user_id=user.id,
+        world_state=world_state,
+    )
+    return ReturnSummaryResponse(**payload)
+
+
 @router.post("/{campaign_id}/turns/process", response_model=ProcessTurnResponse)
 async def process_turn(
     campaign_id: str,
@@ -350,9 +422,21 @@ async def process_turn(
     if existing_turn is not None:
         existing_snapshot = await session.get(CampaignSnapshot, existing_turn.snapshot_id)
         if existing_snapshot is not None:
+            existing_world_state = await session.scalar(select(WorldState).where(WorldState.campaign_id == campaign.id))
+            map_context = None
+            if existing_world_state is not None:
+                map_context = await map_service.build_map_context_for_user(
+                    session,
+                    campaign=campaign,
+                    state=dict(existing_snapshot.state_json or {}),
+                    world_state=existing_world_state,
+                    user_id=user.id,
+                )
+                await session.commit()
             return _build_process_turn_response(
                 turn=existing_turn,
                 snapshot=existing_snapshot,
+                map_context=map_context,
             )
     snapshot = await session.get(CampaignSnapshot, campaign.current_snapshot_id)
     world_state = await session.scalar(select(WorldState).where(WorldState.campaign_id == campaign.id))
@@ -440,6 +524,13 @@ async def process_turn(
         location=str(next_state.get("location", "")),
         world_state=world_state,
     )
+    map_context = await map_service.build_map_context_for_user(
+        session,
+        campaign=campaign,
+        state=next_state,
+        world_state=world_state,
+        user_id=user.id,
+    )
     world_state, tick = simulation_service.advance(world_state)
     session.add(tick)
     next_snapshot = CampaignSnapshot(
@@ -524,6 +615,8 @@ async def process_turn(
             metadata_json=llm_payload.get("state_changes", {}),
         )
     await session.commit()
+    response_state = dict(next_state)
+    response_state["map_context"] = map_context
 
     return ProcessTurnResponse(
         narration=str(llm_payload.get("narration", "")).strip(),
@@ -532,5 +625,6 @@ async def process_turn(
         memory_entry=str(llm_payload.get("memory_entry", "")).strip(),
         request_id=request_id,
         campaign_snapshot_version=next_snapshot.version,
-        state=next_state,
+        state=response_state,
+        map_context=map_context,
     )

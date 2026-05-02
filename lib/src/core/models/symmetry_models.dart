@@ -85,6 +85,7 @@ class SymmetryCampaignStateResponse {
     required this.campaignId,
     required this.snapshotVersion,
     required this.state,
+    required this.mapContext,
   });
 
   factory SymmetryCampaignStateResponse.fromJson(
@@ -95,12 +96,14 @@ class SymmetryCampaignStateResponse {
       campaignId: (campaign['id'] as String?) ?? '',
       snapshotVersion: (json['snapshot_version'] as int?) ?? 0,
       state: _jsonMap(json['state']),
+      mapContext: _jsonMap(json['map_context']),
     );
   }
 
   final String campaignId;
   final int snapshotVersion;
   final Map<String, Object?> state;
+  final Map<String, Object?> mapContext;
 }
 
 class SymmetryCampaignSummary {
@@ -143,6 +146,7 @@ class SymmetryTurnResponse {
     required this.requestId,
     required this.snapshotVersion,
     required this.state,
+    required this.mapContext,
   });
 
   factory SymmetryTurnResponse.fromJson(final Map<String, Object?> json) =>
@@ -158,6 +162,7 @@ class SymmetryTurnResponse {
         requestId: (json['request_id'] as String?) ?? '',
         snapshotVersion: (json['campaign_snapshot_version'] as int?) ?? 0,
         state: _jsonMap(json['state']),
+        mapContext: _jsonMap(json['map_context']),
       );
 
   final String narration;
@@ -167,6 +172,7 @@ class SymmetryTurnResponse {
   final String requestId;
   final int snapshotVersion;
   final Map<String, Object?> state;
+  final Map<String, Object?> mapContext;
 }
 
 class SymmetryWorldRumor {
@@ -176,8 +182,8 @@ class SymmetryWorldRumor {
     required this.eventText,
     required this.importance,
     required this.locationSlug,
-    this.locationTitle,
     required this.createdAt,
+    this.locationTitle,
   });
 
   factory SymmetryWorldRumor.fromJson(final Map<String, Object?> json) =>

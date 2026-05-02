@@ -4,23 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Политика конфиденциальности</title>
-    <style>
-      body { margin: 0; font-family: Georgia, serif; background: #f6f2ea; color: #1f1b16; }
-      main { max-width: 880px; margin: 0 auto; padding: 48px 20px 80px; line-height: 1.65; }
-    </style>
+    <meta http-equiv="refresh" content="0; url=/?view=legal&tab=privacy&lang=ru" />
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const lang = params.get('lang') === 'en' ? 'en' : 'ru';
+        const target = new URL('/', window.location.origin);
+        target.searchParams.set('view', 'legal');
+        target.searchParams.set('tab', 'privacy');
+        target.searchParams.set('lang', lang);
+        window.location.replace(target.toString());
+      })();
+    </script>
   </head>
   <body>
-    <main>
-      <h1>Политика конфиденциальности</h1>
-      <p>Сервис обрабатывает email, отображаемое имя, промпты, сюжетный контент, технические логи, статистику использования и данные, необходимые для платежей.</p>
-      <h2>1. Цели обработки</h2>
-      <p>Данные используются для авторизации, предоставления AI-функционала, поддержки пользователей, защиты от злоупотреблений и проведения платежей.</p>
-      <h2>2. Платежные данные</h2>
-      <p>Платежная обработка осуществляется через YooKassa / ЮMoney. В адрес платежного провайдера передаются только данные, необходимые для приема оплаты и подтверждения транзакций.</p>
-      <h2>3. Хранение</h2>
-      <p>Данные учетной записи и журнал использования хранятся в течение срока обслуживания аккаунта и разумного периода после его прекращения для исполнения обязательств, безопасности и обработки обращений.</p>
-      <h2>4. Запросы субъекта данных</h2>
-      <p>Для запроса на удаление, исправление или выгрузку персональных данных: support@example.com</p>
-    </main>
+    <p><a href="/?view=legal&tab=privacy&lang=ru">Перейти в legal center</a></p>
   </body>
 </html>

@@ -4,19 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Контакты и реквизиты</title>
-    <style>
-      body { margin: 0; font-family: Georgia, serif; background: #f6f2ea; color: #1f1b16; }
-      main { max-width: 880px; margin: 0 auto; padding: 48px 20px 80px; line-height: 1.65; }
-    </style>
+    <meta http-equiv="refresh" content="0; url=/?view=legal&tab=contacts&lang=ru" />
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const lang = params.get('lang') === 'en' ? 'en' : 'ru';
+        const target = new URL('/', window.location.origin);
+        target.searchParams.set('view', 'legal');
+        target.searchParams.set('tab', 'contacts');
+        target.searchParams.set('lang', lang);
+        window.location.replace(target.toString());
+      })();
+    </script>
   </head>
   <body>
-    <main>
-      <h1>Контакты и реквизиты</h1>
-      <p>Проект: «Стирая Грань»</p>
-      <p>Email поддержки: support@example.com</p>
-      <p>ИНН: указать перед запуском</p>
-      <p>Статус: самозанятый / НПД</p>
-      <p>Платежный партнер: YooKassa / ЮMoney</p>
-    </main>
+    <p><a href="/?view=legal&tab=contacts&lang=ru">Перейти в legal center</a></p>
   </body>
 </html>

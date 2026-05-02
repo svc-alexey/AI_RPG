@@ -14,6 +14,7 @@ class SettingsLocalDataSource {
   static const String _profileKey = 'openAiCompatible';
   static const String _symmetryBaseUrlKey = 'settings.symmetry_base_url';
   static const String _symmetrySessionKey = 'settings.symmetry_session';
+  static const String _campaignMapMarksPrefix = 'settings.campaign_map_marks.';
 
   Future<AiSettings?> loadAiSettings(final Isar isar) async {
     final ModelControlRecord? control = await isar.modelControlRecords
@@ -165,6 +166,42 @@ class SettingsLocalDataSource {
         AppSettingRecord()
           ..key = _symmetrySessionKey
           ..jsonValue = session == null ? '' : jsonEncode(session.toJson())
+          ..updatedAt = DateTime.now(),
+      );
+    });
+  }
+
+  Future<Map<String, String>> loadCampaignMapMarks(
+    final Isar isar,
+    final String campaignId,
+  ) async {
+    final AppSettingRecord? record = await isar.appSettingRecords
+        .filter()
+        .keyEqualTo('$_campaignMapMarksPrefix$campaignId')
+        .findFirst();
+    final String raw = record?.jsonValue ?? '';
+    if (raw.trim().isEmpty) {
+      return const <String, String>{};
+    }
+    final Object? decoded = jsonDecode(raw);
+    if (decoded is! Map<String, Object?>) {
+      return const <String, String>{};
+    }
+    return decoded.map(
+      (final key, final value) => MapEntry(key, value?.toString() ?? ''),
+    );
+  }
+
+  Future<void> saveCampaignMapMarks(
+    final Isar isar,
+    final String campaignId,
+    final Map<String, String> marks,
+  ) async {
+    await isar.writeTxn(() async {
+      await isar.appSettingRecords.put(
+        AppSettingRecord()
+          ..key = '$_campaignMapMarksPrefix$campaignId'
+          ..jsonValue = jsonEncode(marks)
           ..updatedAt = DateTime.now(),
       );
     });

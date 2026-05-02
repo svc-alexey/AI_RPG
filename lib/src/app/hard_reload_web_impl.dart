@@ -3,8 +3,13 @@ import 'dart:html' as html;
 
 Future<void> triggerHardReload({final String? cacheBustToken}) async {
   try {
-    final registrations = await html.window.navigator.serviceWorker
-        ?.getRegistrations();
+    final html.ServiceWorkerContainer? serviceWorker =
+        html.window.navigator.serviceWorker;
+    final List<html.ServiceWorkerRegistration>? registrations =
+        serviceWorker == null
+        ? null
+        : (await serviceWorker.getRegistrations())
+              .cast<html.ServiceWorkerRegistration>();
     if (registrations != null) {
       for (final registration in registrations) {
         try {
@@ -15,11 +20,15 @@ Future<void> triggerHardReload({final String? cacheBustToken}) async {
   } catch (_) {}
 
   try {
-    final cacheNames = await html.window.caches?.keys();
+    final html.CacheStorage? caches = html.window.caches;
+    final Object? rawCacheNames = caches == null ? null : await caches.keys();
+    final List<String>? cacheNames = rawCacheNames is List
+        ? rawCacheNames.cast<String>()
+        : null;
     if (cacheNames != null) {
       for (final cacheName in cacheNames) {
         try {
-          await html.window.caches?.delete(cacheName);
+          await caches?.delete(cacheName);
         } catch (_) {}
       }
     }

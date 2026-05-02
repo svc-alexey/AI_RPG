@@ -21,4 +21,11 @@ abstract class SettingsStorage {
   Future<SymmetrySession?> loadSymmetrySession();
 
   Future<void> saveSymmetrySession(SymmetrySession? session);
+
+  Future<Map<String, String>> loadCampaignMapMarks(String campaignId);
+
+  Future<void> saveCampaignMapMarks(
+    String campaignId,
+    Map<String, String> marks,
+  );
 }

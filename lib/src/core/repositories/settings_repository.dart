@@ -49,4 +49,12 @@ class SettingsRepository {
 
   Future<void> saveSymmetrySession(final SymmetrySession? session) =>
       _storage.saveSymmetrySession(session);
+
+  Future<Map<String, String>> loadCampaignMapMarks(final String campaignId) =>
+      _storage.loadCampaignMapMarks(campaignId);
+
+  Future<void> saveCampaignMapMarks(
+    final String campaignId,
+    final Map<String, String> marks,
+  ) => _storage.saveCampaignMapMarks(campaignId, marks);
 }

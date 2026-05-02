@@ -48,4 +48,15 @@ class SettingsLocalDataSource {
     final Object isar,
     final SymmetrySession? session,
   ) async => _unsupported();
+
+  Future<Map<String, String>> loadCampaignMapMarks(
+    final Object isar,
+    final String campaignId,
+  ) async => _unsupported();
+
+  Future<void> saveCampaignMapMarks(
+    final Object isar,
+    final String campaignId,
+    final Map<String, String> marks,
+  ) async => _unsupported();
 }

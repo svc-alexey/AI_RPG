@@ -195,6 +195,21 @@ class ChatController extends StateNotifier<ChatViewState> {
     state = state.copyWith(status: l10n.campaignSaved);
   }
 
+  Future<void> refreshCampaign() async {
+    final CampaignState? refreshedCampaign = await _campaignRepository
+        .loadCampaign(_campaignId);
+    final List<SymmetryWorldRumor> worldRumors = refreshedCampaign == null
+        ? const <SymmetryWorldRumor>[]
+        : await _safeLoadRumors(_campaignId);
+    if (_disposed) {
+      return;
+    }
+    state = state.copyWith(
+      campaign: refreshedCampaign,
+      worldRumors: worldRumors,
+    );
+  }
+
   void cancelGeneration() {}
 
   Future<void> runTurn({
