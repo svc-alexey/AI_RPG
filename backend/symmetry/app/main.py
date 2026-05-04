@@ -3,6 +3,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 import re
+from typing import Literal
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,6 +117,9 @@ async def log_requests(request: Request, call_next):
 
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(campaigns.router, prefix=settings.api_prefix)
+from app.api.routes import map_routes  # noqa: E402
+
+app.include_router(map_routes.router, prefix=settings.api_prefix)
 app.include_router(dev.router, prefix=settings.api_prefix)
 app.include_router(feedback.router, prefix=settings.api_prefix)
 app.include_router(literary_genres.router, prefix=settings.api_prefix)
@@ -159,7 +163,7 @@ def _resolve_update_mode(
     current_version: str | None,
     minimum_supported_version: str,
     latest_version: str,
-) -> str:
+) -> Literal['none', 'soft', 'force']:
     if not current_version or not current_version.strip():
         return "none"
     if _compare_versions(current_version, minimum_supported_version) < 0:

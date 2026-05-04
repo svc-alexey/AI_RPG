@@ -103,3 +103,19 @@ When working on a new feature, always take into account:
 3. AI suggestion chips live above the input composer and are limited to the top three options.
 4. The text field, send action, and suggest action are grouped into one composer area.
 5. The chat input must remain visually and spatially connected to its action buttons.
+
+## 12. gstack Development Tools
+
+1. Проект использует gstack-навыки (slash-команды) для Claude Code.
+2. Главный конфигурационный файл: `CLAUDE.md` — содержит workflow, команды, список навыков и правила.
+3. gstack-workflow: **Think → Plan → Build → Review → Test → Ship → Reflect**.
+4. Think-фаза: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`.
+5. Build-фаза: `/autoplan`, `/pair-agent`.
+6. Review-фаза: `/review`, `/design-review`, `/devex-review`.
+7. Test-фаза: `/qa`, `/qa-only`, `/investigate`.
+8. Ship-фаза: `/ship`, `/land-and-deploy`.
+9. Reflect-фаза: `/retro`, `/document-release`.
+10. Safety: `/careful`, `/freeze`, `/guard`, `/unfreeze`.
+11. Навыки установлены в `.claude/skills/` (gstack + symlinked sub-skills).
+12. Фича: `/office-hours` → architecture → prd → implementation → qa → `/review` → `/ship`.
+13. Bugfix: `/investigate` → исправление → `/qa-only`.

@@ -4,13 +4,17 @@ import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/services/symmetry_api_client.dart';
 
 class StoryLibraryRepository {
-  StoryLibraryRepository({required SymmetryAuthRepository authRepository})
-    : _authRepository = authRepository;
+  StoryLibraryRepository({
+    required SymmetryAuthRepository authRepository,
+    SymmetryApiClient Function(String baseUrl)? clientFactory,
+  }) : _authRepository = authRepository,
+       _clientFactory = clientFactory;
 
   final SymmetryAuthRepository _authRepository;
+  final SymmetryApiClient Function(String baseUrl)? _clientFactory;
 
   SymmetryApiClient _client(final String baseUrl) =>
-      SymmetryApiClient(baseUrl: baseUrl);
+      _clientFactory?.call(baseUrl) ?? SymmetryApiClient(baseUrl: baseUrl);
 
   Future<List<LiteraryGenreCatalogItem>> loadLiteraryGenres() async {
     final List<LiteraryGenreCatalogItem> rows = await _authRepository

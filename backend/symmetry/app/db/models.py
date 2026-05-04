@@ -5,14 +5,16 @@ from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     LargeBinary,
     String,
     Text,
     UniqueConstraint,
+    func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -171,6 +173,73 @@ class WorldLocation(Base):
     slug: Mapped[str] = mapped_column(String(120), index=True)
     title: Mapped[str] = mapped_column(String(255))
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    # Spatial map columns
+    x: Mapped[float | None] = mapped_column(Float, default=0)
+    y: Mapped[float | None] = mapped_column(Float, default=0)
+    parent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("world_locations.id", ondelete="SET NULL"), nullable=True
+    )
+    location_type: Mapped[str] = mapped_column(String(20), default="room")
+    node_state: Mapped[str] = mapped_column(String(20), default="fog")
+    is_revealed: Mapped[bool] = mapped_column(Boolean, default=False)
+    travel_prompt: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    front_badges: Mapped[list] = mapped_column(ARRAY(String(30)), default=list)
+
+
+class LocationEdge(Base):
+    __tablename__ = "location_edges"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    location_id_a: Mapped[str] = mapped_column(
+        String(36), ForeignKey("world_locations.id", ondelete="CASCADE")
+    )
+    location_id_b: Mapped[str] = mapped_column(
+        String(36), ForeignKey("world_locations.id", ondelete="CASCADE")
+    )
+    edge_type: Mapped[str] = mapped_column(String(20), default="known")
+    travel_time_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now()
+    )
+
+
+class MapViewState(Base):
+    __tablename__ = "map_view_states"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    campaign_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("campaigns.id", ondelete="CASCADE")
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now()
+    )
+    active_scale: Mapped[str] = mapped_column(String(20), default="room")
+    focus_node_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("world_locations.id", ondelete="SET NULL"), nullable=True
+    )
+
+
+class SpatialChangeProposal(Base):
+    __tablename__ = "spatial_change_proposals"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    campaign_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("campaigns.id", ondelete="CASCADE")
+    )
+    turn_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("campaign_turns.id", ondelete="SET NULL"), nullable=True
+    )
+    proposal_type: Mapped[str] = mapped_column(String(30))
+    payload_json: Mapped[dict] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    validation_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now()
+    )
 
 
 class WorldFaction(Base):

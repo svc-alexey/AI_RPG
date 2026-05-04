@@ -82,6 +82,10 @@ backend/symmetry/models/*
 Thumbs.db
 Desktop.ini
 
+# Claude Code local config and skills (not versioned)
+.claude/
+
 # Ad-hoc build archives at repo root (not versioned source)
 /*.zip
 /*_build_*.zip.sha256.txt
+.gstack/

@@ -64,7 +64,6 @@ class StoryTemplateGridCard extends StatelessWidget {
                       ? AuthenticatedCoverImage(
                           imageUrl: cover,
                           requestHeaders: imageHeaders,
-                          fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               _PlaceholderArt(responsive: responsive),
                         )
@@ -87,7 +86,7 @@ class StoryTemplateGridCard extends StatelessWidget {
             SizedBox(height: responsive.isCompact ? 6 : 8),
             Row(
               children: <Widget>[
-                Icon(
+                const Icon(
                   Icons.visibility_outlined,
                   size: 16,
                   color: AetherPalette.textMuted,
@@ -101,7 +100,7 @@ class StoryTemplateGridCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Icon(
+                const Icon(
                   Icons.favorite_border_rounded,
                   size: 16,
                   color: AetherPalette.textMuted,

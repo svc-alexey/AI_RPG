@@ -176,8 +176,7 @@ class SymmetryWorldRumor {
     required this.eventText,
     required this.importance,
     required this.locationSlug,
-    this.locationTitle,
-    required this.createdAt,
+    required this.createdAt, this.locationTitle,
   });
 
   factory SymmetryWorldRumor.fromJson(final Map<String, Object?> json) =>

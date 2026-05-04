@@ -205,6 +205,11 @@ docs/
 - `.specify/memory/project-context.md` — контекст и инварианты
 - `docs/features/CATALOG.md` — реестр фич
 - `docs/AGENT_CONTEXT.md` — контекст для агентов
+- `docs/UI_UX_Guidelines.md` — правила UI/UX и дизайна
+- `docs/MARKETING.md` — маркетинг и продвижение
+- `docs/MONETIZATION.md` — план монетизации
+- `docs/DEPLOY_WEB.md` — инструкция деплоя веб-версии
+- `README.md` — описание проекта
 
 ## Skill routing
 

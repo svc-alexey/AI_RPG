@@ -124,6 +124,8 @@ class ChatController extends StateNotifier<ChatViewState> {
   final Ref _ref;
   final String _campaignId;
 
+  CampaignState? get campaign => state.campaign;
+
   Timer? _notificationTimer;
   Timer? _rumorRefreshTimer;
   String? _activeFlowId;

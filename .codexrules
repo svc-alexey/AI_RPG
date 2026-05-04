@@ -1,15 +1,19 @@
 # AI_PRG — Правила проекта (всегда применяются)
 
-Эти правила обязательны для любого взаимодействия с проектом. Полный контекст: `.specify/memory/`.
+Главный конфигурационный файл: `CLAUDE.md`. Эти правила — краткий свод; полные правила в `CLAUDE.md` и `FlutterRules.md`.
 
-## Источник правил
+## Источник правил (порядок приоритета)
 
-Перед любой разработкой читай и соблюдай:
-- `.specify/memory/constitution.md` — конституция проекта
-- `.specify/memory/project-settings.md` — настройки и правила
-- `.specify/memory/project-context.md` — контекст и инварианты
+1. `CLAUDE.md` — главный конфиг, workflow, команды, gstack-навыки
+2. `.specify/memory/constitution.md` — конституция проекта
+3. `.specify/memory/project-settings.md` — настройки и правила
+4. `.specify/memory/project-context.md` — контекст и инварианты
+5. `FlutterRules.md` — детальные Flutter-правила
+6. `Architecture.md` — архитектура системы
 
-## Ключевые правила (кратко)
+## gstack Workflow
+
+Think → Plan → Build → Review → Test → Ship → Reflect
 
 ### Качество
 - `flutter analyze` и `flutter test` без ошибок перед merge
@@ -17,8 +21,8 @@
 - Кириллица в исходниках: **UTF-8 без BOM**; не коммитить mojibake (см. `.specify/memory/project-settings.md` §2a)
 
 ### Workflow
-- Фича: architecture → prd → implementation → qa
-- Bugfix: сокращённый путь, если не меняются архитектура и требования
+- Фича: `/office-hours` → architecture → prd → implementation → qa → `/review` → `/ship`
+- Bugfix: `/investigate` → исправление → `/qa-only`
 - После реализации: если нужен перезапуск приложения — перезапусти (`flutter run` или hot restart). Не оставляй пользователю.
 
 ### Feature packet

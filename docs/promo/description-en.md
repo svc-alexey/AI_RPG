@@ -2,16 +2,16 @@
 
 ## For social media and landing page
 
-**AI RPG Platform** — a narrative RPG where AI writes the story and the engine guarantees fair play. Create a campaign in fantasy, detective, or sci-fi, connect your model via an OpenAI-compatible endpoint — play locally, no cloud. Saves are stable, context is preserved. ru/en.
+**AI RPG Platform** — a narrative RPG with a living server-side world. AI writes the story, the engine guarantees fair play, the world lives on the server. Create a campaign in fantasy, detective, or sci-fi, connect your model via an OpenAI-compatible endpoint — and play. World map, 1000+ turn memory, stable saves. ru/en.
 
 ---
 
 ### Shorter variant (under 280 chars)
 
-Narrative RPG with AI: the model writes the story, the engine validates state. OpenAI-compatible endpoint, ru/en. Fantasy, detective, sci-fi. Saves don't break.
+Narrative RPG with a living world: AI writes the story, the engine validates state. World map, 1000+ turn memory, OpenAI-compatible endpoint. ru/en. Fantasy, detective, sci-fi.
 
 ---
 
 ### Preview variant
 
-Single-player narrative RPG on your local model. AI generates narration and action options — the engine validates and persists. Quick start, stable saves, two languages.
+Server-authoritative narrative RPG with a living world and map. AI generates narration and action options — the engine validates and persists. Your model or compatible API. The world remembers every decision.

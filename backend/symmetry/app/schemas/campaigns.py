@@ -157,3 +157,4 @@ class ProcessTurnResponse(BaseModel):
     request_id: str
     campaign_snapshot_version: int
     state: dict[str, Any]
+    map_context: dict[str, Any] | None = None

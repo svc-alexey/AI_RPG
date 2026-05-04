@@ -15,12 +15,15 @@ Future<void> triggerHardReload({final String? cacheBustToken}) async {
   } catch (_) {}
 
   try {
-    final cacheNames = await html.window.caches?.keys();
-    if (cacheNames != null) {
-      for (final cacheName in cacheNames) {
-        try {
-          await html.window.caches?.delete(cacheName);
-        } catch (_) {}
+    final caches = html.window.caches;
+    if (caches != null) {
+      final dynamic rawNames = await caches.keys();
+      if (rawNames is Iterable) {
+        for (final String cacheName in rawNames.cast<String>()) {
+          try {
+            await caches.delete(cacheName);
+          } catch (_) {}
+        }
       }
     }
   } catch (_) {}

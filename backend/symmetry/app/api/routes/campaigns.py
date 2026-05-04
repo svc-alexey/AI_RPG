@@ -14,6 +14,7 @@ from app.services.campaign_runtime import CampaignRuntimeService, build_initial_
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
 from app.services.ids import new_id
+from app.services.map_state_service import MapStateService
 from app.services.prompt_budget import build_turn_budget
 from app.services.presentation_text import (
     build_location_display_name,
@@ -31,6 +32,7 @@ rag_service = RagService()
 simulation_service = SimulationService()
 ai_gateway = AiGatewayService()
 butterfly_service = ButterflyService()
+map_state_service = MapStateService()
 
 
 def _resolve_rumor_location_title(
@@ -409,6 +411,13 @@ async def process_turn(
         )
     await session.commit()
 
+    # Inject map context (best-effort — failure does not fail the turn)
+    map_context = None
+    try:
+        map_context = await map_state_service.get_map_context(session, campaign_id)
+    except Exception:
+        pass
+
     return ProcessTurnResponse(
         narration=str(llm_payload.get("narration", "")).strip(),
         choices=[str(item) for item in llm_payload.get("choices", []) if str(item).strip()],
@@ -417,4 +426,5 @@ async def process_turn(
         request_id=new_id(),
         campaign_snapshot_version=next_snapshot.version,
         state=next_state,
+        map_context=map_context,
     )

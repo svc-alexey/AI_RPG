@@ -57,7 +57,7 @@ class EmbeddingService:
             transformer_kwargs["model_kwargs"] = model_kwargs
         self._model = SentenceTransformer(
             settings.embedding_model,
-            **transformer_kwargs,
+            **transformer_kwargs,  # type: ignore[arg-type]
         )
 
     def encode_query(self, text: str) -> list[float]:

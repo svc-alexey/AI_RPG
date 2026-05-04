@@ -6,10 +6,14 @@ import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/services/symmetry_api_client.dart';
 
 class SymmetryCampaignRepository {
-  SymmetryCampaignRepository({required SymmetryAuthRepository authRepository})
-    : _authRepository = authRepository;
+  SymmetryCampaignRepository({
+    required SymmetryAuthRepository authRepository,
+    SymmetryApiClient Function(String baseUrl)? clientFactory,
+  }) : _authRepository = authRepository,
+       _clientFactory = clientFactory;
 
   final SymmetryAuthRepository _authRepository;
+  final SymmetryApiClient Function(String baseUrl)? _clientFactory;
 
   Future<List<CampaignState>> loadAllCampaigns() async {
     final List<SymmetryCampaignSummary> summaries = await _authRepository
@@ -148,7 +152,7 @@ class SymmetryCampaignRepository {
   }
 
   SymmetryApiClient _client(final String baseUrl) =>
-      SymmetryApiClient(baseUrl: baseUrl);
+      _clientFactory?.call(baseUrl) ?? SymmetryApiClient(baseUrl: baseUrl);
 
   CampaignState _campaignStateFromServer(final Map<String, Object?> json) =>
       CampaignState.fromJson(_normalizeServerState(json));

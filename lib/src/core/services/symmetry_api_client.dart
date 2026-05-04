@@ -154,7 +154,7 @@ class SymmetryApiClient {
     }
     return SymmetryUser.fromJson(
       decoded.map(
-        (final Object? key, final Object? value) =>
+        (final key, final value) =>
             MapEntry(key.toString(), value),
       ),
     );
@@ -700,6 +700,72 @@ class SymmetryApiClient {
         client.close();
       }
     }
+  }
+
+  // ── Campaign Map ──
+
+  Future<Map<String, dynamic>> getCampaignMap({
+    required final String accessToken,
+    required final String campaignId,
+  }) async {
+    final decoded = await _get(
+      '/campaigns/$campaignId/map',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_map_response');
+    }
+    return decoded.map((k, v) => MapEntry(k.toString(), v));
+  }
+
+  Future<Map<String, dynamic>> getReturnSummary({
+    required final String accessToken,
+    required final String campaignId,
+  }) async {
+    final decoded = await _get(
+      '/campaigns/$campaignId/return-summary',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_return_summary');
+    }
+    return decoded.map((k, v) => MapEntry(k.toString(), v));
+  }
+
+  Future<Map<String, dynamic>> seedCampaignMap({
+    required final String accessToken,
+    required final String campaignId,
+  }) async {
+    final decoded = await _post(
+      '/campaigns/$campaignId/map/seed',
+      body: const <String, Object?>{},
+      bearerToken: accessToken,
+    );
+    return decoded.map((k, v) => MapEntry(k, v));
+  }
+
+  Future<Map<String, dynamic>> submitMapProposals({
+    required final String accessToken,
+    required final String campaignId,
+    required final List<Map<String, dynamic>> proposals,
+  }) async {
+    final decoded = await _post(
+      '/campaigns/$campaignId/map/proposals',
+      body: <String, Object?>{'proposals': proposals},
+      bearerToken: accessToken,
+    );
+    return decoded.map((k, v) => MapEntry(k, v));
+  }
+
+  Future<void> markMapSeen({
+    required final String accessToken,
+    required final String campaignId,
+  }) async {
+    await _post(
+      '/campaigns/$campaignId/map/mark-seen',
+      body: const <String, Object?>{},
+      bearerToken: accessToken,
+    );
   }
 
   Future<Object?> _get(

@@ -579,7 +579,7 @@ def _compact_character_state(character: dict[str, Any]) -> dict[str, Any]:
         if value in (None, "", 0):
             continue
         try:
-            compact[key] = int(value)
+            compact[key] = int(value)  # type: ignore[arg-type]
         except (TypeError, ValueError):
             continue
     compact.pop("prompt_fragment", None)

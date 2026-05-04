@@ -141,7 +141,6 @@ class _StoryTemplateDetailScreenState
               child: AuthenticatedCoverImage(
                 imageUrl: cover,
                 requestHeaders: coverHeaders,
-                fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
                     const ColoredBox(color: AetherPalette.background),
               ),
@@ -192,7 +191,7 @@ class _StoryTemplateDetailScreenState
                         children: <Widget>[
                           Row(
                             children: <Widget>[
-                              Icon(
+                              const Icon(
                                 Icons.auto_awesome_rounded,
                                 color: AetherPalette.accent,
                                 size: 22,
@@ -232,7 +231,7 @@ class _StoryTemplateDetailScreenState
                             runSpacing: 10,
                             children: _template.tags
                                 .map(
-                                  (final String tag) => Container(
+                                  (final tag) => Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 14,
                                       vertical: 8,
@@ -292,8 +291,8 @@ class _StoryTemplateDetailScreenState
                           SizedBox(height: responsive.isCompact ? 22 : 28),
                           LayoutBuilder(
                             builder: (
-                              final BuildContext context,
-                              final BoxConstraints constraints,
+                              final context,
+                              final constraints,
                             ) {
                               final bool stack = constraints.maxWidth < 420;
                               final Widget primary = _GradientCta(

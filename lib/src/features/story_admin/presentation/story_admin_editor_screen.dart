@@ -134,7 +134,7 @@ class _StoryAdminEditorScreenState
     );
     _isPublic = e?.isPublic ?? true;
     _isMasterCurated = e?.isMasterCurated ?? false;
-    WidgetsBinding.instance.addPostFrameCallback((final Duration _) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       _loadLiteraryGenres();
     });
   }
@@ -181,7 +181,6 @@ class _StoryAdminEditorScreenState
       type: FileType.image,
       withData: true,
       withReadStream: true,
-      allowMultiple: false,
     );
     if (result == null || result.files.isEmpty) {
       return;
@@ -283,18 +282,16 @@ class _StoryAdminEditorScreenState
     super.dispose();
   }
 
-  List<String> _parseTags() {
-    return _tagsController.text
+  List<String> _parseTags() => _tagsController.text
         .split(',')
-        .map((final String s) => s.trim())
-        .where((final String s) => s.isNotEmpty)
+        .map((final s) => s.trim())
+        .where((final s) => s.isNotEmpty)
         .toList();
-  }
 
   List<String> _parseCsv(final String raw) => raw
       .split(',')
-      .map((final String s) => s.trim())
-      .where((final String s) => s.isNotEmpty)
+      .map((final s) => s.trim())
+      .where((final s) => s.isNotEmpty)
       .toList();
 
   Map<String, Object?>? _buildCharacterPayload() {
@@ -351,7 +348,7 @@ class _StoryAdminEditorScreenState
     }
     final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (final BuildContext context) => AlertDialog(
+      builder: (final context) => AlertDialog(
         title: Text(context.l10n.storyAdminImportOverwriteTitle),
         content: Text(context.l10n.storyAdminImportOverwriteBody),
         actions: <Widget>[
@@ -374,7 +371,6 @@ class _StoryAdminEditorScreenState
       type: FileType.custom,
       allowedExtensions: const <String>['json'],
       withData: true,
-      allowMultiple: false,
     );
     if (result == null || result.files.isEmpty) {
       return;
@@ -390,7 +386,7 @@ class _StoryAdminEditorScreenState
     final TextEditingController controller = TextEditingController();
     final String? raw = await showDialog<String>(
       context: context,
-      builder: (final BuildContext context) => AlertDialog(
+      builder: (final context) => AlertDialog(
         title: Text(context.l10n.storyAdminImportPasteTitle),
         content: SizedBox(
           width: 640,
@@ -434,7 +430,7 @@ class _StoryAdminEditorScreenState
         throw const FormatException('JSON root must be an object');
       }
       data = decoded.map(
-        (final Object? key, final Object? value) =>
+        (final key, final value) =>
             MapEntry(key.toString(), _jsonToMetadataValue(value)),
       );
     } catch (_) {
@@ -584,15 +580,15 @@ class _StoryAdminEditorScreenState
   static List<String> _stringListValue(final Object? value) {
     if (value is List<Object?>) {
       return value
-          .map((final Object? item) => item.toString().trim())
-          .where((final String item) => item.isNotEmpty)
+          .map((final item) => item.toString().trim())
+          .where((final item) => item.isNotEmpty)
           .toList();
     }
     if (value is String && value.trim().isNotEmpty) {
       return value
           .split(',')
-          .map((final String item) => item.trim())
-          .where((final String item) => item.isNotEmpty)
+          .map((final item) => item.trim())
+          .where((final item) => item.isNotEmpty)
           .toList();
     }
     return const <String>[];
@@ -660,7 +656,7 @@ class _StoryAdminEditorScreenState
         throw FormatException(l10n.storyAdminInvalidMetadata);
       }
       metadata = decoded.map(
-        (final Object? key, final Object? value) =>
+        (final key, final value) =>
             MapEntry(key.toString(), _jsonToMetadataValue(value)),
       );
     } catch (_) {
@@ -775,7 +771,7 @@ class _StoryAdminEditorScreenState
   static Object? _jsonToMetadataValue(final Object? value) {
     if (value is Map<Object?, Object?>) {
       return value.map(
-        (final Object? k, final Object? v) =>
+        (final k, final v) =>
             MapEntry(k.toString(), _jsonToMetadataValue(v)),
       );
     }
@@ -828,8 +824,7 @@ class _StoryAdminEditorScreenState
         child: AuthenticatedCoverImage(
           imageUrl: url,
           requestHeaders: headers,
-          fit: BoxFit.cover,
-          errorBuilder: (final _, final __, final ___) => ColoredBox(
+          errorBuilder: (final _, final _, final _) => ColoredBox(
             color: theme.colorScheme.surfaceContainerHighest,
             child: Center(
               child: Icon(
@@ -935,17 +930,16 @@ class _StoryAdminEditorScreenState
                 decoration: InputDecoration(labelText: l10n.storyModeTitle),
                 items: <DropdownMenuItem<StoryMode?>>[
                   DropdownMenuItem<StoryMode?>(
-                    value: null,
                     child: Text(l10n.storyAdminOptionalNone),
                   ),
                   ...StoryMode.values.map(
-                    (final StoryMode value) => DropdownMenuItem<StoryMode?>(
+                    (final value) => DropdownMenuItem<StoryMode?>(
                       value: value,
                       child: Text(l10n.storyModeLabel(value)),
                     ),
                   ),
                 ],
-                onChanged: (final StoryMode? v) =>
+                onChanged: (final v) =>
                     setState(() => _storyMode = v),
               ),
               SizedBox(height: responsive.blockSpacing),
@@ -954,18 +948,17 @@ class _StoryAdminEditorScreenState
                 decoration: InputDecoration(labelText: l10n.difficultyTitle),
                 items: <DropdownMenuItem<DifficultyLevel?>>[
                   DropdownMenuItem<DifficultyLevel?>(
-                    value: null,
                     child: Text(l10n.storyAdminOptionalNone),
                   ),
                   ...DifficultyLevel.values.map(
-                    (final DifficultyLevel value) =>
+                    (final value) =>
                         DropdownMenuItem<DifficultyLevel?>(
                           value: value,
                           child: Text(l10n.difficultyLabel(value)),
                         ),
                   ),
                 ],
-                onChanged: (final DifficultyLevel? v) =>
+                onChanged: (final v) =>
                     setState(() => _difficulty = v),
               ),
               SizedBox(height: responsive.blockSpacing),
@@ -974,18 +967,17 @@ class _StoryAdminEditorScreenState
                 decoration: InputDecoration(labelText: l10n.literaryGenreTitle),
                 items: <DropdownMenuItem<LiteraryGenre?>>[
                   DropdownMenuItem<LiteraryGenre?>(
-                    value: null,
                     child: Text(l10n.storyAdminOptionalNone),
                   ),
                   ...LiteraryGenre.values.map(
-                    (final LiteraryGenre value) =>
+                    (final value) =>
                         DropdownMenuItem<LiteraryGenre?>(
                           value: value,
                           child: Text(l10n.literaryGenreLabel(value)),
                         ),
                   ),
                 ],
-                onChanged: (final LiteraryGenre? v) =>
+                onChanged: (final v) =>
                     setState(() => _campaignLiteraryGenre = v),
               ),
               SizedBox(height: responsive.blockSpacing),
@@ -996,7 +988,6 @@ class _StoryAdminEditorScreenState
                 ),
                 items: <DropdownMenuItem<String?>>[
                   DropdownMenuItem<String?>(
-                    value: null,
                     child: Text(l10n.storyAdminLiteraryGenreNone),
                   ),
                   ..._literaryGenres.map(
@@ -1006,7 +997,7 @@ class _StoryAdminEditorScreenState
                     ),
                   ),
                 ],
-                onChanged: (final String? v) =>
+                onChanged: (final v) =>
                     setState(() => _literaryGenreSlug = v),
               ),
               SizedBox(height: responsive.blockSpacing),
@@ -1017,14 +1008,14 @@ class _StoryAdminEditorScreenState
                 ),
                 items: CampaignSetting.values
                     .map(
-                      (final CampaignSetting s) =>
+                      (final s) =>
                           DropdownMenuItem<CampaignSetting>(
                             value: s,
                             child: Text(l10n.settingLabel(s)),
                           ),
                     )
                     .toList(),
-                onChanged: (final CampaignSetting? v) {
+                onChanged: (final v) {
                   if (v != null) {
                     setState(() => _campaignSetting = v);
                   }
@@ -1055,14 +1046,14 @@ class _StoryAdminEditorScreenState
                 ),
                 items: CharacterGender.values
                     .map(
-                      (final CharacterGender value) =>
+                      (final value) =>
                           DropdownMenuItem<CharacterGender>(
                             value: value,
                             child: Text(value.name),
                           ),
                     )
                     .toList(),
-                onChanged: (final CharacterGender? v) {
+                onChanged: (final v) {
                   if (v != null) {
                     setState(() => _characterGender = v);
                   }
@@ -1083,14 +1074,14 @@ class _StoryAdminEditorScreenState
                 ),
                 items: CharacterClass.values
                     .map(
-                      (final CharacterClass value) =>
+                      (final value) =>
                           DropdownMenuItem<CharacterClass>(
                             value: value,
                             child: Text(value.name),
                           ),
                     )
                     .toList(),
-                onChanged: (final CharacterClass? v) {
+                onChanged: (final v) {
                   if (v != null) {
                     setState(() => _characterClass = v);
                   }
@@ -1164,13 +1155,13 @@ class _StoryAdminEditorScreenState
                 contentPadding: EdgeInsets.zero,
                 title: Text(l10n.storyAdminPublic),
                 value: _isPublic,
-                onChanged: (final bool v) => setState(() => _isPublic = v),
+                onChanged: (final v) => setState(() => _isPublic = v),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(l10n.storyAdminMasterCurated),
                 value: _isMasterCurated,
-                onChanged: (final bool v) =>
+                onChanged: (final v) =>
                     setState(() => _isMasterCurated = v),
               ),
               SizedBox(height: responsive.blockSpacing),

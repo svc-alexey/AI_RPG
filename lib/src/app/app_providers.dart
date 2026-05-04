@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/repositories/map_repository.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/repositories/story_library_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
@@ -38,6 +39,11 @@ final Provider<StoryLibraryRepository> storyLibraryRepositoryProvider =
       throw UnimplementedError(
         'storyLibraryRepositoryProvider was not overridden.',
       );
+    });
+
+final Provider<MapRepository> mapRepositoryProvider =
+    Provider<MapRepository>((final ref) {
+      throw UnimplementedError('mapRepositoryProvider was not overridden.');
     });
 
 final Provider<AiServiceFactory> aiServiceFactoryProvider =
@@ -111,6 +117,8 @@ List<Override> buildAppProviderOverrides({
   final StoryLibraryRepository resolvedStoryLibraryRepository =
       storyLibraryRepository ??
       StoryLibraryRepository(authRepository: resolvedAuthRepository);
+  final MapRepository resolvedMapRepository =
+      MapRepository(authRepository: resolvedAuthRepository);
   return <Override>[
     settingsRepositoryProvider.overrideWithValue(settingsRepository),
     symmetryAuthRepositoryProvider.overrideWithValue(resolvedAuthRepository),
@@ -120,6 +128,7 @@ List<Override> buildAppProviderOverrides({
     storyLibraryRepositoryProvider.overrideWithValue(
       resolvedStoryLibraryRepository,
     ),
+    mapRepositoryProvider.overrideWithValue(resolvedMapRepository),
     aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
     gameEngineProvider.overrideWithValue(gameEngine),
     portraitStorageProvider.overrideWithValue(portraitStorage),

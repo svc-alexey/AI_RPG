@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  flutter-analyze:
+    name: Flutter Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+
+  flutter-test:
+    name: Flutter Test + Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter test --coverage
+      - name: Check coverage gates
+        shell: pwsh
+        run: ./scripts/check_coverage.ps1
+
+  backend-test:
+    name: Backend Test + Coverage
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ai_rpg
+          POSTGRES_PASSWORD: ai_rpg_secret
+          POSTGRES_DB: ai_rpg_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          cd backend/symmetry
+          pip install -r requirements.txt
+          pip install pytest-cov
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql+asyncpg://ai_rpg:ai_rpg_secret@localhost:5432/ai_rpg_test
+          SYMMETRY_ENV: ci
+        run: |
+          cd backend/symmetry
+          python -m pytest --cov=app --cov-report=term --cov-report=html --cov-fail-under=55

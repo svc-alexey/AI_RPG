@@ -57,7 +57,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
     final AppLocalizations l10n = context.l10n;
     final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (final BuildContext dialogContext) => AlertDialog(
+      builder: (final dialogContext) => AlertDialog(
         title: Text(l10n.storyAdminDelete),
         content: Text(l10n.storyAdminDeleteConfirm),
         actions: <Widget>[
@@ -101,7 +101,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
   Future<void> _openEditor({final StoryTemplate? template}) async {
     final Object? result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute<Object?>(
-        builder: (final BuildContext routeContext) =>
+        builder: (final routeContext) =>
             StoryAdminEditorScreen(existing: template),
       ),
     );
@@ -122,7 +122,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(l10n.storyAdminTitle)),
       floatingActionButton: sessionState.maybeWhen(
-        data: (final SymmetrySession? session) {
+        data: (final session) {
           final bool isAdmin =
               session != null && !session.isGuest && session.user.isAdmin;
           if (!isAdmin) {
@@ -137,7 +137,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
         orElse: () => null,
       ),
       body: sessionState.when(
-          data: (final SymmetrySession? session) {
+          data: (final session) {
             final bool isAdmin =
                 session != null && !session.isGuest && session.user.isAdmin;
             if (!isAdmin) {
@@ -266,7 +266,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (final Object error, final StackTrace stackTrace) => Center(
+          error: (final error, final stackTrace) => Center(
             child: Padding(
               padding: EdgeInsets.all(responsive.pagePadding),
               child: Text(l10n.symmetryFriendlyError(error)),
