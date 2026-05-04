@@ -73,28 +73,37 @@ class LlmJsonResult:
 
 
 class AiGatewayService:
+    def __init__(self) -> None:
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0),
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+        )
+
+    async def close(self) -> None:
+        await self._client.aclose()
+
     async def check_connection(self, *, credentials: ResolvedCredentials) -> None:
         logger.info(
             "provider_check_started credentials=%s",
             credentials.safe_summary,
         )
-        async with httpx.AsyncClient(timeout=credentials.timeout_seconds) as client:
-            response = await client.get(
-                f"{credentials.base_url.rstrip('/')}/models",
-                headers={
-                    "Authorization": f"Bearer {credentials.api_key}",
-                },
+        response = await self._client.get(
+            f"{credentials.base_url.rstrip('/')}/models",
+            headers={
+                "Authorization": f"Bearer {credentials.api_key}",
+            },
+            timeout=httpx.Timeout(credentials.timeout_seconds),
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.warning(
+                "provider_check_failed status=%s body=%s credentials=%s",
+                response.status_code,
+                response.text[:500],
+                credentials.safe_summary,
             )
-            try:
-                response.raise_for_status()
-            except httpx.HTTPStatusError:
-                logger.warning(
-                    "provider_check_failed status=%s body=%s credentials=%s",
-                    response.status_code,
-                    response.text[:500],
-                    credentials.safe_summary,
-                )
-                raise
+            raise
         logger.info(
             "provider_check_completed status=%s credentials=%s",
             response.status_code,
@@ -292,25 +301,25 @@ class AiGatewayService:
             request_meta["prompt_characters"],
             payload.get("max_tokens", "-"),
         )
-        async with httpx.AsyncClient(timeout=credentials.timeout_seconds) as client:
-            response = await client.post(
-                f"{credentials.base_url.rstrip('/')}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {credentials.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
+        response = await self._client.post(
+            f"{credentials.base_url.rstrip('/')}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {credentials.api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=httpx.Timeout(credentials.timeout_seconds),
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.warning(
+                "llm_request_failed status=%s body=%s credentials=%s",
+                response.status_code,
+                response.text[:500],
+                credentials.safe_summary,
             )
-            try:
-                response.raise_for_status()
-            except httpx.HTTPStatusError:
-                logger.warning(
-                    "llm_request_failed status=%s body=%s credentials=%s",
-                    response.status_code,
-                    response.text[:500],
-                    credentials.safe_summary,
-                )
-                raise
+            raise
         data = response.json()
         usage = _parse_usage(data.get("usage"))
         finish_reason = _extract_finish_reason(data)
