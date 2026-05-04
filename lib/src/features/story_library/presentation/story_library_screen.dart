@@ -5,6 +5,7 @@ import 'package:ai_prg/src/app/app_route_observer.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/literary_genre_model.dart';
+import 'package:ai_prg/src/core/widgets/aether_empty_state.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
@@ -137,10 +138,10 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
     }
     return _templates
         .where(
-          (final StoryTemplate t) =>
+          (final t) =>
               t.title.toLowerCase().contains(q) ||
               t.summary.toLowerCase().contains(q) ||
-              t.tags.any((final String g) => g.toLowerCase().contains(q)),
+              t.tags.any((final g) => g.toLowerCase().contains(q)),
         )
         .toList();
   }
@@ -171,7 +172,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
         ? symSession.tokens.accessToken.trim()
         : null;
     final List<Widget> adminActions = sessionState.maybeWhen(
-      data: (final SymmetrySession? session) {
+      data: (final session) {
         final bool isAdmin =
             session != null && !session.isGuest && session.user.isAdmin;
         if (!isAdmin) {
@@ -224,7 +225,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                   l10n: l10n,
                   responsive: responsive,
                   scope: _scope,
-                  onScopeChanged: (final _LibraryScope s) {
+                  onScopeChanged: (final s) {
                     if (s == _scope) {
                       return;
                     }
@@ -264,7 +265,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                           hintStyle: theme.textTheme.bodyMedium?.copyWith(
                             color: AetherPalette.textMuted,
                           ),
-                          prefixIcon: Icon(
+                          prefixIcon: const Icon(
                             Icons.search_rounded,
                             color: AetherPalette.textMuted,
                           ),
@@ -272,13 +273,13 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                           fillColor: AetherPalette.backgroundElevated,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: AetherPalette.panelBorderSolid,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: AetherPalette.panelBorderSolid,
                             ),
                           ),
@@ -296,13 +297,13 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                     const SizedBox(width: 12),
                     PopupMenuButton<String>(
                       tooltip: l10n.storyLibraryGenresFilter,
-                      onSelected: (final String value) {
+                      onSelected: (final value) {
                         setState(
                           () => _genreSlug = value.isEmpty ? null : value,
                         );
                         _load();
                       },
-                      itemBuilder: (final BuildContext ctx) {
+                      itemBuilder: (final ctx) {
                         final bool ru = l10n.language == AppLanguage.ru;
                         final List<PopupMenuEntry<String>> items =
                             <PopupMenuEntry<String>>[
@@ -344,7 +345,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Icon(
+                            const Icon(
                               Icons.expand_more_rounded,
                               color: AetherPalette.accent,
                               size: 20,
@@ -365,24 +366,31 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
               SliverFillRemaining(
                 child: Center(
                   child: AetherCard(
-                    child: Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => _load(),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: Text(l10n.retryButton),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               )
             else if (_templates.isEmpty)
               SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    l10n.storyLibraryEmptyCatalog,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: AetherPalette.textMuted,
-                    ),
-                  ),
+                child: AetherEmptyState(
+                  icon: Icons.auto_stories_outlined,
+                  title: l10n.storyLibraryEmptyCatalog,
+                  subtitle: l10n.storyLibraryEmptyCatalogSubtitle,
                 ),
               )
             else if (visible.isEmpty)
@@ -412,8 +420,8 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                     childAspectRatio: cardAspectRatio,
                   ),
                   delegate: SliverChildBuilderDelegate((
-                    final BuildContext context,
-                    final int index,
+                    final context,
+                    final index,
                   ) {
                     final StoryTemplate item = visible[index];
                     return StoryTemplateGridCard(
@@ -604,13 +612,11 @@ class _ToolbarIconButton extends StatelessWidget {
     behavior: HitTestBehavior.opaque,
     onTap: onTap,
     child: Container(
-      width: context.responsive.isCompact ? 40 : 44,
-      height: context.responsive.isCompact ? 40 : 44,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         color: AetherPalette.panelSoft.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(
-          context.responsive.isCompact ? 12 : 14,
-        ),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AetherPalette.panelBorder.withValues(alpha: 0.72),
         ),

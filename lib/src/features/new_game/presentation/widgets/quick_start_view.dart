@@ -78,7 +78,7 @@ class QuickStartView extends StatelessWidget {
               .toList(),
         ),
         SizedBox(height: context.responsive.blockSpacing + 8),
-        if (MediaQuery.of(context).viewInsets.bottom == 0)
+        if (MediaQuery.of(context).viewInsets.bottom < 50)
           FilledButton(
             onPressed: state.isSaving ? null : onCreateQuickCampaign,
             child: state.isSaving

@@ -106,7 +106,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             : Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: responsive.dialogMaxWidth,
+                    maxWidth: responsive.settingsMaxWidth,
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(responsive.pagePadding),
@@ -234,7 +234,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                           sessionState.maybeWhen(
-                            data: (final SymmetrySession? session) {
+                            data: (final session) {
                               final bool showAdmin =
                                   session != null &&
                                   !session.isGuest &&
@@ -262,7 +262,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       onTap: () {
                                         Navigator.of(context).push<void>(
                                           MaterialPageRoute<void>(
-                                            builder: (final BuildContext ctx) =>
+                                            builder: (final ctx) =>
                                                 const StoryAdminScreen(),
                                           ),
                                         );

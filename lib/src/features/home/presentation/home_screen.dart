@@ -153,6 +153,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       icon: const Icon(Icons.settings_outlined, size: 22),
                       tooltip: l10n.homeTertiaryCta,
                       style: IconButton.styleFrom(
+                        minimumSize: const Size(48, 48),
                         foregroundColor: AetherPalette.textMuted,
                         hoverColor: AetherPalette.panelSoft,
                       ),
@@ -165,7 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: responsive.isWide
-                          ? 920
+                          ? 760
                           : responsive.dialogMaxWidth,
                     ),
                     child: ScrollConfiguration(
@@ -218,7 +219,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 letterSpacing: 3.6,
-                                color: const Color(0xFF3A3530),
+                                color: AetherPalette.textDim,
                                 fontSize: 10,
                               ),
                             ),
@@ -257,13 +258,16 @@ class _HomeHeroBlock extends StatelessWidget {
         ? line2Size
         : (responsive.isWide ? 96 : 74);
 
-    return Column(
-      children: <Widget>[
-        AetherPageReveal(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: responsive.isCompact ? 4 : 6),
-            child: Text(
-              l10n.brandNameLine1,
+    return Semantics(
+      header: true,
+      label: '${l10n.brandName} — ${l10n.homeTagline}',
+      child: Column(
+        children: <Widget>[
+          AetherPageReveal(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: responsive.isCompact ? 4 : 6),
+              child: Text(
+                l10n.brandNameLine1,
               textAlign: TextAlign.center,
               strutStyle: StrutStyle(
                 fontSize: line1Size,
@@ -395,6 +399,7 @@ class _HomeHeroBlock extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -508,18 +513,26 @@ class _HomeBentoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _HomeBentoPrimaryCard(
-                  l10n: l10n,
-                  theme: theme,
-                  responsive: responsive,
-                  onPressed: onNewGame,
+                Semantics(
+                  label: l10n.homeNewGameTitle,
+                  button: true,
+                  child: _HomeBentoPrimaryCard(
+                    l10n: l10n,
+                    theme: theme,
+                    responsive: responsive,
+                    onPressed: onNewGame,
+                  ),
                 ),
                 SizedBox(height: stackGap),
-                _HomeStoryLibraryCard(
-                  l10n: l10n,
-                  theme: theme,
-                  responsive: responsive,
-                  onPressed: onStoryLibrary,
+                Semantics(
+                  label: l10n.homeStoryLibraryTitle,
+                  button: true,
+                  child: _HomeStoryLibraryCard(
+                    l10n: l10n,
+                    theme: theme,
+                    responsive: responsive,
+                    onPressed: onStoryLibrary,
+                  ),
                 ),
               ],
             ),
@@ -529,11 +542,15 @@ class _HomeBentoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _HomeBentoSecondaryCard(
-                  l10n: l10n,
-                  theme: theme,
-                  responsive: responsive,
-                  onPressed: onContinue,
+                Semantics(
+                  label: l10n.homeSecondaryCta,
+                  button: true,
+                  child: _HomeBentoSecondaryCard(
+                    l10n: l10n,
+                    theme: theme,
+                    responsive: responsive,
+                    onPressed: onContinue,
+                  ),
                 ),
                 SizedBox(height: stackGap),
                 _HomeLoginButton(
@@ -552,25 +569,37 @@ class _HomeBentoRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _HomeBentoPrimaryCard(
-          l10n: l10n,
-          theme: theme,
-          responsive: responsive,
-          onPressed: onNewGame,
+        Semantics(
+          label: l10n.homeNewGameTitle,
+          button: true,
+          child: _HomeBentoPrimaryCard(
+            l10n: l10n,
+            theme: theme,
+            responsive: responsive,
+            onPressed: onNewGame,
+          ),
         ),
         SizedBox(height: stackGap),
-        _HomeStoryLibraryCard(
-          l10n: l10n,
-          theme: theme,
-          responsive: responsive,
-          onPressed: onStoryLibrary,
+        Semantics(
+          label: l10n.homeStoryLibraryTitle,
+          button: true,
+          child: _HomeStoryLibraryCard(
+            l10n: l10n,
+            theme: theme,
+            responsive: responsive,
+            onPressed: onStoryLibrary,
+          ),
         ),
         SizedBox(height: responsive.sectionSpacing + 4),
-        _HomeBentoSecondaryCard(
-          l10n: l10n,
-          theme: theme,
-          responsive: responsive,
-          onPressed: onContinue,
+        Semantics(
+          label: l10n.homeSecondaryCta,
+          button: true,
+          child: _HomeBentoSecondaryCard(
+            l10n: l10n,
+            theme: theme,
+            responsive: responsive,
+            onPressed: onContinue,
+          ),
         ),
         SizedBox(height: stackGap),
         _HomeLoginButton(
@@ -903,7 +932,6 @@ class _HomeStoryLibraryCardState extends State<_HomeStoryLibraryCard>
                     SizedBox(
                       height: 42,
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: <Widget>[
                           DecoratedBox(
                             decoration: BoxDecoration(

@@ -117,8 +117,8 @@ class AppResponsiveData {
     AppBreakpoint.phoneSmall => width,
     AppBreakpoint.phone => width,
     AppBreakpoint.phoneLarge => width,
-    AppBreakpoint.tablet => 248,
-    AppBreakpoint.desktop => 288,
+    AppBreakpoint.tablet => 240,
+    AppBreakpoint.desktop => 240,
   };
 
   double get overlayMaxWidth => switch (breakpoint) {
@@ -135,6 +135,12 @@ class AppResponsiveData {
     AppBreakpoint.phoneLarge => width,
     AppBreakpoint.tablet => 640,
     AppBreakpoint.desktop => 760,
+  };
+
+  double get settingsMaxWidth => switch (breakpoint) {
+    AppBreakpoint.tablet => 600,
+    AppBreakpoint.desktop => 640,
+    _ => width,
   };
 
   double scaleFont(final double desktopSize) {

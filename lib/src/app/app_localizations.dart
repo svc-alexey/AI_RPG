@@ -270,9 +270,29 @@ class AppLocalizations {
     AppLanguage.en => 'You',
   };
 
+  String get chatNarratorLabel => switch (language) {
+    AppLanguage.ru => 'Рассказчик',
+    AppLanguage.en => 'Narrator',
+  };
+
+  String get chatInputLabel => switch (language) {
+    AppLanguage.ru => 'Ввод сообщения',
+    AppLanguage.en => 'Message input',
+  };
+
+  String get chatSidebarToggle => switch (language) {
+    AppLanguage.ru => 'Боковая панель',
+    AppLanguage.en => 'Sidebar',
+  };
+
   String get homeTertiaryCta => switch (language) {
     AppLanguage.ru => 'Настройки',
     AppLanguage.en => 'Settings',
+  };
+
+  String get homeNewGameTitle => switch (language) {
+    AppLanguage.ru => 'Новая игра',
+    AppLanguage.en => 'New Game',
   };
 
   String get appLoadingTitle => switch (language) {
@@ -756,6 +776,11 @@ class AppLocalizations {
   String get storyLibraryEmptyCatalog => switch (language) {
     AppLanguage.ru => 'Пока нет опубликованных историй в этом разделе.',
     AppLanguage.en => 'No published stories in this section yet.',
+  };
+
+  String get storyLibraryEmptyCatalogSubtitle => switch (language) {
+    AppLanguage.ru => 'Здесь появятся доступные сюжеты для новых кампаний',
+    AppLanguage.en => 'Available story templates for new campaigns will appear here',
   };
 
   String get storyLibraryNoSearchResults => switch (language) {
