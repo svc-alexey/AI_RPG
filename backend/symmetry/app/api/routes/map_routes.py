@@ -37,7 +37,9 @@ async def get_campaign_map(
 ):
     """Return full spatial map graph for a campaign."""
     await _require_campaign_member(campaign_id, user, db)
-    return await map_service.get_map(db, campaign_id)
+    result = await map_service.get_map(db, campaign_id)
+    await db.commit()
+    return result
 
 
 @router.get("/{campaign_id}/return-summary")

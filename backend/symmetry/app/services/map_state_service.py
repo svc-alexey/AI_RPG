@@ -1,5 +1,6 @@
 """MapStateService — single point of access for campaign spatial state."""
 
+import random
 from datetime import datetime
 from typing import Any
 
@@ -16,6 +17,18 @@ from app.db.models import (
     WorldState,
 )
 from app.services.ids import new_id
+from app.services.presentation_text import build_location_display_name
+
+_PLACEHOLDER_LOCATIONS = {
+    "starting point",
+    "starting point.",
+    "начальная точка",
+    "начальная точка.",
+}
+
+
+def _is_placeholder_location(title: str) -> bool:
+    return title.strip().lower() in _PLACEHOLDER_LOCATIONS
 
 
 class MapStateService:
@@ -39,25 +52,60 @@ class MapStateService:
         result: Any = await db.execute(nodes_q)
         nodes: list[WorldLocation] = list(result.scalars().all())
 
-        # Auto-seed: create a starting node if no locations exist yet
+        # Auto-seed: create nodes for starting and current location if empty
         if not nodes:
             starting_title = await self._resolve_starting_location(db, campaign_id)
-            node_id = new_id()
+            current_title = await self._resolve_current_location(db, campaign_id)
+
             root = WorldLocation(
-                id=node_id,
+                id=new_id(),
                 campaign_id=campaign_id,
                 slug="starting-point",
                 title=starting_title,
                 location_type="room",
-                node_state="current",
+                node_state=(
+                    "explored"
+                    if current_title and current_title != starting_title
+                    else "current"
+                ),
                 is_revealed=True,
                 x=5000.0,
                 y=5000.0,
                 metadata_json={},
             )
             db.add(root)
-            await db.flush()
             nodes = [root]
+
+            # If current narrative location differs, create it too
+            if (
+                current_title
+                and current_title != starting_title
+                and not _is_placeholder_location(current_title)
+            ):
+                cur_node = WorldLocation(
+                    id=new_id(),
+                    campaign_id=campaign_id,
+                    slug=current_title.strip().lower().replace(" ", "-"),
+                    title=current_title.strip(),
+                    location_type="room",
+                    node_state="current",
+                    is_revealed=True,
+                    x=5000.0 + random.uniform(-200, 200),
+                    y=5000.0 + random.uniform(-200, 200),
+                    parent_id=root.id,
+                    metadata_json={},
+                )
+                db.add(cur_node)
+                edge = LocationEdge(
+                    id=new_id(),
+                    location_id_a=root.id,
+                    location_id_b=cur_node.id,
+                    edge_type="known",
+                )
+                db.add(edge)
+                nodes.append(cur_node)
+
+            await db.flush()
 
         edges_q = (
             select(LocationEdge)
@@ -106,7 +154,9 @@ class MapStateService:
         return_events = [
             {
                 "chronicle_id": c.id,
-                "location_slug": c.location_slug,
+                "location_slug": build_location_display_name(
+                    c.location_slug, language="ru"
+                ) or c.location_slug,
                 "event_text": c.event_text,
             }
             for c in chronicles
@@ -240,7 +290,9 @@ class MapStateService:
         # Group by location + category
         digest = []
         for c in chronicles:
-            location_title = c.location_slug
+            location_title = build_location_display_name(
+                c.location_slug, language="ru"
+            ) or "Неизвестное место"
             category = "event"
             if "threat" in (c.tags or []):
                 category = "threat"
@@ -259,6 +311,117 @@ class MapStateService:
             "digest": digest,
             "changed_node_ids": [],  # Populated by butterfly
         }
+
+    async def sync_narrative_location(
+        self,
+        db: AsyncSession,
+        campaign_id: str,
+        location_title: str,
+        previous_location_title: str | None = None,
+    ) -> str | None:
+        """Ensure a WorldLocation exists for the narrative location.
+
+        Creates the node if missing, connects it to the previous location,
+        and updates node states (current → explored for previous, new → current).
+        Returns the current node ID or None.
+        """
+        if not location_title or not location_title.strip():
+            return None
+        if _is_placeholder_location(location_title):
+            return None
+
+        slug = location_title.strip().lower().replace(" ", "-")
+        normalized_title = location_title.strip()
+
+        # Find existing node by title
+        existing_q = (
+            select(WorldLocation)
+            .where(
+                WorldLocation.campaign_id == campaign_id,
+                WorldLocation.title == normalized_title,
+            )
+        )
+        result: Any = await db.execute(existing_q)
+        current_node: WorldLocation | None = result.scalar_one_or_none()
+
+        if current_node is None:
+            # Find previous node for positioning
+            prev_node = None
+            if previous_location_title:
+                prev_q = (
+                    select(WorldLocation)
+                    .where(
+                        WorldLocation.campaign_id == campaign_id,
+                        WorldLocation.title == previous_location_title.strip(),
+                    )
+                )
+                prev_result: Any = await db.execute(prev_q)
+                prev_node = prev_result.scalar_one_or_none()
+
+            # Position near previous node or at center
+            base_x = prev_node.x if prev_node else 5000.0
+            base_y = prev_node.y if prev_node else 5000.0
+            offset_x = random.uniform(-300, 300)
+            offset_y = random.uniform(-300, 300)
+
+            current_node = WorldLocation(
+                id=new_id(),
+                campaign_id=campaign_id,
+                slug=slug,
+                title=normalized_title,
+                location_type="room",
+                node_state="current",
+                is_revealed=True,
+                x=base_x + offset_x,
+                y=base_y + offset_y,
+                parent_id=prev_node.id if prev_node else None,
+                metadata_json={},
+            )
+            db.add(current_node)
+            await db.flush()
+
+            # Create edge from previous to current (avoid duplicates)
+            if prev_node:
+                edge_exists_q = (
+                    select(LocationEdge)
+                    .where(
+                        LocationEdge.location_id_a.in_(
+                            [prev_node.id, current_node.id]
+                        ),
+                        LocationEdge.location_id_b.in_(
+                            [prev_node.id, current_node.id]
+                        ),
+                    )
+                )
+                edge_result: Any = await db.execute(edge_exists_q)
+                if not edge_result.scalar_one_or_none():
+                    edge = LocationEdge(
+                        id=new_id(),
+                        location_id_a=prev_node.id,
+                        location_id_b=current_node.id,
+                        edge_type="known",
+                    )
+                    db.add(edge)
+                # Mark previous as explored
+                prev_node.node_state = "explored"
+
+        # Ensure current node is marked as current
+        if current_node.node_state != "current":
+            # Demote any existing current node
+            others_q = (
+                select(WorldLocation)
+                .where(
+                    WorldLocation.campaign_id == campaign_id,
+                    WorldLocation.node_state == "current",
+                    WorldLocation.id != current_node.id,
+                )
+            )
+            others_result: Any = await db.execute(others_q)
+            for old_current in others_result.scalars().all():
+                old_current.node_state = "explored"
+            current_node.node_state = "current"
+
+        return current_node.id
 
     async def seed_map(
         self, db: AsyncSession, campaign_id: str
@@ -457,7 +620,10 @@ class MapStateService:
     async def _resolve_starting_location(
         self, db: AsyncSession, campaign_id: str
     ) -> str:
-        """Extract the campaign's current location from the latest snapshot."""
+        """Extract the campaign's starting location from the latest snapshot.
+
+        Prefers bootstrap.starting_location (narrative origin) over current location.
+        """
         snapshot_q = (
             select(CampaignSnapshot)
             .where(CampaignSnapshot.campaign_id == campaign_id)
@@ -467,6 +633,12 @@ class MapStateService:
         result: Any = await db.execute(snapshot_q)
         snapshot = result.scalar_one_or_none()
         if snapshot and snapshot.state_json:
+            # Prefer bootstrap starting_location (the story's origin)
+            bootstrap = snapshot.state_json.get("bootstrap") or {}
+            start_loc = bootstrap.get("starting_location")
+            if start_loc and isinstance(start_loc, str) and start_loc.strip():
+                return start_loc.strip()
+            # Fall back to current location
             loc = snapshot.state_json.get("location")
             if loc and isinstance(loc, str) and loc.strip():
                 return loc.strip()
@@ -482,6 +654,24 @@ class MapStateService:
             if loc and isinstance(loc, str) and loc.strip():
                 return loc.strip()
         return "Начальная точка"
+
+    async def _resolve_current_location(
+        self, db: AsyncSession, campaign_id: str
+    ) -> str | None:
+        """Extract the current narrative location from the latest snapshot."""
+        snapshot_q = (
+            select(CampaignSnapshot)
+            .where(CampaignSnapshot.campaign_id == campaign_id)
+            .order_by(CampaignSnapshot.version.desc())
+            .limit(1)
+        )
+        result: Any = await db.execute(snapshot_q)
+        snapshot = result.scalar_one_or_none()
+        if snapshot and snapshot.state_json:
+            loc = snapshot.state_json.get("location")
+            if loc and isinstance(loc, str) and loc.strip():
+                return loc.strip()
+        return None
 
     def _compute_available_scales(self, nodes: list[WorldLocation]) -> list[str]:
         """Determine which scales are available based on revealed node types."""

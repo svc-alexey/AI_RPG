@@ -411,6 +411,21 @@ async def process_turn(
         )
     await session.commit()
 
+    # Sync spatial map with narrative location
+    new_location = str(next_state.get("location", ""))
+    prev_location = str(current_state.get("location", ""))
+    if new_location and new_location != prev_location:
+        try:
+            await map_state_service.sync_narrative_location(
+                session,
+                campaign_id=campaign.id,
+                location_title=new_location,
+                previous_location_title=prev_location if prev_location else None,
+            )
+            await session.commit()
+        except Exception:
+            pass
+
     # Inject map context (best-effort — failure does not fail the turn)
     map_context = None
     try:

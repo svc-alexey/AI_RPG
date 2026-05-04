@@ -346,6 +346,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       playerMarks: _playerMarks,
                       onNodeTap: _onNodeTap,
                       onNodeLongPress: _onNodeLongPress,
+                      transformController: _transformCtrl,
                     ),
                     if (_showWorldPulse && _returnSummary != null)
                       _WorldPulseOverlay(
