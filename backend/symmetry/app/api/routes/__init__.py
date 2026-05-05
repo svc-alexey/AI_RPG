@@ -1,9 +1,11 @@
 from app.api.routes import (
     auth,
+    billing,
     campaigns,
     dev,
     feedback,
     literary_genres,
+    map_routes,
     prompts,
     providers,
     stories,
@@ -12,10 +14,12 @@ from app.api.routes import (
 
 __all__ = [
     "auth",
+    "billing",
     "campaigns",
     "dev",
     "feedback",
     "literary_genres",
+    "map_routes",
     "prompts",
     "providers",
     "stories",

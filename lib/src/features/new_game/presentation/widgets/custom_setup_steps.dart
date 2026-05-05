@@ -53,6 +53,26 @@ class LiteraryGenreStep extends StatelessWidget {
               )
               .toList(),
         ),
+        const SizedBox(height: 16),
+        AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AetherPalette.panelSoft.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AetherPalette.panelBorderSolid),
+            ),
+            child: Text(
+              l10n.literaryGenreDescription(state.literaryGenre),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AetherPalette.textMuted,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ),
         SizedBox(height: context.responsive.sectionSpacing + 6),
         Center(
           child: TextButton.icon(
@@ -119,6 +139,26 @@ class WorldSettingStep extends StatelessWidget {
                 ),
               )
               .toList(),
+        ),
+        const SizedBox(height: 16),
+        AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AetherPalette.panelSoft.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AetherPalette.panelBorderSolid),
+            ),
+            child: Text(
+              l10n.settingDescription(state.setting),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AetherPalette.textMuted,
+                height: 1.5,
+              ),
+            ),
+          ),
         ),
         SizedBox(height: context.responsive.sectionSpacing + 6),
         Center(

@@ -1,13 +1,15 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/responsive.dart';
+import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/features/chat/presentation/widgets/stats_radar.dart';
 import 'package:ai_prg/src/features/chat/widgets/portrait_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChatSidebar extends ConsumerWidget {
+class ChatSidebar extends ConsumerStatefulWidget {
   const ChatSidebar({
     required this.campaignId,
     required this.campaign,
@@ -26,32 +28,89 @@ class ChatSidebar extends ConsumerWidget {
   final VoidCallback onExitToMainMenu;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final responsive = context.responsive;
-    final character = campaign.character;
-    final showVitality =
-        campaign.isModuleActive(CampaignModule.vitality) &&
+  ConsumerState<ChatSidebar> createState() => _ChatSidebarState();
+}
+
+class _ChatSidebarState extends ConsumerState<ChatSidebar>
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rebuildTabs();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.campaign.activeModules != widget.campaign.activeModules) {
+      _rebuildTabs();
+    }
+  }
+
+  void _rebuildTabs() {
+    final tabs = _buildTabList();
+    _tabController?.dispose();
+    _tabController = TabController(
+      length: tabs.length,
+      vsync: this,
+      initialIndex: 0,
+    );
+  }
+
+  List<CampaignModule> _buildTabList() {
+    final modules = <CampaignModule>[];
+    final character = widget.campaign.character;
+    final showVitality = widget.campaign
+            .isModuleActive(CampaignModule.vitality) &&
         (character.maxHp > 0 ||
             character.maxEnergy > 0 ||
             character.might > 0 ||
             character.wit > 0 ||
             character.spirit > 0);
-    final latestWorldRumors = List<SymmetryWorldRumor>.from(worldRumors)
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final latestRecentTurns = List<RecentTurnSummary>.from(
-      campaign.recentTurns.reversed,
-    ).take(5).toList();
+    if (showVitality) modules.add(CampaignModule.vitality);
+    for (final m in widget.campaign.activeModules) {
+      if (m != CampaignModule.vitality && !modules.contains(m)) {
+        modules.add(m);
+      }
+    }
+    return modules;
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final responsive = context.responsive;
+    final campaign = widget.campaign;
+    final tabs = _buildTabList();
+
+    if (tabs.isEmpty) {
+      return _fallbackSidebar(context);
+    }
+
+    // Ensure TabController is in sync
+    if (_tabController == null || _tabController!.length != tabs.length) {
+      _rebuildTabs();
+    }
+
+    final tabController = _tabController!;
 
     return AetherCard(
       padding: EdgeInsets.all(responsive.isCompact ? 8 : 14),
-      child: ListView(
-        padding: EdgeInsets.all(
-          responsive.isCompact ? 8 : responsive.cardPadding - 2,
-        ),
+      child: Column(
         children: <Widget>[
+          // 1. Portrait + name
           _CharacterPortraitCard(campaign: campaign),
-          SizedBox(height: responsive.sectionSpacing),
+          SizedBox(height: responsive.sectionSpacing - 4),
+
+          // 2. Meta info
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -60,158 +119,452 @@ class ChatSidebar extends ConsumerWidget {
               _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
             ],
           ),
-          SizedBox(height: responsive.sectionSpacing),
-          if (campaign.activeModules.isNotEmpty) ...<Widget>[
-            _ModuleIconStrip(
-              campaign: campaign,
-              highlightedModules: highlightedModules,
-              newlyUnlockedModules: newlyUnlockedModules,
-            ),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
+          SizedBox(height: responsive.isCompact ? 8 : 6),
+
+          // Location + Objective
           _SidebarInfoLine(label: l10n.location, value: campaign.location),
           SizedBox(height: responsive.isCompact ? 8 : 6),
-          if (campaign.hasDisplayObjective) ...<Widget>[
+          if (campaign.hasDisplayObjective) ...[
             _SidebarInfoLine(
               label: l10n.objective,
               value: campaign.displayObjectiveLine,
             ),
             SizedBox(height: responsive.isCompact ? 8 : 6),
           ],
-          SizedBox(height: responsive.sectionSpacing),
-          if (showVitality) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.vitality),
+
+          // 3. TabBar
+          TabBar(
+            controller: tabController,
+            isScrollable: false,
+            indicatorColor: const Color(0xFFBFA76F),
+            labelColor: AetherPalette.textPrimary,
+            unselectedLabelColor: AetherPalette.textMuted,
+            tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
+          ),
+
+          // 4. TabBarView
+          Expanded(
+            child: TabBarView(
+              controller: tabController,
+              children: tabs.map((m) => _buildTabContent(m, context)).toList(),
             ),
-            const SizedBox(height: 8),
-            Text(l10n.healthLabel(character)),
-            Text(l10n.energyLabel(character)),
-            Text(l10n.statsLabel(character)),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
-          if (campaign.isModuleActive(CampaignModule.inventory)) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.inventory),
-            ),
-            const SizedBox(height: 8),
-            if (campaign.inventory.isEmpty) Text(l10n.nothingTrackedYet),
-            for (final item in campaign.inventory) Text('- $item'),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
-          if (campaign.isModuleActive(CampaignModule.notes)) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.notes),
-            ),
-            const SizedBox(height: 8),
-            if (campaign.notes.isEmpty) Text(l10n.nothingTrackedYet),
-            for (final item in campaign.notes) Text('- $item'),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
-          if (campaign.isModuleActive(CampaignModule.companions)) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.companions),
-            ),
-            const SizedBox(height: 8),
-            if (campaign.companions.isEmpty) Text(l10n.nothingTrackedYet),
-            for (final item in campaign.companions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '- ${item.name} (${item.status})${item.notes.trim().isEmpty ? '' : ' • ${item.notes}'}',
-                ),
-              ),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
-          if (campaign.isModuleActive(CampaignModule.resources)) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.resources),
-            ),
-            const SizedBox(height: 8),
-            if (campaign.resources.isEmpty) Text(l10n.nothingTrackedYet),
-            for (final item in campaign.resources)
-              Text(
-                '- ${item.label}: ${item.value}${item.maxValue == null ? '' : '/${item.maxValue}'}',
-              ),
-            SizedBox(height: responsive.sectionSpacing),
-          ],
-          if (campaign.isModuleActive(CampaignModule.progression)) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.progression),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              campaign.progression == null
-                  ? l10n.nothingTrackedYet
-                  : l10n.progressionLabel(campaign.progression!),
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (campaign.isModuleActive(CampaignModule.checks)) ...<Widget>[
-            _SidebarSectionTitle(
-              title: l10n.campaignModuleLabel(CampaignModule.checks),
-            ),
-            const SizedBox(height: 8),
-            if (campaign.checks.isEmpty) Text(l10n.nothingTrackedYet),
-            for (final item in campaign.checks.reversed)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('- ${l10n.campaignCheckLabel(item)}'),
-              ),
-            const SizedBox(height: 16),
-          ],
-          Text(l10n.summary, style: Theme.of(context).textTheme.titleMedium),
+          ),
+
+          // 5. Exit button
+          const SizedBox(height: 8),
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.home_outlined, size: 20),
+            title: Text(l10n.exitToMainMenu),
+            onTap: widget.onExitToMainMenu,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(
+    CampaignModule module,
+    AppLocalizations l10n,
+    AppResponsiveData responsive,
+  ) {
+    final icon = _iconForModule(module);
+    if (responsive.isCompact) {
+      return Tab(
+        icon: Icon(icon, size: 24),
+        iconMargin: EdgeInsets.zero,
+      );
+    }
+    return Tab(
+      icon: Icon(icon, size: 20),
+      text: l10n.campaignModuleLabel(module),
+      iconMargin: const EdgeInsets.only(bottom: 2),
+    );
+  }
+
+  Widget _buildTabContent(CampaignModule module, BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.responsive.isCompact ? 8 : 12),
+      child: switch (module) {
+        CampaignModule.vitality => _VitalityTab(
+            character: widget.campaign.character,
+          ),
+        CampaignModule.inventory => _InventoryTab(
+            inventory: widget.campaign.inventory,
+          ),
+        CampaignModule.companions => _CompanionsTab(
+            companions: widget.campaign.companions,
+          ),
+        CampaignModule.notes => _NotesTab(
+            notes: widget.campaign.notes,
+          ),
+        CampaignModule.resources => _ResourcesTab(
+            resources: widget.campaign.resources,
+          ),
+        CampaignModule.progression => _ProgressionTab(
+            progression: widget.campaign.progression,
+          ),
+        CampaignModule.checks => _ChecksTab(
+            checks: widget.campaign.checks,
+          ),
+      },
+    );
+  }
+
+  Widget _fallbackSidebar(BuildContext context) {
+    final l10n = context.l10n;
+    final campaign = widget.campaign;
+
+    return AetherCard(
+      padding: EdgeInsets.all(context.responsive.isCompact ? 8 : 14),
+      child: ListView(
+        padding: EdgeInsets.all(context.responsive.isCompact ? 8 : 12),
+        children: <Widget>[
+          _CharacterPortraitCard(campaign: campaign),
+          const SizedBox(height: 12),
+          Text(l10n.summary),
           const SizedBox(height: 8),
           Text(campaign.summary),
-          const SizedBox(height: 16),
-          Text(
-            l10n.worldRumorsTitle,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          if (latestWorldRumors.isEmpty)
-            Text(l10n.worldRumorsEmpty)
-          else
-            for (final item in latestWorldRumors.take(5))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('- ${item.eventText}'),
-                    if ((item.locationTitle ?? '').trim().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          item.locationTitle!.trim(),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AetherPalette.textDim),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.recentEventsTitle,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          for (final item in latestRecentTurns)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text('- ${item.playerAction} -> ${item.outcome}'),
-            ),
           const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.home_outlined),
             title: Text(l10n.exitToMainMenu),
-            onTap: onExitToMainMenu,
+            onTap: widget.onExitToMainMenu,
           ),
         ],
       ),
     );
   }
 }
+
+// ─── Tab content widgets ──────────────────────────────────────────────────
+
+class _VitalityTab extends StatelessWidget {
+  const _VitalityTab({required this.character});
+
+  final CharacterStats character;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        // HP bar
+        _VitalityBar(
+          label: 'HP',
+          value: character.hp,
+          max: character.maxHp,
+          colorFn: _hpColor,
+        ),
+        const SizedBox(height: 12),
+        // Energy bar
+        _VitalityBar(
+          label: 'Energy',
+          value: character.energy,
+          max: character.maxEnergy,
+          colorFn: (_, __) => const Color(0xFF4A90D9),
+        ),
+        const SizedBox(height: 20),
+        // Stats radar
+        Center(
+          child: StatsRadar(
+            might: character.might,
+            wit: character.wit,
+            spirit: character.spirit,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Text labels
+        Text(
+          l10n.healthLabel(character),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          l10n.energyLabel(character),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          l10n.statsLabel(character),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Color _hpColor(int hp, int maxHp) {
+    if (maxHp <= 0) return const Color(0xFF34D399);
+    final ratio = hp / maxHp;
+    if (ratio < 0.25) return const Color(0xFFD85A30);
+    if (ratio < 0.5) return const Color(0xFFC87941);
+    return const Color(0xFF34D399);
+  }
+}
+
+class _VitalityBar extends StatelessWidget {
+  const _VitalityBar({
+    required this.label,
+    required this.value,
+    required this.max,
+    required this.colorFn,
+  });
+
+  final String label;
+  final int value;
+  final int max;
+  final Color Function(int value, int max) colorFn;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = max > 0 ? (value / max).clamp(0.0, 1.0) : 0.0;
+    final color = colorFn(value, max);
+
+    return Row(
+      children: <Widget>[
+        SizedBox(
+          width: 48,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AetherPalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: AetherPalette.panelBorderSolid.withValues(alpha: 0.4),
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$value/$max',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InventoryTab extends StatelessWidget {
+  const _InventoryTab({required this.inventory});
+
+  final List<String> inventory;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (inventory.isEmpty) {
+      return _EmptyState(
+        icon: Icons.backpack_outlined,
+        text: switch (l10n.language) {
+          AppLanguage.ru =>
+            'Твой рюкзак пуст. Предметы появятся здесь когда ты найдёшь их в мире.',
+          AppLanguage.en =>
+            'Your backpack is empty. Items will appear here as you find them in the world.',
+        },
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: inventory.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text('- $item'),
+      )).toList(),
+    );
+  }
+}
+
+class _CompanionsTab extends StatelessWidget {
+  const _CompanionsTab({required this.companions});
+
+  final List<CampaignCompanion> companions;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (companions.isEmpty) {
+      return _EmptyState(
+        icon: Icons.groups_2_outlined,
+        text: switch (l10n.language) {
+          AppLanguage.ru =>
+            'Спутники присоединятся к тебе по мере приключений.',
+          AppLanguage.en =>
+            'Companions will join you as your adventures unfold.',
+        },
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: companions.whereType<CampaignCompanion>().map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          '- ${item.name} (${item.status})${item.notes.trim().isEmpty ? '' : ' • ${item.notes}'}',
+        ),
+      )).toList(),
+    );
+  }
+}
+
+class _NotesTab extends StatelessWidget {
+  const _NotesTab({required this.notes});
+
+  final List<String> notes;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (notes.isEmpty) {
+      return _EmptyState(
+        icon: Icons.menu_book_outlined,
+        text: switch (l10n.language) {
+          AppLanguage.ru =>
+            'Заметки создаются автоматически при расследованиях и важных открытиях.',
+          AppLanguage.en =>
+            'Notes are created automatically during investigations and important discoveries.',
+        },
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: notes.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text('- $item'),
+      )).toList(),
+    );
+  }
+}
+
+class _ResourcesTab extends StatelessWidget {
+  const _ResourcesTab({required this.resources});
+
+  final List<CampaignResource> resources;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (resources.isEmpty) {
+      return _EmptyState(
+        icon: Icons.diamond_outlined,
+        text: switch (l10n.language) {
+          AppLanguage.ru =>
+            'Ресурсы появятся когда ты начнёшь собирать припасы и валюту в мире.',
+          AppLanguage.en =>
+            'Resources will appear as you collect supplies and currency in the world.',
+        },
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: resources.whereType<CampaignResource>().map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          '- ${item.label}: ${item.value}${item.maxValue == null ? '' : '/${item.maxValue}'}',
+        ),
+      )).toList(),
+    );
+  }
+}
+
+class _ProgressionTab extends StatelessWidget {
+  const _ProgressionTab({required this.progression});
+
+  final CampaignProgression? progression;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (progression == null) {
+      return _EmptyState(
+        icon: Icons.insights_outlined,
+        text: switch (l10n.language) {
+          AppLanguage.ru =>
+            'Прогресс героя будет отображаться здесь по мере прохождения.',
+          AppLanguage.en =>
+            'Hero progression will appear here as you advance.',
+        },
+      );
+    }
+    return Text(l10n.progressionLabel(progression!));
+  }
+}
+
+class _ChecksTab extends StatelessWidget {
+  const _ChecksTab({required this.checks});
+
+  final List<CampaignCheck> checks;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    if (checks.isEmpty) {
+      return _EmptyState(
+        icon: Icons.casino_outlined,
+        text: switch (l10n.language) {
+          AppLanguage.ru =>
+            'Результаты проверок навыков появятся здесь.',
+          AppLanguage.en =>
+            'Skill check results will appear here.',
+        },
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: checks.reversed.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text('- ${l10n.campaignCheckLabel(item)}'),
+      )).toList(),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 40, color: const Color(0xFF3D3328)),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF5A5550),
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ─── Reused widget classes (unchanged) ────────────────────────────────────
 
 class _CharacterPortraitCard extends StatelessWidget {
   const _CharacterPortraitCard({required this.campaign});
@@ -242,7 +595,7 @@ class _CharacterPortraitCard extends StatelessWidget {
               portraitPath: imagePath,
               fit: BoxFit.cover,
               width: double.infinity,
-              height: responsive.isCompact ? 190 : 220,
+              height: responsive.isCompact ? 140 : 160,
               errorBuilder: (_, __, ___) =>
                   _PortraitFallbackLabel(label: campaign.character.name),
             ),
@@ -288,110 +641,6 @@ class _PortraitFallbackLabel extends StatelessWidget {
       textAlign: TextAlign.center,
     ),
   );
-}
-
-class _ModuleIconStrip extends StatelessWidget {
-  const _ModuleIconStrip({
-    required this.campaign,
-    required this.highlightedModules,
-    required this.newlyUnlockedModules,
-  });
-
-  final CampaignState campaign;
-  final List<CampaignModule> highlightedModules;
-  final List<CampaignModule> newlyUnlockedModules;
-
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 10,
-    runSpacing: 10,
-    children: campaign.activeModules.map((module) {
-      final _ModuleHighlightState highlightState = _resolveHighlight(
-        campaign: campaign,
-        module: module,
-      );
-      return Tooltip(
-        message: context.l10n.campaignModuleLabel(module),
-        waitDuration: const Duration(milliseconds: 250),
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AetherPalette.backgroundElevated,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: switch (highlightState) {
-                _ModuleHighlightState.newlyUnlocked =>
-                  AetherPalette.accent.withValues(alpha: 0.75),
-                _ModuleHighlightState.updated =>
-                  AetherPalette.accentSoft.withValues(alpha: 0.78),
-                _ModuleHighlightState.none => AetherPalette.panelBorderSolid,
-              },
-            ),
-            boxShadow: highlightState == _ModuleHighlightState.none
-                ? const <BoxShadow>[]
-                : <BoxShadow>[
-                    BoxShadow(
-                      color: AetherPalette.accent.withValues(
-                        alpha: highlightState == _ModuleHighlightState.newlyUnlocked
-                            ? 0.22
-                            : 0.12,
-                      ),
-                      blurRadius: 20,
-                      spreadRadius: -6,
-                    ),
-                  ],
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: <Widget>[
-              Icon(
-                _iconForModule(module),
-                size: 18,
-                color: highlightState == _ModuleHighlightState.none
-                    ? AetherPalette.textMuted
-                    : AetherPalette.textPrimary,
-              ),
-              if (highlightState != _ModuleHighlightState.none)
-                Positioned(
-                  top: 7,
-                  right: 7,
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: highlightState == _ModuleHighlightState.newlyUnlocked
-                          ? AetherPalette.accent
-                          : AetherPalette.gold,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }).toList(),
-  );
-
-  _ModuleHighlightState _resolveHighlight({
-    required CampaignState campaign,
-    required CampaignModule module,
-  }) {
-    if (newlyUnlockedModules.contains(module)) {
-      return _ModuleHighlightState.newlyUnlocked;
-    }
-    if (highlightedModules.contains(module)) {
-      return _ModuleHighlightState.updated;
-    }
-    final DateTime? activatedAt = campaign.moduleState(module)?.activatedAt;
-    if (activatedAt == null) {
-      return _ModuleHighlightState.none;
-    }
-    return DateTime.now().difference(activatedAt) <= const Duration(minutes: 5)
-        ? _ModuleHighlightState.newlyUnlocked
-        : _ModuleHighlightState.none;
-  }
 }
 
 class _SidebarMetaChip extends StatelessWidget {
@@ -448,23 +697,6 @@ class _SidebarInfoLine extends StatelessWidget {
   );
 }
 
-class _SidebarSectionTitle extends StatelessWidget {
-  const _SidebarSectionTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    title.toUpperCase(),
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      letterSpacing: 2.2,
-      color: AetherPalette.textDim,
-      fontWeight: FontWeight.w600,
-      fontSize: 10,
-    ),
-  );
-}
-
 String _portraitAssetForCampaign(CampaignState campaign) =>
     switch (campaign.setting) {
       CampaignSetting.cozyCrime => 'assets/images/portraits/detective_shadow.png',
@@ -482,5 +714,3 @@ IconData _iconForModule(CampaignModule module) => switch (module) {
   CampaignModule.progression => Icons.insights_outlined,
   CampaignModule.checks => Icons.casino_outlined,
 };
-
-enum _ModuleHighlightState { none, updated, newlyUnlocked }

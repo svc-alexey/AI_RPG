@@ -78,6 +78,10 @@ class CreateCampaignRequest(BaseModel):
         default="",
         validation_alias=AliasChoices("objective_hint", "objectiveHint"),
     )
+    literary_genre: str = Field(
+        default="",
+        validation_alias=AliasChoices("literary_genre", "literaryGenre"),
+    )
     character: CharacterProfileInput = Field(default_factory=CharacterProfileInput)
     provider_credentials: ProviderCredentialsInput | None = Field(
         default=None,
@@ -92,6 +96,7 @@ class CreateCampaignRequest(BaseModel):
         "language",
         "story_prompt",
         "objective_hint",
+        "literary_genre",
         mode="before",
     )
     @classmethod

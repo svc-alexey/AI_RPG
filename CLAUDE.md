@@ -228,3 +228,157 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+## Infrastructure & Deploy
+
+### Server Architecture
+
+```
+User (beyondtheverge.online)
+  │ HTTPS
+  ▼
+VPS (153.80.247.32, root)
+  ├── Caddy: SSL termination, reverse proxy
+  │     beyondtheverge.online → 127.0.0.1:18083 (FRP → home:8081)
+  │     edge1.beyondtheverge.online → 127.0.0.1:18080 (FRP → home:8080)
+  │     claw.beyondtheverge.online → 127.0.0.1:18189 (FRP → home:18789)
+  └── FRP Server (frps): port 7000, token MyStrongFrpToken_123
+
+Home Server (192.168.1.68, alexeyko)
+  ├── AI RPG: /home/alexeyko/ai-rpg/app/
+  │     docker compose -f docker-compose.prod.yml
+  │     ├── ai-rpg-web (nginx:alpine) — port 8081:80
+  │     │     mounts: ./deploy/web → /usr/share/nginx/html (ro)
+  │     │     mounts: ./deploy/nginx/default.prod.conf → /etc/nginx/conf.d/default.conf (ro)
+  │     ├── ai-rpg-api (FastAPI) — port 8080
+  │     │     env_file: ./backend/symmetry/.env
+  │     │     volumes: ONLY ./backend/symmetry/models:/app/models
+  │     │     CODE IS IN IMAGE, NOT A VOLUME!
+  │     ├── ai-rpg-worker — background tasks
+  │     └── ai-rpg-postgres — PostgreSQL 16 + pgvector
+  └── FRP Client (frpc): tunnels 8080, 8081, 18789 to VPS
+```
+
+### Path Mapping
+
+| Локально (репо) | На сервере |
+|---|---|
+| `deploy/nginx/default.prod.conf` | `/home/alexeyko/ai-rpg/app/deploy/nginx/default.prod.conf` |
+| `deploy/web/*.html`, `deploy/web/*.css` | `/home/alexeyko/ai-rpg/app/deploy/web/` |
+| `web/index.html` (Flutter build output) | Копируется в `deploy/web/` при деплое |
+| `backend/symmetry/app/` | `/home/alexeyko/ai-rpg/app/backend/symmetry/app/` |
+
+### Flutter Web Deploy
+
+```bash
+# 1. BUILD — обязательно с версиями!
+RELEASE_ID="web-$(date -u +%Y%m%dT%H%M%SZ)"
+flutter build web \
+  --dart-define=AI_PRG_APP_VERSION=1.0.0+1 \
+  --dart-define=AI_PRG_ASSET_VERSION=$RELEASE_ID \
+  --dart-define=AI_PRG_RELEASE_ID=$RELEASE_ID
+
+# 2. PACK
+tar -czf /tmp/deploy-flutter.tar.gz -C build/web .
+
+# 3. UPLOAD (пароль из локального secrets-файла)
+scp /tmp/deploy-flutter.tar.gz alexeyko@192.168.1.68:/tmp/
+
+# 4. DEPLOY на сервере
+cd /home/alexeyko/ai-rpg/app
+# Бэкап
+cp -r deploy/web deploy/web.bak_$(date +%Y%m%d)
+# Очистить и распаковать Flutter build
+rm -rf deploy/web/*
+tar -xzf /tmp/deploy-flutter.tar.gz -C deploy/web/
+# Восстановить статические HTML (legal + subscribe)
+# Эти файлы лежат в deploy/web/ в репо, они НЕ из Flutter build
+# После очистки их нужно вернуть:
+tar -xzf /tmp/deploy-new-files.tar.gz -C /home/alexeyko/ai-rpg/app/
+# Обновить version.json
+cat > deploy/web/version.json << EOF
+{
+  "app_version": "1.0.0+1",
+  "asset_version": "$RELEASE_ID",
+  "release_id": "$RELEASE_ID",
+  "released_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+docker restart ai-rpg-web
+```
+
+### Backend Deploy
+
+**Критически важно:** код backend НЕ в volume — он в Docker-образе. Полная пересборка образа занимает 15+ минут (PyTorch, CUDA). Для мелких изменений используй `docker cp`.
+
+```bash
+# Для мелких изменений (новые файлы, правки):
+docker cp backend/symmetry/app/schemas/billing.py ai-rpg-api:/app/app/schemas/
+docker cp backend/symmetry/app/api/routes/billing.py ai-rpg-api:/app/app/api/routes/
+docker cp backend/symmetry/app/api/routes/__init__.py ai-rpg-api:/app/app/api/routes/
+docker cp backend/symmetry/app/main.py ai-rpg-api:/app/app/main.py
+
+# Очистить кэш Python после изменений
+docker exec ai-rpg-api find /app -type d -name __pycache__ -exec rm -rf {} +
+
+# Перезапустить контейнер
+docker restart ai-rpg-api
+
+# Для изменений .env — нужен recreate (restart не перечитывает env_file):
+docker compose -f docker-compose.prod.yml up -d --force-recreate symmetry-api
+# После recreate ВСЕ docker cp нужно применить заново!
+
+# Полная пересборка (только при изменении зависимостей):
+docker compose -f docker-compose.prod.yml build symmetry-api --no-cache
+docker compose -f docker-compose.prod.yml up -d --force-recreate symmetry-api
+```
+
+### Version Check Mechanism
+
+Бэкенд (`main.py:/version`) сравнивает версии клиента и сервера:
+
+```python
+# Клиент отправляет:
+current_asset_version = AppReleaseEnv.assetVersion  # из --dart-define
+# Сервер проверяет:
+_reload_required = _compare_versions(current, server_web_asset_version) < 0
+```
+
+**Ключевые настройки в `.env`:**
+- `SYMMETRY_WEB_ASSET_VERSION=` — пусто = проверка отключена (рекомендуется)
+- `SYMMETRY_RELEASE_ID=web-YYYYMMDDTHHMMSSZ` — ID релиза
+- `SYMMETRY_RELEASED_AT=...` — дата релиза ISO 8601
+
+**Правило:** если `--dart-define=AI_PRG_ASSET_VERSION=$RELEASE_ID` совпадает с `SYMMETRY_WEB_ASSET_VERSION`, блокировки не будет. Оставь `SYMMETRY_WEB_ASSET_VERSION=` пустым чтобы избежать проблем с закэшированными клиентами.
+
+### Nginx Static File Routing
+
+Статические legal/catalog страницы должны обходить Flutter SPA:
+
+```nginx
+# ДО SPA fallback:
+location ~ ^/(offer|privacy|consent|refunds|contacts|subscribe)\.html$ {
+    try_files $uri =404;
+}
+
+# API прокси:
+location /v1/ {
+    proxy_pass http://symmetry-api:8080/v1/;
+    ...
+}
+
+# SPA fallback — всё остальное:
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
+
+### Known Pitfalls
+
+1. **`map_routes.py` добавлен, но требует `docker cp` на прод.** Файл существует в репо (создан в `4379030`), зарегистрирован в `__init__.py` и `main.py`. При деплое новых бэкенд-файлов не забывать копировать `map_routes.py`.
+2. **После `docker compose up -d --force-recreate` все `docker cp` теряются.** Контейнер создаётся заново из образа. Все правки через `docker cp` нужно применять заново.
+3. **`.env` не подхватывается при `docker restart`.** Только `up -d --force-recreate` пересоздаёт контейнер с новыми env vars.
+4. **Статические HTML стираются при очистке `deploy/web/`.** После `rm -rf deploy/web/*` и распаковки Flutter build, нужно восстановить legal-страницы из репо.
+5. **`flutter build web` НЕ обновляет `version.json`.** Версия в `version.json` всегда "dev-local". Её нужно обновлять вручную на сервере или через скрипт деплоя.
+6. **При `flutter build web` без `--dart-define` клиент получает `asset_version: "dev-local"`.** Это ломает версионную проверку (dev-local < любая реальная версия → reload_required: true).
+7. **Продовый docker-compose НЕ монтирует `app/` как volume.** В отличие от dev-конфига, где `./app:/app/app` в volume. В проде только `models` в volume. Все изменения кода требуют либо `docker cp`, либо пересборки образа.

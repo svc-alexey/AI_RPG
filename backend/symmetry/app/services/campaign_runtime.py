@@ -26,6 +26,35 @@ ALLOWED_MODULES = {
     "checks",
 }
 
+_CORE_MODULES: set[str] = {"notes"}
+
+_MODULE_ACTIVATION_MATRIX: dict[str, tuple[list[str], list[str]]] = {
+    "inventory": (
+        ["romantasy", "grimdarkFantasy", "litRpgProgression", "postApocalypse", "nearFutureSciFi"],
+        ["fantasyGenre", "speculativeFiction"],
+    ),
+    "companions": (
+        ["romantasy", "cozyFantasy"],
+        ["romance", "romantasyGenre", "youngAdult"],
+    ),
+    "vitality": (
+        ["grimdarkFantasy", "horrorWeird", "postApocalypse"],
+        ["horrorGenre"],
+    ),
+    "resources": (
+        ["postApocalypse", "nearFutureSciFi", "litRpgProgression"],
+        ["speculativeFiction"],
+    ),
+    "progression": (
+        ["litRpgProgression", "grimdarkFantasy"],
+        [],
+    ),
+    "checks": (
+        ["grimdarkFantasy", "litRpgProgression", "horrorWeird"],
+        [],
+    ),
+}
+
 CHARACTER_NUMERIC_KEYS = {
     "hp",
     "max_hp",
@@ -69,6 +98,7 @@ def build_initial_state(payload) -> dict[str, Any]:
         "id": "",
         "title": normalize_campaign_title(payload.title, language=language),
         "setting": payload.setting,
+        "literary_genre": getattr(payload, "literary_genre", "") or "",
         "mode": payload.mode,
         "difficulty": payload.difficulty,
         "language": language,
@@ -208,6 +238,8 @@ class CampaignRuntimeService:
                     "minute_of_day": world_state.minute_of_day,
                     "butterfly": (world_state.global_vars or {}).get("butterfly", {}),
                     "weather": (world_state.global_vars or {}).get("weather", ""),
+                    "factions": (world_state.global_vars or {}).get("factions", {}),
+                    "prices": (world_state.global_vars or {}).get("prices", {}),
                 },
                 "state": {
                     "location": (
@@ -325,6 +357,17 @@ class CampaignRuntimeService:
         module_updates = normalize_module_updates(
             state_changes.get("module_updates", {}) or {}
         )
+        setting = str(next_state.get("setting", "")).strip()
+        genre = str(next_state.get("literary_genre", "")).strip() or None
+        rejected = self.validate_module_activation(
+            modules=module_updates["activate"],
+            setting=setting,
+            genre=genre,
+        )
+        if rejected:
+            module_updates["activate"] = [
+                m for m in module_updates["activate"] if m not in rejected
+            ]
         if (
             "vitality" in module_updates["activate"]
             and not has_meaningful_vitality_stats(
@@ -342,6 +385,34 @@ class CampaignRuntimeService:
                 deactivate=module_updates["deactivate"],
             )
             state_changes["module_updates"] = module_updates
+
+        # Cross-module wiring
+        active_modules = {
+            str(m.get("module", "")).strip()
+            for m in next_state.get("modules", []) or []
+            if isinstance(m, dict) and m.get("is_active", True)
+        }
+        player_state = dict(next_state.get("player", {}) or {})
+
+        # 1. Inventory → Notes
+        inventory_changes = state_changes.get("inventory_add", []) or []
+        if inventory_changes and "notes" in active_modules:
+            note_text = f"Получено: {', '.join(str(i) for i in inventory_changes[:3])}"
+            notes = list(player_state.get("notes", []) or [])
+            notes.append({"text": note_text, "turn": next_state.get("turn_number", 0)})
+            player_state["notes"] = notes
+
+        # 2. Progression → Vitality: level-up restores hp/energy
+        prog = player_state.get("progression", {}) or {}
+        prev_state_data = state.get("player", {}) or {}
+        prev_prog = prev_state_data.get("progression", {}) or {}
+        if prog.get("level", 1) > prev_prog.get("level", 1):
+            character = dict(player_state.get("character", {}) or {})
+            character["hp"] = character.get("maxHp") or 12
+            character["energy"] = character.get("maxEnergy") or 8
+            player_state["character"] = character
+
+        next_state["player"] = player_state
 
         narration = normalize_prompt_text(str(result.get("narration", "")))
         memory_entry = normalize_prompt_text(
@@ -400,6 +471,26 @@ class CampaignRuntimeService:
             limit=240,
         )
         return next_state, state_changes, importance, world_event_summary
+
+    def validate_module_activation(
+        self,
+        *,
+        modules: list[str],
+        setting: str,
+        genre: str | None,
+    ) -> list[str]:
+        rejected: list[str] = []
+        for module in modules:
+            if module in _CORE_MODULES:
+                continue
+            matrix = _MODULE_ACTIVATION_MATRIX.get(module)
+            if matrix is None:
+                rejected.append(module)
+                continue
+            settings_allowed, genres_allowed = matrix
+            if setting not in settings_allowed and (not genre or genre not in genres_allowed):
+                rejected.append(module)
+        return rejected
 
     def ensure_playable_location(
         self,

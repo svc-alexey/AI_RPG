@@ -377,15 +377,11 @@ async def process_turn(
         mode=campaign.mode,
         current_location=str(next_state.get("location", current_state.get("location", ""))),
     )
-    needs_background_followup = str(
-        llm_payload.get("needs_background_followup", "")
-    ).strip().lower() in {"1", "true", "yes"}
-    if not impact_seeds and (needs_background_followup or importance >= 6):
-        impact_seeds = butterfly_service.fallback_seed_from_turn(
+    if not impact_seeds:
+        impact_seeds = await butterfly_service.seed_from_world_state(
+            campaign_id=campaign.id,
+            world_state=world_state,
             mode=campaign.mode,
-            importance=importance,
-            summary=world_event_summary or llm_payload.get("memory_entry", ""),
-            current_location=str(next_state.get("location", current_state.get("location", ""))),
         )
     await butterfly_service.enqueue_followup_job(
         session,

@@ -647,6 +647,154 @@ class AppLocalizations {
     (AppLanguage.en, LiteraryGenre.cozyFeelGood) => 'Cozy / feel-good',
   };
 
+  String settingDescription(CampaignSetting value) => switch ((language, value)) {
+    (AppLanguage.ru, CampaignSetting.romantasy) =>
+      'Романтика и магия переплетаются в мире, где любовь движет сюжетом, а судьба '
+      'героев решается в тени древних пророчеств. Идеально для историй о запретной '
+      'любви, политических браках и магических клятвах.',
+    (AppLanguage.ru, CampaignSetting.cozyFantasy) =>
+      'Тёплый, уютный мир без эпических угроз. Магия здесь — часть повседневности: '
+      'зелья варят на кухне, а главные испытания — наладить быт и помочь соседям. '
+      'Никакого конца света, только маленькие радости.',
+    (AppLanguage.ru, CampaignSetting.darkAcademia) =>
+      'Мир тайных библиотек, древних манускриптов и интеллектуальных заговоров. '
+      'Знание — власть, и студенты академии готовы на всё ради forbidden knowledge. '
+      'Атмосфера готических университетов и опасных открытий.',
+    (AppLanguage.ru, CampaignSetting.postApocalypse) =>
+      'Мир после катастрофы: руины цивилизации, борьба за ресурсы, мутанты и '
+      'выжившие. Каждый день — испытание. В центре сюжета: что остаётся человеческого, '
+      'когда всё рухнуло.',
+    (AppLanguage.ru, CampaignSetting.litRpgProgression) =>
+      'Мир, работающий по законам RPG: уровни, характеристики, интерфейс системы. '
+      'Герой видит цифры своего прогресса и осознанно прокачивается. Для любителей '
+      'жанра LitRPG и progression fantasy.',
+    (AppLanguage.ru, CampaignSetting.grimdarkFantasy) =>
+      'Мрачное фэнтези без компромиссов. Мир жесток, мораль сера, герои умирают. '
+      'Никаких «добро побеждает» — только выживание, предательство и тяжёлые выборы. '
+      'В духе Dark Souls и книг Аберкромби.',
+    (AppLanguage.ru, CampaignSetting.nearFutureSciFi) =>
+      'Близкое будущее: 2080-2150 годы. Кибернетика, корпорации-государства, '
+      'колонизация солнечной системы. Технологии узнаваемы, но изменены. Фокус на '
+      'социальных и этических последствиях прогресса.',
+    (AppLanguage.ru, CampaignSetting.horrorWeird) =>
+      'Хоррор и сверхъестественное: от лавкрафтианского ужаса до психологического '
+      'триллера. Реальность ненадёжна, рассудок под угрозой, а древние силы '
+      'безразличны к человеку.',
+    (AppLanguage.ru, CampaignSetting.cozyCrime) =>
+      'Детектив в уютном антураже: маленький городок, очаровательные персонажи, '
+      'преступление которое раскрывается через разговоры и наблюдение а не насилие. '
+      'В духе Агаты Кристи и современных cozy mystery.',
+    (AppLanguage.ru, CampaignSetting.altHistorySecret) =>
+      'Альтернативная история с элементами тайного общества или заговора. Мир похож '
+      'на наш, но ключевое историческое событие пошло иначе. Герой раскрывает '
+      'скрытую правду о том, как устроен мир.',
+    // English descriptions
+    (AppLanguage.en, CampaignSetting.romantasy) =>
+      'Romance and magic intertwine in a world where love drives the plot and '
+      'destinies are decided beneath ancient prophecies. Perfect for forbidden '
+      'love, political marriages, and magical vows.',
+    (AppLanguage.en, CampaignSetting.cozyFantasy) =>
+      'A warm, gentle world without epic threats. Magic is part of everyday life: '
+      'potions brewed in the kitchen, quests about helping neighbors. No end of '
+      'the world — just small joys.',
+    (AppLanguage.en, CampaignSetting.darkAcademia) =>
+      'A world of hidden libraries, ancient manuscripts, and intellectual conspiracy. '
+      'Knowledge is power, and academy students will do anything for forbidden texts. '
+      'Gothic university atmosphere and dangerous discoveries.',
+    (AppLanguage.en, CampaignSetting.postApocalypse) =>
+      'A world after collapse: ruins of civilization, resource wars, mutants and '
+      'survivors. Every day is a trial. At the center: what remains human when '
+      'everything falls apart.',
+    (AppLanguage.en, CampaignSetting.litRpgProgression) =>
+      'A world that runs on RPG rules: levels, stats, system interface. The hero '
+      'sees the numbers and consciously progresses. For fans of LitRPG and '
+      'progression fantasy.',
+    (AppLanguage.en, CampaignSetting.grimdarkFantasy) =>
+      'Dark fantasy without compromise. The world is cruel, morality is gray, '
+      'heroes die. No "good prevails" — only survival, betrayal, and hard choices. '
+      'In the spirit of Dark Souls and Abercrombie.',
+    (AppLanguage.en, CampaignSetting.nearFutureSciFi) =>
+      'Near future: 2080-2150. Cybernetics, corporate-states, solar system '
+      'colonization. Technology is recognizable but transformed. Focus on social '
+      'and ethical consequences of progress.',
+    (AppLanguage.en, CampaignSetting.horrorWeird) =>
+      'Horror and the supernatural: from Lovecraftian dread to psychological '
+      'thriller. Reality is unreliable, sanity is threatened, and ancient forces '
+      'are indifferent to humanity.',
+    (AppLanguage.en, CampaignSetting.cozyCrime) =>
+      'A mystery in a cozy setting: small town, charming characters, a crime '
+      'solved through conversation and observation rather than violence. '
+      'In the spirit of Agatha Christie and modern cozy mysteries.',
+    (AppLanguage.en, CampaignSetting.altHistorySecret) =>
+      'Alternate history with secret society or conspiracy elements. The world '
+      'looks like ours, but a key historical event went differently. The hero '
+      'uncovers hidden truths about how the world really works.',
+  };
+
+  String literaryGenreDescription(LiteraryGenre value) => switch ((language, value)) {
+    (AppLanguage.ru, LiteraryGenre.romance) =>
+      'В центре сюжета — отношения между персонажами. Эмоциональная близость, '
+      'конфликты, притяжение и выбор между долгом и чувством.',
+    (AppLanguage.ru, LiteraryGenre.romantasyGenre) =>
+      'Гибрид романтики и фэнтези: магический мир, где любовная линия так же '
+      'важна как эпический сюжет. В духе книг Сары Маас и Ребекки Яррос.',
+    (AppLanguage.ru, LiteraryGenre.fantasyGenre) =>
+      'Классическое фэнтези: магия, другие миры, героическое приключение. '
+      'От высокой эпики до городского фэнтези.',
+    (AppLanguage.ru, LiteraryGenre.psychologicalThriller) =>
+      'Напряжённая история с фокусом на внутреннем мире героя. Манипуляции, '
+      'ненадёжный рассказчик, игра с восприятием реальности.',
+    (AppLanguage.ru, LiteraryGenre.mysteryCrime) =>
+      'Детектив или криминальная драма: расследование, улики, неожиданные '
+      'повороты. Герой распутывает клубок тайн.',
+    (AppLanguage.ru, LiteraryGenre.horrorGenre) =>
+      'История, цель которой — вызвать страх и напряжение. Сверхъестественное, '
+      'неизвестное, угроза рассудку или жизни.',
+    (AppLanguage.ru, LiteraryGenre.youngAdult) =>
+      'История взросления: молодой герой сталкивается с вызовами, находит себя '
+      'и своё место в мире. Эмоционально интенсивно, темп быстрый.',
+    (AppLanguage.ru, LiteraryGenre.speculativeFiction) =>
+      'Научная фантастика и спекулятивная проза: что будет если технология X '
+      'изменит общество? Исследование идей через историю.',
+    (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) =>
+      'Эстетика академической среды с тёмным оттенком: тайные общества, '
+      'запретные знания, соперничество студентов и профессоров.',
+    (AppLanguage.ru, LiteraryGenre.cozyFeelGood) =>
+      'Уютная история с низкими ставками. Персонажи и их маленький мир — '
+      'главная ценность. Читатель/игрок чувствует тепло и безопасность.',
+    // English descriptions
+    (AppLanguage.en, LiteraryGenre.romance) =>
+      'Relationships are at the heart of the story: emotional intimacy, '
+      'conflicts, attraction, and the choice between duty and feeling.',
+    (AppLanguage.en, LiteraryGenre.romantasyGenre) =>
+      'A romance-fantasy hybrid: a magical world where the love story matters '
+      'as much as the epic plot. In the spirit of Sarah J. Maas and Rebecca Yarros.',
+    (AppLanguage.en, LiteraryGenre.fantasyGenre) =>
+      'Classic fantasy: magic, other worlds, heroic adventure. From high epic '
+      'to urban fantasy.',
+    (AppLanguage.en, LiteraryGenre.psychologicalThriller) =>
+      'A tense story focused on the inner world of the protagonist. Manipulation, '
+      'unreliable narrator, playing with perception of reality.',
+    (AppLanguage.en, LiteraryGenre.mysteryCrime) =>
+      'Detective or crime drama: investigation, clues, unexpected twists. The '
+      'hero unravels a web of secrets.',
+    (AppLanguage.en, LiteraryGenre.horrorGenre) =>
+      'A story designed to evoke fear and tension. The supernatural, the unknown, '
+      'a threat to sanity or life.',
+    (AppLanguage.en, LiteraryGenre.youngAdult) =>
+      'A coming-of-age story: a young hero faces challenges, finds themselves '
+      'and their place in the world. Emotionally intense, fast-paced.',
+    (AppLanguage.en, LiteraryGenre.speculativeFiction) =>
+      'Science fiction and speculative fiction: what if technology X changed '
+      'society? Exploring ideas through story.',
+    (AppLanguage.en, LiteraryGenre.darkAcademiaGenre) =>
+      'Academic aesthetic with a dark edge: secret societies, forbidden knowledge, '
+      'rivalry among students and professors.',
+    (AppLanguage.en, LiteraryGenre.cozyFeelGood) =>
+      'A cozy, low-stakes story. Characters and their small world matter most. '
+      'The reader/player feels warmth and safety.',
+  };
+
   String get randomGenreButton => switch (language) {
     AppLanguage.ru => 'Случайный жанр',
     AppLanguage.en => 'Random genre',
@@ -1324,6 +1472,51 @@ class AppLocalizations {
     };
   }
 
+  String campaignModuleTooltip(CampaignModule value) => switch ((language, value)) {
+    (AppLanguage.ru, CampaignModule.inventory) =>
+      'Предметы, которые герой находит в мире. Можно использовать в проверках, '
+      'торговле и для улучшения характеристик.',
+    (AppLanguage.ru, CampaignModule.vitality) =>
+      'Здоровье, энергия и базовые характеристики героя. Определяют физические '
+      'и ментальные возможности в сражениях и испытаниях.',
+    (AppLanguage.ru, CampaignModule.companions) =>
+      'Спутники, которые путешествуют с героем. Каждый имеет характер, отношение '
+      'к герою и может помочь в приключениях.',
+    (AppLanguage.ru, CampaignModule.notes) =>
+      'Заметки, улики и наблюдения героя. Автоматически пополняются при '
+      'расследованиях и важных открытиях.',
+    (AppLanguage.ru, CampaignModule.resources) =>
+      'Ресурсы: деньги, топливо, припасы. Расходуются на путешествия, '
+      'покупки и улучшения.',
+    (AppLanguage.ru, CampaignModule.progression) =>
+      'Прогресс героя: уровень, опыт, навыки. Растёт с приключениями, '
+      'открывает новые возможности.',
+    (AppLanguage.ru, CampaignModule.checks) =>
+      'Проверки навыков: броски кубиков, тесты характеристик. Используются '
+      'для определения исхода сложных действий.',
+    (AppLanguage.en, CampaignModule.inventory) =>
+      'Items the hero finds in the world. Can be used in checks, '
+      'trading, and to improve stats.',
+    (AppLanguage.en, CampaignModule.vitality) =>
+      'Health, energy, and core stats. Determine the hero\'s physical '
+      'and mental capabilities in combat and trials.',
+    (AppLanguage.en, CampaignModule.companions) =>
+      'Companions who travel with the hero. Each has a personality, relationship '
+      'to the hero, and can help on adventures.',
+    (AppLanguage.en, CampaignModule.notes) =>
+      'Notes, clues, and observations. Automatically populated during '
+      'investigations and important discoveries.',
+    (AppLanguage.en, CampaignModule.resources) =>
+      'Resources: money, fuel, supplies. Spent on travel, '
+      'purchases, and upgrades.',
+    (AppLanguage.en, CampaignModule.progression) =>
+      'Hero progression: level, experience, skills. Grows with adventures, '
+      'unlocks new abilities.',
+    (AppLanguage.en, CampaignModule.checks) =>
+      'Skill checks: dice rolls, stat tests. Used to determine '
+      'the outcome of challenging actions.',
+  };
+
   String get newlyUnlockedLabel => switch (language) {
     AppLanguage.ru => 'Новое',
     AppLanguage.en => 'New',
@@ -1794,6 +1987,36 @@ class AppLocalizations {
   String get accountSignedOutDescription => switch (language) {
     AppLanguage.ru => 'Вы не вошли в аккаунт.',
     AppLanguage.en => 'You are not signed in.',
+  };
+
+  String get legalInfoTitle => switch (language) {
+    AppLanguage.ru => 'Правовая информация',
+    AppLanguage.en => 'Legal Information',
+  };
+
+  String get legalOfferShort => switch (language) {
+    AppLanguage.ru => 'Оферта',
+    AppLanguage.en => 'Offer',
+  };
+
+  String get legalPrivacyShort => switch (language) {
+    AppLanguage.ru => 'Конфиденциальность',
+    AppLanguage.en => 'Privacy',
+  };
+
+  String get legalConsentShort => switch (language) {
+    AppLanguage.ru => 'Согласие на ПД',
+    AppLanguage.en => 'Data Consent',
+  };
+
+  String get legalRefundsShort => switch (language) {
+    AppLanguage.ru => 'Возврат',
+    AppLanguage.en => 'Refunds',
+  };
+
+  String get legalContactsShort => switch (language) {
+    AppLanguage.ru => 'Контакты',
+    AppLanguage.en => 'Contacts',
   };
 
   String get personalModelTitle => switch (language) {

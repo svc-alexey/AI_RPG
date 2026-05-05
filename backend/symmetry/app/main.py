@@ -10,10 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
     auth,
+    billing,
     campaigns,
     dev,
     feedback,
     literary_genres,
+    map_routes,
     prompts,
     providers,
     stories,
@@ -117,8 +119,6 @@ async def log_requests(request: Request, call_next):
 
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(campaigns.router, prefix=settings.api_prefix)
-from app.api.routes import map_routes  # noqa: E402
-
 app.include_router(map_routes.router, prefix=settings.api_prefix)
 app.include_router(dev.router, prefix=settings.api_prefix)
 app.include_router(feedback.router, prefix=settings.api_prefix)
@@ -127,6 +127,7 @@ app.include_router(prompts.router, prefix=settings.api_prefix)
 app.include_router(providers.router, prefix=settings.api_prefix)
 app.include_router(stories.router, prefix=settings.api_prefix)
 app.include_router(story_admin.router, prefix=settings.api_prefix)
+app.include_router(billing.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")

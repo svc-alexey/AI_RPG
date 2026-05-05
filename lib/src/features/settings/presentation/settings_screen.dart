@@ -4,11 +4,14 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/utils/legal_urls.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
 import 'package:ai_prg/src/features/story_admin/presentation/story_admin_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -367,7 +370,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ],
                             ),
                           ),
-                          if (settingsState.status != null) ...<Widget>[
+                          if (kIsWeb) ...[
+                            SizedBox(height: responsive.sectionSpacing),
+                            _SettingsSection(
+                              title: l10n.legalInfoTitle,
+                              child: _LegalLinks(l10n: l10n),
+                            ),
+                          ],
+                          if (settingsState.status != null) ...[
                             SizedBox(height: responsive.sectionSpacing),
                             Row(
                               children: <Widget>[
@@ -465,4 +475,72 @@ class _SettingsSection extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _LegalLinks extends StatelessWidget {
+  const _LegalLinks({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(final BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      for (final page in legalPages)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: InkWell(
+            onTap: () => _openLegalPage(page),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  _iconForPage(page),
+                  size: 18,
+                  color: AetherPalette.textMuted,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _titleForPage(page, l10n),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AetherPalette.narrativeText,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 14,
+                  color: AetherPalette.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
+
+  static IconData _iconForPage(final String page) => switch (page) {
+    'offer' => Icons.description_outlined,
+    'privacy' => Icons.privacy_tip_outlined,
+    'consent' => Icons.check_box_outlined,
+    'refunds' => Icons.receipt_long_outlined,
+    'contacts' => Icons.contact_mail_outlined,
+    _ => Icons.article_outlined,
+  };
+
+  static String _titleForPage(final String page, final AppLocalizations l10n) {
+    final bool isRu = l10n.language == AppLanguage.ru;
+    return switch (page) {
+      'offer' => isRu ? 'Лицензионный договор (Оферта)' : 'License Agreement (Offer)',
+      'privacy' => isRu ? 'Политика конфиденциальности' : 'Privacy Policy',
+      'consent' => isRu ? 'Согласие на обработку ПД' : 'Data Processing Consent',
+      'refunds' => isRu ? 'Условия возврата' : 'Refund Policy',
+      'contacts' => isRu ? 'Контакты и реквизиты' : 'Contact Information',
+      _ => page,
+    };
+  }
+
+  static Future<void> _openLegalPage(final String page) async {
+    final uri = Uri.parse(buildLegalUrl(page));
+    await launchUrl(uri, webOnlyWindowName: '_blank');
+  }
 }

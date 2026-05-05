@@ -161,42 +161,47 @@ class GenreSelectPill extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(999),
-          child: AnimatedContainer(
+          child: AnimatedScale(
+            scale: selected ? 1.0 : 0.97,
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AetherPalette.backgroundElevated.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: selected
-                    ? AetherPalette.accent
-                    : AetherPalette.panelBorderSolid,
-                width: selected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (selected) ...<Widget>[
-                  const Icon(
-                    Icons.check_rounded,
-                    size: 18,
-                    color: AetherPalette.accent,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: selected
-                            ? AetherPalette.textPrimary
-                            : AetherPalette.textMuted,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AetherPalette.backgroundElevated.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: selected
+                      ? AetherPalette.accent
+                      : AetherPalette.panelBorderSolid,
+                  width: selected ? 1.5 : 1,
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (selected) ...<Widget>[
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 18,
+                      color: AetherPalette.accent,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: selected
+                              ? AetherPalette.textPrimary
+                              : AetherPalette.textMuted,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

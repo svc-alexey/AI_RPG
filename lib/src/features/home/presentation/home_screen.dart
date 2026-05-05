@@ -3,6 +3,7 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/utils/legal_urls.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Web/desktop [MaterialScrollBehavior] adds a [RawScrollbar] around scrollables.
 /// On the home landing the column usually fits the viewport; the track then reads
@@ -223,6 +225,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 fontSize: 10,
                               ),
                             ),
+                            SizedBox(height: responsive.blockSpacing + 16),
+                            _HomeFooter(l10n: l10n, responsive: responsive),
                           ],
                         ),
                       ),
@@ -234,6 +238,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
       ),
     );
+  }
+}
+
+class _HomeFooter extends StatelessWidget {
+  const _HomeFooter({required this.l10n, required this.responsive});
+
+  final AppLocalizations l10n;
+  final AppResponsiveData responsive;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isCompact = responsive.isCompact;
+
+    return Column(
+      children: <Widget>[
+        // Subtle gradient separator — fades from accent to transparent
+        Center(
+          child: SizedBox(
+            width: isCompact ? 60 : 100,
+            height: 1,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Color(0x30C87941),
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: isCompact ? 14 : 18),
+        // Legal links — centered, subtle, with interpunct separators
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 2,
+          runSpacing: isCompact ? 4 : 6,
+          children: [
+            for (int i = 0; i < legalPages.length; i++)
+              ..._buildLink(context, legalPages[i], i > 0, isCompact),
+          ],
+        ),
+        SizedBox(height: isCompact ? 18 : 24),
+      ],
+    );
+  }
+
+  List<Widget> _buildLink(
+    final BuildContext context,
+    final String page,
+    final bool showSep,
+    final bool isCompact,
+  ) {
+    final theme = Theme.of(context);
+    final String title = switch (page) {
+      'offer' => l10n.legalOfferShort,
+      'privacy' => l10n.legalPrivacyShort,
+      'consent' => l10n.legalConsentShort,
+      'refunds' => l10n.legalRefundsShort,
+      'contacts' => l10n.legalContactsShort,
+      _ => page,
+    };
+    return <Widget>[
+      if (showSep)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Text(
+            '·',
+            style: TextStyle(
+              color: AetherPalette.textDim.withValues(alpha: 0.35),
+              fontSize: 10,
+            ),
+          ),
+        ),
+      InkWell(
+        onTap: () => _openLegalPage(page),
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Text(
+            title,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AetherPalette.textDim.withValues(alpha: 0.55),
+              fontSize: 10,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  static Future<void> _openLegalPage(final String page) async {
+    final uri = Uri.parse(buildLegalUrl(page));
+    await launchUrl(uri, webOnlyWindowName: '_blank');
   }
 }
 

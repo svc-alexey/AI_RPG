@@ -83,6 +83,7 @@ class SymmetryCampaignRepository {
           'difficulty': draft.difficulty.name,
           'language': language.code,
           'story_prompt': draft.customStoryPrompt.trim(),
+          'literary_genre': draft.literaryGenre?.name ?? '',
           'objective_hint': _normalizeObjective(
             draft.objectiveHint.trim().isNotEmpty
                 ? draft.objectiveHint.trim()

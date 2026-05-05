@@ -167,35 +167,112 @@ class ButterflyService:
                 break
         return normalized
 
-    def fallback_seed_from_turn(
+    async def seed_from_world_state(
         self,
         *,
+        campaign_id: str,
+        world_state: WorldState,
         mode: str,
-        importance: int,
-        summary: str,
-        current_location: str,
     ) -> list[dict[str, Any]]:
-        cleaned_summary = " ".join(summary.split()).strip()
-        if not cleaned_summary:
-            return []
-        effect_type = "rumor" if importance < 7 else "instability"
-        entity_kind = "location"
-        return self.normalize_impact_seeds(
-            [
-                {
-                    "entity_kind": entity_kind,
-                    "entity_slug": "",
-                    "impact_type": effect_type,
-                    "strength": 1 if mode == "shortStory" else 2,
+        global_vars = world_state.global_vars or {}
+        butterfly = global_vars.get("butterfly", {}) or {}
+        factions = global_vars.get("factions", {}) or {}
+        prices = global_vars.get("prices", {}) or {}
+        prev_factions = butterfly.get("prev_factions", {}) or {}
+        prev_prices = butterfly.get("prev_prices", {}) or {}
+
+        seeds: list[dict[str, Any]] = []
+
+        if not prev_factions and factions:
+            for slug, value in factions.items():
+                try:
+                    v = int(value)
+                except (TypeError, ValueError):
+                    continue
+                if abs(v) >= 7:
+                    direction = "сильна" if v > 0 else "ослаблена"
+                    seeds.append({
+                        "entity_kind": "faction",
+                        "entity_slug": slug,
+                        "impact_type": "influence",
+                        "strength": min(4, abs(v) // 3),
+                        "delay_min_turns": 2,
+                        "delay_max_turns": 3,
+                        "visibility": "public",
+                        "summary": f"Фракция {slug} {direction} в этом регионе.",
+                    })
+            if not seeds and prices:
+                for slug, value in prices.items():
+                    try:
+                        v = int(value)
+                    except (TypeError, ValueError):
+                        continue
+                    if abs(v) >= 7:
+                        direction_str = "scarcity" if v > 0 else "opportunity"
+                        summary_str = f"Ресурс {slug} в дефиците." if v > 0 else f"Ресурс {slug} в избытке."
+                        seeds.append({
+                            "entity_kind": "market",
+                            "entity_slug": slug,
+                            "impact_type": direction_str,
+                            "strength": min(3, abs(v) // 3),
+                            "delay_min_turns": 2,
+                            "delay_max_turns": 3,
+                            "visibility": "hidden",
+                            "summary": summary_str,
+                        })
+            butterfly["prev_factions"] = dict(factions)
+            butterfly["prev_prices"] = dict(prices)
+            global_vars["butterfly"] = butterfly
+            world_state.global_vars = global_vars
+            return self.normalize_impact_seeds(seeds, mode=mode, current_location="")
+
+        for slug, value in factions.items():
+            prev = prev_factions.get(slug, 0)
+            try:
+                delta = int(value) - int(prev)
+            except (TypeError, ValueError):
+                continue
+            if abs(delta) >= 5:
+                direction = "растёт" if delta > 0 else "падает"
+                seeds.append({
+                    "entity_kind": "faction",
+                    "entity_slug": slug,
+                    "impact_type": "influence" if delta > 0 else "instability",
+                    "strength": min(4, abs(delta) // 3),
                     "delay_min_turns": 1,
-                    "delay_max_turns": 1 if mode == "shortStory" else 3,
-                    "visibility": "public" if mode == "shortStory" else "hidden",
-                    "summary": cleaned_summary,
-                }
-            ],
-            mode=mode,
-            current_location=current_location,
-        )
+                    "delay_max_turns": 3,
+                    "visibility": "public",
+                    "summary": f"Влияние {slug} {direction} (изменение: {delta}).",
+                })
+
+        for slug, value in prices.items():
+            prev = prev_prices.get(slug, 0)
+            try:
+                v_int = int(value)
+                p_int = int(prev)
+            except (TypeError, ValueError):
+                continue
+            if p_int != 0:
+                pct_change = abs(v_int - p_int) / abs(p_int)
+                if pct_change > 0.3:
+                    direction = "выросли" if v_int > p_int else "упали"
+                    seeds.append({
+                        "entity_kind": "market",
+                        "entity_slug": slug,
+                        "impact_type": "scarcity" if v_int > p_int else "opportunity",
+                        "strength": min(4, int(pct_change * 5)),
+                        "delay_min_turns": 1,
+                        "delay_max_turns": 2,
+                        "visibility": "hidden",
+                        "summary": f"Цены на {slug} {direction} ({int(pct_change * 100)}%).",
+                    })
+
+        butterfly["prev_factions"] = dict(factions)
+        butterfly["prev_prices"] = dict(prices)
+        global_vars["butterfly"] = butterfly
+        world_state.global_vars = global_vars
+
+        return self.normalize_impact_seeds(seeds, mode=mode, current_location="")
 
     async def enqueue_followup_job(
         self,
