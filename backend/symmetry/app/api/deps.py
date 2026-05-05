@@ -37,6 +37,21 @@ async def get_current_user(
     return user
 
 
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    session: AsyncSession = Depends(get_db_session),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        subject = decode_access_token(credentials.credentials)
+    except ValueError:
+        return None
+    return await session.scalar(
+        select(User).where(User.id == subject, User.is_active.is_(True))
+    )
+
+
 async def get_current_admin_user(
     user: User = Depends(get_current_user),
 ) -> User:

@@ -1,9 +1,12 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
+import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
+import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
+import 'package:ai_prg/src/features/billing/presentation/billing_screen.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
 import 'package:ai_prg/src/features/chat/presentation/widgets/chat_app_bar.dart';
 import 'package:ai_prg/src/features/chat/presentation/widgets/chat_body.dart';
@@ -126,6 +129,77 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           isIntro: true,
           triggerSource: 'intro',
         );
+      }
+    });
+
+    ref.listen<String?>(paymentRequiredProvider, (final previous, final next) {
+      if (next != null && next != previous) {
+        WidgetsBinding.instance.addPostFrameCallback((final _) {
+          if (!mounted) return;
+          if (next.startsWith('guest_register:')) {
+            showDialog<void>(
+              context: context,
+              builder: (final ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF0F0D0B),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 16),
+                    Container(
+                      width: 56, height: 56,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC87941).withAlpha(20),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.token, size: 32, color: Color(0xFFC87941)),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Register to Continue',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Playfair Display', color: Color(0xFFE8E4E0)),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'You\'ve used 5 free turns. Register now to get 1,000,000 free tokens and continue your adventure!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF7A7570), fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity, height: 52,
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          Navigator.of(context).push<bool>(
+                            MaterialPageRoute<bool>(
+                              builder: (final routeContext) => AuthScreen(
+                                onAuthenticated: () => Navigator.of(routeContext).pop(true),
+                              ),
+                            ),
+                          );
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFC87941),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Register & Get 1M Tokens', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Not Now', style: TextStyle(color: Color(0xFF7A7570))),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          } else {
+            showPaywallOverlay(context, campaignName: next);
+          }
+          ref.read(paymentRequiredProvider.notifier).state = null;
+        });
       }
     });
 

@@ -10,8 +10,11 @@ import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
 import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/core/services/version_check_service.dart';
+import 'package:ai_prg/src/core/repositories/billing_repository.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+typedef AsyncCallback = Future<void> Function();
 
 final Provider<SettingsRepository> settingsRepositoryProvider =
     Provider<SettingsRepository>((final ref) {
@@ -83,6 +86,12 @@ final Provider<ValueNotifier<AppLanguage>> appLanguageListenableProvider =
       );
     });
 
+final StateProvider<AsyncCallback?> deferredActionProvider =
+    StateProvider<AsyncCallback?>((final ref) => null);
+
+final StateProvider<String?> paymentRequiredProvider =
+    StateProvider<String?>((final ref) => null);
+
 final FutureProvider<SymmetrySession?> symmetrySessionProvider =
     FutureProvider<SymmetrySession?>((final ref) async {
       final SymmetryAuthRepository repository = ref.read(
@@ -90,10 +99,14 @@ final FutureProvider<SymmetrySession?> symmetrySessionProvider =
       );
       final SymmetrySession? loaded =
           await repository.loadSessionWithSyncedProfile();
-      if (loaded != null) {
-        return loaded;
-      }
-      return repository.ensureSession();
+      return loaded;
+    });
+
+final Provider<BillingRepository> billingRepositoryProvider =
+    Provider<BillingRepository>((final ref) {
+      throw UnimplementedError(
+        'billingRepositoryProvider was not overridden.',
+      );
     });
 
 List<Override> buildAppProviderOverrides({
@@ -119,6 +132,8 @@ List<Override> buildAppProviderOverrides({
       StoryLibraryRepository(authRepository: resolvedAuthRepository);
   final MapRepository resolvedMapRepository =
       MapRepository(authRepository: resolvedAuthRepository);
+  final BillingRepository resolvedBillingRepository =
+      BillingRepository(authRepository: resolvedAuthRepository);
   return <Override>[
     settingsRepositoryProvider.overrideWithValue(settingsRepository),
     symmetryAuthRepositoryProvider.overrideWithValue(resolvedAuthRepository),
@@ -129,6 +144,7 @@ List<Override> buildAppProviderOverrides({
       resolvedStoryLibraryRepository,
     ),
     mapRepositoryProvider.overrideWithValue(resolvedMapRepository),
+    billingRepositoryProvider.overrideWithValue(resolvedBillingRepository),
     aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
     gameEngineProvider.overrideWithValue(gameEngine),
     portraitStorageProvider.overrideWithValue(portraitStorage),

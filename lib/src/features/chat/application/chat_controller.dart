@@ -346,6 +346,26 @@ class ChatController extends StateNotifier<ChatViewState> {
       if (_disposed) {
         return;
       }
+
+      if (error is SymmetryApiException && error.statusCode == 402) {
+        final String detail = error.detailCode ?? '';
+        if (detail == 'guest_turns_exhausted') {
+          _ref.read(deferredActionProvider.notifier).state = () async {};
+          _ref.read(paymentRequiredProvider.notifier).state =
+              'guest_register:${campaign.title}';
+        } else {
+          _ref.read(paymentRequiredProvider.notifier).state = campaign.title;
+        }
+        _activeFlowId = null;
+        state = state.copyWith(
+          isSending: false,
+          pendingPlayerMessage: null,
+          pendingNarratorMessage: null,
+          status: l10n?.turnError(error),
+        );
+        return;
+      }
+
       AppLogger.logDiagnostic(
         level: 'ERROR',
         event: 'turn_unexpected_error',

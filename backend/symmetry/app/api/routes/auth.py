@@ -1,20 +1,35 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.db.models import User, UserProfile
+from app.db.models import (
+    Campaign,
+    CampaignSnapshot,
+    CampaignTurn,
+    PendingConsequence,
+    SimulationTick,
+    User,
+    UserProfile,
+    WorldChronicle,
+    WorldLocation,
+    WorldState,
+)
 from app.db.session import get_db_session
 from app.schemas.auth import (
     AuthResponse,
     LoginRequest,
+    MigrateGuestRequest,
     RefreshRequest,
     RegisterRequest,
     UserResponse,
     YandexCompleteRequest,
 )
+from app.core.config import get_settings
 from app.schemas.common import MessageResponse
 from app.services.auth import AuthService
+from app.services.entitlement import grant_welcome_tokens
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 auth_service = AuthService()
@@ -26,7 +41,15 @@ async def register(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> AuthResponse:
-    return await auth_service.register(session, payload, request)
+    result = await auth_service.register(session, payload, request)
+    settings = get_settings()
+
+    try:
+        await grant_welcome_tokens(session, result.user.id, settings.welcome_grant_tokens)
+    except Exception:
+        pass
+
+    return result
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -97,6 +120,40 @@ async def yandex_complete(
         handoff_id=payload.handoff_id,
         request=request,
     )
+
+
+@router.post("/migrate-guest", response_model=MessageResponse)
+async def migrate_guest(
+    body: MigrateGuestRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> MessageResponse:
+    """Reattach campaigns from a guest account to the current (newly registered) user."""
+    guest_user = await session.scalar(
+        select(User).where(User.id == body.guest_user_id, User.is_active.is_(True))
+    )
+    if guest_user is None or not guest_user.email.startswith("guest-"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid_guest_user",
+        )
+
+    tables = [
+        Campaign, CampaignTurn, CampaignSnapshot, WorldState,
+        WorldLocation, WorldChronicle, SimulationTick, PendingConsequence,
+    ]
+    migrated = 0
+
+    for table in tables:
+        result = await session.execute(
+            select(table).where(table.user_id == body.guest_user_id)
+        )
+        for row in result.scalars().all():
+            row.user_id = user.id
+            migrated += 1
+
+    await session.commit()
+    return MessageResponse(message=f"guest_migrated_records={migrated}")
 
 
 @router.get("/me", response_model=UserResponse)

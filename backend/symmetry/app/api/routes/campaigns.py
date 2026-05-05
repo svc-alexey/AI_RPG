@@ -5,6 +5,8 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.billing_errors import InsufficientTokensError
+from app.core.config import get_settings
 from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
 from app.db.session import get_db_session
 from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
@@ -13,6 +15,7 @@ from app.services.butterfly import ButterflyService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
+from app.services.entitlement import check_access, count_guest_turns, deduct_tokens
 from app.services.ids import new_id
 from app.services.map_state_service import MapStateService
 from app.services.prompt_budget import build_turn_budget
@@ -303,6 +306,25 @@ async def process_turn(
         chronicles=chronicles,
         trigger_source=payload.trigger_source,
     )
+    settings = get_settings()
+    is_guest = user.email.startswith("guest-")
+
+    if not user.is_admin:
+        if is_guest:
+            guest_turns = await count_guest_turns(session, user.id)
+            if guest_turns >= settings.free_guest_turns:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail="guest_turns_exhausted",
+                )
+        else:
+            has_access = await check_access(session, user)
+            if not has_access:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail="insufficient_tokens",
+                )
+
     try:
         credentials = credential_service.resolve(payload.provider_credentials)
     except ValueError as exc:
@@ -319,6 +341,21 @@ async def process_turn(
         status_code, detail = classify_provider_error(exc)
         raise HTTPException(status_code=status_code, detail=detail) from exc
     llm_payload = llm_result.payload
+
+    if not user.is_admin:
+        try:
+            await deduct_tokens(
+                session,
+                user.id,
+                llm_result.usage.total_tokens,
+                campaign_id=campaign.id,
+            )
+        except InsufficientTokensError:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="insufficient_tokens",
+            )
+
     next_state, state_changes, importance, world_event_summary = runtime_service.apply_turn_result(
         state=current_state,
         result=llm_payload,

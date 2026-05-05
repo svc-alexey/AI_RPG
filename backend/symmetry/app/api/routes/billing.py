@@ -1,52 +1,69 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, text
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
-from app.db.models import BillingPlan, CreditLedger, User
+from app.api.deps import get_current_user, get_optional_user
+from app.core.billing_errors import (
+    CheckoutFailedError,
+    PlanNotFoundError,
+    WebhookSignatureError,
+)
+from app.core.config import get_settings
+from app.db.models import BillingPlan, BillingOrder, User
 from app.db.session import get_db_session
 from app.schemas.billing import (
     BillingPlanResponse,
     BillingWalletResponse,
     CheckoutRequest,
     CheckoutResponse,
+    new_id,
 )
+from app.services.billing_service import create_checkout, get_wallet, process_payment_succeeded
+from app.services.yookassa_client import YooKassaClient
+
+logger = logging.getLogger("symmetry.billing")
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
-# Seed plans — applied on first catalog access if no plans exist
 SEED_PLANS = [
-    {"code": "free_welcome_1m", "kind": "welcome", "title": "Welcome 1M",
-     "metadata_json": {"description": "Приветственный грант", "token_grant": 1_000_000,
-      "base_price_minor": 0, "currency": "RUB", "sort_order": 1}},
-    {"code": "pack_1m", "kind": "token_pack", "title": "1M токенов",
-     "metadata_json": {"description": "Стандартное пополнение", "token_grant": 1_000_000,
-      "base_price_minor": 7900, "currency": "RUB", "sort_order": 2}},
-    {"code": "pack_10m", "kind": "token_pack", "title": "10M токенов",
-     "metadata_json": {"description": "Для активных игроков", "token_grant": 10_000_000,
-      "base_price_minor": 39000, "sale_price_minor": 39000, "sale_badge_text": "Best Value",
-      "sale_percent": 51, "currency": "RUB", "sort_order": 3, "featured": True}},
+    {
+        "code": "free_welcome_1m", "kind": "welcome", "title": "Welcome 1M",
+        "metadata_json": {
+            "description": "Приветственный грант", "token_grant": 1_000_000,
+            "base_price_minor": 0, "currency": "RUB", "sort_order": 1,
+        },
+    },
+    {
+        "code": "pack_1m", "kind": "token_pack", "title": "1M токенов",
+        "metadata_json": {
+            "description": "Стандартное пополнение", "token_grant": 1_000_000,
+            "base_price_minor": 7900, "currency": "RUB", "sort_order": 2,
+        },
+    },
+    {
+        "code": "pack_10m", "kind": "token_pack", "title": "10M токенов",
+        "metadata_json": {
+            "description": "Для активных игроков", "token_grant": 10_000_000,
+            "base_price_minor": 39000, "sale_price_minor": 39000,
+            "sale_badge_text": "Best Value", "sale_percent": 51,
+            "currency": "RUB", "sort_order": 3, "featured": True,
+        },
+    },
 ]
 
 
 async def _seed_plans(session: AsyncSession) -> None:
-    """Ensure seed plans exist in DB. Idempotent — skips existing codes."""
-    from app.db.models import BillingPlan
-    from app.schemas.billing import new_id
-
     existing = (await session.execute(select(BillingPlan.code))).scalars().all()
     existing_codes = set(existing)
-
     for plan in SEED_PLANS:
         if plan["code"] in existing_codes:
             continue
         session.add(BillingPlan(
-            id=new_id(),
-            code=plan["code"],
-            title=plan["title"],
+            id=new_id(), code=plan["code"], title=plan["title"],
             metadata_json=plan["metadata_json"],
         ))
-
     await session.commit()
 
 
@@ -69,6 +86,10 @@ def _plan_to_response(plan: BillingPlan) -> BillingPlanResponse:
     )
 
 
+def _get_yookassa() -> YooKassaClient:
+    return YooKassaClient()
+
+
 @router.get("/catalog", response_model=list[BillingPlanResponse])
 async def list_catalog(
     session: AsyncSession = Depends(get_db_session),
@@ -77,8 +98,7 @@ async def list_catalog(
     result = await session.execute(
         select(BillingPlan).order_by(BillingPlan.metadata_json["sort_order"].as_integer())
     )
-    plans = result.scalars().all()
-    return [_plan_to_response(p) for p in plans]
+    return [_plan_to_response(p) for p in result.scalars().all()]
 
 
 @router.get("/me", response_model=BillingWalletResponse)
@@ -86,58 +106,62 @@ async def get_my_wallet(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> BillingWalletResponse:
-    """Return user's token wallet. Phase 1: stub — all zeros unless welcome grant was claimed."""
-    # Check if welcome grant was claimed by this user
-    result = await session.execute(
-        select(CreditLedger).where(
-            CreditLedger.user_id == user.id,
-            CreditLedger.reason == "welcome_grant",
-        )
-    )
-    welcome_claimed = result.scalars().first() is not None
-
-    return BillingWalletResponse(
-        welcome_tokens_remaining=1_000_000 if welcome_claimed else 0,
-        paid_tokens_remaining=0,
-        subscription_tokens_remaining=0,
-        total_tokens_remaining=1_000_000 if welcome_claimed else 0,
-    )
+    return await get_wallet(session, user.id)
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
-async def create_checkout(
+async def create_checkout_route(
     body: CheckoutRequest,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
+    yookassa: YooKassaClient = Depends(_get_yookassa),
 ) -> CheckoutResponse:
-    """Placeholder checkout endpoint. Phase 2: real YooKassa integration."""
-    # Find the plan
-    result = await session.execute(
-        select(BillingPlan).where(BillingPlan.code == body.plan_code)
-    )
-    plan = result.scalars().first()
-    if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="plan_not_found",
+    try:
+        return await create_checkout(session, user.id, body.plan_code, body.return_url, yookassa)
+    except PlanNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="plan_not_found")
+    except CheckoutFailedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/webhook/yookassa")
+async def yookassa_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    body = await request.body()
+    signature = request.headers.get("X-Signature")
+
+    if not YooKassaClient.verify_webhook_signature(body, signature):
+        logger.warning("webhook_invalid_signature")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="invalid_signature")
+
+    import json
+    try:
+        event = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_json")
+
+    event_type = event.get("event")
+    payment_data = event.get("object", {})
+    payment_id = payment_data.get("id")
+    payment_status = payment_data.get("status")
+
+    if not payment_id:
+        return {"received": True}
+
+    if event_type == "payment.succeeded" and payment_status == "succeeded":
+        pm = payment_data.get("payment_method", {}) or {}
+        payment_method_id = pm.get("id") if isinstance(pm, dict) else getattr(pm, "id", None)
+        await process_payment_succeeded(session, payment_id, payment_method_id)
+
+    else:
+        order_result = await session.execute(
+            select(BillingOrder).where(BillingOrder.provider_payment_id == payment_id)
         )
+        order = order_result.scalars().first()
+        if order and order.status != payment_status:
+            order.status = payment_status
+            await session.flush()
 
-    meta = plan.metadata_json or {}
-    price = meta.get("sale_price_minor") or meta.get("base_price_minor", 0)
-    if price == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="free_plan_not_checkout",
-        )
-
-    # Phase 2: create billing_order + redirect to YooKassa
-    # For now, return a placeholder
-    from app.schemas.billing import new_id
-
-    order_id = new_id()
-    return CheckoutResponse(
-        order_id=order_id,
-        confirmation_url=f"https://beyondtheverge.online/subscribe.html?order={order_id}&status=pending",
-        amount_minor=price,
-        currency="RUB",
-    )
+    return {"received": True}

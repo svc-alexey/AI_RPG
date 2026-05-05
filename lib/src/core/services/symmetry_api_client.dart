@@ -923,6 +923,67 @@ class SymmetryApiClient {
     return '$field: $message';
   }
 
+  // ── Billing ───────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getBillingCatalog() async {
+    final Object? decoded = await _get('/billing/catalog');
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map((final m) => m.map((final k, final v) => MapEntry(k.toString(), v)))
+        .toList()
+        .cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> getBillingWallet({
+    required final String accessToken,
+  }) async {
+    final Object? decoded = await _get(
+      '/billing/me',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded.map(
+      (final k, final v) => MapEntry(k.toString(), v),
+    );
+  }
+
+  Future<Map<String, dynamic>> postBillingCheckout({
+    required final String accessToken,
+    required final String planCode,
+    final String returnUrl = '/',
+  }) async {
+    final Object? decoded = await _post(
+      '/billing/checkout',
+      body: <String, Object?>{
+        'plan_code': planCode,
+        'return_url': returnUrl,
+      },
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded.map(
+      (final k, final v) => MapEntry(k.toString(), v),
+    );
+  }
+
+  Future<void> postMigrateGuest({
+    required final String accessToken,
+    required final String guestUserId,
+  }) async {
+    await _post(
+      '/auth/migrate-guest',
+      body: <String, Object?>{'guest_user_id': guestUserId},
+      bearerToken: accessToken,
+    );
+  }
+
   void _logDev(final String event, final Map<String, Object?> payload) {
     if (!kDebugMode) {
       return;

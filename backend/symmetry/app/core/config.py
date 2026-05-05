@@ -88,6 +88,21 @@ class Settings(BaseSettings):
     feedback_max_attachment_bytes: int = 5_000_000
     feedback_max_total_attachment_bytes: int = 15_000_000
 
+    yookassa_shop_id: str = ""
+    yookassa_secret_key: str = ""
+    yookassa_return_url: str = "https://beyondtheverge.online/"
+    yookassa_webhook_secret: str = ""
+    billing_encryption_key: str = ""
+
+    free_guest_turns: int = 5
+    welcome_grant_tokens: int = 1_000_000
+
+    subscription_renewal_enabled: bool = False
+    subscription_months: int = 1
+    subscription_retry_enabled: bool = False
+
+    stale_order_timeout_hours: int = 24
+
 
 @lru_cache
 def get_settings() -> Settings:

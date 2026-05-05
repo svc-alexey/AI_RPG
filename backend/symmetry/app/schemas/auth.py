@@ -38,6 +38,10 @@ class UserResponse(BaseModel):
     is_admin: bool = False
 
 
+class MigrateGuestRequest(BaseModel):
+    guest_user_id: str = Field(min_length=8, max_length=64)
+
+
 class AuthResponse(BaseModel):
     user: UserResponse
     tokens: TokenPair

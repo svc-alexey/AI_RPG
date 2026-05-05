@@ -1,10 +1,12 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
+import 'package:ai_prg/src/app/auth_gating.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/utils/legal_urls.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
+import 'package:ai_prg/src/features/billing/presentation/billing_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/saves/presentation/saves_screen.dart';
 import 'package:ai_prg/src/features/settings/presentation/settings_screen.dart';
@@ -37,36 +39,17 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  Future<bool> _ensureSessionReady(
-    final BuildContext context,
-    final WidgetRef ref,
-  ) async {
-    final authRepository = ref.read(symmetryAuthRepositoryProvider);
-    try {
-      await authRepository.ensureSession();
-      return true;
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.symmetryFriendlyError(error))),
-        );
-      }
-      return false;
-    }
-  }
-
   Future<void> _openProtectedScreen(
     final BuildContext context,
     final WidgetRef ref,
     final Widget screen,
   ) async {
-    final bool ready = await _ensureSessionReady(context, ref);
-    if (!context.mounted || !ready) {
-      return;
-    }
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (final _) => screen));
+    await requireAccountThen(context, ref, () async {
+      if (!context.mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (final _) => screen),
+      );
+    });
   }
 
   Future<void> _openAuthScreen(
@@ -149,6 +132,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     IconButton(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
+                          builder: (context) => const BillingScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.wallet_outlined, size: 22),
+                      tooltip: 'Tokens & Subscriptions',
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                        foregroundColor: AetherPalette.textMuted,
+                        hoverColor: AetherPalette.panelSoft,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
                           builder: (context) => const SettingsScreen(),
                         ),
                       ),
@@ -196,10 +193,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ref,
                                 const NewGameScreen(),
                               ),
-                              onStoryLibrary: () => _openProtectedScreen(
-                                context,
-                                ref,
-                                const StoryLibraryScreen(),
+                              onStoryLibrary: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (final _) => const StoryLibraryScreen(),
+                                ),
                               ),
                               onContinue: () => _openProtectedScreen(
                                 context,
