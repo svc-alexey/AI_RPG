@@ -170,6 +170,15 @@ if [[ -d deploy/web ]]; then
   mv deploy/web deploy/web.bak_codex_current
 fi
 mv "$WEB_TMP_DIR" deploy/web
+
+# Restore static legal pages and CSS (not part of Flutter build)
+for f in offer.html privacy.html consent.html refunds.html contacts.html subscribe.html legal.css; do
+  if [ -f "deploy/web.bak_codex_current/$f" ]; then
+    cp "deploy/web.bak_codex_current/$f" "deploy/web/$f"
+    echo "Restored static: $f"
+  fi
+done
+
 touch deploy/web/.gitkeep
 
 python3 - <<'PY'

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="description" content="Политика обработки персональных данных — Стирая Грань">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="/privacy.html">
+<title>Политика конфиденциальности — Стирая Грань</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,300;0,400;0,500;0,700;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/legal.css">
+</head>
+<body>
+
+<header class="legal-header">
+  <div class="legal-header-inner">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <a href="/" style="color:var(--text-dim);text-decoration:none;">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </a>
+      <h1 class="legal-header-title"><span lang="ru">Правовая информация</span><span lang="en">Legal Center</span></h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="lang-toggle">
+        <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+        <button id="btn-en" onclick="switchLang('en')">EN</button>
+      </div>
+          </div>
+  </div>
+</header>
+
+<div style="display:flex;min-height:100vh;">
+<aside class="legal-sidebar">
+  <div class="legal-sidebar-title"><span lang="ru">Документы</span><span lang="en">Documents</span></div>
+  <nav>
+    <a href="/offer.html"><span class="material-symbols-outlined">description</span><span lang="ru">Оферта</span><span lang="en">License Offer</span></a>
+    <a href="/privacy.html" class="active"><span class="material-symbols-outlined">policy</span><span lang="ru">Конфиденциальность</span><span lang="en">Privacy Policy</span></a>
+    <a href="/consent.html"><span class="material-symbols-outlined">check_box</span><span lang="ru">Согласие на ПД</span><span lang="en">Data Consent</span></a>
+    <a href="/refunds.html"><span class="material-symbols-outlined">receipt_long</span><span lang="ru">Возврат</span><span lang="en">Refunds</span></a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+  </nav>
+</aside>
+
+<main class="legal-main">
+  <div class="legal-section-header">
+    <span class="label">Compliance Document</span>
+    <h2 lang="ru">Политика обработки персональных данных</h2>
+    <h2 lang="en">Privacy Policy</h2>
+  </div>
+
+  <article class="legal-content">
+
+<!-- RUSSIAN -->
+<section lang="ru">
+<p><strong>Редакция от 04 мая 2026 г.</strong></p>
+<p>Настоящая Политика обработки персональных данных (далее — «Политика») разработана в соответствии с Федеральным законом № 152-ФЗ «О персональных данных» и определяет порядок обработки и защиты персональных данных Пользователей сервиса «Стирая Грань».</p>
+
+<h4>1. Общие положения</h4>
+<p>1.1. Настоящая Политика действует в отношении всех персональных данных, которые Сервис может получить о Пользователе во время использования им Сервиса.</p>
+<p>1.2. Использование Сервиса означает согласие Пользователя с настоящей Политикой. В случае несогласия Пользователь должен прекратить использование Сервиса.</p>
+<p>1.3. Администрация не проверяет достоверность предоставляемых персональных данных, однако исходит из того, что Пользователь предоставляет достоверную информацию.</p>
+
+<h4>2. Какие данные мы собираем</h4>
+<p><strong>2.1. Данные, предоставляемые Пользователем:</strong></p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Адрес электронной почты (email) — при регистрации через Яндекс OAuth</li>
+  <li>Отображаемое имя (display name) — может быть псевдонимом</li>
+  <li>Уникальный идентификатор провайдера аутентификации (provider_user_id)</li>
+</ul>
+<p><strong>2.2. Данные, собираемые автоматически:</strong></p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>IP-адрес — используется для геолокации (страна) и защиты от злоупотреблений</li>
+  <li>User-Agent браузера — для обеспечения совместимости</li>
+  <li>Технические данные сессии (время создания, срок действия)</li>
+  <li>Логи игровых сессий: ID кампании, номер хода, количество потреблённых токенов LLM</li>
+</ul>
+<p><strong>2.3. Данные, которые мы НЕ собираем:</strong></p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Платёжные данные (номер карты, CVC, срок действия) — передаются напрямую в ЮKassa</li>
+  <li>Пароли — аутентификация через OAuth-провайдеров, пароли не хранятся</li>
+  <li>Данные о местоположении (GPS)</li>
+</ul>
+
+<h4>3. Цели обработки данных</h4>
+<p>3.1. Персональные данные обрабатываются в следующих целях:</p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Идентификация Пользователя в Сервисе</li>
+  <li>Предоставление доступа к функциям Сервиса (кампании, библиотека историй)</li>
+  <li>Учёт потреблённых токенов и ведение баланса</li>
+  <li>Обработка платежей (через процессинг ЮKassa)</li>
+  <li>Связь с Пользователем (уведомления, ответы на запросы)</li>
+  <li>Улучшение качества Сервиса (анализ игровых сессий)</li>
+</ul>
+
+<h4>4. Правовые основания</h4>
+<p>4.1. Обработка персональных данных осуществляется на основании:</p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Согласия Пользователя на обработку персональных данных (ст. 9 152-ФЗ)</li>
+  <li>Федерального закона «О персональных данных» № 152-ФЗ</li>
+  <li>Гражданского кодекса РФ (ст. 435, 437 — акцепт оферты)</li>
+</ul>
+
+<h4>5. Хранение и защита данных</h4>
+<p>5.1. Персональные данные хранятся на серверах, расположенных на территории Российской Федерации.</p>
+<p>5.2. Администрация принимает следующие меры защиты:</p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Шифрование данных при передаче (HTTPS/TLS)</li>
+  <li>Хеширование refresh-токенов (SHA-256)</li>
+  <li>Ограничение физического доступа к серверам</li>
+  <li>Регулярное обновление системного ПО</li>
+</ul>
+<p>5.3. Срок хранения: персональные данные хранятся до момента удаления аккаунта Пользователя либо до отзыва согласия на обработку.</p>
+
+<h4>6. Передача данных третьим лицам</h4>
+<p>6.1. Администрация НЕ передаёт персональные данные третьим лицам, за исключением:</p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>ЮKassa (ООО НКО «ЮMoney») — для обработки платежей (только данные, необходимые для транзакции)</li>
+  <li>Провайдеров AI-моделей — текст игровых запросов (prompt) для генерации ответа (без привязки к личности Пользователя)</li>
+  <li>Органов государственной власти — в случаях, предусмотренных законодательством РФ</li>
+</ul>
+
+<h4>7. Права Пользователя</h4>
+<p>7.1. Пользователь имеет право:</p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Получить информацию о факте обработки его персональных данных</li>
+  <li>Требовать уточнения, блокировки или уничтожения неполных/неточных данных</li>
+  <li>Отозвать согласие на обработку данных (путём удаления аккаунта или обращения в поддержку)</li>
+  <li>Направить запрос администратору данных через контакты, указанные на странице <a href="/contacts.html" style="color:var(--primary)">Контакты и реквизиты</a></li>
+</ul>
+
+<h4>8. Cookie и аналогичные технологии</h4>
+<p>8.1. Сервис использует следующие типы cookie:</p>
+<ul style="color:var(--text-narrative);line-height:1.8;">
+  <li>Технические (сессионные) — refresh_token (HttpOnly, Secure) для поддержания сессии Пользователя</li>
+  <li>Функциональные — язык интерфейса (LocalStorage)</li>
+</ul>
+<p>8.2. Сервис НЕ использует маркетинговые/трекинговые cookie и не осуществляет профилирование Пользователей для рекламных целей.</p>
+
+<div class="legal-cta">
+  <p>Хотите удалить свои данные или задать вопрос о конфиденциальности?</p>
+  <a href="/contacts.html" class="btn-primary" style="display:inline-block;text-decoration:none;">Связаться с нами</a>
+</div>
+</section>
+
+<!-- ENGLISH -->
+<section lang="en">
+<p><strong>Version dated May 4, 2026</strong></p>
+<p>This Privacy Policy is developed in accordance with the data protection principles applicable to the Service and defines the procedure for processing and protecting Users' personal data.</p>
+
+<h4>1. General Provisions</h4>
+<p>1.1. This Policy applies to all personal data that the Service may receive about the User during their use of the Service.</p>
+<p>1.2. Use of the Service implies acceptance of this Policy. In case of disagreement, the User must stop using the Service.</p>
+
+<h4>2. What Data We Collect</h4>
+<p><strong>2.1. Data provided by the User:</strong> Email (via Yandex OAuth), display name, authentication provider user ID.</p>
+<p><strong>2.2. Automatically collected data:</strong> IP address, browser User-Agent, session technical data, game session logs (campaign ID, turn number, LLM tokens consumed).</p>
+<p><strong>2.3. Data we do NOT collect:</strong> Payment card data (processed directly by YooKassa), passwords (OAuth only), GPS location.</p>
+
+<h4>3. Purposes of Data Processing</h4>
+<p>User identification, service access, token balance accounting, payment processing (via YooKassa), user communication, service quality improvement.</p>
+
+<h4>4. Data Storage and Protection</h4>
+<p>4.1. Personal data is stored on servers located in the Russian Federation.</p>
+<p>4.2. Security measures: HTTPS/TLS encryption, refresh token hashing (SHA-256), physical server access restriction, regular system updates.</p>
+<p>4.3. Retention period: until account deletion or withdrawal of consent.</p>
+
+<h4>5. Data Transfer to Third Parties</h4>
+<p>5.1. We do NOT transfer personal data to third parties except: YooKassa for payment processing, AI model providers for prompt processing (without user identity), government authorities as required by law.</p>
+
+<h4>6. User Rights</h4>
+<p>The User has the right to: obtain information about data processing, request correction or deletion of data, withdraw consent (by deleting account or contacting support).</p>
+
+<h4>7. Cookies</h4>
+<p>Technical session cookies only (refresh_token, HttpOnly, Secure). No marketing/tracking cookies. No user profiling for advertising.</p>
+
+<div class="legal-cta">
+  <p>Want to delete your data or ask about privacy?</p>
+  <a href="/contacts.html" class="btn-primary" style="display:inline-block;text-decoration:none;">Contact Us</a>
+</div>
+</section>
+
+  </article>
+</main>
+</div>
+
+<nav class="legal-bottom-nav">
+  <a href="/"><span class="material-symbols-outlined">home</span><span lang="ru">Главная</span><span lang="en">Home</span></a>
+  <a href="/offer.html"><span class="material-symbols-outlined">gavel</span><span lang="ru">Оферта</span><span lang="en">Offer</span></a>
+  <a href="/privacy.html" class="active"><span class="material-symbols-outlined" style="font-variation-settings:'FILL'1;">policy</span><span lang="ru">Приватность</span><span lang="en">Privacy</span></a>
+  <a href="/refunds.html"><span class="material-symbols-outlined">receipt_long</span><span lang="ru">Возврат</span><span lang="en">Refunds</span></a>
+  <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+</nav>
+
+<script>
+function switchLang(lang) {
+  document.documentElement.lang = lang;
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  try { localStorage.setItem('legal-lang', lang); } catch(e) {}
+}
+(function(){
+  var p = new URLSearchParams(location.search).get('lang');
+  var s;
+  try { s = localStorage.getItem('legal-lang'); } catch(e) {}
+  switchLang(p || s || 'ru');
+})();
+</script>
+</body>
+</html>
