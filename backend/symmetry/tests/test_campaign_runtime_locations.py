@@ -131,7 +131,9 @@ def test_apply_turn_result_ignores_opaque_location_identifier():
 
 
 def test_apply_turn_result_can_activate_vitality_and_assign_stats():
-    state = build_initial_state(_Payload())
+    payload = _Payload()
+    payload.setting = "grimdarkFantasy"
+    state = build_initial_state(payload)
     service = CampaignRuntimeService()
 
     next_state, state_changes, _, _ = service.apply_turn_result(

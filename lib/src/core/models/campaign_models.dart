@@ -847,6 +847,16 @@ class CampaignState {
     final List<CampaignModuleState> modules = _jsonList(json['modules'])
         .map((final item) => CampaignModuleState.fromJson(_jsonMap(item)))
         .toList();
+    final CampaignSetting? inferredSetting =
+        parseCampaignSetting(json['setting']?.toString());
+    final LiteraryGenre? inferredGenre =
+        parseLiteraryGenre(json['literaryGenre']?.toString());
+    final String? inferredStoryWish = _jsonString(
+      json['storyWish'] ?? json['story_wish'],
+    );
+    final String? inferredPrompt = _jsonString(
+      json['customStoryPrompt'] ?? json['custom_story_prompt'],
+    );
     final List<CampaignModuleState> resolvedModules = modules.isNotEmpty
         ? modules
         : inferLegacyModules(
@@ -857,13 +867,17 @@ class CampaignState {
             resources: resources,
             progression: progression,
             checks: checks,
+            setting: inferredSetting,
+            literaryGenre: inferredGenre,
+            storyWish: inferredStoryWish,
+            customStoryPrompt: inferredPrompt,
           );
 
     return CampaignState(
       id: _jsonString(json['id']),
       schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
       title: _jsonString(json['title'], fallback: 'Кампания'),
-      setting: parseCampaignSetting(json['setting']?.toString()),
+      setting: inferredSetting ?? CampaignSetting.romantasy,
       mode: StoryMode.values.firstWhere(
         (final item) => item.name == json['mode'],
         orElse: () => StoryMode.shortStory,
@@ -893,10 +907,8 @@ class CampaignState {
           .toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
-      literaryGenre: parseLiteraryGenre(json['literaryGenre']?.toString()),
-      customStoryPrompt: _jsonString(
-        json['customStoryPrompt'] ?? json['custom_story_prompt'],
-      ),
+      literaryGenre: inferredGenre,
+      customStoryPrompt: inferredPrompt ?? '',
       characterPrompt: _jsonString(
         json['characterPrompt'] ?? json['character_prompt'],
       ),
@@ -1085,47 +1097,89 @@ class CampaignState {
     required final List<CampaignResource> resources,
     required final CampaignProgression? progression,
     final List<CampaignCheck> checks = const <CampaignCheck>[],
+    final CampaignSetting? setting,
+    final LiteraryGenre? literaryGenre,
+    final String? storyWish,
+    final String? customStoryPrompt,
   }) {
     final DateTime now = DateTime.now();
-    final List<CampaignModuleState> inferred = <CampaignModuleState>[];
+    final Map<CampaignModule, String> resolved = <CampaignModule, String>{};
 
     void add(final CampaignModule module, final String reason) {
-      if (inferred.any((final item) => item.module == module)) {
-        return;
-      }
-      inferred.add(
-        CampaignModuleState(
-          module: module,
-          isActive: true,
-          activationReason: reason,
-          activatedAt: now,
-        ),
-      );
+      resolved.putIfAbsent(module, () => reason);
     }
 
-    if (inventory.isNotEmpty) {
-      add(CampaignModule.inventory, 'legacy_inventory');
-    }
-    if (notes.isNotEmpty) {
-      add(CampaignModule.notes, 'legacy_notes');
-    }
-    if (companions.isNotEmpty) {
-      add(CampaignModule.companions, 'legacy_companions');
-    }
-    if (resources.isNotEmpty) {
-      add(CampaignModule.resources, 'legacy_resources');
-    }
-    if (progression != null) {
-      add(CampaignModule.progression, 'legacy_progression');
-    }
-    if (checks.isNotEmpty) {
-      add(CampaignModule.checks, 'legacy_checks');
-    }
+    // Core: notes is always active
+    add(CampaignModule.notes, 'preset:core');
+
+    if (inventory.isNotEmpty) add(CampaignModule.inventory, 'legacy_inventory');
+    if (companions.isNotEmpty) add(CampaignModule.companions, 'legacy_companions');
+    if (resources.isNotEmpty) add(CampaignModule.resources, 'legacy_resources');
+    if (progression != null) add(CampaignModule.progression, 'legacy_progression');
+    if (checks.isNotEmpty) add(CampaignModule.checks, 'legacy_checks');
     if (character.maxHp > 0 || character.maxEnergy > 0) {
       add(CampaignModule.vitality, 'legacy_vitality');
     }
 
-    return inferred;
+    // Setting-based inference (fresh campaigns have no data yet)
+    if (setting != null) {
+      const settingMatrix = <CampaignModule, List<CampaignSetting>>{
+        CampaignModule.inventory: [CampaignSetting.romantasy, CampaignSetting.grimdarkFantasy, CampaignSetting.litRpgProgression, CampaignSetting.postApocalypse, CampaignSetting.nearFutureSciFi],
+        CampaignModule.companions: [CampaignSetting.romantasy, CampaignSetting.cozyFantasy],
+        CampaignModule.vitality: [CampaignSetting.grimdarkFantasy, CampaignSetting.horrorWeird, CampaignSetting.postApocalypse],
+        CampaignModule.resources: [CampaignSetting.postApocalypse, CampaignSetting.nearFutureSciFi, CampaignSetting.litRpgProgression],
+        CampaignModule.progression: [CampaignSetting.litRpgProgression, CampaignSetting.grimdarkFantasy],
+        CampaignModule.checks: [CampaignSetting.grimdarkFantasy, CampaignSetting.litRpgProgression, CampaignSetting.horrorWeird],
+      };
+      for (final entry in settingMatrix.entries) {
+        if (entry.value.contains(setting)) {
+          add(entry.key, 'preset:${setting.name}');
+        }
+      }
+    }
+
+    // Genre-based inference
+    if (literaryGenre != null) {
+      const genreMatrix = <CampaignModule, List<LiteraryGenre>>{
+        CampaignModule.inventory: [LiteraryGenre.fantasyGenre, LiteraryGenre.speculativeFiction],
+        CampaignModule.companions: [LiteraryGenre.romance, LiteraryGenre.romantasyGenre, LiteraryGenre.youngAdult],
+        CampaignModule.vitality: [LiteraryGenre.horrorGenre],
+        CampaignModule.resources: [LiteraryGenre.speculativeFiction],
+      };
+      for (final entry in genreMatrix.entries) {
+        if (entry.value.contains(literaryGenre)) {
+          add(entry.key, 'preset:genre:${literaryGenre.name}');
+        }
+      }
+    }
+
+    // Prompt keyword signals
+    final signalText = <String>[
+      if (storyWish != null) storyWish,
+      if (customStoryPrompt != null) customStoryPrompt,
+    ].join(' ').toLowerCase();
+    if (signalText.isNotEmpty) {
+      const moduleKeywords = <CampaignModule, List<String>>{
+        CampaignModule.inventory: ['inventory', 'gear', 'artifact', 'weapon', 'loot', 'item', 'инвентарь', 'артефакт', 'оруж', 'добыч', 'предмет'],
+        CampaignModule.companions: ['companion', 'ally', 'partner', 'crew', 'sidekick', 'спутник', 'союзник', 'напарник', 'команда'],
+        CampaignModule.vitality: ['combat', 'battle', 'fight', 'survival', 'wound', 'hp', 'health', 'бо', 'битв', 'сраж', 'выжив', 'ранен', 'здоров'],
+        CampaignModule.resources: ['credits', 'money', 'gold', 'fuel', 'resource', 'supplies', 'кредит', 'деньг', 'золот', 'топлив', 'ресурс', 'припас'],
+        CampaignModule.progression: ['level', 'experience', 'xp', 'rank', 'upgrade', 'skill tree', 'уров', 'опыт', 'ранг', 'прокач'],
+        CampaignModule.checks: ['dice', 'roll', 'check', 'skill check', 'd20', 'куб', 'брос', 'провер', 'тест'],
+      };
+      for (final entry in moduleKeywords.entries) {
+        if (entry.value.any(signalText.contains)) {
+          add(entry.key, 'prompt:${entry.key.name}');
+        }
+      }
+    }
+
+    return resolved.keys.map((module) => CampaignModuleState(
+          module: module,
+          isActive: true,
+          activationReason: resolved[module]!,
+          activatedAt: now,
+        )).toList();
   }
 }
 

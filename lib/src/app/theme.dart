@@ -134,38 +134,86 @@ ThemeData buildAppTheme() {
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        backgroundColor: AetherPalette.accent,
-        foregroundColor: AetherPalette.background,
-        disabledBackgroundColor: AetherPalette.panelSoft,
-        disabledForegroundColor: AetherPalette.textDim,
-        minimumSize: const Size(0, 52),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return AetherPalette.panelSoft;
+          }
+          return AetherPalette.accent;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return AetherPalette.textDim;
+          }
+          return AetherPalette.background;
+        }),
+        minimumSize: const WidgetStatePropertyAll<Size>(Size(0, 52)),
+        padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+          EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         ),
-        overlayColor: Colors.transparent,
+        shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return AetherPalette.accent.withValues(alpha: 0.12);
+          }
+          return Colors.transparent;
+        }),
+        side: WidgetStateProperty.resolveWith<BorderSide?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return const BorderSide(color: AetherPalette.accent, width: 2);
+          }
+          return null;
+        }),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AetherPalette.textPrimary,
-        minimumSize: const Size(0, 52),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-        side: BorderSide(
-          color: AetherPalette.panelBorderSolid.withValues(alpha: 0.9),
+      style: ButtonStyle(
+        foregroundColor: const WidgetStatePropertyAll<Color>(
+          AetherPalette.textPrimary,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        minimumSize: const WidgetStatePropertyAll<Size>(Size(0, 52)),
+        padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+          EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         ),
-        overlayColor: Colors.transparent,
+        side: WidgetStateProperty.resolveWith<BorderSide?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return const BorderSide(color: AetherPalette.accent, width: 2);
+          }
+          return BorderSide(
+            color: AetherPalette.panelBorderSolid.withValues(alpha: 0.9),
+          );
+        }),
+        shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return AetherPalette.accent.withValues(alpha: 0.12);
+          }
+          return Colors.transparent;
+        }),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: AetherPalette.accentHover,
-        textStyle: textTheme.labelLarge,
-        overlayColor: Colors.transparent,
+      style: ButtonStyle(
+        foregroundColor: const WidgetStatePropertyAll<Color>(
+          AetherPalette.accentHover,
+        ),
+        textStyle: WidgetStatePropertyAll<TextStyle>(textTheme.labelLarge!),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return AetherPalette.accent.withValues(alpha: 0.12);
+          }
+          return Colors.transparent;
+        }),
+        side: WidgetStateProperty.resolveWith<BorderSide?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return const BorderSide(color: AetherPalette.accent, width: 2);
+          }
+          return null;
+        }),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
@@ -173,7 +221,18 @@ ThemeData buildAppTheme() {
         foregroundColor: const WidgetStatePropertyAll<Color>(
           AetherPalette.textMuted,
         ),
-        overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return AetherPalette.accent.withValues(alpha: 0.12);
+          }
+          return Colors.transparent;
+        }),
+        side: WidgetStateProperty.resolveWith<BorderSide?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return const BorderSide(color: AetherPalette.accent, width: 2);
+          }
+          return null;
+        }),
         backgroundColor: WidgetStateProperty.resolveWith<Color?>(
           (states) {
             if (states.contains(WidgetState.hovered) ||

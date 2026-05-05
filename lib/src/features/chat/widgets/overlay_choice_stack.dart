@@ -80,7 +80,7 @@ class _OverlayChoiceButtonState extends State<OverlayChoiceButton> {
         ? AetherPalette.textMuted.withValues(alpha: 0.45)
         : _hover
         ? AetherPalette.accentHover
-        : AetherPalette.textMuted;
+        : AetherPalette.narrativeText;
     const Color bg = AetherPalette.backgroundElevated;
 
     return Padding(
@@ -116,7 +116,7 @@ class _OverlayChoiceButtonState extends State<OverlayChoiceButton> {
                     Expanded(
                       child: Text(
                         widget.label,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.right,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(

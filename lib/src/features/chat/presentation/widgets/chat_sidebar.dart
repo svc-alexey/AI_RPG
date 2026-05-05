@@ -169,16 +169,13 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
     AppResponsiveData responsive,
   ) {
     final icon = _iconForModule(module);
-    if (responsive.isCompact) {
-      return Tab(
-        icon: Icon(icon, size: 24),
-        iconMargin: EdgeInsets.zero,
-      );
-    }
+    final label = l10n.campaignModuleLabel(module);
+    final iconWidget = Icon(icon, size: responsive.isCompact ? 22 : 20);
     return Tab(
-      icon: Icon(icon, size: 20),
-      text: l10n.campaignModuleLabel(module),
-      iconMargin: const EdgeInsets.only(bottom: 2),
+      child: Tooltip(
+        message: label,
+        child: Center(child: iconWidget),
+      ),
     );
   }
 

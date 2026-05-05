@@ -7,6 +7,7 @@ import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
+import 'package:ai_prg/src/core/presentation/widgets/app_error_view.dart';
 import 'package:ai_prg/src/features/story_library/presentation/story_library_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,14 +70,9 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
       body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-            ? Center(
-                child: AetherCard(
-                  child: Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
+            ? AppErrorView(
+                message: _error!,
+                onRetry: _load,
               )
             : _campaigns.isEmpty
             ? Center(

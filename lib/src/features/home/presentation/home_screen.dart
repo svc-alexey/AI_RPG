@@ -321,12 +321,12 @@ class _HomeFooter extends StatelessWidget {
         onTap: () => _openLegalPage(page),
         borderRadius: BorderRadius.circular(4),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Text(
             title,
             style: theme.textTheme.bodySmall?.copyWith(
               color: AetherPalette.textDim.withValues(alpha: 0.55),
-              fontSize: 10,
+              fontSize: 12,
               letterSpacing: 0.8,
             ),
           ),

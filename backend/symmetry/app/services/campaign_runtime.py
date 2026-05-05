@@ -165,6 +165,12 @@ class CampaignRuntimeService:
             str(next_state.get("custom_story_prompt", "")).strip(),
         )
         next_state.setdefault("modules", [])
+        next_state.setdefault("notes", [])
+        next_state.setdefault("inventory", [])
+        next_state.setdefault("companions", [])
+        next_state.setdefault("resources", [])
+        next_state.setdefault("checks", [])
+        next_state.setdefault("progression", {})
         next_state["memory"] = _normalize_memory_state(
             next_state.get("memory", {}) or {},
             messages=next_state.get("messages", []) or [],
@@ -386,33 +392,112 @@ class CampaignRuntimeService:
             )
             state_changes["module_updates"] = module_updates
 
-        # Cross-module wiring
-        active_modules = {
-            str(m.get("module", "")).strip()
-            for m in next_state.get("modules", []) or []
-            if isinstance(m, dict) and m.get("is_active", True)
-        }
-        player_state = dict(next_state.get("player", {}) or {})
+        # Process module content from AI response — always save what AI returns
+        turn_num = int(next_state.get("turn_number", 0))
 
-        # 1. Inventory → Notes
-        inventory_changes = state_changes.get("inventory_add", []) or []
-        if inventory_changes and "notes" in active_modules:
-            note_text = f"Получено: {', '.join(str(i) for i in inventory_changes[:3])}"
-            notes = list(player_state.get("notes", []) or [])
-            notes.append({"text": note_text, "turn": next_state.get("turn_number", 0)})
-            player_state["notes"] = notes
+        # 1. notes_added → notes
+        notes_added = _normalize_string_list(state_changes.get("notes_added"))
+        if notes_added:
+            notes = list(next_state.get("notes", []) or [])
+            for note_text in notes_added[:2]:
+                notes.append(note_text)
+            next_state["notes"] = notes[-50:]
 
-        # 2. Progression → Vitality: level-up restores hp/energy
-        prog = player_state.get("progression", {}) or {}
-        prev_state_data = state.get("player", {}) or {}
-        prev_prog = prev_state_data.get("progression", {}) or {}
-        if prog.get("level", 1) > prev_prog.get("level", 1):
-            character = dict(player_state.get("character", {}) or {})
-            character["hp"] = character.get("maxHp") or 12
-            character["energy"] = character.get("maxEnergy") or 8
-            player_state["character"] = character
+        # 2. inventory_found → inventory
+        inventory_found = _normalize_string_list(state_changes.get("inventory_found"))
+        if inventory_found:
+            inv = list(next_state.get("inventory", []) or [])
+            for item in inventory_found[:2]:
+                if item not in inv:
+                    inv.append(item)
+            next_state["inventory"] = inv
+            # Cross-wire: inventory gains also appear in notes
+            note_text = (
+                f"Получено: {', '.join(inventory_found[:2])}"
+                if language.startswith("ru")
+                else f"Obtained: {', '.join(inventory_found[:2])}"
+            )
+            notes = list(next_state.get("notes", []) or [])
+            notes.append(note_text)
+            next_state["notes"] = notes[-50:]
 
-        next_state["player"] = player_state
+        # 3. companion_encountered → companions
+        companion_raw = state_changes.get("companion_encountered")
+        if isinstance(companion_raw, dict):
+            name = str(companion_raw.get("name", "")).strip()
+            brief = str(companion_raw.get("brief", "")).strip()
+            if name:
+                companions = list(next_state.get("companions", []) or [])
+                cid = f"comp_{turn_num}_{len(companions) + 1}"
+                companions.append({
+                    "id": cid,
+                    "name": name,
+                    "status": "neutral",
+                    "notes": brief or name,
+                })
+                next_state["companions"] = companions[:20]
+
+        # 4. resources_delta → resources
+        res_delta = state_changes.get("resources_delta")
+        if isinstance(res_delta, dict):
+            label = str(res_delta.get("label", "")).strip()
+            try:
+                amount = int(res_delta.get("amount", 0))
+            except (ValueError, TypeError):
+                amount = 0
+            if label and amount != 0:
+                resources = list(next_state.get("resources", []) or [])
+                existing = next(
+                    (r for r in resources if isinstance(r, dict) and r.get("label") == label),
+                    None,
+                )
+                if existing is not None:
+                    existing["value"] = int(existing.get("value", 0)) + amount
+                else:
+                    rid = f"res_{turn_num}_{len(resources) + 1}"
+                    resources.append({
+                        "id": rid,
+                        "label": label,
+                        "value": max(amount, 0),
+                        "maxValue": None,
+                    })
+                next_state["resources"] = resources
+
+        # 5. progression_event → progression
+        prog_event = state_changes.get("progression_event")
+        if isinstance(prog_event, dict):
+            try:
+                xp_gained = int(prog_event.get("xp_gained", 0))
+            except (ValueError, TypeError):
+                xp_gained = 0
+            if xp_gained > 0:
+                progression = dict(next_state.get("progression", {}) or {})
+                progression["experience"] = int(progression.get("experience", 0)) + xp_gained
+                level = int(progression.get("level", 1))
+                xp_total = int(progression.get("experience", 0))
+                new_level = max(level, (xp_total // 100) + 1)
+                if new_level > level:
+                    progression["level"] = new_level
+                    character = dict(next_state.get("character", {}) or {})
+                    character["hp"] = character.get("maxHp") or 12
+                    character["energy"] = character.get("maxEnergy") or 8
+                    next_state["character"] = character
+                next_state["progression"] = progression
+
+        # 6. check_occurred → checks
+        check_raw = state_changes.get("check_occurred")
+        if isinstance(check_raw, dict):
+            label = str(check_raw.get("label", "")).strip()
+            if label:
+                checks = list(next_state.get("checks", []) or [])
+                checks.append({
+                    "label": label,
+                    "stat": str(check_raw.get("stat", "wit")).strip() or "wit",
+                    "difficulty": int(check_raw.get("difficulty", 10)),
+                    "outcome": str(check_raw.get("outcome", "unknown")).strip() or "unknown",
+                    "turn": turn_num,
+                })
+                next_state["checks"] = checks[-20:]
 
         narration = normalize_prompt_text(str(result.get("narration", "")))
         memory_entry = normalize_prompt_text(
@@ -550,6 +635,14 @@ def normalize_importance(raw_value: Any) -> int:
         return 0
 
 
+def _normalize_string_list(raw: Any) -> list[str]:
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    if isinstance(raw, str) and raw.strip():
+        return [raw.strip()]
+    return []
+
+
 def normalize_module_updates(raw_updates: dict[str, Any]) -> dict[str, list[str]]:
     if isinstance(raw_updates, list):
         raw_updates = {"activate": raw_updates}
@@ -565,7 +658,11 @@ def normalize_module_updates(raw_updates: dict[str, Any]) -> dict[str, list[str]
             return []
         return [value]
 
-    activate = [
+    activate: list[str] = []
+    deactivate: list[str] = []
+
+    # Handle standard format: {"activate": [...], "deactivate": [...]}
+    activate += [
         item
         for item in (
             str(value).strip()
@@ -573,7 +670,7 @@ def normalize_module_updates(raw_updates: dict[str, Any]) -> dict[str, list[str]
         )
         if item in ALLOWED_MODULES
     ]
-    deactivate = [
+    deactivate += [
         item
         for item in (
             str(value).strip()
@@ -581,6 +678,27 @@ def normalize_module_updates(raw_updates: dict[str, Any]) -> dict[str, list[str]
         )
         if item in ALLOWED_MODULES
     ]
+
+    # Handle AI's per-module format: {"vitality": {"active": true}, ...}
+    for key, value in raw_updates.items():
+        if key in ("activate", "deactivate"):
+            continue
+        if key not in ALLOWED_MODULES:
+            continue
+        if isinstance(value, dict):
+            is_active = value.get("active", value.get("is_active", True))
+            if is_active:
+                activate.append(key)
+            else:
+                deactivate.append(key)
+        elif isinstance(value, bool):
+            if value:
+                activate.append(key)
+            else:
+                deactivate.append(key)
+        elif isinstance(value, str):
+            activate.append(key)
+
     return {
         "activate": list(dict.fromkeys(activate)),
         "deactivate": list(dict.fromkeys(deactivate)),

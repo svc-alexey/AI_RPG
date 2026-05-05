@@ -91,16 +91,20 @@ class _ChatComposerState extends ConsumerState<ChatComposer> {
               children: <Widget>[
                 _buildTextField(
                   maxLines: compactMobileComposer ? 3 : 4,
-                  decoration: const InputDecoration(
-                    hintText: '',
+                  decoration: InputDecoration(
+                    hintText: l10n.chatInputHint,
                     border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: AetherPalette.panelBorderSolid),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: AetherPalette.accent, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 6,
                     ),
-                  ).copyWith(hintText: l10n.chatInputHint),
+                  ),
                 ),
                 SizedBox(height: compactMobileComposer ? 4 : 8),
                 Align(
@@ -128,8 +132,12 @@ class _ChatComposerState extends ConsumerState<ChatComposer> {
                     decoration: InputDecoration(
                       hintText: l10n.chatInputHint,
                       border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: AetherPalette.panelBorderSolid),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: AetherPalette.accent, width: 1.5),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: responsive.isCompact ? 12 : 14,
                         vertical: responsive.isCompact ? 8 : 10,

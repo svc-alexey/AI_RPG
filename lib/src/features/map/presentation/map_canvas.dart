@@ -339,6 +339,7 @@ class MapCanvasWidget extends StatefulWidget {
     this.onNodeTap,
     this.onNodeLongPress,
     this.transformController,
+    this.showZoomControls = false,
   });
   final List<CampaignMapNode> nodes;
   final List<CampaignMapEdge> edges;
@@ -347,6 +348,7 @@ class MapCanvasWidget extends StatefulWidget {
   final void Function(CampaignMapNode node)? onNodeTap;
   final void Function(CampaignMapNode node)? onNodeLongPress;
   final TransformationController? transformController;
+  final bool showZoomControls;
 
   @override
   State<MapCanvasWidget> createState() => _MapCanvasWidgetState();
@@ -383,6 +385,16 @@ class _MapCanvasWidgetState extends State<MapCanvasWidget> {
     super.dispose();
   }
 
+  void _zoom(double factor) {
+    final matrix = Matrix4.copy(_transformCtrl.value);
+    final scale = matrix.getMaxScaleOnAxis();
+    final newScale = (scale * factor).clamp(0.3, 3.0);
+    final ratio = newScale / scale;
+    final scaled = Matrix4.diagonal3Values(ratio, ratio, 1.0);
+    _transformCtrl.value = Matrix4.copy(matrix)..multiply(scaled);
+    setState(() => _currentScale = newScale);
+  }
+
   CampaignMapNode? _hitTest(Offset localPos) {
     // Transform local position back to canvas coordinates
     final matrix = Matrix4.inverted(_transformCtrl.value);
@@ -401,43 +413,99 @@ class _MapCanvasWidgetState extends State<MapCanvasWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-      onTapUp: (details) {
-        final node = _hitTest(details.localPosition);
-        if (node != null) {
-          widget.onNodeTap?.call(node);
-        }
-      },
-      onLongPressStart: (details) {
-        final node = _hitTest(details.localPosition);
-        if (node != null) {
-          widget.onNodeLongPress?.call(node);
-        }
-      },
-      child: InteractiveViewer(
-        transformationController: _transformCtrl,
-        constrained: false,
-        boundaryMargin: const EdgeInsets.all(200),
-        minScale: 0.3,
-        maxScale: 3.0,
-        onInteractionEnd: (_) {
-          setState(() {
-            _currentScale = _transformCtrl.value.getMaxScaleOnAxis();
-          });
-        },
-        child: Semantics(
-          label: 'Карта мира',
-          child: CustomPaint(
-            painter: MapCanvasPainter(
-              nodes: widget.nodes,
-              edges: widget.edges,
-              highlightedNodeIds: widget.highlightedNodeIds,
-              playerMarks: widget.playerMarks,
-              viewportScale: _currentScale,
+  Widget build(BuildContext context) => Stack(
+      children: <Widget>[
+        GestureDetector(
+          onTapUp: (details) {
+            final node = _hitTest(details.localPosition);
+            if (node != null) {
+              widget.onNodeTap?.call(node);
+            }
+          },
+          onLongPressStart: (details) {
+            final node = _hitTest(details.localPosition);
+            if (node != null) {
+              widget.onNodeLongPress?.call(node);
+            }
+          },
+          child: InteractiveViewer(
+            transformationController: _transformCtrl,
+            constrained: false,
+            boundaryMargin: const EdgeInsets.all(200),
+            minScale: 0.3,
+            maxScale: 3.0,
+            onInteractionEnd: (_) {
+              setState(() {
+                _currentScale = _transformCtrl.value.getMaxScaleOnAxis();
+              });
+            },
+            child: Semantics(
+              label: 'Карта мира',
+              child: CustomPaint(
+                painter: MapCanvasPainter(
+                  nodes: widget.nodes,
+                  edges: widget.edges,
+                  highlightedNodeIds: widget.highlightedNodeIds,
+                  playerMarks: widget.playerMarks,
+                  viewportScale: _currentScale,
+                ),
+                size: const Size(10000, 10000),
+              ),
             ),
-            size: const Size(10000, 10000),
           ),
         ),
-      ),
+        if (widget.showZoomControls)
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _ZoomButton(
+                  icon: Icons.add_rounded,
+                  tooltip: 'Приблизить',
+                  onPressed: () => _zoom(1.3),
+                ),
+                const SizedBox(height: 6),
+                _ZoomButton(
+                  icon: Icons.remove_rounded,
+                  tooltip: 'Отдалить',
+                  onPressed: () => _zoom(0.7),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
+}
+
+class _ZoomButton extends StatelessWidget {
+  const _ZoomButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Material(
+          color: const Color(0xCC12100E),
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onPressed,
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              child: Icon(icon, size: 18, color: const Color(0xFFC87941)),
+            ),
+          ),
+        ),
+      );
 }

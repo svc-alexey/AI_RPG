@@ -21,11 +21,16 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
   bool _apiKeyObscured = true;
   final TextEditingController _timeoutController = TextEditingController();
+  final FocusNode _urlFocus = FocusNode();
+  final FocusNode _modelFocus = FocusNode();
+  final FocusNode _apiKeyFocus = FocusNode();
+  final FocusNode _timeoutFocus = FocusNode();
 
   @override
   void dispose() {
@@ -33,6 +38,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _modelController.dispose();
     _apiKeyController.dispose();
     _timeoutController.dispose();
+    _urlFocus.dispose();
+    _modelFocus.dispose();
+    _apiKeyFocus.dispose();
+    _timeoutFocus.dispose();
     super.dispose();
   }
 
@@ -288,83 +297,140 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 const SizedBox(height: 12),
-                                TextField(
-                                  controller: _baseUrlController,
-                                  onChanged: controller.setBaseUrl,
-                                  keyboardType: TextInputType.url,
-                                  autocorrect: false,
-                                  enableSuggestions: false,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.baseUrl,
-                                    hintText: 'https://api.example.com/v1',
-                                  ),
-                                ),
-                                if (settingsState.showEndpointBuildDefaultsHint)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      l10n.endpointBuildDefaultsHint,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: AetherPalette.textMuted,
-                                            height: 1.35,
+                                FocusTraversalGroup(
+                                  child: Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        TextFormField(
+                                          controller: _baseUrlController,
+                                          focusNode: _urlFocus,
+                                          onChanged: controller.setBaseUrl,
+                                          keyboardType: TextInputType.url,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) =>
+                                              _modelFocus.requestFocus(),
+                                          decoration: InputDecoration(
+                                            labelText: l10n.baseUrl,
+                                            hintText:
+                                                'https://api.example.com/v1',
                                           ),
-                                    ),
-                                  ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _modelController,
-                                  onChanged: controller.setModel,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.model,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _apiKeyController,
-                                  obscureText: _apiKeyObscured,
-                                  autocorrect: false,
-                                  enableSuggestions: false,
-                                  keyboardType: TextInputType.visiblePassword,
-                                  onChanged: controller.setApiKey,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.apiKey,
-                                    hintText: l10n.apiKeyHint,
-                                    suffixIcon: IconButton(
-                                      tooltip: _apiKeyObscured
-                                          ? l10n.showApiKey
-                                          : l10n.hideApiKey,
-                                      icon: Icon(
-                                        _apiKeyObscured
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                      ),
-                                      onPressed: () => setState(
-                                        () =>
-                                            _apiKeyObscured = !_apiKeyObscured,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (settingsState.showApiKeyFromBuildHint)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      l10n.apiKeyBuildTimeHiddenHint,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: AetherPalette.textMuted,
-                                            height: 1.35,
+                                        ),
+                                        if (settingsState
+                                            .showEndpointBuildDefaultsHint)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8),
+                                            child: Text(
+                                              l10n.endpointBuildDefaultsHint,
+                                              style: theme
+                                                  .textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: AetherPalette
+                                                        .textMuted,
+                                                    height: 1.35,
+                                                  ),
+                                            ),
                                           ),
+                                        const SizedBox(height: 12),
+                                        TextFormField(
+                                          controller: _modelController,
+                                          focusNode: _modelFocus,
+                                          onChanged: controller.setModel,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) =>
+                                              _apiKeyFocus.requestFocus(),
+                                          decoration: InputDecoration(
+                                            labelText: l10n.model,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextFormField(
+                                          controller: _apiKeyController,
+                                          focusNode: _apiKeyFocus,
+                                          obscureText: _apiKeyObscured,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          keyboardType:
+                                              TextInputType.visiblePassword,
+                                          onChanged: controller.setApiKey,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) =>
+                                              _timeoutFocus.requestFocus(),
+                                          decoration: InputDecoration(
+                                            labelText: l10n.apiKey,
+                                            hintText: l10n.apiKeyHint,
+                                            suffixIcon: IconButton(
+                                              tooltip: _apiKeyObscured
+                                                  ? l10n.showApiKey
+                                                  : l10n.hideApiKey,
+                                              icon: Icon(
+                                                _apiKeyObscured
+                                                    ? Icons
+                                                        .visibility_outlined
+                                                    : Icons
+                                                        .visibility_off_outlined,
+                                              ),
+                                              onPressed: () => setState(
+                                                () =>
+                                                    _apiKeyObscured =
+                                                        !_apiKeyObscured,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        if (settingsState
+                                            .showApiKeyFromBuildHint)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8),
+                                            child: Text(
+                                              l10n.apiKeyBuildTimeHiddenHint,
+                                              style: theme
+                                                  .textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: AetherPalette
+                                                        .textMuted,
+                                                    height: 1.35,
+                                                  ),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 12),
+                                        TextFormField(
+                                          controller: _timeoutController,
+                                          focusNode: _timeoutFocus,
+                                          onChanged: controller.setTimeoutText,
+                                          keyboardType: TextInputType.number,
+                                          textInputAction: TextInputAction.go,
+                                          onFieldSubmitted: (_) {
+                                            if (!settingsState.isSaving) {
+                                              controller.save(l10n: l10n);
+                                            }
+                                          },
+                                          validator: (v) {
+                                            if (v != null &&
+                                                v.isNotEmpty &&
+                                                int.tryParse(v.trim()) ==
+                                                    null) {
+                                              return switch (l10n.language) {
+                                                AppLanguage.ru =>
+                                                  'Введите число',
+                                                AppLanguage.en =>
+                                                  'Enter a number',
+                                              };
+                                            }
+                                            return null;
+                                          },
+                                          decoration: InputDecoration(
+                                            labelText: l10n.timeoutSeconds,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _timeoutController,
-                                  onChanged: controller.setTimeoutText,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.timeoutSeconds,
                                   ),
                                 ),
                               ],

@@ -31,6 +31,15 @@ const _scaleLabels = {
 
 /// Returns a human-readable label for a scale key.
 /// Falls back to the raw key with first letter capitalised.
+String _eventsPlural(int count) {
+  final int mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 14) return '$count новых событий';
+  final int mod10 = count % 10;
+  if (mod10 == 1) return '$count новое событие';
+  if (mod10 >= 2 && mod10 <= 4) return '$count новых события';
+  return '$count новых событий';
+}
+
 String scaleLabel(String key) {
   final known = _scaleLabels[key];
   if (known != null) return known;
@@ -347,6 +356,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       onNodeTap: _onNodeTap,
                       onNodeLongPress: _onNodeLongPress,
                       transformController: _transformCtrl,
+                      showZoomControls: true,
                     ),
                     if (_showWorldPulse && _returnSummary != null)
                       _WorldPulseOverlay(
@@ -588,7 +598,7 @@ class _WorldPulseOverlay extends StatelessWidget {
                   const Icon(Icons.circle, color: Color(0xFFBFA76F), size: 8),
                   const SizedBox(width: 6),
                   Text(
-                    '${summary.newEventsCount} новых событий',
+                    _eventsPlural(summary.newEventsCount),
                     style: const TextStyle(
                       color: Color(0xFFBFA76F),
                       fontSize: 11,

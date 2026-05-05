@@ -27,6 +27,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   isar_generator: ^3.1.0+1
+  marionette_flutter:
+    git:
+      url: https://github.com/leancodepl/marionette_mcp.git
+      path: packages/marionette_flutter
+      ref: 49bbe791f15e1394f96aab1bbc9c64e98cae9446
 
 flutter:
   uses-material-design: true

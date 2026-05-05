@@ -27,24 +27,10 @@ class QuickStartView extends StatelessWidget {
 
     return ListView(
       children: <Widget>[
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            IconButton(
-              onPressed: state.storyTemplateSeed == null
-                  ? controller.setModeSelection
-                  : controller.setStoryLengthSelection,
-              icon: const Icon(Icons.arrow_back_rounded),
-            ),
-            Expanded(
-              child: Text(
-                l10n.quickStart,
-                style: theme.textTheme.headlineMedium,
-              ),
-            ),
-          ],
+        Text(
+          l10n.quickStart,
+          style: theme.textTheme.headlineMedium,
         ),
-        const SizedBox(height: 24),
         SizedBox(height: context.responsive.blockSpacing),
         Text(
           l10n.quickStartAiBlurb,

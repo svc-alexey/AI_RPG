@@ -18,9 +18,13 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+  final FocusNode _displayNameFocus = FocusNode();
   bool _isSubmitting = false;
   bool _isYandexSubmitting = false;
   bool _registerMode = false;
@@ -31,6 +35,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _displayNameController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _displayNameFocus.dispose();
     super.dispose();
   }
 
@@ -114,28 +121,78 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(labelText: l10n.emailLabel),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: l10n.passwordLabel,
-                      ),
-                    ),
-                    if (_registerMode) ...<Widget>[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _displayNameController,
-                        decoration: InputDecoration(
-                          labelText: l10n.displayNameLabel,
+                    FocusTraversalGroup(
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            TextFormField(
+                              controller: _emailController,
+                              focusNode: _emailFocus,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) =>
+                                  _passwordFocus.requestFocus(),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty)
+                                  return l10n.authEmailRequired;
+                                if (!_looksLikeEmail(v.trim()))
+                                  return l10n.authEmailInvalid;
+                                return null;
+                              },
+                              decoration: InputDecoration(
+                                labelText: l10n.emailLabel,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _passwordController,
+                              focusNode: _passwordFocus,
+                              obscureText: true,
+                              textInputAction: _registerMode
+                                  ? TextInputAction.next
+                                  : TextInputAction.go,
+                              onFieldSubmitted: (_) {
+                                if (_registerMode) {
+                                  _displayNameFocus.requestFocus();
+                                } else {
+                                  _submit();
+                                }
+                              },
+                              validator: (v) {
+                                if (v == null || v.isEmpty)
+                                  return l10n.authPasswordRequired;
+                                if (v.length < 8)
+                                  return l10n.authPasswordTooShort;
+                                return null;
+                              },
+                              decoration: InputDecoration(
+                                labelText: l10n.passwordLabel,
+                              ),
+                            ),
+                            if (_registerMode) ...[
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _displayNameController,
+                                focusNode: _displayNameFocus,
+                                textInputAction: TextInputAction.go,
+                                onFieldSubmitted: (_) => _submit(),
+                                validator: (v) {
+                                  if (v != null &&
+                                      v.trim().length > 120)
+                                    return l10n.authDisplayNameTooLong;
+                                  return null;
+                                },
+                                decoration: InputDecoration(
+                                  labelText: l10n.displayNameLabel,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                     if (_error != null) ...<Widget>[
                       const SizedBox(height: 12),
                       Text(
@@ -212,20 +269,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _submit() async {
     final AppLocalizations l10n = context.l10n;
+
+    if (!_formKey.currentState!.validate()) return;
+
     final String email = _emailController.text.trim();
     final String password = _passwordController.text;
     final String displayName = _displayNameController.text.trim();
-
-    final String? validationError = _validateInputs(
-      l10n: l10n,
-      email: email,
-      password: password,
-      displayName: displayName,
-    );
-    if (validationError != null) {
-      setState(() => _error = validationError);
-      return;
-    }
 
     setState(() {
       _isSubmitting = true;

@@ -16,7 +16,7 @@ class AetherPalette {
   static const Color panelGlow = Color(0xFFC87941);
   static const Color textPrimary = Color(0xFFE8E4E0);
   static const Color textMuted = Color(0xFF7A7570);
-  static const Color textDim = Color(0xFF5A5550);
+  static const Color textDim = Color(0xFF6B6660);
   /// Narration body (JS mockup prose-invert).
   static const Color narrativeText = Color(0xFFC8C4C0);
   static const Color accent = Color(0xFFC87941);
@@ -144,11 +144,6 @@ class _AetherPageRevealState extends State<AetherPageReveal>
       _controller.value = 1;
       return;
     }
-    if (kIsWeb) {
-      _controller.value = 1;
-      return;
-    }
-
     if (widget.delay == Duration.zero) {
       _controller.forward();
       return;
@@ -172,7 +167,7 @@ class _AetherPageRevealState extends State<AetherPageReveal>
   @override
   Widget build(final BuildContext context) {
     if (kIsWeb) {
-      return widget.child;
+      return FadeTransition(opacity: _fade, child: widget.child);
     }
     return FadeTransition(
       opacity: _fade,

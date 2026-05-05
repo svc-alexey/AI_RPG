@@ -126,7 +126,7 @@ class AppResponsiveData {
     AppBreakpoint.phone => width * 0.74,
     AppBreakpoint.phoneLarge => width * 0.76,
     AppBreakpoint.tablet => 220,
-    AppBreakpoint.desktop => 240,
+    AppBreakpoint.desktop => 320,
   };
 
   double get dialogMaxWidth => switch (breakpoint) {

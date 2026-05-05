@@ -78,13 +78,13 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
           ? null
           : _ChatChromeIconButton(
               icon: Icons.menu_rounded,
-              tooltip: l10n.campaignInfo,
+              tooltip: l10n.menuTooltip,
               onPressed: onMenu ?? () {},
             ),
       actions: <Widget>[
         _ChatChromeIconButton(
           icon: Icons.map_outlined,
-          tooltip: 'Карта кампании',
+          tooltip: l10n.mapTooltip,
           onPressed: () {
             final campaign = controller.campaign;
             if (campaign == null) return;
@@ -105,7 +105,7 @@ class ChatAppBar extends ConsumerWidget implements PreferredSizeWidget {
         ),
         _ChatChromeIconButton(
           icon: Icons.tune_rounded,
-          tooltip: l10n.aiSettings,
+          tooltip: l10n.settingsTooltip,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(

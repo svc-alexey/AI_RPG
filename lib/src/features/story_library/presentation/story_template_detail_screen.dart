@@ -270,24 +270,40 @@ class _StoryTemplateDetailScreenState
                             ),
                           ),
                           SizedBox(height: responsive.isCompact ? 22 : 28),
-                          Wrap(
-                            spacing: responsive.isCompact ? 24 : 36,
-                            runSpacing: 16,
-                            children: <Widget>[
-                              _StatBlock(
-                                icon: Icons.favorite_rounded,
-                                iconColor: AetherPalette.accent,
-                                value: '${_template.likes}',
-                                label: l10n.storyTemplateLikesLabel,
+                          if (_template.likes == 0 && _template.views == 0)
+                            Chip(
+                              avatar: const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 16,
+                                color: AetherPalette.accent,
                               ),
-                              _StatBlock(
-                                icon: Icons.visibility_outlined,
-                                iconColor: AetherPalette.textMuted,
-                                value: '${_template.views}',
-                                label: l10n.storyTemplateViewsLabel,
+                              label: Text(l10n.newlyUnlockedLabel),
+                              side: BorderSide(
+                                color: AetherPalette.accent.withValues(
+                                  alpha: 0.35,
+                                ),
                               ),
-                            ],
-                          ),
+                              visualDensity: VisualDensity.compact,
+                            )
+                          else
+                            Wrap(
+                              spacing: responsive.isCompact ? 24 : 36,
+                              runSpacing: 16,
+                              children: <Widget>[
+                                _StatBlock(
+                                  icon: Icons.favorite_rounded,
+                                  iconColor: AetherPalette.accent,
+                                  value: '${_template.likes}',
+                                  label: l10n.storyTemplateLikesLabel,
+                                ),
+                                _StatBlock(
+                                  icon: Icons.visibility_outlined,
+                                  iconColor: AetherPalette.textMuted,
+                                  value: '${_template.views}',
+                                  label: l10n.storyTemplateViewsLabel,
+                                ),
+                              ],
+                            ),
                           SizedBox(height: responsive.isCompact ? 22 : 28),
                           LayoutBuilder(
                             builder: (

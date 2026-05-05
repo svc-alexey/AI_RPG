@@ -17,7 +17,7 @@ TURN_SCHEMA_PROMPT = """
 Return valid JSON only with keys:
 - narration
 - choices
-- state_changes {location, objective, quest_note, module_updates, global_vars_patch, character_patch}
+- state_changes {location, objective, quest_note, module_updates, global_vars_patch, character_patch, notes_added, inventory_found, companion_encountered, resources_delta, progression_event, check_occurred}
 - memory_entry
 - importance
 - world_event_summary
@@ -42,6 +42,12 @@ Rules:
 - if memory or relevant chronicles show that the hero already knows a character, do not re-introduce, re-meet, or offer "get acquainted" choices with that character.
 - if dynamic_context.memory.known_characters lists a character, continue from that existing relationship naturally.
 - if the player references something that was established in the immediately previous scene or recent_turns, treat it as an already known fact and answer coherently instead of forgetting it.
+- notes_added: optional list of short observation or clue strings (max 2 per turn), in target language, each <=100 chars. Include only when the hero genuinely discovers or notices something new worth recording.
+- inventory_found: optional list of item names the hero finds, receives, or picks up (max 2 per turn), in target language, each 1-4 words.
+- companion_encountered: optional object {name, brief} for a new character who joins or becomes relevant to the hero. Name 1-3 words, brief <=60 chars. Max 1 per turn.
+- resources_delta: optional object {label, amount} for a single resource change. Label like "gold", "supplies", "fuel", "credits". Positive amount = gained, negative = spent/lost.
+- progression_event: optional object {xp_gained} when the hero achieves something notable. Usually 10-40 XP. Omit for routine actions.
+- check_occurred: optional object {label, stat, difficulty, outcome} when a skill check or dice roll happens in the narrative. Stat is one of: might, wit, spirit. Outcome: success, failure, mixed.
 """
 
 

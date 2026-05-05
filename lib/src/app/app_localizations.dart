@@ -597,11 +597,11 @@ class AppLocalizations {
     (AppLanguage.ru, CampaignSetting.cozyFantasy) => 'Уютное фэнтези',
     (AppLanguage.ru, CampaignSetting.darkAcademia) => 'Тёмная академия',
     (AppLanguage.ru, CampaignSetting.postApocalypse) => 'Постапокалипсис',
-    (AppLanguage.ru, CampaignSetting.litRpgProgression) => 'LitRPG',
+    (AppLanguage.ru, CampaignSetting.litRpgProgression) => 'ЛитРПГ',
     (AppLanguage.ru, CampaignSetting.grimdarkFantasy) => 'Гримдарк',
     (AppLanguage.ru, CampaignSetting.nearFutureSciFi) => 'НФ близкого будущего',
     (AppLanguage.ru, CampaignSetting.horrorWeird) => 'Хоррор',
-    (AppLanguage.ru, CampaignSetting.cozyCrime) => 'Cozy crime',
+    (AppLanguage.ru, CampaignSetting.cozyCrime) => 'Уютный детектив',
     (AppLanguage.ru, CampaignSetting.altHistorySecret) => 'Альт-история',
     (AppLanguage.en, CampaignSetting.romantasy) => 'Romantasy',
     (AppLanguage.en, CampaignSetting.cozyFantasy) => 'Cozy fantasy',
@@ -625,15 +625,15 @@ class AppLocalizations {
     value,
   )) {
     (AppLanguage.ru, LiteraryGenre.romance) => 'Романтика',
-    (AppLanguage.ru, LiteraryGenre.romantasyGenre) => 'Romantasy',
+    (AppLanguage.ru, LiteraryGenre.romantasyGenre) => 'Романтическое фэнтези',
     (AppLanguage.ru, LiteraryGenre.fantasyGenre) => 'Фэнтези',
     (AppLanguage.ru, LiteraryGenre.psychologicalThriller) => 'Триллер',
     (AppLanguage.ru, LiteraryGenre.mysteryCrime) => 'Детектив',
     (AppLanguage.ru, LiteraryGenre.horrorGenre) => 'Хоррор',
-    (AppLanguage.ru, LiteraryGenre.youngAdult) => 'Young Adult',
-    (AppLanguage.ru, LiteraryGenre.speculativeFiction) => 'Sci-Fi',
-    (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) => 'Dark academia',
-    (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Cozy',
+    (AppLanguage.ru, LiteraryGenre.youngAdult) => 'Подростковая литература',
+    (AppLanguage.ru, LiteraryGenre.speculativeFiction) => 'Научная фантастика',
+    (AppLanguage.ru, LiteraryGenre.darkAcademiaGenre) => 'Тёмная академия',
+    (AppLanguage.ru, LiteraryGenre.cozyFeelGood) => 'Уютное',
     (AppLanguage.en, LiteraryGenre.romance) => 'Romance',
     (AppLanguage.en, LiteraryGenre.romantasyGenre) => 'Romantasy',
     (AppLanguage.en, LiteraryGenre.fantasyGenre) => 'Fantasy',
@@ -1328,6 +1328,21 @@ class AppLocalizations {
   String get saveTooltip => switch (language) {
     AppLanguage.ru => 'Сохранить',
     AppLanguage.en => 'Save',
+  };
+
+  String get settingsTooltip => switch (language) {
+    AppLanguage.ru => 'Настройки',
+    AppLanguage.en => 'Settings',
+  };
+
+  String get mapTooltip => switch (language) {
+    AppLanguage.ru => 'Карта мира',
+    AppLanguage.en => 'World map',
+  };
+
+  String get menuTooltip => switch (language) {
+    AppLanguage.ru => 'Меню',
+    AppLanguage.en => 'Menu',
   };
 
   String get campaignInfo => switch (language) {

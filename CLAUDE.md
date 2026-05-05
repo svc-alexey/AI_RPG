@@ -7,6 +7,42 @@
 - `flutter test` — тесты, без падений перед merge
 - `flutter run` — запуск приложения
 - `flutter build web` — сборка веб-версии
+- `flutter run -d chrome --debug --dart-define=AI_PRG_MCP_ENABLED=true` — запуск с MCP Marionette
+
+### MCP Marionette (AI Agent Development)
+
+MCP-режим позволяет AI-агенту (Claude Code) инспектировать виджеты, делать скриншоты,
+тапать, вводить текст и делать hot reload в запущенном Flutter-приложении.
+
+**Запуск MCP-режима:**
+```bash
+flutter run -d chrome --debug --dart-define=AI_PRG_MCP_ENABLED=true
+```
+
+**Установка CLI (однократно):**
+```bash
+dart pub global activate marionette_mcp
+dart pub global activate marionette_cli
+```
+
+**Референс команд для AI-агента:** `docs/MCP_REFERENCE.md`
+
+**Рабочий процесс:**
+1. Запустить приложение с флагом `AI_PRG_MCP_ENABLED=true`
+2. Скопировать WebSocket URI из вывода (формат: `ws://127.0.0.1:PORT/...=/ws`)
+3. Использовать `marionette --uri <ws-uri> <command>` для взаимодействия
+
+**Основные команды:**
+- `get-interactive-elements` — интерактивные элементы на экране
+- `take-screenshots --output <path>` — скриншот
+- `tap --key/keyword` — тап по элементу
+- `enter-text --key/keyword --input <text>` — ввод текста
+- `scroll-to --text <text>` — скролл до элемента
+- `hot-reload` — hot reload без потери состояния
+- `press-back-button` — системная кнопка назад
+
+**Важно:** MCP работает только в debug-режиме. В release-сборках код Marionette исключается tree-shaking.
+Chrome в debug-режиме использует DDC (не Dart2JS) — Dart VM Service доступен.
 
 ### Backend (Symmetry / FastAPI)
 - `cd backend/symmetry && pytest` — запуск тестов
