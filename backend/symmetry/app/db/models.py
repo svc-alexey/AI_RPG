@@ -494,7 +494,7 @@ class CreditLedger(Base):
     amount: Mapped[int] = mapped_column(Integer)
     reason: Mapped[str] = mapped_column(String(255))
     provider_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
-    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
