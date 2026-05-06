@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_verified_user
 from app.db.models import User
 from app.db.session import get_db_session
 from app.schemas.prompts import GeneratePromptsRequest, GeneratePromptsResponse
@@ -17,7 +17,7 @@ prompt_service = PromptGenerationService()
 @router.post("/generate", response_model=GeneratePromptsResponse)
 async def generate_prompts(
     payload: GeneratePromptsRequest,
-    _: User = Depends(get_current_user),
+    _: User = Depends(get_current_verified_user),
     __: AsyncSession = Depends(get_db_session),
 ) -> GeneratePromptsResponse:
     try:

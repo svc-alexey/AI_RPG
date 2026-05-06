@@ -36,6 +36,11 @@ class UserResponse(BaseModel):
     email: EmailStr
     display_name: str = ""
     is_admin: bool = False
+    email_verified: bool = False
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=12)
 
 
 class MigrateGuestRequest(BaseModel):

@@ -1,10 +1,10 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_optional_user
+from app.api.deps import get_current_verified_user, get_optional_user
 from app.core.billing_errors import (
     CheckoutFailedError,
     PlanNotFoundError,
@@ -18,9 +18,11 @@ from app.schemas.billing import (
     BillingWalletResponse,
     CheckoutRequest,
     CheckoutResponse,
+    TransactionResponse,
     new_id,
 )
-from app.services.billing_service import create_checkout, get_wallet, process_payment_succeeded
+from app.services.billing_service import create_checkout, get_transactions, get_wallet, process_payment_succeeded
+from app.services.entitlement import grant_welcome_tokens
 from app.services.yookassa_client import YooKassaClient
 
 logger = logging.getLogger("symmetry.billing")
@@ -29,7 +31,7 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 SEED_PLANS = [
     {
-        "code": "free_welcome_1m", "title": "Welcome 1M",
+        "code": "free_welcome_1m", "title": "Welcome Grant",
         "metadata_json": {
             "kind": "welcome",
             "description": "Приветственный грант", "token_grant": 1_000_000,
@@ -37,20 +39,22 @@ SEED_PLANS = [
         },
     },
     {
-        "code": "pack_1m", "title": "1M токенов",
-        "metadata_json": {
-            "kind": "token_pack",
-            "description": "Стандартное пополнение", "token_grant": 1_000_000,
-            "base_price_minor": 7900, "currency": "RUB", "sort_order": 2,
-        },
-    },
-    {
         "code": "pack_10m", "title": "10M токенов",
         "metadata_json": {
             "kind": "token_pack",
-            "description": "Для активных игроков", "token_grant": 10_000_000,
-            "base_price_minor": 39000, "sale_price_minor": 39000,
-            "sale_badge_text": "Best Value", "sale_percent": 51,
+            "description": "Стандартное пополнение", "token_grant": 10_000_000,
+            "base_price_minor": 50000, "sale_price_minor": 9900,
+            "sale_badge_text": "–80%", "sale_percent": 80,
+            "currency": "RUB", "sort_order": 2,
+        },
+    },
+    {
+        "code": "pack_100m", "title": "100M токенов",
+        "metadata_json": {
+            "kind": "token_pack",
+            "description": "Для активных игроков", "token_grant": 100_000_000,
+            "base_price_minor": 150000, "sale_price_minor": 99900,
+            "sale_badge_text": "–33%", "sale_percent": 33,
             "currency": "RUB", "sort_order": 3, "featured": True,
         },
     },
@@ -60,6 +64,7 @@ SEED_PLANS = [
 async def _seed_plans(session: AsyncSession) -> None:
     result = await session.execute(select(BillingPlan))
     existing_map = {p.code: p for p in result.scalars().all()}
+    seed_codes = {p["code"] for p in SEED_PLANS}
     for plan in SEED_PLANS:
         code = plan["code"]
         if code in existing_map:
@@ -71,6 +76,9 @@ async def _seed_plans(session: AsyncSession) -> None:
                 id=new_id(), code=code, title=plan["title"],
                 metadata_json=plan["metadata_json"],
             ))
+    for code, plan in existing_map.items():
+        if code not in seed_codes:
+            plan.metadata_json = {**plan.metadata_json, "is_active": False}
     await session.commit()
 
 
@@ -88,7 +96,7 @@ def _plan_to_response(plan: BillingPlan) -> BillingPlanResponse:
         sale_percent=meta.get("sale_percent"),
         token_grant=meta.get("token_grant", 0),
         featured=meta.get("featured", False),
-        is_active=True,
+        is_active=meta.get("is_active", True),
         sort_order=meta.get("sort_order", 0),
     )
 
@@ -103,23 +111,40 @@ async def list_catalog(
 ) -> list[BillingPlanResponse]:
     await _seed_plans(session)
     result = await session.execute(
-        select(BillingPlan).order_by(BillingPlan.metadata_json["sort_order"].as_integer())
+        select(BillingPlan)
+        .where(
+            or_(
+                BillingPlan.metadata_json["is_active"] == None,
+                BillingPlan.metadata_json["is_active"].as_boolean() == True,
+            )
+        )
+        .order_by(BillingPlan.metadata_json["sort_order"].as_integer())
     )
     return [_plan_to_response(p) for p in result.scalars().all()]
 
 
 @router.get("/me", response_model=BillingWalletResponse)
 async def get_my_wallet(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> BillingWalletResponse:
+    return await get_wallet(session, user.id)
+
+
+@router.post("/claim-welcome", response_model=BillingWalletResponse)
+async def claim_welcome(
+    user: User = Depends(get_current_verified_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> BillingWalletResponse:
+    settings = get_settings()
+    await grant_welcome_tokens(session, user.id, settings.welcome_grant_tokens)
     return await get_wallet(session, user.id)
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout_route(
     body: CheckoutRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
     yookassa: YooKassaClient = Depends(_get_yookassa),
 ) -> CheckoutResponse:
@@ -129,6 +154,15 @@ async def create_checkout_route(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="plan_not_found")
     except CheckoutFailedError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get("/transactions", response_model=list[TransactionResponse])
+async def list_transactions(
+    user: User = Depends(get_current_verified_user),
+    session: AsyncSession = Depends(get_db_session),
+    limit: int = 20,
+) -> list[TransactionResponse]:
+    return await get_transactions(session, user.id, limit=limit)
 
 
 @router.post("/webhook/yookassa")

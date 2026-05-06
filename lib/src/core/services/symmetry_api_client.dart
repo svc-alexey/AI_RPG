@@ -142,6 +142,22 @@ class SymmetryApiClient {
     );
   }
 
+  Future<void> verifyEmail({required final String token}) async {
+    await _get(
+      '/auth/verify-email?token=${Uri.encodeQueryComponent(token)}',
+    );
+  }
+
+  Future<Map<String, Object?>> resendVerification({
+    required final String accessToken,
+  }) async {
+    return _post(
+      '/auth/resend-verification',
+      body: const <String, Object?>{},
+      bearerToken: accessToken,
+    );
+  }
+
   Future<SymmetryUser> getCurrentUser({
     required final String accessToken,
   }) async {
@@ -963,6 +979,41 @@ class SymmetryApiClient {
         'plan_code': planCode,
         'return_url': returnUrl,
       },
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded.map(
+      (final k, final v) => MapEntry(k.toString(), v),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getBillingTransactions({
+    required final String accessToken,
+    final int limit = 20,
+  }) async {
+    final Object? decoded = await _get(
+      '/billing/transactions?limit=$limit',
+      bearerToken: accessToken,
+    );
+    if (decoded is List<Object?>) {
+      return decoded
+          .whereType<Map<Object?, Object?>>()
+          .map((final m) => m.map(
+                (final k, final v) => MapEntry(k.toString(), v),
+              ))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> postClaimWelcome({
+    required final String accessToken,
+  }) async {
+    final Object? decoded = await _post(
+      '/billing/claim-welcome',
+      body: <String, Object?>{},
       bearerToken: accessToken,
     );
     if (decoded is! Map<Object?, Object?>) {

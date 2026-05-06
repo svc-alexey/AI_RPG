@@ -171,6 +171,18 @@ class SymmetryAuthRepository {
     await _settingsRepository.saveSymmetrySession(null);
   }
 
+  Future<void> verifyEmail({required final String token}) async {
+    final String baseUrl = await loadBaseUrl();
+    await _client(baseUrl).verifyEmail(token: token);
+  }
+
+  Future<void> resendVerification() async {
+    final SymmetrySession session = await requireSession();
+    await _client(session.baseUrl).resendVerification(
+      accessToken: session.tokens.accessToken,
+    );
+  }
+
   Future<void> checkProviderConnection({
     required final AiSettings aiSettings,
   }) => runWithAuthorizedSession(

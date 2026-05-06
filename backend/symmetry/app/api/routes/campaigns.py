@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_verified_user
 from app.core.billing_errors import InsufficientTokensError
 from app.core.config import get_settings
 from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
@@ -87,7 +87,7 @@ def _build_turn_usage_meta(
 @router.post("", response_model=CampaignStateResponse)
 async def create_campaign(
     payload: CreateCampaignRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> CampaignStateResponse:
     now = datetime.utcnow()
@@ -156,7 +156,7 @@ async def create_campaign(
 
 @router.get("", response_model=list[CampaignResponse])
 async def list_campaigns(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> list[CampaignResponse]:
     result = await session.execute(
@@ -181,7 +181,7 @@ async def _load_owned_campaign(
 @router.get("/{campaign_id}", response_model=CampaignResponse)
 async def get_campaign(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> CampaignResponse:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
@@ -191,7 +191,7 @@ async def get_campaign(
 @router.delete("/{campaign_id}")
 async def delete_campaign(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, str]:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
@@ -203,7 +203,7 @@ async def delete_campaign(
 @router.get("/{campaign_id}/state", response_model=CampaignStateResponse)
 async def get_campaign_state(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> CampaignStateResponse:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
@@ -221,7 +221,7 @@ async def get_campaign_state(
 async def get_campaign_rumors(
     campaign_id: str,
     limit: int = Query(default=5, ge=1, le=20),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> list[WorldRumorResponse]:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)
@@ -259,7 +259,7 @@ async def get_campaign_rumors(
 async def process_turn(
     campaign_id: str,
     payload: ProcessTurnRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> ProcessTurnResponse:
     campaign = await _load_owned_campaign(session, campaign_id=campaign_id, user_id=user.id)

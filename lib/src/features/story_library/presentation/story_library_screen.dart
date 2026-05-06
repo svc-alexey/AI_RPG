@@ -116,6 +116,8 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
         _isLoading = false;
         _error = null;
       });
+      // Invalidate session provider so guest auto-create is picked up
+      ref.invalidate(symmetrySessionProvider);
     } catch (_) {
       if (!mounted) {
         return;

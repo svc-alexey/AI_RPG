@@ -1,6 +1,8 @@
+import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/billing_models.dart';
+import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,9 +24,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   List<BillingPlan>? _plans;
   BillingWallet? _wallet;
   BillingWallet? _previousWallet;
+  List<TransactionEntry>? _transactions;
   bool _loading = true;
   String? _error;
+  String? _transactionsError;
+  bool _offline = false;
   int _animatedTokens = 0;
+
+  bool get _isGuest {
+    final session = ref.read(symmetrySessionProvider).valueOrNull;
+    return session?.isGuest ?? true;
+  }
+
+  bool get _needsVerification {
+    if (_isGuest) return false;
+    final session = ref.read(symmetrySessionProvider).valueOrNull;
+    if (session == null) return false;
+    return !session.isEmailVerified;
+  }
+
+  bool get _blocked => _isGuest || _needsVerification;
 
   @override
   void initState() {
@@ -36,45 +55,76 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _offline = false;
     });
     try {
       final repo = ref.read(billingRepositoryProvider);
-      final cachedCatalog = await repo.loadCachedCatalog();
-      final cachedWallet = await repo.loadCachedWallet();
-      if (cachedCatalog != null) {
+
+      if (!_blocked) {
+        final cachedCatalog = await repo.loadCachedCatalog();
+        final cachedWallet = await repo.loadCachedWallet();
+        if (cachedCatalog != null) {
+          setState(() {
+            _plans = cachedCatalog;
+            if (cachedWallet != null) {
+              _previousWallet = _wallet;
+              _wallet = cachedWallet;
+              _animatedTokens = cachedWallet.totalTokensRemaining;
+            }
+          });
+        }
+      }
+
+      if (_blocked) {
+        final catalog = await repo.fetchCatalog();
+        BillingWallet wallet;
+        try {
+          wallet = await repo.fetchWallet();
+        } catch (_) {
+          wallet = const BillingWallet();
+        }
+        if (!mounted) return;
         setState(() {
-          _plans = cachedCatalog;
-          if (cachedWallet != null) {
-            _previousWallet = _wallet;
-            _wallet = cachedWallet;
-            _animatedTokens = cachedWallet.totalTokensRemaining;
-          }
+          _plans = catalog;
+          _wallet = wallet;
+          _animatedTokens = wallet.totalTokensRemaining;
+          _transactions = [];
+          _loading = false;
+        });
+      } else {
+        final results = await Future.wait([
+          repo.fetchCatalog(),
+          repo.fetchWallet(),
+          repo.fetchTransactions().catchError((final _) => <TransactionEntry>[]),
+        ]);
+        if (!mounted) return;
+        setState(() {
+          _plans = results[0] as List<BillingPlan>;
+          _previousWallet = _wallet;
+          _wallet = results[1] as BillingWallet;
+          _animatedTokens = _wallet!.totalTokensRemaining;
+          _transactions = results[2] as List<TransactionEntry>;
+          _loading = false;
         });
       }
-      final results = await Future.wait([
-        repo.fetchCatalog(),
-        repo.fetchWallet(),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _plans = results[0] as List<BillingPlan>;
-        _previousWallet = _wallet;
-        _wallet = results[1] as BillingWallet;
-        _animatedTokens = _wallet!.totalTokensRemaining;
-        _loading = false;
-      });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      if (_plans != null && _wallet != null) {
+        setState(() {
+          _offline = true;
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> _checkout(final String planCode) async {
     final repo = ref.read(billingRepositoryProvider);
-    // Double-click protection
     setState(() {});
     try {
       final result = await repo.createCheckout(
@@ -82,16 +132,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         returnUrl: '/',
       );
       if (!mounted) return;
-      await launchUrl(Uri.parse(result.confirmationUrl), mode: LaunchMode.externalApplication);
-      // Start polling for payment confirmation
+      await launchUrl(Uri.parse(result.confirmationUrl),
+          mode: LaunchMode.externalApplication);
       _startPolling();
     } catch (e) {
       if (!mounted) return;
+      final l10n = context.l10n;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment failed: $e'),
+          content: Text('${l10n.billingPaymentFailed}: $e'),
           backgroundColor: Colors.red.shade800,
-          action: SnackBarAction(label: 'Try again', onPressed: () => _checkout(planCode)),
+          action: SnackBarAction(
+            label: l10n.billingTryAgain,
+            onPressed: () => _checkout(planCode),
+          ),
         ),
       );
     }
@@ -108,24 +162,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         final repo = ref.read(billingRepositoryProvider);
         final wallet = await repo.fetchWallet();
         if (!mounted) return false;
-        final prevTotal = _previousWallet?.totalTokensRemaining ?? _wallet?.totalTokensRemaining ?? 0;
+        final prevTotal = _previousWallet?.totalTokensRemaining ??
+            _wallet?.totalTokensRemaining ??
+            0;
         if (wallet.totalTokensRemaining > prevTotal) {
           setState(() {
             _previousWallet = _wallet;
             _wallet = wallet;
             _animatedTokens = wallet.totalTokensRemaining;
           });
-          ref.read(_pollingStateProvider.notifier).state = _PollingState.confirmed;
+          ref.read(_pollingStateProvider.notifier).state =
+              _PollingState.confirmed;
           return false;
         }
         if (attempts >= 15) {
-          ref.read(_pollingStateProvider.notifier).state = _PollingState.timeout;
+          ref.read(_pollingStateProvider.notifier).state =
+              _PollingState.timeout;
           return false;
         }
         return true;
       } catch (_) {
         if (attempts >= 15) {
-          ref.read(_pollingStateProvider.notifier).state = _PollingState.timeout;
+          ref.read(_pollingStateProvider.notifier).state =
+              _PollingState.timeout;
           return false;
         }
         return true;
@@ -134,35 +193,48 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   void _claimWelcome() async {
+    final l10n = context.l10n;
     try {
-      await _load();
+      final repo = ref.read(billingRepositoryProvider);
+      final wallet = await repo.claimWelcomeGrant();
+      if (!mounted) return;
+      setState(() {
+        _previousWallet = _wallet;
+        _wallet = wallet;
+        _animatedTokens = wallet.totalTokensRemaining;
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Claim failed: $e')),
+        SnackBar(
+          content: Text('${l10n.billingWelcomeClaimError}: $e'),
+          backgroundColor: Colors.red.shade800,
+        ),
       );
     }
   }
 
   @override
   Widget build(final BuildContext context) {
+    final l10n = context.l10n;
     final AppResponsiveData responsive = context.responsive;
     final polling = ref.watch(_pollingStateProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0908),
       appBar: AppBar(
-        title: const Text('Tokens & Subscriptions'),
+        title: Text(l10n.billingTitle),
         backgroundColor: const Color(0xFF0A0908),
         elevation: 0,
         actions: [
           if (polling == _PollingState.polling)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFBFA76F)),
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: const Color(0xFFBFA76F)),
               ),
             ),
           IconButton(
@@ -174,26 +246,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       body: _loading
           ? _buildShimmer(responsive)
           : _error != null
-              ? _buildError()
-              : _buildContent(responsive),
+              ? _buildError(l10n)
+              : _buildContent(responsive, l10n),
     );
   }
 
-  Widget _buildError() => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.cloud_off, size: 48, color: Color(0xFF7A7570)),
-        const SizedBox(height: 16),
-        const Text(
-          'Balance unavailable',
-          style: TextStyle(color: Color(0xFF7A7570), fontSize: 16),
+  Widget _buildError(final AppLocalizations l10n) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 48, color: Color(0xFF7A7570)),
+            const SizedBox(height: 16),
+            Text(
+              l10n.billingBalanceUnavailable,
+              style: const TextStyle(color: Color(0xFF7A7570), fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _load,
+              child: Text(l10n.billingRetry),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        TextButton(onPressed: _load, child: const Text('Retry')),
-      ],
-    ),
-  );
+      );
 
   Widget _buildShimmer(final AppResponsiveData responsive) {
     final maxWidth = responsive.dialogMaxWidth;
@@ -224,15 +299,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Widget _shimmerBox(final double width, final double height) => Container(
-    width: width,
-    height: height,
-    decoration: BoxDecoration(
-      color: Colors.white.withAlpha(8),
-      borderRadius: BorderRadius.circular(8),
-    ),
-  );
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(8),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      );
 
-  Widget _buildContent(final AppResponsiveData responsive) {
+  Widget _buildContent(
+      final AppResponsiveData responsive, final AppLocalizations l10n) {
     final maxWidth = responsive.dialogMaxWidth;
     final wallet = _wallet!;
     final plans = _plans!;
@@ -248,32 +324,108 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 24),
-                _HeroBalanceCard(
-                  wallet: wallet,
-                  animatedTokens: _animatedTokens,
-                  polling: polling,
-                ),
+                if (_offline) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFBFA76F).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 18, color: Color(0xFFBFA76F)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            l10n.billingOfflineBanner,
+                            style: const TextStyle(
+                                color: Color(0xFFBFA76F), fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (_blocked)
+                  _GuestBalanceHint(l10n: l10n)
+                else ...[
+                  _HeroBalanceCard(
+                    wallet: wallet,
+                    animatedTokens: _animatedTokens,
+                    polling: polling,
+                    l10n: l10n,
+                  ),
+                  if (polling == _PollingState.timeout) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.schedule,
+                            size: 16, color: Color(0xFFBFA76F)),
+                        const SizedBox(width: 6),
+                        Text(
+                          l10n.billingStillProcessing,
+                          style: const TextStyle(
+                              color: Color(0xFFBFA76F), fontSize: 13),
+                        ),
+                        const SizedBox(width: 12),
+                        TextButton(
+                          onPressed: () {
+                            ref
+                                .read(_pollingStateProvider.notifier)
+                                .state = _PollingState.idle;
+                            _load();
+                          },
+                          child: Text(l10n.billingCheckAgain,
+                              style: const TextStyle(fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
                 const SizedBox(height: 32),
-                const Text(
-                  'Acquire Essence',
-                  style: TextStyle(
+                Text(
+                  l10n.billingAcquireEssence,
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFFE8E4E0),
                     fontFamily: 'Playfair Display',
                   ),
                 ),
+                if (_blocked)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      l10n.billingGuestLoginToBuy,
+                      style: const TextStyle(
+                          color: Color(0xFF7A7570), fontSize: 13),
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 ...plans.map((final plan) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _TariffCard(
-                    plan: plan,
-                    hasWelcome: wallet.hasWelcomeGrant,
-                    onTap: () => _onPlanTap(plan),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _TariffCard(
+                        plan: plan,
+                        hasWelcome: wallet.hasWelcomeGrant,
+                        onTap: () => _onPlanTap(plan),
+                        l10n: l10n,
+                        isGuest: _blocked,
+                      ),
+                    )),
+                if (!_blocked)
+                  const SizedBox(height: 32),
+                if (!_blocked)
+                  _ChronicleSection(
+                    transactions: _transactions,
+                    error: _transactionsError,
+                    l10n: l10n,
                   ),
-                )),
                 const SizedBox(height: 40),
-                const _LegalFooter(),
+                _LegalFooter(l10n: l10n),
                 const SizedBox(height: 32),
               ],
             ),
@@ -283,7 +435,36 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
+  Future<void> _redirectToAuth() async {
+    ref.read(deferredActionProvider.notifier).state = () async {
+      _load();
+    };
+    if (!mounted) return;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (final routeContext) => AuthScreen(
+          onAuthenticated: () {
+            final deferred =
+                ref.read(deferredActionProvider.notifier).state;
+            if (deferred != null) {
+              deferred().then((final _) {
+                ref.read(deferredActionProvider.notifier).state = null;
+              });
+            }
+            Navigator.of(routeContext).pop(true);
+          },
+        ),
+      ),
+    );
+    ref.invalidate(symmetrySessionProvider);
+  }
+
   void _onPlanTap(final BillingPlan plan) {
+    if (_blocked) {
+      _redirectToAuth();
+      return;
+    }
+    final l10n = context.l10n;
     if (plan.kind == 'welcome') {
       _claimWelcome();
     } else if (plan.effectivePriceMinor == 0) {
@@ -301,6 +482,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             Navigator.of(ctx).pop();
             _checkout(plan.code);
           },
+          l10n: l10n,
         ),
       );
     }
@@ -312,11 +494,13 @@ class _HeroBalanceCard extends StatelessWidget {
     required this.wallet,
     required this.animatedTokens,
     required this.polling,
+    required this.l10n,
   });
 
   final BillingWallet wallet;
   final int animatedTokens;
   final _PollingState polling;
+  final AppLocalizations l10n;
 
   String _formatTokens(final int tokens) {
     if (tokens >= 1_000_000) {
@@ -341,9 +525,15 @@ class _HeroBalanceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0F0D0B),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: polling == _PollingState.confirmed ? 2.0 : 1.0),
+        border: Border.all(
+            color: borderColor,
+            width: polling == _PollingState.confirmed ? 2.0 : 1.0),
         boxShadow: polling == _PollingState.confirmed
-            ? [BoxShadow(color: const Color(0xFF34D399).withAlpha(40), blurRadius: 16)]
+            ? [
+                BoxShadow(
+                    color: const Color(0xFF34D399).withAlpha(40),
+                    blurRadius: 16)
+              ]
             : null,
       ),
       padding: const EdgeInsets.all(24),
@@ -366,54 +556,66 @@ class _HeroBalanceCard extends StatelessWidget {
               ),
               const Spacer(),
               if (polling == _PollingState.polling)
-                const Row(
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFBFA76F)),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFFBFA76F)),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                      'Confirming…',
-                      style: TextStyle(color: Color(0xFFBFA76F), fontSize: 13),
+                      l10n.billingConfirming,
+                      style: const TextStyle(
+                          color: Color(0xFFBFA76F), fontSize: 13),
                     ),
                   ],
                 ),
             ],
           ),
           const SizedBox(height: 4),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Available Essence',
-              style: TextStyle(color: Color(0xFF7A7570), fontSize: 15),
+              l10n.billingAvailableEssence,
+              style:
+                  const TextStyle(color: Color(0xFF7A7570), fontSize: 15),
             ),
           ),
-          if (wallet.totalTokensRemaining < 1000 && wallet.totalTokensRemaining > 0)
+          if (wallet.totalTokensRemaining < 1000 &&
+              wallet.totalTokensRemaining > 0)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFBFA76F).withAlpha(25),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Essence running low — ${wallet.totalTokensRemaining} remaining',
-                  style: const TextStyle(color: Color(0xFFBFA76F), fontSize: 12),
+                  l10n.billingEssenceLow(wallet.totalTokensRemaining),
+                  style: const TextStyle(
+                      color: Color(0xFFBFA76F), fontSize: 12),
                 ),
               ),
             ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _BalanceChip(label: '${_formatTokens(wallet.welcomeTokensRemaining)} welcome'),
+              _BalanceChip(
+                  label:
+                      '${_formatTokens(wallet.welcomeTokensRemaining)} ${l10n.billingWelcomePermanent}'),
               const SizedBox(width: 8),
-              _BalanceChip(label: '${_formatTokens(wallet.subscriptionTokensRemaining)} monthly'),
+              _BalanceChip(
+                  label:
+                      '${_formatTokens(wallet.subscriptionTokensRemaining)} ${l10n.billingMonthly}'),
               const SizedBox(width: 8),
-              _BalanceChip(label: '${_formatTokens(wallet.paidTokensRemaining)} permanent'),
+              _BalanceChip(
+                  label:
+                      '${_formatTokens(wallet.paidTokensRemaining)} ${l10n.billingPermanent}'),
             ],
           ),
         ],
@@ -422,19 +624,68 @@ class _HeroBalanceCard extends StatelessWidget {
   }
 }
 
+class _GuestBalanceHint extends StatelessWidget {
+  const _GuestBalanceHint({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0D0B),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFC87941).withAlpha(50)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Icon(Icons.lock_outline, size: 32, color: Color(0xFF7A7570)),
+            const SizedBox(height: 12),
+            Text(
+              l10n.billingGuestBalanceHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF7A7570),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class _BalanceChip extends StatelessWidget {
   const _BalanceChip({required this.label});
   final String label;
 
   @override
   Widget build(final BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: const Color(0xFFC87941).withAlpha(15),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(label, style: const TextStyle(color: Color(0xFFBFA76F), fontSize: 12)),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFC87941).withAlpha(15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label,
+            style:
+                const TextStyle(color: Color(0xFFBFA76F), fontSize: 12)),
+      );
+}
+
+String _planTitle(final BillingPlan plan, final AppLocalizations l10n) {
+  if (plan.kind == 'token_pack') {
+    if (plan.tokenGrant == 10_000_000) return l10n.billingPack10mTitle;
+    if (plan.tokenGrant == 100_000_000) return l10n.billingPack100mTitle;
+  }
+  return plan.title;
+}
+
+String _planDesc(final BillingPlan plan, final AppLocalizations l10n) {
+  if (plan.kind == 'token_pack') {
+    if (plan.tokenGrant == 10_000_000) return l10n.billingPack10mDesc;
+    if (plan.tokenGrant == 100_000_000) return l10n.billingPack100mDesc;
+  }
+  return plan.description;
 }
 
 class _TariffCard extends StatelessWidget {
@@ -442,11 +693,15 @@ class _TariffCard extends StatelessWidget {
     required this.plan,
     required this.hasWelcome,
     required this.onTap,
+    required this.l10n,
+    this.isGuest = false,
   });
 
   final BillingPlan plan;
   final bool hasWelcome;
   final VoidCallback onTap;
+  final AppLocalizations l10n;
+  final bool isGuest;
 
   bool get _isFeatured => plan.featured;
   bool get _isWelcome => plan.kind == 'welcome';
@@ -454,214 +709,246 @@ class _TariffCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    if (_isClaimed) {
-      return _buildMinimal(context);
-    }
-    if (_isFeatured) {
-      return _buildFeatured(context);
-    }
+    if (_isClaimed) return _buildMinimal(context);
+    if (_isFeatured) return _buildFeatured(context);
     return _buildStandard(context);
   }
 
   Widget _buildFeatured(final BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFF0F0D0B),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFC87941), width: 1.5),
-      boxShadow: [BoxShadow(color: const Color(0xFFC87941).withAlpha(15), blurRadius: 12)],
-    ),
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Pro Monthly',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFE8E4E0),
-                ),
-              ),
-            ),
-            if (plan.saleBadgeText != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFBFA76F).withAlpha(30),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  plan.saleBadgeText!,
-                  style: const TextStyle(color: Color(0xFFBFA76F), fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0D0B),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFC87941), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+                color: const Color(0xFFC87941).withAlpha(15),
+                blurRadius: 12)
           ],
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Auto-renews monthly. Cancel anytime.',
-          style: TextStyle(color: Color(0xFF7A7570), fontSize: 13),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              plan.priceLabel,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Playfair Display',
-                color: Color(0xFFC87941),
-              ),
-            ),
-            if (plan.oldPriceLabel != null) ...[
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  plan.oldPriceLabel!,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF7A7570),
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFC87941),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Subscribe', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildStandard(final BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFF0F0D0B),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white.withAlpha(12)),
-    ),
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                plan.title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFE8E4E0),
-                ),
-              ),
-            ),
-            if (plan.saleBadgeText != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFBFA76F).withAlpha(30),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  plan.saleBadgeText!,
-                  style: const TextStyle(color: Color(0xFFBFA76F), fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(plan.description, style: const TextStyle(color: Color(0xFF7A7570), fontSize: 13)),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              plan.priceLabel,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Playfair Display',
-                color: Color(0xFFC87941),
-              ),
-            ),
-            if (plan.oldPriceLabel != null) ...[
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  plan.oldPriceLabel!,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF7A7570),
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFC87941),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Buy', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildMinimal(final BuildContext context) => Container(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFF7A7570).withAlpha(30), strokeAlign: BorderSide.strokeAlignInside),
-    ),
-    padding: const EdgeInsets.all(20),
-    child: Row(
-      children: [
-        const Icon(Icons.check_circle, color: Color(0xFF34D399), size: 24),
-        const SizedBox(width: 12),
-        const Column(
+        padding: const EdgeInsets.all(20),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Welcome Pack — Claimed', style: TextStyle(color: Color(0xFFE8E4E0), fontSize: 16)),
-            Text('1,000,000 tokens granted', style: TextStyle(color: Color(0xFF7A7570), fontSize: 13)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _planTitle(plan, l10n),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFE8E4E0),
+                    ),
+                  ),
+                ),
+                if (plan.saleBadgeText != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFBFA76F).withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      plan.saleBadgeText!,
+                      style: const TextStyle(
+                          color: Color(0xFFBFA76F),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _planDesc(plan, l10n),
+              style:
+                  const TextStyle(color: Color(0xFF7A7570), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  plan.priceLabel,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Playfair Display',
+                    color: Color(0xFFC87941),
+                  ),
+                ),
+                if (plan.oldPriceLabel != null) ...[
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      plan.oldPriceLabel!,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF7A7570),
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: isGuest ? null : onTap,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFC87941),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                    isGuest
+                        ? l10n.billingGuestLoginToBuy
+                        : l10n.billingSubscribeAction,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
           ],
         ),
-      ],
-    ),
-  );
+      );
+
+  Widget _buildStandard(final BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0D0B),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withAlpha(12)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    plan.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFE8E4E0),
+                    ),
+                  ),
+                ),
+                if (plan.saleBadgeText != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFBFA76F).withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      plan.saleBadgeText!,
+                      style: const TextStyle(
+                          color: Color(0xFFBFA76F),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(plan.description,
+                style:
+                    const TextStyle(color: Color(0xFF7A7570), fontSize: 13)),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  plan.priceLabel,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Playfair Display',
+                    color: Color(0xFFC87941),
+                  ),
+                ),
+                if (plan.oldPriceLabel != null) ...[
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      plan.oldPriceLabel!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF7A7570),
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: isGuest ? null : onTap,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFC87941),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                    isGuest
+                        ? l10n.billingGuestLoginToBuy
+                        : l10n.billingBuyAction,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildMinimal(final BuildContext context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: const Color(0xFF7A7570).withAlpha(30),
+              strokeAlign: BorderSide.strokeAlignInside),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle,
+                color: Color(0xFF34D399), size: 24),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.billingWelcomeClaimed,
+                    style: const TextStyle(
+                        color: Color(0xFFE8E4E0), fontSize: 16)),
+                Text(l10n.billingWelcomeClaimedDesc,
+                    style: const TextStyle(
+                        color: Color(0xFF7A7570), fontSize: 13)),
+              ],
+            ),
+          ],
+        ),
+      );
 }
 
 class _CheckoutSheet extends StatefulWidget {
-  const _CheckoutSheet({required this.plan, required this.onPay});
+  const _CheckoutSheet(
+      {required this.plan, required this.onPay, required this.l10n});
 
   final BillingPlan plan;
   final VoidCallback onPay;
+  final AppLocalizations l10n;
 
   @override
   State<_CheckoutSheet> createState() => _CheckoutSheetState();
@@ -673,119 +960,375 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
 
   @override
   Widget build(final BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Center(
-          child: Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFF7A7570).withAlpha(60),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(widget.plan.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFFE8E4E0))),
-        const SizedBox(height: 8),
-        Text(
-          widget.plan.priceLabel,
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, fontFamily: 'Playfair Display', color: Color(0xFFC87941)),
-        ),
-        if (widget.plan.kind == 'subscription') ...[
-          const SizedBox(height: 8),
-          const Row(
-            children: [
-              Icon(Icons.info_outline, size: 16, color: Color(0xFF7A7570)),
-              SizedBox(width: 6),
-              Text('Auto-renews monthly. Cancel anytime.', style: TextStyle(color: Color(0xFF7A7570), fontSize: 12)),
-            ],
-          ),
-        ],
-        const Divider(height: 32, color: Color(0x20FFFFFF)),
-        Row(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Checkbox(
-              value: _agreed,
-              onChanged: (final v) => setState(() => _agreed = v ?? false),
-              activeColor: const Color(0xFFC87941),
-              checkColor: Colors.white,
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7A7570).withAlpha(60),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _agreed = !_agreed),
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(color: Color(0xFFE8E4E0), fontSize: 13),
-                    children: [
-                      const TextSpan(text: 'I accept the '),
-                      TextSpan(
-                        text: 'Offer',
-                        style: TextStyle(color: const Color(0xFFC87941), decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()..onTap = () => launchUrl(Uri.parse('https://beyondtheverge.online/offer.html'), mode: LaunchMode.externalApplication),
+            const SizedBox(height: 24),
+            Text(widget.plan.title,
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFE8E4E0))),
+            const SizedBox(height: 8),
+            Text(
+              widget.plan.priceLabel,
+              style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Playfair Display',
+                  color: Color(0xFFC87941)),
+            ),
+            if (widget.plan.kind == 'subscription') ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline,
+                      size: 16, color: Color(0xFF7A7570)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(_planDesc(widget.plan, widget.l10n),
+                        style: const TextStyle(
+                            color: Color(0xFF7A7570), fontSize: 12)),
+                  ),
+                ],
+              ),
+            ],
+            const Divider(height: 32, color: Color(0x20FFFFFF)),
+            Row(
+              children: [
+                Checkbox(
+                  value: _agreed,
+                  onChanged: (final v) =>
+                      setState(() => _agreed = v ?? false),
+                  activeColor: const Color(0xFFC87941),
+                  checkColor: Colors.white,
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _agreed = !_agreed),
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                            color: Color(0xFFE8E4E0), fontSize: 13),
+                        children: [
+                          TextSpan(
+                              text: widget.l10n.billingAgreementLabel),
+                          TextSpan(
+                            text: widget.l10n.billingOfferLink,
+                            style: const TextStyle(
+                                color: Color(0xFFC87941),
+                                decoration: TextDecoration.underline),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => launchUrl(
+                                  Uri.parse(
+                                      'https://beyondtheverge.online/offer.html'),
+                                  mode: LaunchMode.externalApplication),
+                          ),
+                          TextSpan(
+                              text: widget.l10n.billingAgreementAnd),
+                          TextSpan(
+                            text: widget.l10n.billingPrivacyLink,
+                            style: const TextStyle(
+                                color: Color(0xFFC87941),
+                                decoration: TextDecoration.underline),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => launchUrl(
+                                  Uri.parse(
+                                      'https://beyondtheverge.online/privacy.html'),
+                                  mode: LaunchMode.externalApplication),
+                          ),
+                        ],
                       ),
-                      const TextSpan(text: ' and '),
-                      TextSpan(
-                        text: 'Privacy Policy',
-                        style: TextStyle(color: const Color(0xFFC87941), decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()..onTap = () => launchUrl(Uri.parse('https://beyondtheverge.online/privacy.html'), mode: LaunchMode.externalApplication),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 52,
+              child: FilledButton(
+                onPressed: (_agreed && !_paying)
+                    ? () {
+                        setState(() => _paying = true);
+                        widget.onPay();
+                      }
+                    : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFC87941),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _paying
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(
+                        widget.l10n
+                            .billingPayLabel(widget.plan.priceLabel),
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600)),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 52,
-          child: FilledButton(
-            onPressed: (_agreed && !_paying) ? () {
-              setState(() => _paying = true);
-              widget.onPay();
-            } : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFC87941),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      );
+}
+
+class _ChronicleSection extends StatelessWidget {
+  const _ChronicleSection({
+    required this.transactions,
+    required this.error,
+    required this.l10n,
+  });
+
+  final List<TransactionEntry>? transactions;
+  final String? error;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(final BuildContext context) {
+    if (error != null) {
+      return Column(
+        children: [
+          Text(
+            l10n.billingChronicleHistoryUnavailable,
+            style:
+                const TextStyle(color: Color(0xFF7A7570), fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () {},
+            child: Text(l10n.billingRetry),
+          ),
+        ],
+      );
+    }
+    if (transactions == null) {
+      return Column(
+        children: List.generate(
+          3,
+          (final i) => Padding(
+            padding: EdgeInsets.only(top: i > 0 ? 12 : 0),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(8),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 80,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: _paying
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text('Pay ${widget.plan.priceLabel}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
+      );
+    }
+    final txList = transactions!;
+    if (txList.isEmpty) {
+      return Column(
+        children: [
+          const Icon(Icons.calendar_today,
+              size: 48, color: Color(0xFF7A7570)),
+          const SizedBox(height: 12),
+          Text(
+            l10n.billingChronicleEmpty,
+            style: const TextStyle(
+                color: Color(0xFF7A7570), fontSize: 16),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.billingChronicleEmptyDesc,
+            style: const TextStyle(
+                color: Color(0xFF7A7570), fontSize: 12),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.billingChronicleTitle,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFE8E4E0),
+            fontFamily: 'Playfair Display',
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...txList.map((final tx) => _TransactionItem(tx: tx, l10n: l10n)),
       ],
-    ),
-  );
+    );
+  }
+}
+
+class _TransactionItem extends StatelessWidget {
+  const _TransactionItem({required this.tx, required this.l10n});
+
+  final TransactionEntry tx;
+  final AppLocalizations l10n;
+
+  String _sourceLabel() {
+    return switch (tx.reason) {
+      'turn' => l10n.billingChronicleTurn,
+      'purchase' => l10n.billingChroniclePurchase,
+      'welcome_grant' => l10n.billingChronicleWelcomeGrant,
+      'subscription_renewal' => l10n.billingChronicleSubscriptionRenewal,
+      _ => tx.reason,
+    };
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final bool isCredit = tx.isCredit;
+    final String dateStr = _formatDate(tx.createdAt);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(
+            tx.reason == 'turn'
+                ? Icons.play_circle_outline
+                : tx.reason == 'welcome_grant'
+                    ? Icons.card_giftcard
+                    : isCredit
+                        ? Icons.check_circle
+                        : Icons.schedule,
+            size: 20,
+            color: isCredit ? const Color(0xFF34D399) : const Color(0xFFBFA76F),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _sourceLabel(),
+                  style: const TextStyle(
+                      color: Color(0xFFE8E4E0), fontSize: 14),
+                ),
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                      color: Color(0xFF7A7570), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            isCredit ? '+${_formatTokens(tx.amount)}' : _formatTokens(tx.amount),
+            style: TextStyle(
+              color: isCredit
+                  ? const Color(0xFF34D399)
+                  : const Color(0xFFE8E4E0),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTokens(final int tokens) {
+    final int abs = tokens.abs();
+    if (abs >= 1_000_000) return '${(tokens / 1_000_000).toStringAsFixed(1)}M';
+    if (abs >= 1_000) return '${(tokens / 1_000).toStringAsFixed(0)}K';
+    return tokens.toString();
+  }
+
+  String _formatDate(final DateTime dt) {
+    final String day = dt.day.toString().padLeft(2, '0');
+    final String month = dt.month.toString().padLeft(2, '0');
+    return '$day.$month.${dt.year}';
+  }
 }
 
 class _LegalFooter extends StatelessWidget {
-  const _LegalFooter();
+  const _LegalFooter({required this.l10n});
+
+  final AppLocalizations l10n;
 
   @override
   Widget build(final BuildContext context) => Wrap(
-    alignment: WrapAlignment.center,
-    spacing: 16,
-    runSpacing: 8,
-    children: [
-      _legalLink('Offer', 'https://beyondtheverge.online/offer.html'),
-      _legalLink('Privacy', 'https://beyondtheverge.online/privacy.html'),
-      _legalLink('Support', 'https://beyondtheverge.online/contacts.html'),
-      _legalLink('Refunds', 'https://beyondtheverge.online/refunds.html'),
-      const Text('© 2026 AI RPG', style: TextStyle(color: Color(0xFF7A7570), fontSize: 12)),
-    ],
-  );
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 8,
+        children: [
+          _legalLink(l10n.billingFooterOffer,
+              'https://beyondtheverge.online/offer.html'),
+          _legalLink(l10n.billingFooterPrivacy,
+              'https://beyondtheverge.online/privacy.html'),
+          _legalLink(l10n.billingFooterSupport,
+              'https://beyondtheverge.online/contacts.html'),
+          _legalLink(l10n.billingFooterRefunds,
+              'https://beyondtheverge.online/refunds.html'),
+          _legalLink(l10n.billingFooterPricing,
+              'https://beyondtheverge.online/pricing.html'),
+          const Text('© 2026 AI RPG',
+              style:
+                  TextStyle(color: Color(0xFF7A7570), fontSize: 12)),
+        ],
+      );
 
   Widget _legalLink(final String label, final String url) => GestureDetector(
-    onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-    child: Text(label, style: const TextStyle(color: Color(0xFF7A7570), fontSize: 12, decoration: TextDecoration.underline)),
-  );
+        onTap: () => launchUrl(Uri.parse(url),
+            mode: LaunchMode.externalApplication),
+        child: Text(label,
+            style: const TextStyle(
+                color: Color(0xFF7A7570),
+                fontSize: 12,
+                decoration: TextDecoration.underline)),
+      );
 }
 
-void showPaywallOverlay(final BuildContext context, {final String? campaignName}) {
+void showPaywallOverlay(final BuildContext context,
+    {final String? campaignName}) {
+  final l10n = context.l10n;
   showDialog<void>(
     context: context,
     builder: (final ctx) => AlertDialog(
@@ -802,12 +1345,13 @@ void showPaywallOverlay(final BuildContext context, {final String? campaignName}
               color: const Color(0xFFC87941).withAlpha(20),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.token, size: 32, color: Color(0xFFC87941)),
+            child:
+                const Icon(Icons.token, size: 32, color: Color(0xFFC87941)),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Not Enough Essence',
-            style: TextStyle(
+          Text(
+            l10n.billingPaywallTitle,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               fontFamily: 'Playfair Display',
@@ -816,11 +1360,10 @@ void showPaywallOverlay(final BuildContext context, {final String? campaignName}
           ),
           const SizedBox(height: 12),
           Text(
-            campaignName != null
-                ? 'Your essence fades mid-journey in "$campaignName". Acquire more tokens to continue.'
-                : 'Your arcane reserves are depleted. Acquire more tokens to continue your journey.',
+            l10n.billingPaywallBody(campaignName),
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF7A7570), fontSize: 14),
+            style:
+                const TextStyle(color: Color(0xFF7A7570), fontSize: 14),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -830,20 +1373,25 @@ void showPaywallOverlay(final BuildContext context, {final String? campaignName}
               onPressed: () {
                 Navigator.of(ctx).pop();
                 Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (final _) => const BillingScreen()),
+                  MaterialPageRoute<void>(
+                      builder: (final _) => const BillingScreen()),
                 );
               },
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFC87941),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Buy Tokens', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              child: Text(l10n.billingBuyTokensAction,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Not Now', style: TextStyle(color: Color(0xFF7A7570))),
+            child: Text(l10n.billingNotNowAction,
+                style: const TextStyle(color: Color(0xFF7A7570))),
           ),
         ],
       ),

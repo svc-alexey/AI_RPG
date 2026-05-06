@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_verified_user
 from app.core.logging import get_logger
 from app.db.models import User
 from app.db.session import get_db_session
@@ -19,7 +19,7 @@ logger = get_logger("symmetry.routes.providers")
 @router.post("/check", response_model=MessageResponse)
 async def check_provider_connection(
     payload: ProviderConnectionCheckRequest,
-    _: User = Depends(get_current_user),
+    _: User = Depends(get_current_verified_user),
     __: AsyncSession = Depends(get_db_session),
 ) -> MessageResponse:
     try:

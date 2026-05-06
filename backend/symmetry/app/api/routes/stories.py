@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
-from app.api.deps import get_current_user, get_optional_user
+from app.api.deps import get_current_verified_user, get_optional_user
 from app.db.models import StoryTemplate, User
 from app.db.session import get_db_session
 from app.schemas.common import MessageResponse
@@ -43,7 +43,7 @@ async def list_story_templates(
 @router.post("", response_model=StoryTemplateResponse)
 async def create_story_template(
     payload: StoryTemplateUpsertRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> StoryTemplateResponse:
     """User-published world template (community tab); never master-curated."""
@@ -118,7 +118,7 @@ async def get_story_template(
 @router.post("/{template_id}/like", response_model=MessageResponse)
 async def toggle_like(
     template_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> MessageResponse:
     await story_service.toggle_like(session, template_id=template_id, user_id=user.id)
@@ -129,7 +129,7 @@ async def toggle_like(
 @router.post("/{template_id}/view", response_model=MessageResponse)
 async def add_view(
     template_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> MessageResponse:
     await story_service.add_view(session, template_id=template_id, user_id=user.id)
@@ -140,7 +140,7 @@ async def add_view(
 @router.post("/{template_id}/bookmark", response_model=MessageResponse)
 async def toggle_bookmark(
     template_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> MessageResponse:
     await story_service.toggle_bookmark(session, template_id=template_id, user_id=user.id)

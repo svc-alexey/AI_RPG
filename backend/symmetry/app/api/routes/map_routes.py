@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_verified_user
 from app.db.models import CampaignMember, User
 from app.db.session import get_db_session
 from app.services.map_state_service import MapStateService
@@ -15,7 +15,7 @@ map_service = MapStateService()
 
 async def _require_campaign_member(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> tuple[User, AsyncSession]:
     """Verify user is a campaign member, raise 404 if not."""
@@ -32,7 +32,7 @@ async def _require_campaign_member(
 @router.get("/{campaign_id}/map")
 async def get_campaign_map(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Return full spatial map graph for a campaign."""
@@ -45,7 +45,7 @@ async def get_campaign_map(
 @router.get("/{campaign_id}/return-summary")
 async def get_return_summary(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Return World Pulse digest for a returning player."""
@@ -56,7 +56,7 @@ async def get_return_summary(
 @router.post("/{campaign_id}/map/seed")
 async def seed_campaign_map(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Initialize map with a fallback starting node."""
@@ -70,7 +70,7 @@ async def seed_campaign_map(
 async def submit_map_proposals(
     campaign_id: str,
     payload: dict,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Submit spatial change proposals (from LLM)."""
@@ -89,7 +89,7 @@ async def submit_map_proposals(
 @router.post("/{campaign_id}/map/mark-seen")
 async def mark_map_seen(
     campaign_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Mark all current chronicles as seen by the player."""

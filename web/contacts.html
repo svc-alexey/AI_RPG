@@ -155,6 +155,9 @@ function switchLang(lang) {
   try { localStorage.setItem('legal-lang', lang); } catch(e) {}
 }
 (function(){
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
   window.scrollTo(0, 0);
   var p = new URLSearchParams(location.search).get('lang');
   var s;

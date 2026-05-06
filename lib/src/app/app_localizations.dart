@@ -1979,6 +1979,49 @@ class AppLocalizations {
     AppLanguage.en => 'Finishing Yandex sign-in...',
   };
 
+  // --- Email verification ---
+  String get authEmailVerificationTitle => switch (language) {
+    AppLanguage.ru => 'Подтвердите email',
+    AppLanguage.en => 'Verify your email',
+  };
+
+  String authEmailVerificationMessage(final String email) => switch (language) {
+    AppLanguage.ru =>
+        'Мы отправили письмо на $email. Перейдите по ссылке в письме, чтобы подтвердить адрес.',
+    AppLanguage.en =>
+        'We sent an email to $email. Click the link in the email to verify your address.',
+  };
+
+  String get authEmailVerificationResendAction => switch (language) {
+    AppLanguage.ru => 'Отправить ещё раз',
+    AppLanguage.en => 'Resend email',
+  };
+
+  String get authEmailVerificationCheckAction => switch (language) {
+    AppLanguage.ru => 'Проверить статус',
+    AppLanguage.en => 'Check status',
+  };
+
+  String get authEmailVerificationResendSuccess => switch (language) {
+    AppLanguage.ru => 'Письмо отправлено. Проверьте почту.',
+    AppLanguage.en => 'Verification email sent. Check your inbox.',
+  };
+
+  String get authEmailVerificationResendTooSoon => switch (language) {
+    AppLanguage.ru => 'Подождите минуту перед повторной отправкой.',
+    AppLanguage.en => 'Please wait a minute before resending.',
+  };
+
+  String get authEmailVerificationSuccess => switch (language) {
+    AppLanguage.ru => 'Email подтверждён!',
+    AppLanguage.en => 'Email verified!',
+  };
+
+  String get authEmailVerificationChecking => switch (language) {
+    AppLanguage.ru => 'Проверяем статус...',
+    AppLanguage.en => 'Checking status...',
+  };
+
   String get authAlreadySignedInHint => switch (language) {
     AppLanguage.ru => 'Вы уже вошли в аккаунт.',
     AppLanguage.en => 'You are already signed in.',
@@ -2002,6 +2045,37 @@ class AppLocalizations {
   String get accountSignedOutDescription => switch (language) {
     AppLanguage.ru => 'Вы не вошли в аккаунт.',
     AppLanguage.en => 'You are not signed in.',
+  };
+
+  // --- Email verification status in settings ---
+  String get settingsEmailStatusTitle => switch (language) {
+    AppLanguage.ru => 'Подтверждение email',
+    AppLanguage.en => 'Email Verification',
+  };
+
+  String get settingsEmailStatusNotVerified => switch (language) {
+    AppLanguage.ru => 'Не подтверждён',
+    AppLanguage.en => 'Not verified',
+  };
+
+  String get settingsEmailStatusExpired => switch (language) {
+    AppLanguage.ru => 'Срок подтверждения истёк',
+    AppLanguage.en => 'Verification expired',
+  };
+
+  String get settingsEmailStatusVerified => switch (language) {
+    AppLanguage.ru => 'Подтверждён',
+    AppLanguage.en => 'Verified',
+  };
+
+  String get settingsEmailResendAction => switch (language) {
+    AppLanguage.ru => 'Отправить письмо повторно',
+    AppLanguage.en => 'Resend verification email',
+  };
+
+  String get settingsEmailSendNewAction => switch (language) {
+    AppLanguage.ru => 'Отправить новое письмо',
+    AppLanguage.en => 'Send new email',
   };
 
   String get legalInfoTitle => switch (language) {
@@ -2032,6 +2106,11 @@ class AppLocalizations {
   String get legalContactsShort => switch (language) {
     AppLanguage.ru => 'Контакты',
     AppLanguage.en => 'Contacts',
+  };
+
+  String get legalPricingShort => switch (language) {
+    AppLanguage.ru => 'Цены',
+    AppLanguage.en => 'Pricing',
   };
 
   String get personalModelTitle => switch (language) {
@@ -2320,6 +2399,31 @@ class AppLocalizations {
       AppLanguage.en =>
         'The browser returned to a legacy OAuth callback. Update the Yandex callback URL to backend `/v1/auth/yandex/callback`.',
     },
+    // --- Email verification errors ---
+    'email_not_verified' => switch (language) {
+      AppLanguage.ru => 'Сначала подтвердите email. Проверьте почту.',
+      AppLanguage.en => 'Verify your email first. Check your inbox.',
+    },
+    'invalid_verification_token' => switch (language) {
+      AppLanguage.ru => 'Неверная или уже использованная ссылка подтверждения.',
+      AppLanguage.en => 'Invalid or already used verification link.',
+    },
+    'expired_verification_token' => switch (language) {
+      AppLanguage.ru => 'Ссылка подтверждения истекла. Запросите новую.',
+      AppLanguage.en => 'Verification link has expired. Request a new one.',
+    },
+    'verification_token_already_used' => switch (language) {
+      AppLanguage.ru => 'Эта ссылка уже была использована.',
+      AppLanguage.en => 'This link has already been used.',
+    },
+    'resend_too_soon' => switch (language) {
+      AppLanguage.ru => 'Подождите минуту перед повторной отправкой.',
+      AppLanguage.en => 'Please wait a minute before resending.',
+    },
+    'already_verified' => switch (language) {
+      AppLanguage.ru => 'Email уже подтверждён.',
+      AppLanguage.en => 'Email already verified.',
+    },
     _ => _statusFriendlyError(null),
   };
 
@@ -2428,6 +2532,284 @@ class AppLocalizations {
   String get updateUnknownVersion => switch (language) {
     AppLanguage.ru => 'новая версия',
     AppLanguage.en => 'a newer version',
+  };
+
+  // ── Billing ─────────────────────────────────────────────────
+
+  String get billingTitle => switch (language) {
+    AppLanguage.ru => 'Токены и подписки',
+    AppLanguage.en => 'Tokens & Subscriptions',
+  };
+
+  String get billingAvailableEssence => switch (language) {
+    AppLanguage.ru => 'Доступная эссенция',
+    AppLanguage.en => 'Available Essence',
+  };
+
+  String get billingAcquireEssence => switch (language) {
+    AppLanguage.ru => 'Приобрести эссенцию',
+    AppLanguage.en => 'Acquire Essence',
+  };
+
+  String billingEssenceLow(final int remaining) => switch (language) {
+    AppLanguage.ru => 'Эссенция на исходе — осталось $remaining',
+    AppLanguage.en => 'Essence running low — $remaining remaining',
+  };
+
+  String get billingWelcomePermanent => switch (language) {
+    AppLanguage.ru => 'приветственные',
+    AppLanguage.en => 'welcome',
+  };
+
+  String get billingMonthly => switch (language) {
+    AppLanguage.ru => 'за месяц',
+    AppLanguage.en => 'monthly',
+  };
+
+  String get billingPermanent => switch (language) {
+    AppLanguage.ru => 'постоянные',
+    AppLanguage.en => 'permanent',
+  };
+
+  String get billingPack10mTitle => switch (language) {
+    AppLanguage.ru => 'Коробка с эссенциями',
+    AppLanguage.en => 'Essence Crate',
+  };
+
+  String get billingPack10mDesc => switch (language) {
+    AppLanguage.ru => 'Единоразово. 10M токенов.',
+    AppLanguage.en => 'One-time. 10M tokens.',
+  };
+
+  String get billingPack100mTitle => switch (language) {
+    AppLanguage.ru => 'Геройский запас',
+    AppLanguage.en => 'Hero Stash',
+  };
+
+  String get billingPack100mDesc => switch (language) {
+    AppLanguage.ru => 'Единоразово. 100M токенов.',
+    AppLanguage.en => 'One-time. 100M tokens.',
+  };
+
+  String get billingSubscribeAction => switch (language) {
+    AppLanguage.ru => 'Подписаться',
+    AppLanguage.en => 'Subscribe',
+  };
+
+  String get billingBuyAction => switch (language) {
+    AppLanguage.ru => 'Купить',
+    AppLanguage.en => 'Buy',
+  };
+
+  String get billingWelcomeClaimError => switch (language) {
+    AppLanguage.ru => 'Не удалось получить приветственный пакет',
+    AppLanguage.en => 'Failed to claim welcome pack',
+  };
+
+  String get billingWelcomeClaimed => switch (language) {
+    AppLanguage.ru => 'Приветственный пакет — получен',
+    AppLanguage.en => 'Welcome Pack — Claimed',
+  };
+
+  String get billingWelcomeClaimedDesc => switch (language) {
+    AppLanguage.ru => '1 000 000 токенов начислено',
+    AppLanguage.en => '1,000,000 tokens granted',
+  };
+
+  String get billingAgreementLabel => switch (language) {
+    AppLanguage.ru => 'Принимаю условия ',
+    AppLanguage.en => 'I accept the ',
+  };
+
+  String get billingAgreementAnd => switch (language) {
+    AppLanguage.ru => ' и ',
+    AppLanguage.en => ' and ',
+  };
+
+  String get billingOfferLink => switch (language) {
+    AppLanguage.ru => 'Оферты',
+    AppLanguage.en => 'Offer',
+  };
+
+  String get billingPrivacyLink => switch (language) {
+    AppLanguage.ru => 'Политики конфиденциальности',
+    AppLanguage.en => 'Privacy Policy',
+  };
+
+  String billingPayLabel(final String price) => switch (language) {
+    AppLanguage.ru => 'Оплатить $price',
+    AppLanguage.en => 'Pay $price',
+  };
+
+  String get billingPaymentFailed => switch (language) {
+    AppLanguage.ru => 'Оплата не прошла',
+    AppLanguage.en => 'Payment failed',
+  };
+
+  String get billingTryAgain => switch (language) {
+    AppLanguage.ru => 'Попробовать снова',
+    AppLanguage.en => 'Try again',
+  };
+
+  String get billingRedirecting => switch (language) {
+    AppLanguage.ru => 'Перенаправляем в YooKassa…',
+    AppLanguage.en => 'Redirecting to YooKassa…',
+  };
+
+  String get billingConfirming => switch (language) {
+    AppLanguage.ru => 'Подтверждаем…',
+    AppLanguage.en => 'Confirming…',
+  };
+
+  String get billingBalanceUnavailable => switch (language) {
+    AppLanguage.ru => 'Баланс недоступен',
+    AppLanguage.en => 'Balance unavailable',
+  };
+
+  String get billingRetry => switch (language) {
+    AppLanguage.ru => 'Повторить',
+    AppLanguage.en => 'Retry',
+  };
+
+  String get billingPaywallTitle => switch (language) {
+    AppLanguage.ru => 'Недостаточно эссенции',
+    AppLanguage.en => 'Not Enough Essence',
+  };
+
+  String billingPaywallBody(final String? campaignName) => switch (language) {
+    AppLanguage.ru => campaignName != null
+        ? 'Ваша эссенция иссякла посреди пути в «$campaignName». Приобретите токены, чтобы продолжить.'
+        : 'Ваши запасы исчерпаны. Приобретите токены, чтобы продолжить путешествие.',
+    AppLanguage.en => campaignName != null
+        ? 'Your essence fades mid-journey in "$campaignName". Acquire more tokens to continue.'
+        : 'Your arcane reserves are depleted. Acquire more tokens to continue your journey.',
+  };
+
+  String get billingBuyTokensAction => switch (language) {
+    AppLanguage.ru => 'Купить токены',
+    AppLanguage.en => 'Buy Tokens',
+  };
+
+  String get billingNotNowAction => switch (language) {
+    AppLanguage.ru => 'Не сейчас',
+    AppLanguage.en => 'Not Now',
+  };
+
+  String get billingGuestRegisterTitle => switch (language) {
+    AppLanguage.ru => 'Зарегистрируйтесь, чтобы продолжить',
+    AppLanguage.en => 'Register to Continue',
+  };
+
+  String get billingGuestRegisterBody => switch (language) {
+    AppLanguage.ru =>
+        'Вы использовали 5 бесплатных ходов. Зарегистрируйтесь и получите 1 000 000 бесплатных токенов для продолжения!',
+    AppLanguage.en =>
+        'You\'ve used 5 free turns. Register now to get 1,000,000 free tokens and continue your adventure!',
+  };
+
+  String get billingGuestRegisterAction => switch (language) {
+    AppLanguage.ru => 'Зарегистрироваться и получить 1M токенов',
+    AppLanguage.en => 'Register & Get 1M Tokens',
+  };
+
+  String get billingFooterOffer => switch (language) {
+    AppLanguage.ru => 'Оферта',
+    AppLanguage.en => 'Offer',
+  };
+
+  String get billingFooterPrivacy => switch (language) {
+    AppLanguage.ru => 'Конфиденциальность',
+    AppLanguage.en => 'Privacy',
+  };
+
+  String get billingFooterSupport => switch (language) {
+    AppLanguage.ru => 'Поддержка',
+    AppLanguage.en => 'Support',
+  };
+
+  String get billingFooterRefunds => switch (language) {
+    AppLanguage.ru => 'Возвраты',
+    AppLanguage.en => 'Refunds',
+  };
+
+  String get billingFooterPricing => switch (language) {
+    AppLanguage.ru => 'Цены',
+    AppLanguage.en => 'Pricing',
+  };
+
+  String get billingGuestLoginToBuy => switch (language) {
+    AppLanguage.ru => 'Войдите для покупки',
+    AppLanguage.en => 'Login to purchase',
+  };
+
+  String get billingGuestBalanceHint => switch (language) {
+    AppLanguage.ru => 'Доступно после авторизации',
+    AppLanguage.en => 'Available after login',
+  };
+
+  String get billingGuestCatalogError => switch (language) {
+    AppLanguage.ru => 'Не удалось загрузить цены',
+    AppLanguage.en => 'Failed to load prices',
+  };
+
+  String get billingChronicleTitle => switch (language) {
+    AppLanguage.ru => 'История',
+    AppLanguage.en => 'Chronicle',
+  };
+
+  String get billingChronicleEmpty => switch (language) {
+    AppLanguage.ru => 'Пока нет транзакций',
+    AppLanguage.en => 'No transactions yet',
+  };
+
+  String get billingChronicleEmptyDesc => switch (language) {
+    AppLanguage.ru => 'Ваше путешествие начинается здесь',
+    AppLanguage.en => 'Your journey begins here',
+  };
+
+  String get billingChronicleHistoryUnavailable => switch (language) {
+    AppLanguage.ru => 'История недоступна',
+    AppLanguage.en => 'History unavailable',
+  };
+
+  String get billingChronicleTurn => switch (language) {
+    AppLanguage.ru => 'Ход',
+    AppLanguage.en => 'Turn',
+  };
+
+  String get billingChroniclePurchase => switch (language) {
+    AppLanguage.ru => 'Покупка',
+    AppLanguage.en => 'Purchase',
+  };
+
+  String get billingChronicleWelcomeGrant => switch (language) {
+    AppLanguage.ru => 'Приветственный грант',
+    AppLanguage.en => 'Welcome grant',
+  };
+
+  String get billingChronicleSubscriptionRenewal => switch (language) {
+    AppLanguage.ru => 'Продление подписки',
+    AppLanguage.en => 'Subscription renewal',
+  };
+
+  String get billingOfflineBanner => switch (language) {
+    AppLanguage.ru => 'Нет соединения — показаны кэшированные данные',
+    AppLanguage.en => 'No connection — showing cached data',
+  };
+
+  String get billingStillProcessing => switch (language) {
+    AppLanguage.ru => 'Платёж обрабатывается',
+    AppLanguage.en => 'Payment processing',
+  };
+
+  String get billingCheckAgain => switch (language) {
+    AppLanguage.ru => 'Проверить снова',
+    AppLanguage.en => 'Check again',
+  };
+
+  String chatLowEssenceWarning(final int remaining) => switch (language) {
+    AppLanguage.ru => 'Эссенция на исходе — осталось $remaining',
+    AppLanguage.en => 'Essence running low — $remaining remaining',
   };
 }
 

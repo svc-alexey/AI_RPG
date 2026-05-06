@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_verified_user
 from app.db.models import (
     Campaign,
     CampaignSnapshot,
@@ -122,6 +122,36 @@ async def yandex_complete(
     )
 
 
+@router.get("/verify-email")
+async def verify_email(
+    token: str = Query(min_length=12),
+    session: AsyncSession = Depends(get_db_session),
+) -> RedirectResponse:
+    try:
+        await auth_service.verify_email(session, token)
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, str) else "verification_failed"
+        web_origin = auth_service._require_web_public_origin()
+        return RedirectResponse(
+            f"{web_origin}/?verify_error={detail}",
+            status_code=302,
+        )
+    web_origin = auth_service._require_web_public_origin()
+    return RedirectResponse(
+        f"{web_origin}/?email_verified=1",
+        status_code=302,
+    )
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> MessageResponse:
+    await auth_service.resend_verification(session, user)
+    return MessageResponse(message="verification_email_sent")
+
+
 @router.post("/migrate-guest", response_model=MessageResponse)
 async def migrate_guest(
     body: MigrateGuestRequest,
@@ -167,4 +197,5 @@ async def me(
         email=user.email,
         display_name=profile.display_name if profile is not None else "",
         is_admin=user.is_admin,
+        email_verified=bool(user.email_verified),
     )

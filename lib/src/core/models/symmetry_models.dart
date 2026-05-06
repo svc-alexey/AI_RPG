@@ -34,6 +34,7 @@ class SymmetryUser {
     required this.email,
     required this.displayName,
     this.isAdmin = false,
+    this.emailVerified = false,
   });
 
   factory SymmetryUser.fromJson(final Map<String, Object?> json) =>
@@ -42,12 +43,14 @@ class SymmetryUser {
         email: (json['email'] as String?) ?? '',
         displayName: (json['display_name'] as String?) ?? '',
         isAdmin: json['is_admin'] as bool? ?? false,
+        emailVerified: json['email_verified'] as bool? ?? false,
       );
 
   final String id;
   final String email;
   final String displayName;
   final bool isAdmin;
+  final bool emailVerified;
 
   bool get isGuest =>
       email.startsWith('guest-') &&
@@ -59,6 +62,7 @@ class SymmetryUser {
     'email': email,
     'display_name': displayName,
     'is_admin': isAdmin,
+    'email_verified': emailVerified,
   };
 }
 
@@ -220,6 +224,8 @@ class SymmetrySession {
   final String baseUrl;
 
   bool get isGuest => user.isGuest;
+
+  bool get isEmailVerified => user.emailVerified;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'user': user.toJson(),

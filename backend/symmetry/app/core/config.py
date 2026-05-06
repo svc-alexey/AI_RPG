@@ -100,8 +100,15 @@ class Settings(BaseSettings):
     subscription_renewal_enabled: bool = False
     subscription_months: int = 1
     subscription_retry_enabled: bool = False
+    subscription_renewal_interval_seconds: int = 900  # 15 минут
 
     stale_order_timeout_hours: int = 24
+
+    # --- Auth email verification (reuses feedback SMTP) ---
+    auth_email_sender_email: str = ""  # fallback → feedback_sender_email
+    auth_email_from_name: str = "Symmetry"
+    auth_email_verification_token_ttl_hours: int = 24
+    auth_email_verification_base_url: str = ""  # fallback → web_public_origin
 
 
 @lru_cache

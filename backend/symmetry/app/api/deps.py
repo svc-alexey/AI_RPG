@@ -37,6 +37,17 @@ async def get_current_user(
     return user
 
 
+async def get_current_verified_user(
+    user: User = Depends(get_current_user),
+) -> User:
+    if not user.email_verified and not user.email.startswith("guest-"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="email_not_verified",
+        )
+    return user
+
+
 async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db_session),
@@ -53,7 +64,7 @@ async def get_optional_user(
 
 
 async def get_current_admin_user(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_verified_user),
 ) -> User:
     if not user.is_admin:
         raise HTTPException(

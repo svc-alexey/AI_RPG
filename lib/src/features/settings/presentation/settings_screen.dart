@@ -286,6 +286,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             },
                             orElse: () => const SizedBox.shrink(),
                           ),
+                          sessionState.maybeWhen(
+                            data: (final session) {
+                              if (session == null ||
+                                  session.isGuest ||
+                                  session.isEmailVerified) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                    bottom: responsive.sectionSpacing),
+                                child: _EmailVerificationStatus(
+                                  session: session,
+                                  l10n: l10n,
+                                ),
+                              );
+                            },
+                            orElse: () => const SizedBox.shrink(),
+                          ),
                           SizedBox(height: responsive.sectionSpacing),
                           _SettingsSection(
                             title: l10n.personalModelTitle,
@@ -543,6 +561,135 @@ class _SettingsSection extends StatelessWidget {
   );
 }
 
+class _EmailVerificationStatus extends ConsumerStatefulWidget {
+  const _EmailVerificationStatus({
+    required this.session,
+    required this.l10n,
+  });
+
+  final SymmetrySession session;
+  final AppLocalizations l10n;
+
+  @override
+  ConsumerState<_EmailVerificationStatus> createState() =>
+      _EmailVerificationStatusState();
+}
+
+class _EmailVerificationStatusState
+    extends ConsumerState<_EmailVerificationStatus> {
+  bool _resending = false;
+
+  Future<void> _resend() async {
+    setState(() => _resending = true);
+    try {
+      await ref.read(symmetryAuthRepositoryProvider).resendVerification();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.l10n.authEmailVerificationResendSuccess),
+          backgroundColor: const Color(0xFF34D399).withAlpha(220),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final String message;
+      if (e.toString().contains('resend_too_soon')) {
+        message = widget.l10n.authEmailVerificationResendTooSoon;
+      } else {
+        message = e.toString();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final l10n = widget.l10n;
+    final email = widget.session.user.email;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0D0B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF7A7570).withAlpha(50)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.settingsEmailStatusTitle,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFE8E4E0),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.close, size: 16, color: Color(0xFFC87941)),
+              const SizedBox(width: 8),
+              Text(
+                l10n.settingsEmailStatusNotVerified,
+                style: const TextStyle(
+                  color: Color(0xFFC87941),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            email,
+            style: const TextStyle(
+              color: Color(0xFF7A7570),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton(
+              onPressed: _resending ? null : _resend,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFC87941)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _resending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFFC87941)),
+                    )
+                  : Text(
+                      l10n.settingsEmailResendAction,
+                      style: const TextStyle(
+                        color: Color(0xFFC87941),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LegalLinks extends StatelessWidget {
   const _LegalLinks({required this.l10n});
 
@@ -601,6 +748,7 @@ class _LegalLinks extends StatelessWidget {
       'consent' => isRu ? 'Согласие на обработку ПД' : 'Data Processing Consent',
       'refunds' => isRu ? 'Условия возврата' : 'Refund Policy',
       'contacts' => isRu ? 'Контакты и реквизиты' : 'Contact Information',
+      'pricing' => isRu ? 'Цены' : 'Pricing',
       _ => page,
     };
   }
