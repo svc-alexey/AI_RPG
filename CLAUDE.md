@@ -93,6 +93,9 @@ docs/
 5. **DB only through Alembic**: любое изменение схемы БД — через миграцию
 6. **Campaign events → world_chronicles**: важные события попадают в chronicles только после серверного отбора
 7. **Feature-first architecture**: UI, модели, сервисы, репозитории разделены по фичам
+8. **Guest auto-create**: при отсутствии сессии `requireAccountThen` создаёт гостя через `guestLogin()`, не показывает AuthScreen. Гость получает 5 бесплатных ходов
+9. **Email verification gate**: `get_current_verified_user` блокирует неverified пользователей (гости исключены). Billing screen проверяет `_blocked = _isGuest || _needsVerification` для всех кнопок и действий
+10. **Never silently catch in auth flows**: ошибки в guestLogin/register должны быть видны, не глотаться через `catch (_)`
 
 ## Flutter Rules (кратко, полные правила в FlutterRules.md)
 
@@ -418,3 +421,9 @@ location / {
 5. **`flutter build web` НЕ обновляет `version.json`.** Версия в `version.json` всегда "dev-local". Её нужно обновлять вручную на сервере или через скрипт деплоя.
 6. **При `flutter build web` без `--dart-define` клиент получает `asset_version: "dev-local"`.** Это ломает версионную проверку (dev-local < любая реальная версия → reload_required: true).
 7. **Продовый docker-compose НЕ монтирует `app/` как volume.** В отличие от dev-конфига, где `./app:/app/app` в volume. В проде только `models` в volume. Все изменения кода требуют либо `docker cp`, либо пересборки образа.
+8. **`flutter clean` удаляет `.dart_tool/` и ломает `pub get` при недоступном pub.dev.** После `flutter clean` сначала `flutter pub get --offline`, затем `flutter build web --no-pub`.
+9. **Dart `_`-префикс = FILE-private, не CLASS-private.** `_blocked` из `_BillingScreenState` доступен в `_TariffCard` внутри того же файла. `replace_all` на `_`-именах опасен.
+10. **`FutureProvider` кэширует первое разрешение навсегда.** После `guestLogin()` или `register()` всегда делать `ref.invalidate(symmetrySessionProvider)`.
+11. **`Stack` не изолирует `DefaultTextStyle`.** Стили текста из родительских виджетов (HomeScreen, тема Material) протекают в оверлеи. Для диалогов всегда добавлять `decoration: TextDecoration.none` явно.
+12. **`history.scrollRestoration` переопределяет `window.scrollTo()`.** На статических HTML-страницах нужно `history.scrollRestoration = 'manual'` перед `scrollTo(0,0)`.
+13. **`BillingPlan.metadata_json["is_active"]` отсутствует у активных планов.** Фильтр `!= False` не работает с NULL. Правильно: `or_(field == None, field.as_boolean() == True)`.
