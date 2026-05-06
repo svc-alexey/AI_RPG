@@ -29,22 +29,25 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 SEED_PLANS = [
     {
-        "code": "free_welcome_1m", "kind": "welcome", "title": "Welcome 1M",
+        "code": "free_welcome_1m", "title": "Welcome 1M",
         "metadata_json": {
+            "kind": "welcome",
             "description": "Приветственный грант", "token_grant": 1_000_000,
             "base_price_minor": 0, "currency": "RUB", "sort_order": 1,
         },
     },
     {
-        "code": "pack_1m", "kind": "token_pack", "title": "1M токенов",
+        "code": "pack_1m", "title": "1M токенов",
         "metadata_json": {
+            "kind": "token_pack",
             "description": "Стандартное пополнение", "token_grant": 1_000_000,
             "base_price_minor": 7900, "currency": "RUB", "sort_order": 2,
         },
     },
     {
-        "code": "pack_10m", "kind": "token_pack", "title": "10M токенов",
+        "code": "pack_10m", "title": "10M токенов",
         "metadata_json": {
+            "kind": "token_pack",
             "description": "Для активных игроков", "token_grant": 10_000_000,
             "base_price_minor": 39000, "sale_price_minor": 39000,
             "sale_badge_text": "Best Value", "sale_percent": 51,
@@ -55,15 +58,19 @@ SEED_PLANS = [
 
 
 async def _seed_plans(session: AsyncSession) -> None:
-    existing = (await session.execute(select(BillingPlan.code))).scalars().all()
-    existing_codes = set(existing)
+    result = await session.execute(select(BillingPlan))
+    existing_map = {p.code: p for p in result.scalars().all()}
     for plan in SEED_PLANS:
-        if plan["code"] in existing_codes:
-            continue
-        session.add(BillingPlan(
-            id=new_id(), code=plan["code"], title=plan["title"],
-            metadata_json=plan["metadata_json"],
-        ))
+        code = plan["code"]
+        if code in existing_map:
+            existing = existing_map[code]
+            existing.title = plan["title"]
+            existing.metadata_json = {**existing.metadata_json, **plan["metadata_json"]}
+        else:
+            session.add(BillingPlan(
+                id=new_id(), code=code, title=plan["title"],
+                metadata_json=plan["metadata_json"],
+            ))
     await session.commit()
 
 

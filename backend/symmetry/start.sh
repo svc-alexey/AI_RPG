@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+pip install -q yookassa python-dateutil cryptography 2>/dev/null || true
+
 ATTEMPTS=0
 MAX_ATTEMPTS=20
 

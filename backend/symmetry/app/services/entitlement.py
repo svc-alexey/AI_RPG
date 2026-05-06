@@ -34,7 +34,7 @@ async def grant_welcome_tokens(session: AsyncSession, user_id: str, amount: int)
         metadata_json={"source": "welcome", "grant_type": "registration"},
     )
     session.add(ledger)
-    await session.flush()
+    await session.commit()
     logger.info("welcome_grant user_id=%s amount=%s", user_id, amount)
 
 
