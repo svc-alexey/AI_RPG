@@ -89,3 +89,23 @@ Desktop.ini
 /*.zip
 /*_build_*.zip.sha256.txt
 .gstack/
+
+# Flutter web build output in deploy/web/ (legal pages are tracked separately)
+deploy/web/.last_build_id
+deploy/web/assets/
+deploy/web/canvaskit/
+deploy/web/favicon.png
+deploy/web/flutter.js
+deploy/web/flutter_bootstrap.js
+deploy/web/flutter_service_worker.js
+deploy/web/icons/
+deploy/web/main.dart.js
+deploy/web/manifest.json
+deploy/web/version.json
+deploy/web/landing/
+deploy/web/robots.txt
+
+# Temp files and backups
+temp/
+test-results/
+deploy/web_legal_backup/

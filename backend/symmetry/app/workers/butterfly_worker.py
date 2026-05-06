@@ -5,14 +5,32 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.init_db import init_db
 from app.db.session import SessionLocal
+from app.services.billing_service import run_renewal_cycle
 from app.services.butterfly import ButterflyService
 from app.services.embeddings import preload_embedding_service
+from app.services.yookassa_client import YooKassaClient
 
 
 settings = get_settings()
 configure_logging(settings)
 logger = get_logger("symmetry.butterfly_worker")
 butterfly_service = ButterflyService()
+
+
+async def _run_renewal_loop() -> None:
+    while True:
+        await asyncio.sleep(settings.subscription_renewal_interval_seconds)
+        try:
+            yookassa = YooKassaClient()
+            async with SessionLocal() as session:
+                result = await run_renewal_cycle(session, yookassa)
+                await session.commit()
+                logger.info(
+                    "renewal_cycle_completed renewed=%s failed=%s claimed=%s",
+                    result["renewed"], result["failed"], result["claimed"],
+                )
+        except Exception:
+            logger.exception("renewal_cycle_failed")
 
 
 async def _run_loop() -> None:
@@ -25,28 +43,38 @@ async def _run_loop() -> None:
         settings.worker_batch_size,
     )
 
-    while True:
-        started_at = time.perf_counter()
-        processed = 0
+    # Запуск renewal loop параллельно с butterfly loop
+    renewal_task = asyncio.create_task(_run_renewal_loop())
+
+    try:
+        while True:
+            started_at = time.perf_counter()
+            processed = 0
+            try:
+                async with SessionLocal() as session:
+                    processed = await butterfly_service.process_ready_jobs(
+                        session,
+                        campaign_id=None,
+                        limit=max(1, settings.worker_batch_size),
+                    )
+                    await session.commit()
+            except Exception:
+                logger.exception("butterfly_worker_cycle_failed")
+            else:
+                if processed > 0:
+                    duration_ms = int((time.perf_counter() - started_at) * 1000)
+                    logger.info(
+                        "butterfly_worker_cycle_completed processed=%s duration_ms=%s",
+                        processed,
+                        duration_ms,
+                    )
+            await asyncio.sleep(max(0.2, settings.worker_poll_interval_seconds))
+    finally:
+        renewal_task.cancel()
         try:
-            async with SessionLocal() as session:
-                processed = await butterfly_service.process_ready_jobs(
-                    session,
-                    campaign_id=None,
-                    limit=max(1, settings.worker_batch_size),
-                )
-                await session.commit()
-        except Exception:
-            logger.exception("butterfly_worker_cycle_failed")
-        else:
-            if processed > 0:
-                duration_ms = int((time.perf_counter() - started_at) * 1000)
-                logger.info(
-                    "butterfly_worker_cycle_completed processed=%s duration_ms=%s",
-                    processed,
-                    duration_ms,
-                )
-        await asyncio.sleep(max(0.2, settings.worker_poll_interval_seconds))
+            await renewal_task
+        except asyncio.CancelledError:
+            pass
 
 
 def main() -> None:

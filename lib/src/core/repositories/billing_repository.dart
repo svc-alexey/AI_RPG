@@ -58,6 +58,35 @@ class BillingRepository {
     );
   }
 
+  Future<BillingWallet> claimWelcomeGrant() async {
+    return _authRepository.runWithAuthorizedSession(
+      (final s) async {
+        final Map<String, dynamic> data =
+            await _client(s.baseUrl).postClaimWelcome(
+          accessToken: s.tokens.accessToken,
+        );
+        final wallet = BillingWallet.fromJson(data);
+        _cacheJson(_walletCacheKey, data);
+        return wallet;
+      },
+      allowGuest: false,
+    );
+  }
+
+  Future<List<TransactionEntry>> fetchTransactions({final int limit = 20}) async {
+    return _authRepository.runWithAuthorizedSession(
+      (final s) async {
+        final List<Map<String, dynamic>> raw =
+            await _client(s.baseUrl).getBillingTransactions(
+          accessToken: s.tokens.accessToken,
+          limit: limit,
+        );
+        return raw.map((final m) => TransactionEntry.fromJson(m)).toList();
+      },
+      allowGuest: false,
+    );
+  }
+
   Future<void> migrateGuestCampaigns(final String guestUserId) async {
     await _authRepository.runWithAuthorizedSession(
       (final s) async {

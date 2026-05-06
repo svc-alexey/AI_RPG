@@ -91,6 +91,30 @@ class ButterflyService:
         )
         return entities
 
+    def fallback_seed_from_turn(
+        self,
+        *,
+        mode: str,
+        importance: int,
+        summary: str,
+        current_location: str,
+    ) -> list[dict[str, Any]]:
+        profile = self.profile(mode)
+        visibility = "hidden" if mode == "longCampaign" else "public"
+        location_slug = self.slugify(current_location) or "starting-point"
+        return [
+            {
+                "entity_kind": "location",
+                "entity_slug": location_slug,
+                "impact_type": "rumor",
+                "strength": self._clamp_int(importance, minimum=1, maximum=profile["strength_cap"]),
+                "delay_min_turns": 1,
+                "delay_max_turns": min(2, profile["delay_cap"]),
+                "visibility": visibility,
+                "summary": summary,
+            }
+        ]
+
     def default_entities_for_mode(
         self,
         *,

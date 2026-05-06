@@ -3,6 +3,7 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,6 +277,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final String password = _passwordController.text;
     final String displayName = _displayNameController.text.trim();
 
+    final session = ref.read(symmetrySessionProvider).valueOrNull;
+    final String? guestUserId =
+        (session != null && session.isGuest) ? session.user.id : null;
+
     setState(() {
       _isSubmitting = true;
       _error = null;
@@ -289,6 +294,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               password: password,
               displayName: displayName,
             );
+        final migrated =
+            guestUserId != null &&
+            await _tryMigrateGuest(guestUserId);
+        if (!mounted) return;
+        if (!migrated) {
+          AppLogger.logDiagnostic(
+            level: 'WARN',
+            event: 'guest_migration_skipped',
+            message: 'Guest migration was not performed.',
+          );
+        }
       } else {
         await ref
             .read(symmetryAuthRepositoryProvider)
@@ -309,6 +325,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
+    }
+  }
+
+  Future<bool> _tryMigrateGuest(final String guestUserId) async {
+    try {
+      await ref
+          .read(billingRepositoryProvider)
+          .migrateGuestCampaigns(guestUserId);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

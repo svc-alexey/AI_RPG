@@ -115,3 +115,37 @@ class CheckoutResult {
         currency: json['currency'] as String? ?? 'RUB',
       );
 }
+
+class TransactionEntry {
+  const TransactionEntry({
+    required this.id,
+    required this.amount,
+    required this.reason,
+    this.source = '',
+    this.planCode,
+    this.campaignId,
+    required this.createdAt,
+  });
+
+  final String id;
+  final int amount;
+  final String reason;
+  final String source;
+  final String? planCode;
+  final String? campaignId;
+  final DateTime createdAt;
+
+  factory TransactionEntry.fromJson(final Map<String, dynamic> json) =>
+      TransactionEntry(
+        id: json['id'] as String? ?? '',
+        amount: json['amount'] as int? ?? 0,
+        reason: json['reason'] as String? ?? '',
+        source: json['source'] as String? ?? '',
+        planCode: json['plan_code'] as String?,
+        campaignId: json['campaign_id'] as String?,
+        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+      );
+
+  bool get isCredit => amount > 0;
+  bool get isDebit => amount < 0;
+}

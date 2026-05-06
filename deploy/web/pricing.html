@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="description" content="Цены на токены и подписки — Стирая Грань">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="/pricing.html">
+<title>Цены — Стирая Грань</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,300;0,400;0,500;0,700;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/legal.css">
+<style>
+  .pricing-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+  .pricing-card {
+    background: var(--bg-elevated);
+    border-radius: 16px;
+    border: 1px solid rgba(61,51,40,0.3);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: border-color 0.2s;
+  }
+  .pricing-card.featured {
+    border-color: var(--accent);
+    box-shadow: 0 0 24px rgba(200,121,65,0.08);
+  }
+  .pricing-card .card-info { flex: 1; }
+  .pricing-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .pricing-card .card-desc { font-size: 0.85rem; color: var(--text-muted); }
+  .pricing-card .card-price { text-align: right; flex-shrink: 0; }
+  .pricing-card .price-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem; font-weight: 700;
+    color: var(--accent);
+  }
+  .pricing-card .price-old {
+    font-size: 0.85rem; color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .pricing-card .badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+    background: rgba(191,167,111,0.15); color: #BFA76F;
+    margin-left: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header class="legal-header">
+  <div class="legal-header-inner">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <a href="/" style="color:var(--text-dim);text-decoration:none;">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </a>
+      <h1 class="legal-header-title"><span lang="ru">Цены</span><span lang="en">Pricing</span></h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="lang-toggle">
+        <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+        <button id="btn-en" onclick="switchLang('en')">EN</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div style="display:flex;min-height:100vh;">
+<aside class="legal-sidebar">
+  <div class="legal-sidebar-title"><span lang="ru">Документы</span><span lang="en">Documents</span></div>
+  <nav>
+    <a href="/offer.html"><span class="material-symbols-outlined">description</span><span lang="ru">Оферта</span><span lang="en">License Offer</span></a>
+    <a href="/privacy.html"><span class="material-symbols-outlined">policy</span><span lang="ru">Конфиденциальность</span><span lang="en">Privacy Policy</span></a>
+    <a href="/consent.html"><span class="material-symbols-outlined">check_box</span><span lang="ru">Согласие на ПД</span><span lang="en">Data Consent</span></a>
+    <a href="/refunds.html"><span class="material-symbols-outlined">receipt_long</span><span lang="ru">Возврат</span><span lang="en">Refunds</span></a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+    <a href="/pricing.html" class="active"><span class="material-symbols-outlined">sell</span><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  </nav>
+</aside>
+
+<main class="legal-main">
+  <div class="legal-section-header">
+    <h2 lang="ru">Цены на токены и подписки</h2>
+    <h2 lang="en">Prices for Tokens and Subscriptions</h2>
+  </div>
+
+  <div class="pricing-grid" id="grid">
+    <div class="pricing-card"><div class="card-info"><div class="card-title">&nbsp;</div><div class="card-desc">&nbsp;</div></div><div class="card-price"><div class="price-value">&nbsp;</div></div></div>
+    <div class="pricing-card"><div class="card-info"><div class="card-title">&nbsp;</div><div class="card-desc">&nbsp;</div></div><div class="card-price"><div class="price-value">&nbsp;</div></div></div>
+    <div class="pricing-card"><div class="card-info"><div class="card-title">&nbsp;</div><div class="card-desc">&nbsp;</div></div><div class="card-price"><div class="price-value">&nbsp;</div></div></div>
+  </div>
+  <div class="legal-content" id="error" style="display:none;text-align:center;">
+    <p lang="ru">Не удалось загрузить цены. <a href="/">Вернуться на главную</a></p>
+    <p lang="en">Failed to load prices. <a href="/">Back to home</a></p>
+  </div>
+
+  <div class="legal-cta" style="margin-top:40px;">
+    <p lang="ru">Есть вопросы по тарифам?</p>
+    <p lang="en">Questions about pricing?</p>
+    <a href="/contacts.html" class="btn-primary" style="display:inline-block;text-decoration:none;"><span lang="ru">Связаться</span><span lang="en">Contact Us</span></a>
+  </div>
+</main>
+</div>
+
+<nav class="legal-bottom-nav">
+  <a href="/" style="flex-direction:column;"><span class="material-symbols-outlined">home</span><span lang="ru">Главная</span><span lang="en">Home</span></a>
+  <a href="/offer.html"><span class="material-symbols-outlined" style="font-variation-settings:'FILL'1;">gavel</span>Offer</a>
+  <a href="/privacy.html"><span class="material-symbols-outlined">policy</span>Privacy</a>
+  <a href="/refunds.html"><span class="material-symbols-outlined">receipt_long</span><span lang="ru">Возврат</span><span lang="en">Refunds</span></a>
+  <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+  <a href="/pricing.html" class="active"><span class="material-symbols-outlined">sell</span><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+</nav>
+
+<script>
+function switchLang(lang) {
+  document.documentElement.lang = lang;
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  try { localStorage.setItem('legal-lang', lang); } catch(e) {}
+  renderPricing(lang);
+}
+
+function formatPrice(minor, lang) {
+  if (minor === 0) return lang === 'ru' ? 'Бесплатно' : 'Free';
+  return (minor / 100).toFixed(0) + ' ₽';
+}
+
+function formatTokens(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return Math.round(n / 1000) + 'K';
+  return String(n);
+}
+
+var cachedPlans = null;
+
+function renderPricing(lang) {
+  var grid = document.getElementById('grid');
+  var error = document.getElementById('error');
+  if (!cachedPlans) {
+    error.style.display = 'block';
+    grid.innerHTML = '';
+    return;
+  }
+  error.style.display = 'none';
+  var s = {
+    ru: { tokens: 'токенов', month: '/мес', welcome: 'Приветственный грант' },
+    en: { tokens: 'tokens', month: '/mo', welcome: 'Welcome Grant' }
+  }[lang];
+
+  var html = '';
+  cachedPlans.forEach(function(p) {
+    var featured = p.featured ? ' featured' : '';
+    var sale = '';
+    if (p.sale_badge_text || p.sale_percent) {
+      sale = '<span class="badge">' + (p.sale_badge_text || ('–' + p.sale_percent + '%')) + '</span>';
+    }
+    var price = '<span class="price-value">' + formatPrice(p.sale_price_minor || p.base_price_minor, lang) + '</span>';
+    if (p.sale_price_minor && p.sale_price_minor !== p.base_price_minor) {
+      price = '<div class="price-old">' + formatPrice(p.base_price_minor, lang) + '</div>' + price;
+    }
+    var desc = p.description || '';
+    if (p.token_grant > 0) desc += ' · ' + formatTokens(p.token_grant) + ' ' + s.tokens;
+    if (p.kind === 'subscription') desc += ' · ' + s.tokens + s.month;
+    if (p.kind === 'welcome') desc = s.welcome;
+
+    html +=
+      '<div class="pricing-card' + featured + '">' +
+      '<div class="card-info"><div class="card-title">' + p.title + sale + '</div><div class="card-desc">' + desc + '</div></div>' +
+      '<div class="card-price">' + price + '</div>' +
+      '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+(function(){
+  window.scrollTo(0, 0);
+  var p = new URLSearchParams(location.search).get('lang');
+  var s;
+  try { s = localStorage.getItem('legal-lang'); } catch(e) {}
+  switchLang(p || s || 'ru');
+
+  fetch('/v1/billing/catalog')
+    .then(function(r) { if (!r.ok) throw new Error('failed'); return r.json(); })
+    .then(function(plans) {
+      cachedPlans = plans;
+      renderPricing(document.documentElement.lang || 'ru');
+    })
+    .catch(function() {
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('grid').innerHTML = '';
+    });
+})();
+</script>
+</body>
+</html>

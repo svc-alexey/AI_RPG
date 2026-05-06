@@ -10,7 +10,7 @@
 /// buildLegalUrl('offer', lang: 'en') // '/offer.html?lang=en'
 /// ```
 String buildLegalUrl(String page, {String? lang}) {
-  final validPages = {'offer', 'privacy', 'consent', 'refunds', 'contacts'};
+  final validPages = {'offer', 'privacy', 'consent', 'refunds', 'contacts', 'pricing'};
   assert(validPages.contains(page), 'Invalid legal page: $page');
   final url = '/$page.html';
   if (lang != null && lang.isNotEmpty) {
@@ -20,4 +20,4 @@ String buildLegalUrl(String page, {String? lang}) {
 }
 
 /// All valid legal page identifiers.
-const legalPages = ['offer', 'privacy', 'consent', 'refunds', 'contacts'];
+const legalPages = ['offer', 'privacy', 'consent', 'refunds', 'contacts', 'pricing'];

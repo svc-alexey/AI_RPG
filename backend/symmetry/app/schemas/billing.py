@@ -33,6 +33,16 @@ class BillingWalletResponse(BaseModel):
     welcome_expires_at: datetime | None = None
 
 
+class TransactionResponse(BaseModel):
+    id: str
+    amount: int
+    reason: str
+    source: str = ""
+    plan_code: str | None = None
+    campaign_id: str | None = None
+    created_at: datetime
+
+
 class CheckoutRequest(BaseModel):
     plan_code: str
     return_url: str = "/"

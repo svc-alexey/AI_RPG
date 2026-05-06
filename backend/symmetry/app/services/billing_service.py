@@ -18,7 +18,7 @@ from app.db.models import (
     BillingSubscription,
     CreditLedger,
 )
-from app.schemas.billing import BillingPlanResponse, BillingWalletResponse, CheckoutResponse
+from app.schemas.billing import BillingPlanResponse, BillingWalletResponse, CheckoutResponse, TransactionResponse
 from app.services.billing_encryption import decrypt_payment_method_id, encrypt_payment_method_id
 from app.services.entitlement import (
     has_welcome_grant as _has_welcome_grant,
@@ -190,6 +190,33 @@ async def process_payment_succeeded(
         "payment_succeeded_processed provider_payment_id=%s user_id=%s tokens=%s",
         provider_payment_id, order.user_id, token_grant,
     )
+
+
+async def get_transactions(
+    session: AsyncSession,
+    user_id: str,
+    limit: int = 20,
+) -> list[TransactionResponse]:
+    result = await session.execute(
+        select(CreditLedger)
+        .where(CreditLedger.user_id == user_id)
+        .order_by(CreditLedger.created_at.desc())
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+    out: list[TransactionResponse] = []
+    for row in rows:
+        meta = row.metadata_json or {}
+        out.append(TransactionResponse(
+            id=row.id,
+            amount=row.amount,
+            reason=row.reason,
+            source=meta.get("source", ""),
+            plan_code=meta.get("plan_code"),
+            campaign_id=meta.get("campaign_id"),
+            created_at=row.created_at,
+        ))
+    return out
 
 
 async def get_wallet(

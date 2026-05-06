@@ -312,6 +312,7 @@ class ChatController extends StateNotifier<ChatViewState> {
             : state.clearInputRevision + 1,
       );
       _scheduleRumorRefresh(nextCampaign.id);
+      _checkLowBalance();
       AppLogger.logDiagnostic(
         level: 'INFO',
         event: 'turn_completed',
@@ -384,6 +385,25 @@ class ChatController extends StateNotifier<ChatViewState> {
         status: l10n?.turnError(error),
       );
     }
+  }
+
+  void _checkLowBalance() {
+    Future<void>.delayed(const Duration(milliseconds: 500), () async {
+      try {
+        final repo = _ref.read(billingRepositoryProvider);
+        final wallet = await repo.fetchWallet();
+        if (_disposed) return;
+        if (wallet.totalTokensRemaining > 0 &&
+            wallet.totalTokensRemaining < 1000) {
+          _ref.read(lowEssenceWarningProvider.notifier).state =
+              wallet.totalTokensRemaining.toString();
+        } else {
+          _ref.read(lowEssenceWarningProvider.notifier).state = null;
+        }
+      } catch (_) {
+        // Silently ignore — wallet check is non-critical
+      }
+    });
   }
 
   void _clearPendingMessages() {

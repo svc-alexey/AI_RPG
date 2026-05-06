@@ -92,6 +92,9 @@ final StateProvider<AsyncCallback?> deferredActionProvider =
 final StateProvider<String?> paymentRequiredProvider =
     StateProvider<String?>((final ref) => null);
 
+final StateProvider<String?> lowEssenceWarningProvider =
+    StateProvider<String?>((final ref) => null);
+
 final FutureProvider<SymmetrySession?> symmetrySessionProvider =
     FutureProvider<SymmetrySession?>((final ref) async {
       final SymmetryAuthRepository repository = ref.read(

@@ -132,11 +132,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     });
 
+    ref.listen<String?>(lowEssenceWarningProvider, (final previous, final next) {
+      if (next != null && next != previous) {
+        WidgetsBinding.instance.addPostFrameCallback((final _) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.chatLowEssenceWarning(int.tryParse(next ?? '0') ?? 0)),
+                backgroundColor: const Color(0xFFBFA76F).withAlpha(220),
+                duration: const Duration(seconds: 6),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+        });
+      }
+    });
+
     ref.listen<String?>(paymentRequiredProvider, (final previous, final next) {
       if (next != null && next != previous) {
         WidgetsBinding.instance.addPostFrameCallback((final _) {
           if (!mounted) return;
           if (next.startsWith('guest_register:')) {
+            final l10n = context.l10n;
             showDialog<void>(
               context: context,
               builder: (final ctx) => AlertDialog(
@@ -155,15 +177,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       child: const Icon(Icons.token, size: 32, color: Color(0xFFC87941)),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Register to Continue',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Playfair Display', color: Color(0xFFE8E4E0)),
+                    Text(
+                      l10n.billingGuestRegisterTitle,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Playfair Display', color: Color(0xFFE8E4E0)),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'You\'ve used 5 free turns. Register now to get 1,000,000 free tokens and continue your adventure!',
+                    Text(
+                      l10n.billingGuestRegisterBody,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF7A7570), fontSize: 14),
+                      style: const TextStyle(color: Color(0xFF7A7570), fontSize: 14),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -183,13 +205,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           backgroundColor: const Color(0xFFC87941),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Register & Get 1M Tokens', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        child: Text(l10n.billingGuestRegisterAction, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
                     ),
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Not Now', style: TextStyle(color: Color(0xFF7A7570))),
+                      child: Text(l10n.billingNotNowAction, style: const TextStyle(color: Color(0xFF7A7570))),
                     ),
                   ],
                 ),

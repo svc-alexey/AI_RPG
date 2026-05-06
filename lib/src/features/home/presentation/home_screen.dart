@@ -300,6 +300,7 @@ class _HomeFooter extends StatelessWidget {
       'consent' => l10n.legalConsentShort,
       'refunds' => l10n.legalRefundsShort,
       'contacts' => l10n.legalContactsShort,
+      'pricing' => l10n.legalPricingShort,
       _ => page,
     };
     return <Widget>[
