@@ -1952,7 +1952,9 @@
         const sessionValue = encodeSharedPreferencesString(
           JSON.stringify(sessionPayload)
         );
-        const baseUrlValue = encodeSharedPreferencesString('/v1');
+        const baseUrlValue = encodeSharedPreferencesString(
+          window.location.origin + '/v1'
+        );
 
         // Flutter SharedPreferences on web stores keys with the "flutter." prefix.
         window.localStorage.setItem('flutter.settings.symmetry_session', sessionValue);
@@ -2005,7 +2007,7 @@
           persistSymmetrySession({
             user: payload.user,
             tokens: payload.tokens,
-            base_url: '/v1'
+            base_url: window.location.origin + '/v1'
           });
           window.location.replace(buildAutostartUrl());
         } catch (_) {
