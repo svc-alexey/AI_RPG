@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:js_interop';
 
 import 'package:ai_prg/src/core/config/symmetry_runtime_env.dart';
 import 'package:ai_prg/src/core/models/ai_settings.dart';
@@ -9,6 +10,9 @@ import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+@JS('location.origin')
+external String get locationOrigin;
 
 /// Symmetry mounts REST routes under `/v1`. If the user saved `http://127.0.0.1:8080`
 /// without the prefix, all API calls (including PUT …/cover) return 404.
@@ -888,11 +892,14 @@ class SymmetryApiClient {
     } else {
       relative = '$normalizedBase$path';
     }
-    // On web, relative URLs (like /v1/auth/guest) can resolve against a
-    // file:// base if Uri.base is misconfigured. Resolve against the actual
-    // page origin to guarantee an absolute https:// URL.
+    // Dart2JS can miscompile Uri.base as a file:// URL on Windows.
+    // Use the browser's location.origin directly for absolute URLs.
     if (kIsWeb && relative.startsWith('/')) {
-      return Uri.base.resolve(relative).toString();
+      try {
+        return '$locationOrigin$relative';
+      } catch (_) {
+        return relative; // fallback: let the browser resolve it
+      }
     }
     return relative;
   }
