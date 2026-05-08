@@ -310,7 +310,9 @@ Home Server (192.168.1.68, alexeyko)
 ### Flutter Web Deploy
 
 ```bash
-# 1. BUILD — обязательно с версиями!
+# 1. BUILD — обязательно с версиями и абсолютным URL!
+#    AI_PRG_SYMMETRY_BASE_URL: АБСОЛЮТНЫЙ URL прода (!не относительный /v1)
+#    Без этого Dart2JS резолвит API-запросы в file:/// и они блокируются браузером.
 RELEASE_ID="web-$(date -u +%Y%m%dT%H%M%SZ)"
 flutter build web \
   --dart-define=AI_PRG_APP_VERSION=1.0.0+1 \
@@ -327,14 +329,22 @@ scp /tmp/deploy-flutter.tar.gz alexeyko@192.168.1.68:/tmp/
 # 4. DEPLOY на сервере
 cd /home/alexeyko/ai-rpg/app
 # Бэкап
-cp -r deploy/web deploy/web.bak_$(date +%Y%m%d)
-# Очистить и распаковать Flutter build
-rm -rf deploy/web/*
+cp -r deploy/web deploy/web.bak_$(date +%Y%m%d_%H%M)
+# Сохранить статические HTML (они НЕ из Flutter build!)
+mkdir -p /tmp/web_static
+for f in offer.html privacy.html consent.html refunds.html contacts.html pricing.html subscribe.html; do
+    [ -f "deploy/web/$f" ] && cp "deploy/web/$f" "/tmp/web_static/$f"
+done
+# Очистить Flutter-файлы (не удалять статические .html!)
+rm -rf deploy/web/assets deploy/web/canvaskit deploy/web/icons
+rm -f deploy/web/*.js deploy/web/*.wasm deploy/web/*.json deploy/web/*.png deploy/web/*.svg deploy/web/*.ico deploy/web/index.html
+# Распаковать новую сборку
 tar -xzf /tmp/deploy-flutter.tar.gz -C deploy/web/
-# Восстановить статические HTML (legal + subscribe)
-# Эти файлы лежат в deploy/web/ в репо, они НЕ из Flutter build
-# После очистки их нужно вернуть:
-tar -xzf /tmp/deploy-new-files.tar.gz -C /home/alexeyko/ai-rpg/app/
+# Восстановить статические HTML
+for f in offer.html privacy.html consent.html refunds.html contacts.html pricing.html subscribe.html; do
+    [ -f "/tmp/web_static/$f" ] && cp "/tmp/web_static/$f" "deploy/web/$f"
+done
+rm -rf /tmp/web_static
 # Обновить version.json
 cat > deploy/web/version.json << EOF
 {
@@ -344,7 +354,8 @@ cat > deploy/web/version.json << EOF
   "released_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
-docker restart ai-rpg-web
+# Перезагрузить nginx (graceful reload, без даунтайма)
+docker exec ai-rpg-web nginx -s reload
 ```
 
 ### Backend Deploy
@@ -413,6 +424,30 @@ location / {
 }
 ```
 
+### External Accessibility Checklist
+
+При развёртывании веб-версии для доступа из интернета, проверить ВСЕ пункты:
+
+1. **Сборка с абсолютным URL:** `--dart-define=AI_PRG_SYMMETRY_BASE_URL=https://beyondtheverge.online/v1`
+2. **Все `--dart-define` флаги:** `APP_VERSION`, `ASSET_VERSION`, `RELEASE_ID`, `SYMMETRY_BASE_URL`
+3. **Nginx gzip включён** для `application/javascript`, `application/wasm` (`deploy/nginx/default.prod.conf`)
+4. **Caddy таймауты** для reverse_proxy к FRP (`read_timeout 120s`, `write_timeout 120s`)
+5. **Статические HTML сохранены** после очистки `deploy/web/`: offer, privacy, consent, refunds, contacts, pricing, subscribe
+6. **`version.json` обновлён** на сервере (Flutter build пишет `dev-local`)
+7. **Nginx reload** после замены файлов: `docker exec ai-rpg-web nginx -s reload`
+8. **Caddy reload** после изменения Caddyfile: `systemctl reload caddy`
+9. **FRP туннель активен:** проверить `systemctl status frps` на VPS и `docker ps | grep frpc` на домашнем
+10. **Проверка извне:** открыть `https://beyondtheverge.online/?lang=ru` через мобильный интернет (не локально!)
+
+**Типичные симптомы и причины:**
+| Симптом | Причина |
+|---|---|
+| Загрузка на 12% и стоп | Nginx gzip выключен, `main.dart.js` не проходит FRP |
+| `file:///C:/Program%20Files/Git/v1/...` в консоли | `AI_PRG_SYMMETRY_BASE_URL` относительный `/v1` вместо абсолютного |
+| `aborting with incomplete response` в логах Caddy | Нет таймаутов на reverse_proxy к FRP |
+| Белый экран после загрузки | Статические HTML затёрты при деплое |
+| `reload_required: true` бесконечно | `version.json` не обновлён или `ASSET_VERSION=dev-local` |
+
 ### Known Pitfalls
 
 1. **`map_routes.py` добавлен, но требует `docker cp` на прод.** Файл существует в репо (создан в `4379030`), зарегистрирован в `__init__.py` и `main.py`. При деплое новых бэкенд-файлов не забывать копировать `map_routes.py`.
@@ -428,3 +463,7 @@ location / {
 11. **`Stack` не изолирует `DefaultTextStyle`.** Стили текста из родительских виджетов (HomeScreen, тема Material) протекают в оверлеи. Для диалогов всегда добавлять `decoration: TextDecoration.none` явно.
 12. **`history.scrollRestoration` переопределяет `window.scrollTo()`.** На статических HTML-страницах нужно `history.scrollRestoration = 'manual'` перед `scrollTo(0,0)`.
 13. **`BillingPlan.metadata_json["is_active"]` отсутствует у активных планов.** Фильтр `!= False` не работает с NULL. Правильно: `or_(field == None, field.as_boolean() == True)`.
+14. **`AI_PRG_SYMMETRY_BASE_URL` должен быть АБСОЛЮТНЫМ URL для web-сборки.** Относительный `/v1` Dart2JS на Windows резолвит в `file:///C:/Program%20Files/Git/v1/...` — браузер блокирует такие запросы. Всегда использовать `https://beyondtheverge.online/v1` (или домен прода) при `flutter build web`.
+15. **Nginx gzip обязателен для `main.dart.js`.** Без сжатия файл 3.6 MB не проходит через FRP-туннель — Caddy обрывает соединение с `unexpected EOF`. Включить `gzip on` с `application/javascript` в типах.
+16. **Caddy reverse_proxy к FRP требует явных таймаутов.** Дефолтные таймауты Caddy (0s = без лимита) не работают с FRP. Добавить `transport http { read_timeout 120s; write_timeout 120s }`.
+17. **После деплоя всегда проверять извне (мобильный интернет/VPN).** Локальные тесты не выявляют проблемы с FRP-туннелем, gzip, Caddy и Dart2JS URL-резолвингом.

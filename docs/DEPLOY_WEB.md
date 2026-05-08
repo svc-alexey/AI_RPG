@@ -40,27 +40,21 @@ Use the project script:
 powershell -ExecutionPolicy Bypass -File tool\build_web_release.ps1
 ```
 
-Важно: production web release теперь должен собираться через
-`tool\web_release_defines.nginx.json`, а `AI_PRG_ASSET_VERSION` должен
-принудительно совпадать с текущим `release_id`. Иначе `/version` видит клиент
-как устаревший и web начинает циклически просить обновление даже после
-успешного деплоя.
+**Критически важно:** `AI_PRG_SYMMETRY_BASE_URL` должен быть **абсолютным** URL
+(например `https://beyondtheverge.online/v1`), а НЕ относительным `/v1`.
+При сборке на Windows Dart2JS резолвит относительные URL против `Uri.base`,
+который может указывать на `file:///C:/Program%20Files/Git/` — браузер
+блокирует такие запросы, и приложение не может связаться с сервером.
 
-For local browser preview, prefer the production-like bundle over a hot
-Flutter web-server session:
+Полный набор обязательных флагов для production web:
 
-```powershell
-flutter build web --no-tree-shake-icons
-python -m http.server 3010 --directory build/web
+```bash
+flutter build web \
+  --dart-define=AI_PRG_APP_VERSION=1.0.0+1 \
+  --dart-define=AI_PRG_ASSET_VERSION=$RELEASE_ID \
+  --dart-define=AI_PRG_RELEASE_ID=$RELEASE_ID \
+  --dart-define=AI_PRG_SYMMETRY_BASE_URL=https://beyondtheverge.online/v1
 ```
-
-Why this is the preferred dev path:
-
-- asset loading matches real deployment more closely;
-- Material Icons are served from the built asset bundle without dev-server
-  quirks;
-- it is easier to diagnose cache, CORS, and static asset issues;
-- the script generates and ships release metadata and SEO assets together.
 
 ## Backend requirement
 
@@ -143,6 +137,50 @@ Flutter with `?handoff=...`, and Flutter finishes sign-in through
 - Keep `version.json` and backend `/version` synchronized to the same release id.
 - Keep the service worker enabled in production; do not strip
   `flutter_service_worker.js` from the bundle.
+
+### Nginx: gzip обязателен
+
+`main.dart.js` весит ~3.6 MB без сжатия. Через FRP-туннель такой объём
+не проходит — Caddy обрывает соединение с `unexpected EOF`. Включить gzip:
+
+```nginx
+gzip on;
+gzip_vary on;
+gzip_comp_level 6;
+gzip_min_length 1000;
+gzip_types text/plain text/css text/xml text/javascript
+           application/javascript application/json application/wasm
+           application/octet-stream image/svg+xml;
+```
+
+Со сжатием `main.dart.js` уменьшается до ~1 MB (-71%) и стабильно проходит
+через FRP-туннель.
+
+### Caddy: таймауты для FRP
+
+При использовании FRP-туннеля Caddy требует явных таймаутов для reverse_proxy:
+
+```
+beyondtheverge.online {
+    reverse_proxy 127.0.0.1:18083 {
+        transport http {
+            read_timeout 120s
+            write_timeout 120s
+        }
+    }
+}
+```
+
+Без таймаутов Caddy обрывает соединения при передаче больших файлов.
+
+### FRP туннель
+
+Проверить что FRP-туннель активен после деплоя:
+- VPS: `systemctl status frps`
+- Домашний сервер: `docker ps | grep frpc` (или `systemctl status frpc`)
+
+Проверить цепочку: `curl -s -H "Accept-Encoding: gzip" http://127.0.0.1:18083/main.dart.js | wc -c` на VPS должен вернуть ~1 MB (сжатый размер).
+
 - If the backend container was recreated in Docker, be ready to restart the
   `web` container too; otherwise nginx may keep returning `502` to
   `symmetry-api` even when the API is already healthy again.
@@ -191,6 +229,31 @@ Flutter with `?handoff=...`, and Flutter finishes sign-in through
 
 These fixes are already reflected in the current production code and are worth
 preserving in future deploys.
+
+### Dart2JS file:// URL resolution (2026-05-08)
+
+**Проблема:** при сборке на Windows `flutter build web` с
+`AI_PRG_SYMMETRY_BASE_URL=/v1` (относительный путь) Dart2JS резолвит API-запросы
+против `Uri.base`, который указывает на `file:///C:/Program%20Files/Git/`.
+Браузер блокирует `file:///` запросы — приложение загружается, но не может
+связаться с сервером ("сервер игры не доступен").
+
+**Исправление:** всегда использовать абсолютный URL при сборке:
+`--dart-define=AI_PRG_SYMMETRY_BASE_URL=https://beyondtheverge.online/v1`
+
+Дополнительно:
+- `web/index.html` сохраняет `window.location.origin + '/v1'` в localStorage
+- `symmetry_api_client.dart._join()` форсирует абсолютные URL через
+  `@JS('self.location.origin')` как fallback
+
+### Nginx gzip + Caddy timeouts (2026-05-08)
+
+**Проблема:** `main.dart.js` (3.6 MB без сжатия) не проходил через FRP-туннель.
+Caddy обрывал соединение с `aborting with incomplete response: unexpected EOF`
+за 0.117 сек. Прогресс загрузки останавливался на 12%.
+
+**Исправление:** включён gzip в nginx (3.6 MB → 1.0 MB), добавлены таймауты
+`read_timeout 120s` / `write_timeout 120s` в Caddy для reverse_proxy к FRP.
 
 ### Settings and auth UX
 
