@@ -11,7 +11,7 @@ import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-@JS('location.origin')
+@JS('self.location.origin')
 external String get locationOrigin;
 
 /// Symmetry mounts REST routes under `/v1`. If the user saved `http://127.0.0.1:8080`
