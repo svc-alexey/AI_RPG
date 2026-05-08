@@ -3,16 +3,25 @@
 
 from __future__ import annotations
 
+import os
+import sys
+
 import paramiko
 
 
-VPS_HOST = "153.80.247.32"
-VPS_USER = "root"
-VPS_PASSWORD = "REDACTED"
+VPS_HOST = os.getenv("VPS_HOST", "153.80.247.32")
+VPS_USER = os.getenv("VPS_USER", "root")
+VPS_PASSWORD = os.getenv("VPS_PASSWORD", "")
 
-HOME_HOST = "192.168.1.68"
-HOME_USER = "alexeyko"
-HOME_PASSWORD = "REDACTED"
+HOME_HOST = os.getenv("HOME_HOST", "192.168.1.68")
+HOME_USER = os.getenv("HOME_USER", "alexeyko")
+HOME_PASSWORD = os.getenv("HOME_PASSWORD", "")
+
+
+def _check_password(name: str, value: str) -> None:
+    if not value:
+        print(f"Error: {name} env var not set. Create a .env file or export the variable.", file=sys.stderr)
+        sys.exit(1)
 
 
 def ssh(host: str, user: str, password: str) -> paramiko.SSHClient:
@@ -99,6 +108,8 @@ def audit(name: str, host: str, user: str, pwd: str) -> None:
 
 
 def main():
+    _check_password("HOME_PASSWORD", HOME_PASSWORD)
+    _check_password("VPS_PASSWORD", VPS_PASSWORD)
     audit("HOME SERVER", HOME_HOST, HOME_USER, HOME_PASSWORD)
     audit("VPS", VPS_HOST, VPS_USER, VPS_PASSWORD)
 
