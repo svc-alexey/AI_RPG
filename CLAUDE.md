@@ -315,7 +315,8 @@ RELEASE_ID="web-$(date -u +%Y%m%dT%H%M%SZ)"
 flutter build web \
   --dart-define=AI_PRG_APP_VERSION=1.0.0+1 \
   --dart-define=AI_PRG_ASSET_VERSION=$RELEASE_ID \
-  --dart-define=AI_PRG_RELEASE_ID=$RELEASE_ID
+  --dart-define=AI_PRG_RELEASE_ID=$RELEASE_ID \
+  --dart-define=AI_PRG_SYMMETRY_BASE_URL=/v1
 
 # 2. PACK
 tar -czf /tmp/deploy-flutter.tar.gz -C build/web .
