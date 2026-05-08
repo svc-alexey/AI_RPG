@@ -879,13 +879,22 @@ class SymmetryApiClient {
     final String normalizedBase = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
+    final String relative;
     if (!apiPrefix) {
       final String withoutApi = normalizedBase.endsWith('/v1')
           ? normalizedBase.substring(0, normalizedBase.length - 3)
           : normalizedBase;
-      return '$withoutApi$path';
+      relative = '$withoutApi$path';
+    } else {
+      relative = '$normalizedBase$path';
     }
-    return '$normalizedBase$path';
+    // On web, relative URLs (like /v1/auth/guest) can resolve against a
+    // file:// base if Uri.base is misconfigured. Resolve against the actual
+    // page origin to guarantee an absolute https:// URL.
+    if (kIsWeb && relative.startsWith('/')) {
+      return Uri.base.resolve(relative).toString();
+    }
+    return relative;
   }
 
   Object? _tryDecode(final String body) {
