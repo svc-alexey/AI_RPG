@@ -140,7 +140,7 @@ def _verification_result_html(*, success: bool, message: str, lang: str) -> str:
     )
     action = "Открыть приложение" if is_ru else "Open app"
     brand = "Стирая Грань" if is_ru else "Beyond The Verge"
-    redirect_url = f"/?lang={lang}"
+    redirect_url = f"/?lang={lang}&autostart=1"
 
     if success:
         icon_svg = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -164,7 +164,8 @@ def _verification_result_html(*, success: bool, message: str, lang: str) -> str:
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta http-equiv="refresh" content="2;url={redirect_url}"/>
+<meta http-equiv="refresh" content="1;url={redirect_url}"/>
+<script>setTimeout(function(){{window.location.href='{redirect_url}';}},1200);</script>
 <title>{title}</title>
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -297,19 +298,13 @@ async def migrate_guest(
             detail="invalid_guest_user",
         )
 
-    tables = [
-        Campaign, CampaignTurn, CampaignSnapshot, WorldState,
-        WorldLocation, WorldChronicle, SimulationTick, PendingConsequence,
-    ]
-    migrated = 0
-
-    for table in tables:
-        result = await session.execute(
-            select(table).where(table.user_id == body.guest_user_id)
-        )
-        for row in result.scalars().all():
-            row.user_id = user.id
-            migrated += 1
+    result = await session.execute(
+        select(Campaign).where(Campaign.owner_user_id == body.guest_user_id)
+    )
+    campaigns = result.scalars().all()
+    for campaign in campaigns:
+        campaign.owner_user_id = user.id
+    migrated = len(campaigns)
 
     await session.commit()
     return MessageResponse(message=f"guest_migrated_records={migrated}")
