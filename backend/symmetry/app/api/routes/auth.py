@@ -140,7 +140,7 @@ def _verification_result_html(*, success: bool, message: str, lang: str) -> str:
     )
     action = "Открыть приложение" if is_ru else "Open app"
     brand = "Стирая Грань" if is_ru else "Beyond The Verge"
-    redirect_url = f"/?lang={lang}&autostart=1"
+    redirect_url = f"/?lang={lang}&autostart=1&email_verified=1"
 
     if success:
         icon_svg = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>'

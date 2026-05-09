@@ -2022,9 +2022,19 @@ class AppLocalizations {
     AppLanguage.en => 'Your email has been verified. Welcome to Beyond The Verge!',
   };
 
+  String get authEmailVerifiedSuccessNeedLogin => switch (language) {
+    AppLanguage.ru => 'Ваша почта успешно подтверждена. Войдите в аккаунт, чтобы продолжить.',
+    AppLanguage.en => 'Your email has been verified. Log in to your account to continue.',
+  };
+
   String get authEmailVerifiedSuccessAction => switch (language) {
     AppLanguage.ru => 'Продолжить',
     AppLanguage.en => 'Continue',
+  };
+
+  String get authEmailVerifiedLoginAction => switch (language) {
+    AppLanguage.ru => 'Войти',
+    AppLanguage.en => 'Log in',
   };
 
   String get authEmailVerificationChecking => switch (language) {

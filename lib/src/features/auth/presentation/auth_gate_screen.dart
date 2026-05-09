@@ -330,8 +330,15 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
           ),
         if (_emailVerifiedSuccess)
           _EmailVerifiedSuccessOverlay(
+            isLoggedIn: sessionState.hasValue &&
+                sessionState.value != null &&
+                !sessionState.value!.isGuest,
             onContinue: () {
               setState(() => _emailVerifiedSuccess = false);
+            },
+            onLogin: () {
+              setState(() => _emailVerifiedSuccess = false);
+              ref.invalidate(symmetrySessionProvider);
             },
           ),
       ],
@@ -532,13 +539,27 @@ class _EmailVerificationOverlayState
 }
 
 class _EmailVerifiedSuccessOverlay extends StatelessWidget {
-  const _EmailVerifiedSuccessOverlay({required this.onContinue});
+  const _EmailVerifiedSuccessOverlay({
+    required this.isLoggedIn,
+    required this.onContinue,
+    required this.onLogin,
+  });
 
+  final bool isLoggedIn;
   final VoidCallback onContinue;
+  final VoidCallback onLogin;
 
   @override
   Widget build(final BuildContext context) {
     final l10n = context.l10n;
+
+    final String message = isLoggedIn
+        ? l10n.authEmailVerifiedSuccessMessage
+        : l10n.authEmailVerifiedSuccessNeedLogin;
+    final String buttonLabel = isLoggedIn
+        ? l10n.authEmailVerifiedSuccessAction
+        : l10n.authEmailVerifiedLoginAction;
+    final VoidCallback buttonAction = isLoggedIn ? onContinue : onLogin;
 
     final Widget card = Column(
       mainAxisSize: MainAxisSize.min,
@@ -566,7 +587,7 @@ class _EmailVerifiedSuccessOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          l10n.authEmailVerifiedSuccessMessage,
+          message,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Color(0xFF7A7570),
@@ -580,14 +601,14 @@ class _EmailVerifiedSuccessOverlay extends StatelessWidget {
           width: double.infinity,
           height: 48,
           child: FilledButton(
-            onPressed: onContinue,
+            onPressed: buttonAction,
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF34D399),
               foregroundColor: const Color(0xFF0A0908),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text(l10n.authEmailVerifiedSuccessAction,
+            child: Text(buttonLabel,
                 style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
