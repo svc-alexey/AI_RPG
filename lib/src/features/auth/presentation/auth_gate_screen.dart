@@ -29,6 +29,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   Object? _warmSessionWarning;
   bool _redirectingLegacyYandexCallback = false;
   bool _dismissedVerification = false;
+  bool _emailVerifiedSuccess = false;
 
   @override
   void initState() {
@@ -71,7 +72,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
           .verifyEmail(token: token);
       replaceBrowserUrl(_browserUrlAfterYandexCallback());
       ref.invalidate(symmetrySessionProvider);
-      await _warmSession();
+      setState(() => _emailVerifiedSuccess = true);
     } catch (error) {
       _callbackError = error;
       replaceBrowserUrl(_browserUrlAfterYandexCallback());
@@ -82,6 +83,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   void _handleEmailVerifiedFlag() {
     replaceBrowserUrl(_browserUrlAfterYandexCallback());
     ref.invalidate(symmetrySessionProvider);
+    setState(() => _emailVerifiedSuccess = true);
   }
 
   bool get _hasYandexCallbackPayload {
@@ -326,6 +328,12 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
               ref.invalidate(symmetrySessionProvider);
             },
           ),
+        if (_emailVerifiedSuccess)
+          _EmailVerifiedSuccessOverlay(
+            onContinue: () {
+              setState(() => _emailVerifiedSuccess = false);
+            },
+          ),
       ],
     );
   }
@@ -513,6 +521,97 @@ class _EmailVerificationOverlayState
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                   color: const Color(0xFFC87941).withAlpha(60), width: 1),
+            ),
+            padding: const EdgeInsets.all(28),
+            child: card,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmailVerifiedSuccessOverlay extends StatelessWidget {
+  const _EmailVerifiedSuccessOverlay({required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(final BuildContext context) {
+    final l10n = context.l10n;
+
+    final Widget card = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: const Color(0xFF34D399).withAlpha(30),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_circle_outline,
+              size: 36, color: Color(0xFF34D399)),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          l10n.authEmailVerificationSuccess,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFE8E4E0),
+            fontFamily: 'Playfair Display',
+            decoration: TextDecoration.none,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          l10n.authEmailVerifiedSuccessMessage,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF7A7570),
+            fontSize: 14,
+            height: 1.5,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: FilledButton(
+            onPressed: onContinue,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF34D399),
+              foregroundColor: const Color(0xFF0A0908),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(l10n.authEmailVerifiedSuccessAction,
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none)),
+          ),
+        ),
+      ],
+    );
+
+    return GestureDetector(
+      onTap: onContinue,
+      child: Container(
+        color: Colors.black54,
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {},
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            constraints: const BoxConstraints(maxWidth: 420),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F0D0B),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: const Color(0xFF34D399).withAlpha(60), width: 1),
             ),
             padding: const EdgeInsets.all(28),
             child: card,
