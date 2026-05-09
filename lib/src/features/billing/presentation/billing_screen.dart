@@ -667,16 +667,16 @@ class _HeroBalanceCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _BalanceChip(
                   label:
                       '${_formatTokens(wallet.welcomeTokensRemaining)} ${l10n.billingWelcomePermanent}'),
-              const SizedBox(width: 8),
               _BalanceChip(
                   label:
                       '${_formatTokens(wallet.subscriptionTokensRemaining)} ${l10n.billingMonthly}'),
-              const SizedBox(width: 8),
               _BalanceChip(
                   label:
                       '${_formatTokens(wallet.paidTokensRemaining)} ${l10n.billingPermanent}'),
