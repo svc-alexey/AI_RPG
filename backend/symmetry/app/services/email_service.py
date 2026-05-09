@@ -5,11 +5,40 @@ from email.utils import formatdate
 from app.core.config import Settings
 
 
+def _is_russian(headers_accept_language: str) -> bool:
+    """True if Accept-Language indicates Russian as primary language."""
+    if not headers_accept_language:
+        return True  # default to Russian (project primary language)
+    first = headers_accept_language.split(",")[0].strip().lower()
+    return first.startswith("ru")
+
+
+_LOCALIZED = {
+    True: {  # Russian
+        "from_name": "Стирая Грань",
+        "subject": "Стирая Грань — Подтвердите email",
+        "text_body": "Перейдите по ссылке, чтобы подтвердить email:\n{url}",
+        "html_title": "Подтвердите email, чтобы продолжить.",
+        "html_button": "Подтвердить",
+        "html_expiry": "Ссылка действительна 24 часа.",
+    },
+    False: {  # English
+        "from_name": "Beyond The Verge",
+        "subject": "Beyond The Verge — Confirm your email",
+        "text_body": "Click the link to verify your email:\n{url}",
+        "html_title": "Verify your email to continue.",
+        "html_button": "Verify",
+        "html_expiry": "Link expires in 24 hours.",
+    },
+}
+
+
 def send_verification_email(
     settings: Settings,
     *,
     to_email: str,
     verification_url: str,
+    accept_language: str = "",
 ) -> None:
     smtp_host = settings.feedback_smtp_host.strip()
     if not smtp_host:
@@ -19,20 +48,18 @@ def send_verification_email(
     if not sender:
         raise RuntimeError("auth_email_sender_not_configured")
 
-    from_name = settings.auth_email_from_name.strip() or "Symmetry"
+    lang = _LOCALIZED[_is_russian(accept_language)]
+    from_name = lang["from_name"]
 
     msg = EmailMessage()
-    msg["Subject"] = f"{from_name} — Confirm your email / Подтвердите email"
+    msg["Subject"] = lang["subject"]
     msg["From"] = f"{from_name} <{sender}>"
     msg["To"] = to_email
     msg["Date"] = formatdate(localtime=True)
 
-    msg.set_content(
-        f"Click the link to verify your email:\n{verification_url}\n\n"
-        f"Перейдите по ссылке, чтобы подтвердить email:\n{verification_url}"
-    )
+    msg.set_content(lang["text_body"].format(url=verification_url))
 
-    msg.add_alternative(_build_html_body(verification_url, from_name), subtype="html")
+    msg.add_alternative(_build_html_body(verification_url, lang), subtype="html")
 
     if settings.feedback_smtp_use_ssl:
         with smtplib.SMTP_SSL(smtp_host, settings.feedback_smtp_port, timeout=20) as smtp:
@@ -48,7 +75,7 @@ def send_verification_email(
             smtp.send_message(msg)
 
 
-def _build_html_body(verification_url: str, from_name: str) -> str:
+def _build_html_body(verification_url: str, lang: dict[str, str]) -> str:
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -113,18 +140,12 @@ def _build_html_body(verification_url: str, from_name: str) -> str:
 </head>
 <body>
 <div class="card">
-  <div class="brand">{from_name}</div>
-  <div class="subtitle">
-    Подтвердите email, чтобы продолжить.<br/>
-    Verify your email to continue.
-  </div>
-  <a href="{verification_url}" class="button">
-    Подтвердить &nbsp;/&nbsp; Verify
-  </a>
+  <div class="brand">{lang["from_name"]}</div>
+  <div class="subtitle">{lang["html_title"]}</div>
+  <a href="{verification_url}" class="button">{lang["html_button"]}</a>
   <hr class="divider"/>
   <div class="footer">
-    Ссылка действительна 24 часа.<br/>
-    Link expires in 24 hours.
+    {lang["html_expiry"]}
     <br/><br/>
     <a href="{verification_url}">{verification_url}</a>
   </div>

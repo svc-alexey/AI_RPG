@@ -145,10 +145,14 @@ async def verify_email(
 
 @router.post("/resend-verification", response_model=MessageResponse)
 async def resend_verification(
+    request: Request,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> MessageResponse:
-    await auth_service.resend_verification(session, user)
+    await auth_service.resend_verification(
+        session, user,
+        accept_language=request.headers.get("Accept-Language", ""),
+    )
     return MessageResponse(message="verification_email_sent")
 
 

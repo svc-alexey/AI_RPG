@@ -80,7 +80,11 @@ class AuthService:
         await session.commit()
 
         asyncio.create_task(
-            self._send_verification_email_async(user_email=user.email, token=raw_token)
+            self._send_verification_email_async(
+                user_email=user.email,
+                token=raw_token,
+                accept_language=request.headers.get("Accept-Language", ""),
+            )
         )
 
         return AuthResponse(
@@ -384,19 +388,20 @@ class AuthService:
         return raw_token, expires_at
 
     async def _send_verification_email_async(
-        self, *, user_email: str, token: str
+        self, *, user_email: str, token: str, accept_language: str = "",
     ) -> None:
         base_url = (
             self._settings.auth_email_verification_base_url.strip()
             or self._settings.web_public_origin.strip()
         )
-        verification_url = f"{base_url.rstrip('/')}/?verify_token={token}"
+        verification_url = f"{base_url.rstrip('/')}/v1/auth/verify-email?token={token}"
         try:
             await asyncio.to_thread(
                 send_verification_email,
                 self._settings,
                 to_email=user_email,
                 verification_url=verification_url,
+                accept_language=accept_language,
             )
         except Exception:
             logger = get_logger("symmetry.auth")
@@ -442,7 +447,7 @@ class AuthService:
         return user
 
     async def resend_verification(
-        self, session: AsyncSession, user: User
+        self, session: AsyncSession, user: User, *, accept_language: str = "",
     ) -> None:
         if user.email_verified:
             raise HTTPException(
@@ -482,7 +487,9 @@ class AuthService:
 
         asyncio.create_task(
             self._send_verification_email_async(
-                user_email=user.email, token=raw_token
+                user_email=user.email,
+                token=raw_token,
+                accept_language=accept_language,
             )
         )
 
