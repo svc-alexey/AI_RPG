@@ -1040,6 +1040,22 @@ class SymmetryApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getBillingOrder({
+    required final String accessToken,
+    required final String orderId,
+  }) async {
+    final Object? decoded = await _get(
+      '/billing/orders/$orderId',
+      bearerToken: accessToken,
+    );
+    if (decoded is! Map<Object?, Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded.map(
+      (final k, final v) => MapEntry(k.toString(), v),
+    );
+  }
+
   Future<void> postMigrateGuest({
     required final String accessToken,
     required final String guestUserId,

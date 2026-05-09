@@ -95,6 +95,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _checkPendingPaymentOnStartup();
+  }
+
+  Future<void> _checkPendingPaymentOnStartup() async {
+    final repo = ref.read(billingRepositoryProvider);
+    final pendingOrderId = await repo.getPendingOrderId();
+    if (pendingOrderId == null) return;
+
+    final session = ref.read(symmetrySessionProvider).valueOrNull;
+    if (session == null || session.isGuest) return;
+
+    final orderStatus = await repo.getOrderStatus(pendingOrderId);
+    if (orderStatus == null) return;
+
+    // Navigate to billing for both pending and succeeded orders
+    // Only skip for canceled (terminal failure)
+    if (orderStatus['status'] == 'canceled') {
+      await repo.clearPendingOrderId();
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (final _) => const BillingScreen(),
+      ),
+    );
+  }
+
+  @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = context.l10n;

@@ -30,6 +30,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   String? _transactionsError;
   bool _offline = false;
   int _animatedTokens = 0;
+  late final AppLifecycleListener _lifecycleObserver;
 
   bool get _isGuest {
     final session = ref.read(symmetrySessionProvider).valueOrNull;
@@ -48,7 +49,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   void initState() {
     super.initState();
+    _lifecycleObserver = AppLifecycleListener(
+      onResume: () => _checkPendingPayments(),
+    );
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
     _load();
+    _checkPendingPayments();
+  }
+
+  @override
+  void dispose() {
+    _lifecycleObserver.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -132,9 +144,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         returnUrl: '/',
       );
       if (!mounted) return;
+      await repo.savePendingOrderId(result.orderId);
       await launchUrl(Uri.parse(result.confirmationUrl),
           mode: LaunchMode.externalApplication);
-      _startPolling();
+      _startPolling(result.orderId);
     } catch (e) {
       if (!mounted) return;
       final l10n = context.l10n;
@@ -151,7 +164,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
-  void _startPolling() {
+  void _startPolling(final String orderId) {
     ref.read(_pollingStateProvider.notifier).state = _PollingState.polling;
     int attempts = 0;
     Future.doWhile(() async {
@@ -173,16 +186,39 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           });
           ref.read(_pollingStateProvider.notifier).state =
               _PollingState.confirmed;
+          await repo.clearPendingOrderId();
           return false;
         }
-        if (attempts >= 15) {
+        // Fallback: check order status at YooKassa
+        final orderStatus = await repo.getOrderStatus(orderId);
+        if (orderStatus != null) {
+          if (orderStatus['status'] == 'succeeded') {
+            final freshWallet = await repo.fetchWallet();
+            await repo.clearPendingOrderId();
+            if (!mounted) return false;
+            setState(() {
+              _previousWallet = _wallet;
+              _wallet = freshWallet;
+              _animatedTokens = freshWallet.totalTokensRemaining;
+            });
+            ref.read(_pollingStateProvider.notifier).state =
+                _PollingState.confirmed;
+            return false;
+          } else if (orderStatus['status'] == 'canceled') {
+            await repo.clearPendingOrderId();
+            ref.read(_pollingStateProvider.notifier).state =
+                _PollingState.idle;
+            return false;
+          }
+        }
+        if (attempts >= 30) {
           ref.read(_pollingStateProvider.notifier).state =
               _PollingState.timeout;
           return false;
         }
         return true;
       } catch (_) {
-        if (attempts >= 15) {
+        if (attempts >= 30) {
           ref.read(_pollingStateProvider.notifier).state =
               _PollingState.timeout;
           return false;
@@ -211,6 +247,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           backgroundColor: Colors.red.shade800,
         ),
       );
+    }
+  }
+
+  Future<void> _checkPendingPayments() async {
+    final repo = ref.read(billingRepositoryProvider);
+    final pendingOrderId = await repo.getPendingOrderId();
+    if (pendingOrderId == null) return;
+
+    try {
+      final orderStatus = await repo.getOrderStatus(pendingOrderId);
+      if (orderStatus == null) return;
+
+      if (orderStatus['status'] == 'succeeded') {
+        final wallet = await repo.fetchWallet();
+        await repo.clearPendingOrderId();
+        if (!mounted) return;
+        setState(() {
+          _previousWallet = _wallet;
+          _wallet = wallet;
+          _animatedTokens = wallet.totalTokensRemaining;
+        });
+        ref.read(_pollingStateProvider.notifier).state = _PollingState.confirmed;
+      } else if (orderStatus['status'] == 'canceled') {
+        await repo.clearPendingOrderId();
+        ref.read(_pollingStateProvider.notifier).state = _PollingState.idle;
+      }
+    } catch (_) {
+      // Сетевая ошибка — проверим при следующем открытии
     }
   }
 

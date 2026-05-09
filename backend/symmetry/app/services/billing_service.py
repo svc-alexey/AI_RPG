@@ -94,7 +94,7 @@ async def create_checkout(
             amount_minor=price,
             currency="RUB",
             order_id=order_id,
-            return_url=return_url,
+            return_url=get_settings().yookassa_return_url,
             save_payment_method=(kind == "subscription"),
         )
     except YooKassaClientError as exc:
@@ -105,6 +105,7 @@ async def create_checkout(
     order.confirmation_url = payment.confirmation_url
     order.status = "pending"
     await session.flush()
+    await session.commit()
 
     return CheckoutResponse(
         order_id=order_id,
@@ -186,6 +187,7 @@ async def process_payment_succeeded(
         session.add(sub)
 
     await session.flush()
+    await session.commit()
     logger.info(
         "payment_succeeded_processed provider_payment_id=%s user_id=%s tokens=%s",
         provider_payment_id, order.user_id, token_grant,

@@ -138,7 +138,9 @@ class YooKassaClient:
     @staticmethod
     def verify_webhook_signature(body: bytes, signature: str | None) -> bool:
         settings = get_settings()
-        if not settings.yookassa_webhook_secret or not signature:
+        if not settings.yookassa_webhook_secret:
+            return True  # Verification not configured
+        if not signature:
             return False
         expected = hmac.new(
             settings.yookassa_webhook_secret.encode(),

@@ -87,6 +87,39 @@ class BillingRepository {
     );
   }
 
+  static const _pendingOrderKey = 'billing_pending_order_id';
+
+  Future<void> savePendingOrderId(final String orderId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pendingOrderKey, orderId);
+  }
+
+  Future<String?> getPendingOrderId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_pendingOrderKey);
+  }
+
+  Future<void> clearPendingOrderId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_pendingOrderKey);
+  }
+
+  Future<Map<String, dynamic>?> getOrderStatus(final String orderId) async {
+    return _authRepository.runWithAuthorizedSession(
+      (final s) async {
+        try {
+          return await _client(s.baseUrl).getBillingOrder(
+            accessToken: s.tokens.accessToken,
+            orderId: orderId,
+          );
+        } catch (_) {
+          return null;
+        }
+      },
+      allowGuest: false,
+    );
+  }
+
   Future<void> migrateGuestCampaigns(final String guestUserId) async {
     await _authRepository.runWithAuthorizedSession(
       (final s) async {

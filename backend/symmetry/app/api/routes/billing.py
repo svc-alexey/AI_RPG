@@ -165,6 +165,33 @@ async def list_transactions(
     return await get_transactions(session, user.id, limit=limit)
 
 
+@router.get("/orders/{order_id}")
+async def get_order(
+    order_id: str,
+    user: User = Depends(get_current_verified_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    result = await session.execute(
+        select(BillingOrder).where(
+            BillingOrder.id == order_id,
+            BillingOrder.user_id == user.id,
+        )
+    )
+    order = result.scalars().first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="order_not_found")
+
+    return {
+        "order_id": order.id,
+        "plan_code": order.plan_code,
+        "status": order.status,
+        "amount_minor": order.amount_minor,
+        "currency": order.currency,
+        "provider_payment_id": order.provider_payment_id,
+        "created_at": order.created_at.isoformat() if order.created_at else None,
+    }
+
+
 @router.post("/webhook/yookassa")
 async def yookassa_webhook(
     request: Request,
@@ -187,6 +214,9 @@ async def yookassa_webhook(
     payment_data = event.get("object", {})
     payment_id = payment_data.get("id")
     payment_status = payment_data.get("status")
+
+    if event.get("type") != "notification":
+        return {"received": True}
 
     if not payment_id:
         return {"received": True}
