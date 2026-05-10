@@ -83,6 +83,22 @@ class StoryLibraryService:
         templates = list(result.scalars().all())
         return await self._serialize_many(session, templates, user_id=user_id, sort=sort)
 
+    async def list_user_templates(
+        self,
+        session: AsyncSession,
+        *,
+        user_id: str,
+    ) -> list[StoryTemplateResponse]:
+        stmt: Select = (
+            select(StoryTemplate)
+            .options(defer(StoryTemplate.cover_image_data))
+            .where(StoryTemplate.author_user_id == user_id)
+            .order_by(StoryTemplate.updated_at.desc())
+        )
+        result = await session.execute(stmt)
+        templates = list(result.scalars().all())
+        return await self._serialize_many(session, templates, user_id=user_id, sort="new")
+
     async def get_template(
         self, session: AsyncSession, *, template_id: str, user_id: str
     ) -> StoryTemplateResponse | None:

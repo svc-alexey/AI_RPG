@@ -5,6 +5,7 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/widgets/aether_confirmation_dialog.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/core/presentation/widgets/app_error_view.dart';
@@ -24,6 +25,7 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
   bool _didLoad = false;
   List<CampaignState> _campaigns = const <CampaignState>[];
   String? _error;
+  String? _deletingId;
 
   @override
   void didChangeDependencies() {
@@ -135,22 +137,38 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
                         SizedBox(height: responsive.sectionSpacing),
                     itemBuilder: (context, index) {
                       final CampaignState campaign = _campaigns[index];
-                      return AetherPageReveal(
-                        delay: Duration(milliseconds: 60 * index),
-                        child: _SaveCard(
-                          campaign: campaign,
-                          subtitle: l10n.saveSubtitle(campaign),
-                          onOpen: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (context) =>
-                                    ChatScreen(campaignId: campaign.id),
-                              ),
-                            );
-                          },
-                          onShareToLibrary: () =>
-                              _shareCampaignToLibrary(campaign),
-                          onDelete: () => _delete(campaign.id),
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, animation) =>
+                            SizeTransition(
+                          sizeFactor: animation,
+                          axisAlignment: -1,
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          ),
+                        ),
+                        child: AetherPageReveal(
+                          key: ValueKey(campaign.id),
+                          delay: Duration(milliseconds: 60 * index),
+                          child: _SaveCard(
+                            campaign: campaign,
+                            subtitle: l10n.saveSubtitle(campaign),
+                            isDeleting: _deletingId == campaign.id,
+                            onOpen: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (context) =>
+                                      ChatScreen(campaignId: campaign.id),
+                                ),
+                              );
+                            },
+                            onShareToLibrary: () =>
+                                _shareCampaignToLibrary(campaign),
+                            onDelete: () => _delete(campaign.id),
+                          ),
                         ),
                       );
                     },
@@ -188,8 +206,34 @@ class _SavesScreenState extends ConsumerState<SavesScreen> {
   }
 
   Future<void> _delete(final String id) async {
-    await ref.read(symmetryCampaignRepositoryProvider).deleteCampaign(id);
-    await _load();
+    final AppLocalizations l10n = context.l10n;
+    final bool? confirmed = await showAetherConfirmationDialog(
+      context,
+      title: l10n.deleteCampaignConfirmTitle,
+      message: l10n.deleteCampaignConfirmMessage,
+      confirmLabel: l10n.deleteLabel,
+      cancelLabel: l10n.cancelLabel,
+      destructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingId = id);
+    try {
+      await ref.read(symmetryCampaignRepositoryProvider).deleteCampaign(id);
+      if (!mounted) return;
+      setState(() {
+        _campaigns = _campaigns.where((c) => c.id != id).toList();
+        _deletingId = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingId = null);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.deleteCampaignFailed)),
+        );
+    }
   }
 
   Future<void> _shareCampaignToLibrary(final CampaignState campaign) async {
@@ -266,6 +310,7 @@ class _SaveCard extends StatelessWidget {
   const _SaveCard({
     required this.campaign,
     required this.subtitle,
+    required this.isDeleting,
     required this.onOpen,
     required this.onShareToLibrary,
     required this.onDelete,
@@ -273,6 +318,7 @@ class _SaveCard extends StatelessWidget {
 
   final CampaignState campaign;
   final String subtitle;
+  final bool isDeleting;
   final VoidCallback onOpen;
   final VoidCallback onShareToLibrary;
   final VoidCallback onDelete;
@@ -284,9 +330,11 @@ class _SaveCard extends StatelessWidget {
     final bool isNarrow = responsive.isCompact;
     final bool isMobile = responsive.isMobile;
 
-    return AetherCard(
-      padding: EdgeInsets.all(responsive.cardPadding),
-      child: Column(
+    return Stack(
+      children: <Widget>[
+        AetherCard(
+          padding: EdgeInsets.all(responsive.cardPadding),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
@@ -403,7 +451,22 @@ class _SaveCard extends StatelessWidget {
             ),
         ],
       ),
-    );
+    ),
+    if (isDeleting)
+      Positioned.fill(
+        child: Container(
+          color: AetherPalette.backgroundElevated.withAlpha(200),
+          child: const Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ),
+  ],
+);
   }
 }
 

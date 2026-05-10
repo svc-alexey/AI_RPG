@@ -116,6 +116,33 @@ class StoryLibraryRepository {
         allowGuest: false,
       );
 
+  Future<Map<String, Object?>> bulkDeleteTemplates(final List<String> ids) =>
+      _authRepository.runWithAuthorizedSession(
+        (final session) =>
+            _client(session.baseUrl).adminBulkDeleteStoryTemplates(
+              accessToken: session.tokens.accessToken,
+              ids: ids,
+            ),
+        allowGuest: false,
+      );
+
+  Future<List<StoryTemplate>> loadMyTemplates() =>
+      _authRepository.runWithAuthorizedSession(
+        (final session) => _client(session.baseUrl).listMyStoryTemplates(
+          accessToken: session.tokens.accessToken,
+        ),
+        allowGuest: false,
+      );
+
+  Future<void> deleteMyTemplate(final String templateId) =>
+      _authRepository.runWithAuthorizedSession(
+        (final session) => _client(session.baseUrl).deleteMyStoryTemplate(
+          accessToken: session.tokens.accessToken,
+          templateId: templateId,
+        ),
+        allowGuest: false,
+      );
+
   Future<void> uploadStoryTemplateCover({
     required final String templateId,
     required final List<int> bytes,

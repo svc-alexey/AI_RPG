@@ -47,6 +47,20 @@ class MigrateGuestRequest(BaseModel):
     guest_user_id: str = Field(min_length=8, max_length=64)
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=12)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class AuthResponse(BaseModel):
     user: UserResponse
     tokens: TokenPair

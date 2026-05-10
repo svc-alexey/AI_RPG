@@ -8,6 +8,7 @@ import 'package:ai_prg/src/core/models/literary_genre_model.dart';
 import 'package:ai_prg/src/core/widgets/aether_empty_state.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/widgets/aether_confirmation_dialog.dart';
 import 'package:ai_prg/src/features/new_game/presentation/new_game_screen.dart';
 import 'package:ai_prg/src/features/story_admin/presentation/story_admin_screen.dart';
 import 'package:ai_prg/src/features/story_library/presentation/story_template_detail_screen.dart';
@@ -98,16 +99,24 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
     }
     final AppLocalizations l10n = context.l10n;
     try {
-      final List<StoryTemplate> list = await ref
-          .read(storyLibraryRepositoryProvider)
-          .loadTemplates(
-            scope: switch (_scope) {
-              _LibraryScope.master => 'master',
-              _LibraryScope.community => 'community',
-            },
-            sort: 'popular',
-            genre: _genreSlug,
-          );
+      final List<StoryTemplate> list;
+      if (_scope == _LibraryScope.my) {
+        list = await ref
+            .read(storyLibraryRepositoryProvider)
+            .loadMyTemplates();
+      } else {
+        list = await ref
+            .read(storyLibraryRepositoryProvider)
+            .loadTemplates(
+              scope: switch (_scope) {
+                _LibraryScope.master => 'master',
+                _LibraryScope.community => 'community',
+                _LibraryScope.my => 'community', // unreachable
+              },
+              sort: 'popular',
+              genre: _genreSlug,
+            );
+      }
       if (!mounted) {
         return;
       }
@@ -130,6 +139,37 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
         _error = l10n.storyLibraryLoadFailed;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _deleteMyStory(final StoryTemplate template) async {
+    final AppLocalizations l10n = context.l10n;
+    final bool? confirmed = await showAetherConfirmationDialog(
+      context,
+      title: l10n.storyLibraryDeleteMyStory,
+      message: l10n.storyLibraryDeleteMyStoryConfirm,
+      confirmLabel: l10n.deleteLabel,
+      cancelLabel: l10n.cancelLabel,
+      destructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref
+          .read(storyLibraryRepositoryProvider)
+          .deleteMyTemplate(template.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.storyAdminDeleted)));
+      _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.symmetryFriendlyError(error))),
+        );
     }
   }
 
@@ -227,6 +267,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                   l10n: l10n,
                   responsive: responsive,
                   scope: _scope,
+                  sessionState: sessionState,
                   onScopeChanged: (final s) {
                     if (s == _scope) {
                       return;
@@ -431,6 +472,9 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
                       template: item,
                       symmetryBaseUrl: symmetryBaseUrl,
                       accessToken: symmetryAccessToken,
+                      onDelete: _scope == _LibraryScope.my
+                          ? () => _deleteMyStory(item)
+                          : null,
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -450,13 +494,14 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen>
   }
 }
 
-enum _LibraryScope { master, community }
+enum _LibraryScope { master, community, my }
 
 class _LibraryHeader extends StatelessWidget {
   const _LibraryHeader({
     required this.l10n,
     required this.responsive,
     required this.scope,
+    required this.sessionState,
     required this.onScopeChanged,
     required this.onCreateStory,
   });
@@ -464,17 +509,27 @@ class _LibraryHeader extends StatelessWidget {
   final AppLocalizations l10n;
   final AppResponsiveData responsive;
   final _LibraryScope scope;
+  final AsyncValue<SymmetrySession?> sessionState;
   final ValueChanged<_LibraryScope> onScopeChanged;
   final VoidCallback onCreateStory;
 
   @override
   Widget build(final BuildContext context) {
     final bool narrow = responsive.isMobile;
+    final bool showMyTab = sessionState.maybeWhen(
+      data: (s) => s != null && !s.isGuest,
+      orElse: () => false,
+    );
     if (narrow) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _ScopeTabs(l10n: l10n, scope: scope, onScopeChanged: onScopeChanged),
+          _ScopeTabs(
+            l10n: l10n,
+            scope: scope,
+            onScopeChanged: onScopeChanged,
+            showMyTab: showMyTab,
+          ),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: onCreateStory,
@@ -498,6 +553,7 @@ class _LibraryHeader extends StatelessWidget {
             l10n: l10n,
             scope: scope,
             onScopeChanged: onScopeChanged,
+            showMyTab: showMyTab,
           ),
         ),
         const SizedBox(width: 16),
@@ -522,11 +578,13 @@ class _ScopeTabs extends StatelessWidget {
     required this.l10n,
     required this.scope,
     required this.onScopeChanged,
+    required this.showMyTab,
   });
 
   final AppLocalizations l10n;
   final _LibraryScope scope;
   final ValueChanged<_LibraryScope> onScopeChanged;
+  final bool showMyTab;
 
   @override
   Widget build(final BuildContext context) => Row(
@@ -542,6 +600,14 @@ class _ScopeTabs extends StatelessWidget {
         selected: scope == _LibraryScope.community,
         onTap: () => onScopeChanged(_LibraryScope.community),
       ),
+      if (showMyTab) ...[
+        SizedBox(width: context.responsive.isCompact ? 16 : 28),
+        _ScopeLink(
+          label: l10n.storyLibraryTabMy,
+          selected: scope == _LibraryScope.my,
+          onTap: () => onScopeChanged(_LibraryScope.my),
+        ),
+      ],
     ],
   );
 }

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
-from app.api.deps import get_current_verified_user, get_optional_user
+from app.api.deps import get_current_user, get_current_verified_user, get_optional_user
 from app.db.models import StoryTemplate, User
 from app.db.session import get_db_session
 from app.schemas.common import MessageResponse
@@ -146,3 +146,35 @@ async def toggle_bookmark(
     await story_service.toggle_bookmark(session, template_id=template_id, user_id=user.id)
     await session.commit()
     return MessageResponse(message="bookmark_toggled")
+
+
+@router.get("/my", response_model=list[StoryTemplateResponse])
+async def list_my_story_templates(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> list[StoryTemplateResponse]:
+    return await story_service.list_user_templates(session, user_id=user.id)
+
+
+@router.delete("/{template_id}", response_model=MessageResponse)
+async def delete_my_story_template(
+    template_id: str,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> MessageResponse:
+    template = await session.get(StoryTemplate, template_id)
+    if template is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="story_template_not_found"
+        )
+    if template.author_user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="not_owner"
+        )
+    ok = await story_service.delete_template(session, template_id=template_id)
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="story_template_not_found"
+        )
+    await session.commit()
+    return MessageResponse(message="story_template_deleted")

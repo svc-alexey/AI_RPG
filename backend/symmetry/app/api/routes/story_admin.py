@@ -5,7 +5,12 @@ from app.api.deps import get_current_admin_user
 from app.db.models import StoryTemplate, User
 from app.db.session import get_db_session
 from app.schemas.common import MessageResponse
-from app.schemas.stories import StoryTemplateResponse, StoryTemplateUpsertRequest
+from app.schemas.stories import (
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    StoryTemplateResponse,
+    StoryTemplateUpsertRequest,
+)
 from app.services.cover_image_optimizer import optimize_story_cover
 from app.services.story_library import StoryLibraryService
 
@@ -157,3 +162,24 @@ async def admin_delete_story_template(
         )
     await session.commit()
     return MessageResponse(message="story_template_deleted")
+
+
+@router.post("/bulk-delete", response_model=BulkDeleteResponse)
+async def admin_bulk_delete_story_templates(
+    payload: BulkDeleteRequest,
+    user: User = Depends(get_current_admin_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> BulkDeleteResponse:
+    deleted: list[str] = []
+    failed: dict[str, str] = {}
+    for tid in payload.ids:
+        try:
+            ok = await story_service.delete_template(session, template_id=tid)
+            if ok:
+                deleted.append(tid)
+            else:
+                failed[tid] = "not_found"
+        except Exception as exc:
+            failed[tid] = str(exc)
+    await session.commit()
+    return BulkDeleteResponse(deleted=deleted, failed=failed)

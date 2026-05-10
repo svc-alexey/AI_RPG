@@ -24,11 +24,12 @@ from app.db.models import (
     AuthIdentity,
     AuthSession,
     EmailVerificationToken,
+    PasswordResetToken,
     User,
     UserProfile,
 )
 from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, TokenPair, UserResponse
-from app.services.email_service import send_verification_email
+from app.services.email_service import send_password_reset_email, send_verification_email
 from app.services.ids import new_id
 from app.core.logging import get_logger
 
@@ -492,6 +493,140 @@ class AuthService:
                 accept_language=accept_language,
             )
         )
+
+    async def forgot_password(
+        self,
+        session: AsyncSession,
+        email: str,
+        *,
+        accept_language: str = "",
+    ) -> None:
+        user = await session.scalar(
+            select(User).where(User.email == email.lower(), User.is_active.is_(True))
+        )
+        if user is None:
+            return
+        raw_token, _ = await self._create_password_reset_token(session, user.id)
+        await session.commit()
+        asyncio.create_task(
+            self._send_password_reset_email_async(
+                user_email=user.email,
+                token=raw_token,
+                accept_language=accept_language,
+            )
+        )
+
+    async def get_reset_token_info(self, session: AsyncSession, token: str) -> dict:
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        db_token = await session.scalar(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token_hash == token_hash
+            )
+        )
+        if db_token is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid_reset_token",
+            )
+        if db_token.consumed_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="reset_token_already_used",
+            )
+        if db_token.expires_at <= datetime.now(UTC):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="expired_reset_token",
+            )
+        return {"token": token, "user_id": db_token.user_id}
+
+    async def reset_password(
+        self, session: AsyncSession, token: str, new_password: str
+    ) -> User:
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        db_token = await session.scalar(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token_hash == token_hash
+            )
+        )
+        if db_token is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid_reset_token",
+            )
+        if db_token.consumed_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="reset_token_already_used",
+            )
+        if db_token.expires_at <= datetime.now(UTC):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="expired_reset_token",
+            )
+        user = await session.get(User, db_token.user_id)
+        if user is None or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="user_not_found",
+            )
+        user.password_hash = hash_password(new_password)
+        db_token.consumed_at = datetime.now(UTC)
+        await session.commit()
+        return user
+
+    async def change_password(
+        self,
+        session: AsyncSession,
+        user: User,
+        current_password: str,
+        new_password: str,
+    ) -> None:
+        if not verify_password(current_password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="wrong_current_password",
+            )
+        user.password_hash = hash_password(new_password)
+        await session.commit()
+
+    async def _create_password_reset_token(
+        self, session: AsyncSession, user_id: str
+    ) -> tuple[str, datetime]:
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(UTC) + timedelta(minutes=15)
+        session.add(
+            PasswordResetToken(
+                id=new_id(),
+                user_id=user_id,
+                token_hash=token_hash,
+                expires_at=expires_at,
+            )
+        )
+        return raw_token, expires_at
+
+    async def _send_password_reset_email_async(
+        self, *, user_email: str, token: str, accept_language: str = "",
+    ) -> None:
+        base_url = (
+            self._settings.auth_email_verification_base_url.strip()
+            or self._settings.web_public_origin.strip()
+        )
+        reset_url = f"{base_url.rstrip('/')}/v1/auth/reset-password?token={token}"
+        try:
+            await asyncio.to_thread(
+                send_password_reset_email,
+                self._settings,
+                to_email=user_email,
+                reset_url=reset_url,
+                accept_language=accept_language,
+            )
+        except Exception:
+            logger = get_logger("symmetry.auth")
+            logger.exception(
+                "failed_to_send_password_reset_email user_email=%s", user_email
+            )
 
     def _require_yandex_backend_redirect_uri(self) -> str:
         configured = (self._settings.yandex_redirect_uri or "").strip()

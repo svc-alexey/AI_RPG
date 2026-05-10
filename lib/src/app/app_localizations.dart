@@ -2185,6 +2185,192 @@ class AppLocalizations {
     AppLanguage.en => 'Display name is too long.',
   };
 
+  String get authConfirmPasswordLabel => switch (language) {
+    AppLanguage.ru => 'Подтверждение пароля',
+    AppLanguage.en => 'Confirm password',
+  };
+
+  String get authPasswordsMismatch => switch (language) {
+    AppLanguage.ru => 'Пароли не совпадают',
+    AppLanguage.en => 'Passwords do not match',
+  };
+
+  // --- Forgot password ---
+  String get forgotPasswordTitle => switch (language) {
+    AppLanguage.ru => 'Восстановление пароля',
+    AppLanguage.en => 'Password Recovery',
+  };
+
+  String get forgotPasswordSendAction => switch (language) {
+    AppLanguage.ru => 'Отправить',
+    AppLanguage.en => 'Send',
+  };
+
+  String forgotPasswordEmailSent(final String email) => switch (language) {
+    AppLanguage.ru => 'Письмо отправлено на $email',
+    AppLanguage.en => 'Email sent to $email',
+  };
+
+  String get forgotPasswordSmtpError => switch (language) {
+    AppLanguage.ru => 'Сервис временно недоступен. Попробуйте позже.',
+    AppLanguage.en => 'Service temporarily unavailable. Try again later.',
+  };
+
+  String forgotPasswordCooldown(final int seconds) => switch (language) {
+    AppLanguage.ru => 'Подождите $seconds сек.',
+    AppLanguage.en => 'Wait $seconds sec.',
+  };
+
+  String get forgotPasswordLink => switch (language) {
+    AppLanguage.ru => 'Забыли пароль?',
+    AppLanguage.en => 'Forgot password?',
+  };
+
+  String get forgotPasswordDescription => switch (language) {
+    AppLanguage.ru =>
+      'Введите email, привязанный к аккаунту. Мы отправим ссылку для сброса пароля.',
+    AppLanguage.en =>
+      'Enter the email linked to your account. We will send a password reset link.',
+  };
+
+  // --- Change password ---
+  String get changePasswordTitle => switch (language) {
+    AppLanguage.ru => 'Сменить пароль',
+    AppLanguage.en => 'Change Password',
+  };
+
+  String get currentPasswordLabel => switch (language) {
+    AppLanguage.ru => 'Текущий пароль',
+    AppLanguage.en => 'Current password',
+  };
+
+  String get newPasswordLabel => switch (language) {
+    AppLanguage.ru => 'Новый пароль',
+    AppLanguage.en => 'New password',
+  };
+
+  String get confirmNewPasswordLabel => switch (language) {
+    AppLanguage.ru => 'Подтверждение нового пароля',
+    AppLanguage.en => 'Confirm new password',
+  };
+
+  String get changePasswordSuccess => switch (language) {
+    AppLanguage.ru => 'Пароль изменён',
+    AppLanguage.en => 'Password changed',
+  };
+
+  String get changePasswordWrongCurrent => switch (language) {
+    AppLanguage.ru => 'Неверный текущий пароль',
+    AppLanguage.en => 'Wrong current password',
+  };
+
+  String get changePasswordAction => switch (language) {
+    AppLanguage.ru => 'Сменить пароль',
+    AppLanguage.en => 'Change password',
+  };
+
+  // --- Exit confirmation + Aether dialog ---
+  String get exitConfirmTitle => switch (language) {
+    AppLanguage.ru => 'Выход',
+    AppLanguage.en => 'Exit',
+  };
+
+  String get exitConfirmMessage => switch (language) {
+    AppLanguage.ru => 'Вы уверены, что хотите выйти?',
+    AppLanguage.en => 'Are you sure you want to exit?',
+  };
+
+  String get exitConfirmStay => switch (language) {
+    AppLanguage.ru => 'Остаться',
+    AppLanguage.en => 'Stay',
+  };
+
+  String get exitConfirmLeave => switch (language) {
+    AppLanguage.ru => 'Выйти',
+    AppLanguage.en => 'Leave',
+  };
+
+  String get cancelLabel => switch (language) {
+    AppLanguage.ru => 'Отмена',
+    AppLanguage.en => 'Cancel',
+  };
+
+  String get confirmLabel => switch (language) {
+    AppLanguage.ru => 'Подтвердить',
+    AppLanguage.en => 'Confirm',
+  };
+
+  String get deleteLabel => switch (language) {
+    AppLanguage.ru => 'Удалить',
+    AppLanguage.en => 'Delete',
+  };
+
+  String get deleteCampaignConfirmTitle => switch (language) {
+    AppLanguage.ru => 'Удаление кампании',
+    AppLanguage.en => 'Delete Campaign',
+  };
+
+  String get deleteCampaignConfirmMessage => switch (language) {
+    AppLanguage.ru =>
+      'Вы уверены, что хотите удалить эту кампанию? Это действие необратимо.',
+    AppLanguage.en =>
+      'Are you sure you want to delete this campaign? This action cannot be undone.',
+  };
+
+  String get deleteCampaignFailed => switch (language) {
+    AppLanguage.ru => 'Не удалось удалить кампанию.',
+    AppLanguage.en => 'Failed to delete campaign.',
+  };
+
+  // --- Story admin multi-select ---
+  String get storyAdminSelectMode => switch (language) {
+    AppLanguage.ru => 'Отмена',
+    AppLanguage.en => 'Cancel',
+  };
+
+  String storyAdminSelected(final int count) => switch (language) {
+    AppLanguage.ru => 'Выбрано $count',
+    AppLanguage.en => 'Selected $count',
+  };
+
+  String storyAdminBulkDelete(final int count) => switch (language) {
+    AppLanguage.ru => 'Удалить выбранные ($count)',
+    AppLanguage.en => 'Delete selected ($count)',
+  };
+
+  String get storyAdminBulkDeleteConfirm => switch (language) {
+    AppLanguage.ru => 'Вы уверены, что хотите удалить выбранные шаблоны?',
+    AppLanguage.en => 'Are you sure you want to delete the selected templates?',
+  };
+
+  String storyAdminPartialSuccess(final int deleted, final int total, final int failed) => switch (language) {
+    AppLanguage.ru => 'Удалено $deleted из $total. $failed ошибок.',
+    AppLanguage.en => 'Deleted $deleted of $total. $failed errors.',
+  };
+
+  String storyAdminAllFailed(final int count) => switch (language) {
+    AppLanguage.ru => 'Не удалось удалить $count шаблонов',
+    AppLanguage.en => 'Failed to delete $count templates',
+  };
+
+  // --- Story library: My Stories ---
+  String get storyLibraryTabMy => switch (language) {
+    AppLanguage.ru => 'Мои истории',
+    AppLanguage.en => 'My Stories',
+  };
+
+  String get storyLibraryDeleteMyStory => switch (language) {
+    AppLanguage.ru => 'Удалить историю',
+    AppLanguage.en => 'Delete story',
+  };
+
+  String get storyLibraryDeleteMyStoryConfirm => switch (language) {
+    AppLanguage.ru =>
+      'Вы уверены, что хотите удалить эту историю? Это действие необратимо.',
+    AppLanguage.en =>
+      'Are you sure you want to delete this story? This action cannot be undone.',
+  };
+
   String get loginAction => switch (language) {
     AppLanguage.ru => 'Войти',
     AppLanguage.en => 'Log In',

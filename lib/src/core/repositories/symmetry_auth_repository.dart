@@ -183,6 +183,23 @@ class SymmetryAuthRepository {
     );
   }
 
+  Future<void> forgotPassword({required final String email}) async {
+    final String baseUrl = await loadBaseUrl();
+    await _client(baseUrl).forgotPassword(email: email);
+  }
+
+  Future<void> changePassword({
+    required final String currentPassword,
+    required final String newPassword,
+  }) async {
+    final SymmetrySession session = await requireSession();
+    await _client(session.baseUrl).changePassword(
+      accessToken: session.tokens.accessToken,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
   Future<void> checkProviderConnection({
     required final AiSettings aiSettings,
   }) => runWithAuthorizedSession(

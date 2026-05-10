@@ -67,6 +67,15 @@ class StoryTemplateUpsertRequest(BaseModel):
         return data
 
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[str]
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted: list[str]
+    failed: dict[str, str]
+
+
 class StoryTemplateResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

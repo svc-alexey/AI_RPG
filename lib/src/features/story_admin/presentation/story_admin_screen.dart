@@ -4,6 +4,7 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/story_template_model.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/widgets/aether_confirmation_dialog.dart';
 import 'package:ai_prg/src/features/story_admin/presentation/story_admin_editor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,8 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
   bool _isLoading = true;
   String? _error;
   List<StoryTemplate> _templates = const <StoryTemplate>[];
+  bool _selectionMode = false;
+  Set<String> _selectedIds = <String>{};
 
   @override
   void initState() {
@@ -98,6 +101,104 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
     }
   }
 
+  Future<void> _bulkDelete() async {
+    final AppLocalizations l10n = context.l10n;
+    final int count = _selectedIds.length;
+    final bool? confirmed = await showAetherConfirmationDialog(
+      context,
+      title: l10n.storyAdminDelete,
+      message: l10n.storyAdminBulkDeleteConfirm,
+      confirmLabel: l10n.deleteLabel,
+      cancelLabel: l10n.cancelLabel,
+      destructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final Map<String, Object?> result = await ref
+          .read(storyLibraryRepositoryProvider)
+          .bulkDeleteTemplates(_selectedIds.toList());
+      if (!mounted) return;
+
+      final List<Object?> deleted = (result['deleted'] as List<Object?>?) ?? <Object?>[];
+      final Map<String, Object?> failed =
+          (result['failed'] as Map<String, Object?>?) ?? <String, Object?>{};
+
+      if (failed.isEmpty) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(l10n.storyAdminDeleted),
+          ));
+        setState(() {
+          _selectionMode = false;
+          _selectedIds = <String>{};
+        });
+        await _reload();
+      } else if (deleted.isEmpty) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(l10n.storyAdminAllFailed(count)),
+          ));
+      } else {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(l10n.storyAdminPartialSuccess(
+              deleted.length, count, failed.length,
+            )),
+          ));
+        setState(() {
+          _selectionMode = false;
+          _selectedIds = <String>{};
+        });
+        await _reload();
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.symmetryFriendlyError(error))),
+        );
+    }
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds = <String>{};
+    });
+  }
+
+  Widget? _buildFab(
+    final AsyncValue<SymmetrySession?> sessionState,
+    final AppLocalizations l10n,
+  ) {
+    return sessionState.maybeWhen(
+      data: (final session) {
+        final bool isAdmin =
+            session != null && !session.isGuest && session.user.isAdmin;
+        if (!isAdmin) return null;
+        if (_selectionMode && _selectedIds.isNotEmpty) {
+          return FloatingActionButton.extended(
+            onPressed: _bulkDelete,
+            backgroundColor: const Color(0xFFEF4444),
+            icon: const Icon(Icons.delete_outline_rounded),
+            label: Text(l10n.storyAdminBulkDelete(_selectedIds.length)),
+          );
+        }
+        return FloatingActionButton.extended(
+          onPressed: () => _openEditor(),
+          icon: const Icon(Icons.add_rounded),
+          label: Text(l10n.storyAdminCreate),
+        );
+      },
+      orElse: () => null,
+    );
+  }
+
   Future<void> _openEditor({final StoryTemplate? template}) async {
     final Object? result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute<Object?>(
@@ -120,22 +221,23 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
     );
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: Text(l10n.storyAdminTitle)),
-      floatingActionButton: sessionState.maybeWhen(
-        data: (final session) {
-          final bool isAdmin =
-              session != null && !session.isGuest && session.user.isAdmin;
-          if (!isAdmin) {
-            return null;
-          }
-          return FloatingActionButton.extended(
-            onPressed: () => _openEditor(),
-            icon: const Icon(Icons.add_rounded),
-            label: Text(l10n.storyAdminCreate),
-          );
-        },
-        orElse: () => null,
+      appBar: AppBar(
+        leading: _selectionMode
+            ? null
+            : null,
+        title: _selectionMode
+            ? Text(l10n.storyAdminSelected(_selectedIds.length))
+            : Text(l10n.storyAdminTitle),
+        actions: _selectionMode
+            ? <Widget>[
+                TextButton(
+                  onPressed: _exitSelectionMode,
+                  child: Text(l10n.storyAdminSelectMode),
+                ),
+              ]
+            : null,
       ),
+      floatingActionButton: _buildFab(sessionState, l10n),
       body: sessionState.when(
           data: (final session) {
             final bool isAdmin =
@@ -193,14 +295,53 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
                     SizedBox(height: responsive.blockSpacing),
                 itemBuilder: (final context, final index) {
                   final StoryTemplate t = _templates[index];
-                  return AetherCard(
-                    padding: EdgeInsets.all(responsive.cardPadding),
-                    child: Column(
+                  final bool isSelected = _selectedIds.contains(t.id);
+                  return GestureDetector(
+                    onLongPress: () {
+                      if (!_selectionMode) {
+                        setState(() {
+                          _selectionMode = true;
+                          _selectedIds = <String>{t.id};
+                        });
+                      }
+                    },
+                    onTap: _selectionMode
+                        ? () => setState(() {
+                              if (isSelected) {
+                                _selectedIds.remove(t.id);
+                                if (_selectedIds.isEmpty) {
+                                  _selectionMode = false;
+                                }
+                              } else {
+                                _selectedIds.add(t.id);
+                              }
+                            })
+                        : null,
+                    child: AetherCard(
+                      padding: EdgeInsets.all(responsive.cardPadding),
+                      borderColor: isSelected
+                          ? AetherPalette.accent.withAlpha(80)
+                          : null,
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
+                            if (_selectionMode) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(right: 12, top: 4),
+                                child: Icon(
+                                  isSelected
+                                      ? Icons.check_box_rounded
+                                      : Icons.check_box_outline_blank_rounded,
+                                  color: isSelected
+                                      ? AetherPalette.accent
+                                      : AetherPalette.textMuted,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,16 +365,18 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
                                 ],
                               ),
                             ),
-                            IconButton(
-                              tooltip: l10n.storyAdminEdit,
-                              onPressed: () => _openEditor(template: t),
-                              icon: const Icon(Icons.edit_outlined),
-                            ),
-                            IconButton(
-                              tooltip: l10n.storyAdminDelete,
-                              onPressed: () => _confirmDelete(t),
-                              icon: const Icon(Icons.delete_outline_rounded),
-                            ),
+                            if (!_selectionMode) ...[
+                              IconButton(
+                                tooltip: l10n.storyAdminEdit,
+                                onPressed: () => _openEditor(template: t),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                tooltip: l10n.storyAdminDelete,
+                                onPressed: () => _confirmDelete(t),
+                                icon: const Icon(Icons.delete_outline_rounded),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -260,6 +403,7 @@ class _StoryAdminScreenState extends ConsumerState<StoryAdminScreen> {
                         ),
                       ],
                     ),
+                  ),
                   );
                 },
               ),

@@ -7,6 +7,7 @@ import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/utils/legal_urls.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
 import 'package:ai_prg/src/features/settings/application/settings_controller.dart';
+import 'package:ai_prg/src/features/settings/presentation/change_password_dialog.dart';
 import 'package:ai_prg/src/features/story_admin/presentation/story_admin_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -203,19 +204,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                     ],
                                     const SizedBox(height: 16),
-                                    OutlinedButton.icon(
-                                      onPressed: () =>
-                                          _handleAccountAction(session),
-                                      icon: Icon(
-                                        isSignedIn
-                                            ? Icons.logout_rounded
-                                            : Icons.login_rounded,
-                                      ),
-                                      label: Text(
-                                        isSignedIn
-                                            ? l10n.signOutAction
-                                            : l10n.loginAction,
-                                      ),
+                                    Row(
+                                      children: <Widget>[
+                                        OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _handleAccountAction(session),
+                                          icon: Icon(
+                                            isSignedIn
+                                                ? Icons.logout_rounded
+                                                : Icons.login_rounded,
+                                          ),
+                                          label: Text(
+                                            isSignedIn
+                                                ? l10n.signOutAction
+                                                : l10n.loginAction,
+                                          ),
+                                        ),
+                                        if (isSignedIn) ...[
+                                          const SizedBox(width: 12),
+                                          OutlinedButton.icon(
+                                            onPressed: () {
+                                              showDialog<bool>(
+                                                context: context,
+                                                builder: (_) =>
+                                                    const ChangePasswordDialog(),
+                                              );
+                                            },
+                                            icon: const Icon(
+                                              Icons.lock_outline,
+                                              size: 20,
+                                            ),
+                                            label: Text(
+                                              l10n.changePasswordAction,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 );

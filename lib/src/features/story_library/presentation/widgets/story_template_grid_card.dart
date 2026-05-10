@@ -11,6 +11,7 @@ class StoryTemplateGridCard extends StatelessWidget {
     required this.onTap,
     this.symmetryBaseUrl = '',
     this.accessToken,
+    this.onDelete,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class StoryTemplateGridCard extends StatelessWidget {
   final VoidCallback onTap;
   final String symmetryBaseUrl;
   final String? accessToken;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(final BuildContext context) {
@@ -60,14 +62,41 @@ class StoryTemplateGridCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: cover != null
-                      ? AuthenticatedCoverImage(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      if (cover != null)
+                        AuthenticatedCoverImage(
                           imageUrl: cover,
                           requestHeaders: imageHeaders,
                           errorBuilder: (context, error, stackTrace) =>
                               _PlaceholderArt(responsive: responsive),
                         )
-                      : _PlaceholderArt(responsive: responsive),
+                      else
+                        _PlaceholderArt(responsive: responsive),
+                      if (onDelete != null)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Material(
+                            color: const Color(0xAA0F0D0B),
+                            borderRadius: BorderRadius.circular(8),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: onDelete,
+                              child: const Padding(
+                                padding: EdgeInsets.all(6),
+                                child: Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 18,
+                                  color: Color(0xFFEF4444),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

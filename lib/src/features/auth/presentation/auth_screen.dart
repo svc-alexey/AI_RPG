@@ -4,6 +4,7 @@ import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/services/app_logger.dart';
+import 'package:ai_prg/src/features/auth/presentation/forgot_password_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,25 +21,61 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey _submitButtonKey = GlobalKey();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
+  final FocusNode _confirmPasswordFocus = FocusNode();
   final FocusNode _displayNameFocus = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   bool _isSubmitting = false;
   bool _isYandexSubmitting = false;
   bool _registerMode = false;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    for (final FocusNode node in <FocusNode>[
+      _emailFocus,
+      _passwordFocus,
+      _confirmPasswordFocus,
+      _displayNameFocus,
+    ]) {
+      node.addListener(() {
+        if (node.hasFocus) {
+          _scrollToSubmitButton();
+        }
+      });
+    }
+  }
+
+  void _scrollToSubmitButton() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _displayNameController.dispose();
     _emailFocus.dispose();
     _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     _displayNameFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -55,6 +92,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     );
     final bool isBusy = _isSubmitting || _isYandexSubmitting;
 
+    final double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Center(
@@ -63,7 +102,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: Padding(
             padding: EdgeInsets.all(responsive.pagePadding),
             child: AetherCard(
-                child: Column(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: EdgeInsets.only(bottom: bottomInset),
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
@@ -156,9 +198,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   : TextInputAction.go,
                               onFieldSubmitted: (_) {
                                 if (_registerMode) {
-                                  _displayNameFocus.requestFocus();
+                                  _confirmPasswordFocus.requestFocus();
                                 } else {
                                   _submit();
+                                }
+                              },
+                              onChanged: (_) {
+                                if (_registerMode) {
+                                  setState(() {});
                                 }
                               },
                               validator: (v) {
@@ -173,6 +220,43 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               ),
                             ),
                             if (_registerMode) ...[
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _confirmPasswordController,
+                                focusNode: _confirmPasswordFocus,
+                                obscureText: true,
+                                textInputAction: TextInputAction.next,
+                                onFieldSubmitted: (_) =>
+                                    _displayNameFocus.requestFocus(),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return l10n.authPasswordsMismatch;
+                                  }
+                                  if (v != _passwordController.text) {
+                                    return l10n.authPasswordsMismatch;
+                                  }
+                                  return null;
+                                },
+                                decoration: InputDecoration(
+                                  labelText: l10n.authConfirmPasswordLabel,
+                                  suffixIcon:
+                                      _confirmPasswordController
+                                              .text
+                                              .isNotEmpty
+                                          ? Icon(
+                                              _confirmPasswordController.text ==
+                                                      _passwordController.text
+                                                  ? Icons.check_circle_outline
+                                                  : Icons.cancel_outlined,
+                                              color:
+                                                  _confirmPasswordController.text ==
+                                                          _passwordController.text
+                                                      ? const Color(0xFF34D399)
+                                                      : const Color(0xFFEF4444),
+                                            )
+                                          : null,
+                                ),
+                              ),
                               const SizedBox(height: 12),
                               TextFormField(
                                 controller: _displayNameController,
@@ -203,8 +287,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                       ),
                     ],
+                    if (!_registerMode &&
+                        sessionState.maybeWhen(
+                          data: (s) => s == null || !s.isGuest,
+                          orElse: () => false,
+                        )) ...[
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: isBusy
+                              ? null
+                              : () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          const ForgotPasswordScreen(),
+                                    ),
+                                  ),
+                          child: Text(l10n.forgotPasswordLink),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     FilledButton(
+                      key: _submitButtonKey,
                       onPressed: isBusy ? null : _submit,
                       child: _isSubmitting
                           ? const SizedBox(
@@ -238,6 +343,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ),
         ),
+      ),
     );
   }
 

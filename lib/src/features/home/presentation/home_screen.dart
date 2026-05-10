@@ -3,6 +3,7 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
 import 'package:ai_prg/src/app/auth_gating.dart';
 import 'package:ai_prg/src/app/responsive.dart';
+import 'package:ai_prg/src/core/widgets/aether_confirmation_dialog.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/utils/legal_urls.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
@@ -135,7 +136,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       symmetrySessionProvider,
     );
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final bool? exit = await showAetherConfirmationDialog(
+          context,
+          title: l10n.exitConfirmTitle,
+          message: l10n.exitConfirmMessage,
+          confirmLabel: l10n.exitConfirmLeave,
+          cancelLabel: l10n.exitConfirmStay,
+          destructive: true,
+        );
+        if (exit == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
@@ -265,6 +282,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ],
           ),
+      ),
       ),
     );
   }

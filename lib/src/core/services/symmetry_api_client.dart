@@ -162,6 +162,28 @@ class SymmetryApiClient {
     );
   }
 
+  Future<void> forgotPassword({required final String email}) async {
+    await _post(
+      '/auth/forgot-password',
+      body: <String, Object?>{'email': email},
+    );
+  }
+
+  Future<void> changePassword({
+    required final String accessToken,
+    required final String currentPassword,
+    required final String newPassword,
+  }) async {
+    await _post(
+      '/auth/change-password',
+      body: <String, Object?>{
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+      bearerToken: accessToken,
+    );
+  }
+
   Future<SymmetryUser> getCurrentUser({
     required final String accessToken,
   }) async {
@@ -530,6 +552,47 @@ class SymmetryApiClient {
   }) async {
     await _delete(
       '/admin/story-templates/${templateId.trim()}',
+      bearerToken: accessToken,
+    );
+  }
+
+  Future<Map<String, Object?>> adminBulkDeleteStoryTemplates({
+    required final String accessToken,
+    required final List<String> ids,
+  }) async {
+    return _post(
+      '/admin/story-templates/bulk-delete',
+      body: <String, Object?>{'ids': ids},
+      bearerToken: accessToken,
+    );
+  }
+
+  Future<List<StoryTemplate>> listMyStoryTemplates({
+    required final String accessToken,
+  }) async {
+    final Object? decoded = await _get(
+      '/story-templates/my',
+      bearerToken: accessToken,
+    );
+    if (decoded is! List<Object?>) {
+      throw StateError('symmetry_invalid_response');
+    }
+    return decoded
+        .whereType<Map<Object?, Object?>>()
+        .map(
+          (final item) => StoryTemplate.fromJson(
+            item.map((k, v) => MapEntry(k.toString(), v)),
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> deleteMyStoryTemplate({
+    required final String accessToken,
+    required final String templateId,
+  }) async {
+    await _delete(
+      '/story-templates/${templateId.trim()}',
       bearerToken: accessToken,
     );
   }

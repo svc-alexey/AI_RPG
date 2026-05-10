@@ -75,6 +75,67 @@ def send_verification_email(
             smtp.send_message(msg)
 
 
+_RESET_LOCALIZED = {
+    True: {  # Russian
+        "from_name": "Стирая Грань",
+        "subject": "Стирая Грань — Сброс пароля",
+        "text_body": "Перейдите по ссылке, чтобы задать новый пароль:\n{url}",
+        "html_title": "Сбросьте пароль, чтобы продолжить.",
+        "html_button": "Сбросить пароль",
+        "html_expiry": "Ссылка действительна 15 минут.",
+    },
+    False: {  # English
+        "from_name": "Beyond The Verge",
+        "subject": "Beyond The Verge — Password Reset",
+        "text_body": "Click the link to set a new password:\n{url}",
+        "html_title": "Reset your password to continue.",
+        "html_button": "Reset password",
+        "html_expiry": "Link expires in 15 minutes.",
+    },
+}
+
+
+def send_password_reset_email(
+    settings: Settings,
+    *,
+    to_email: str,
+    reset_url: str,
+    accept_language: str = "",
+) -> None:
+    smtp_host = settings.feedback_smtp_host.strip()
+    if not smtp_host:
+        raise RuntimeError("auth_email_smtp_not_configured: feedback_smtp_host is empty")
+
+    sender = (settings.auth_email_sender_email or settings.feedback_sender_email).strip()
+    if not sender:
+        raise RuntimeError("auth_email_sender_not_configured")
+
+    lang = _RESET_LOCALIZED[_is_russian(accept_language)]
+    from_name = lang["from_name"]
+
+    msg = EmailMessage()
+    msg["Subject"] = lang["subject"]
+    msg["From"] = f"{from_name} <{sender}>"
+    msg["To"] = to_email
+    msg["Date"] = formatdate(localtime=True)
+
+    msg.set_content(lang["text_body"].format(url=reset_url))
+    msg.add_alternative(_build_html_body(reset_url, lang), subtype="html")
+
+    if settings.feedback_smtp_use_ssl:
+        with smtplib.SMTP_SSL(smtp_host, settings.feedback_smtp_port, timeout=20) as smtp:
+            if settings.feedback_smtp_username.strip():
+                smtp.login(settings.feedback_smtp_username, settings.feedback_smtp_password)
+            smtp.send_message(msg)
+    else:
+        with smtplib.SMTP(smtp_host, settings.feedback_smtp_port, timeout=20) as smtp:
+            if settings.feedback_smtp_use_starttls:
+                smtp.starttls()
+            if settings.feedback_smtp_username.strip():
+                smtp.login(settings.feedback_smtp_username, settings.feedback_smtp_password)
+            smtp.send_message(msg)
+
+
 def _build_html_body(verification_url: str, lang: dict[str, str]) -> str:
     return f"""<!DOCTYPE html>
 <html>
