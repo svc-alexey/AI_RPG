@@ -3,6 +3,7 @@ import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/features/chat/application/chat_controller.dart';
+import 'package:ai_prg/src/features/chat/widgets/d20_roll_widget.dart';
 import 'package:ai_prg/src/features/chat/widgets/overlay_choice_stack.dart';
 import 'package:ai_prg/src/features/chat/widgets/state_change_overlay_stack.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -120,9 +121,8 @@ class ChatBody extends ConsumerWidget {
                             isNarrow: isNarrow,
                           )
                         : message.role == ChatRole.narrator
-                        ? _AnimatedNarrationMessage(
-                            key: ValueKey<String>(message.id),
-                            text: message.text,
+                        ? _NarratorMessageContent(
+                            message: message,
                             isNarrow: isNarrow,
                           )
                         : Text(
@@ -277,6 +277,40 @@ class _AnimatedNarrationMessageState extends State<_AnimatedNarrationMessage>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NarratorMessageContent extends StatelessWidget {
+  const _NarratorMessageContent({
+    required this.message,
+    required this.isNarrow,
+  });
+
+  final ChatMessage message;
+  final bool isNarrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDice = message.diceRoll != null;
+    if (!hasDice) {
+      return _AnimatedNarrationMessage(
+        key: ValueKey<String>(message.id),
+        text: message.text,
+        isNarrow: isNarrow,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _AnimatedNarrationMessage(
+          key: ValueKey<String>(message.id),
+          text: message.text,
+          isNarrow: isNarrow,
+        ),
+        D20ChatBubble(result: message.diceRoll!),
+      ],
     );
   }
 }

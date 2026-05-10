@@ -163,3 +163,4 @@ class ProcessTurnResponse(BaseModel):
     campaign_snapshot_version: int
     state: dict[str, Any]
     map_context: dict[str, Any] | None = None
+    dice_roll: int | None = None

@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -341,6 +342,7 @@ async def process_turn(
         status_code, detail = classify_provider_error(exc)
         raise HTTPException(status_code=status_code, detail=detail) from exc
     llm_payload = llm_result.payload
+    dice_roll = secrets.randbelow(20) + 1
 
     if not user.is_admin:
         try:
@@ -394,6 +396,7 @@ async def process_turn(
         turn_number=int(next_state.get("turn_number", 0)),
         player_action=normalized_player_action,
         llm_response_json=llm_payload,
+        dice_roll=dice_roll,
         llm_usage_json={
             **llm_result.usage.to_dict(),
             **llm_result.meta,
@@ -475,4 +478,5 @@ async def process_turn(
         campaign_snapshot_version=next_snapshot.version,
         state=next_state,
         map_context=map_context,
+        dice_roll=dice_roll,
     )

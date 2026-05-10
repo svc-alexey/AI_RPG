@@ -443,6 +443,7 @@ class ChatMessage {
     text: _jsonString(json['text']),
     createdAt:
         DateTime.tryParse(_jsonString(json['createdAt'])) ?? DateTime.now(),
+    diceRoll: (json['dice_roll'] as num?)?.toInt(),
   );
 
   const ChatMessage({
@@ -450,18 +451,21 @@ class ChatMessage {
     required this.role,
     required this.text,
     required this.createdAt,
+    this.diceRoll,
   });
 
   final String id;
   final ChatRole role;
   final String text;
   final DateTime createdAt;
+  final int? diceRoll;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
     'role': role.name,
     'text': text,
     'createdAt': createdAt.toIso8601String(),
+    if (diceRoll != null) 'dice_roll': diceRoll,
   };
 }
 
