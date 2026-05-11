@@ -155,6 +155,7 @@ class GameEngine {
         role: ChatRole.narrator,
         text: result.narration,
         createdAt: now,
+        diceRoll: result.diceRoll,
       ),
     );
 

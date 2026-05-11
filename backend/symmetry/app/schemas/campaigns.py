@@ -117,6 +117,10 @@ class ProcessTurnRequest(BaseModel):
         default=None,
         validation_alias=AliasChoices("provider_credentials", "providerCredentials"),
     )
+    dice_roll: int | None = Field(
+        default=None,
+        validation_alias=AliasChoices("dice_roll", "diceRoll"),
+    )
 
     @field_validator("player_action", "language", "trigger_source", mode="before")
     @classmethod

@@ -123,6 +123,7 @@ class SymmetryCampaignRepository {
     required final AppLanguage language,
     required final AiSettings aiSettings,
     final String triggerSource = 'manual',
+    final int? diceRoll,
   }) async {
     final SymmetryTurnResponse response = await _authRepository
         .runWithAuthorizedSession(
@@ -133,6 +134,7 @@ class SymmetryCampaignRepository {
             languageCode: language.code,
             aiSettings: aiSettings,
             triggerSource: triggerSource,
+            diceRoll: diceRoll,
           ),
         );
     return _campaignStateFromServer(response.state);
@@ -229,11 +231,13 @@ class SymmetryCampaignRepository {
           (json['messages'] as List<Object?>?)?.map((final item) {
             final Map<Object?, Object?> map =
                 item as Map<Object?, Object?>? ?? const <Object?, Object?>{};
+            final num? diceRoll = map['dice_roll'] as num?;
             return <String, Object?>{
               'id': DateTime.now().microsecondsSinceEpoch.toString(),
               'role': map['role'] == 'player' ? 'player' : 'narrator',
               'text': map['text'] ?? '',
               'createdAt': DateTime.now().toIso8601String(),
+              if (diceRoll != null) 'dice_roll': diceRoll.toInt(),
             };
           }).toList() ??
           const <Map<String, Object?>>[],

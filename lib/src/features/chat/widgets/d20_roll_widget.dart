@@ -461,14 +461,6 @@ class _D20ResultLabelState extends State<D20ResultLabel>
                   letterSpacing: 0.3,
                 ),
               ),
-              if (widget.result != 20 && widget.result != 1)
-                Text(
-                  'д20 → ${widget.result}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45),
-                    fontSize: 11,
-                  ),
-                ),
             ],
           ),
         ),

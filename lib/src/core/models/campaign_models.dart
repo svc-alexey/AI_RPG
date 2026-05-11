@@ -602,6 +602,7 @@ class TurnResult {
       choices: choices,
       stateChanges: StateChanges.fromJson(stateChangesJson),
       memoryEntry: _resolveTurnMemoryEntry(json, fallback: narration),
+      diceRoll: (json['dice_roll'] as num?)?.toInt(),
     );
   }
 
@@ -610,12 +611,14 @@ class TurnResult {
     required this.choices,
     required this.stateChanges,
     required this.memoryEntry,
+    this.diceRoll,
   });
 
   final String narration;
   final List<String> choices;
   final StateChanges stateChanges;
   final String memoryEntry;
+  final int? diceRoll;
 }
 
 String _choiceLabel(final Object? item) {

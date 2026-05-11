@@ -365,6 +365,7 @@ class SymmetryApiClient {
     required final String languageCode,
     required final AiSettings aiSettings,
     final String triggerSource = 'manual',
+    final int? diceRoll,
   }) async {
     final Map<String, Object?> response = await _post(
       '/campaigns/$campaignId/turns/process',
@@ -373,6 +374,7 @@ class SymmetryApiClient {
         'player_action': playerAction,
         'language': languageCode,
         'trigger_source': triggerSource,
+        if (diceRoll != null) 'dice_roll': diceRoll,
         if (aiSettings.baseUrl.trim().isNotEmpty &&
             aiSettings.model.trim().isNotEmpty &&
             aiSettings.apiKey.trim().isNotEmpty)

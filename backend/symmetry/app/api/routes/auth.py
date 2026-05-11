@@ -253,13 +253,16 @@ def _reset_password_result_html(*, success: bool, message: str, lang: str, token
         forgot_url = f"/?lang={lang}&autostart=1"
         body_text = f'<a href="{forgot_url}" style="color:#BFA76F;text-decoration:none;">{"Запросить новый сброс" if is_ru else "Request a new reset"}</a>'
 
+    meta_refresh = f'<meta http-equiv="refresh" content="1;url={redirect_url}">' if success else ""
+    redirect_script = f"<script>setTimeout(function(){{window.location.href='{redirect_url}';}},1200);</script>" if success else ""
+
     return f"""<!DOCTYPE html>
 <html lang="{lang}">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-{"<meta http-equiv=\"refresh\" content=\"1;url=\"+redirect_url+\"\"/>" if success else ""}
-{"<script>setTimeout(function(){{window.location.href='"+redirect_url+"';}},1200);</script>" if success else ""}
+{meta_refresh}
+{redirect_script}
 <title>{title}</title>
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}

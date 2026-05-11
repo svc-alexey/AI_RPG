@@ -10,6 +10,7 @@ import 'package:ai_prg/src/core/repositories/settings_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart' show AiTurnException;
 import 'package:ai_prg/src/core/services/app_logger.dart';
+import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final chatControllerProvider = StateNotifierProvider.autoDispose
@@ -131,6 +132,9 @@ class ChatController extends StateNotifier<ChatViewState> {
   String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
+
+  static const DeterministicCheckService _checkService =
+      DeterministicCheckService();
 
   SymmetryCampaignRepository get _campaignRepository =>
       _ref.read(symmetryCampaignRepositoryProvider);
@@ -269,6 +273,12 @@ class ChatController extends StateNotifier<ChatViewState> {
       screenMounted: !_disposed,
     );
 
+    final DeterministicTurnContext checkContext = _checkService.resolve(
+      state: campaign,
+      playerAction: trimmedAction,
+      language: _appLanguage,
+    );
+
     try {
       final AiSettings settings = await _settingsRepository.loadAiSettings();
       final CampaignState nextCampaign = await _campaignRepository.processTurn(
@@ -277,6 +287,7 @@ class ChatController extends StateNotifier<ChatViewState> {
         campaign: campaign,
         aiSettings: settings,
         triggerSource: triggerSource,
+        diceRoll: checkContext.resolvedCheck?.roll,
       );
 
       if (_disposed) {

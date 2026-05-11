@@ -333,6 +333,7 @@ class CampaignRuntimeService:
         state: dict[str, Any],
         result: dict[str, Any],
         player_action: str,
+        dice_roll: int | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], int, str]:
         next_state = self.ensure_bootstrap_state(state=state)
         language = str(next_state.get("language", "ru")).strip() or "ru"
@@ -508,7 +509,10 @@ class CampaignRuntimeService:
         trimmed_player_action = normalize_prompt_text(player_action, limit=240)
         if trimmed_player_action:
             messages.append({"role": "player", "text": trimmed_player_action})
-        messages.append({"role": "narrator", "text": narration})
+        narrator_msg: dict[str, object] = {"role": "narrator", "text": narration}
+        if dice_roll is not None:
+            narrator_msg["dice_roll"] = dice_roll
+        messages.append(narrator_msg)
 
         memory = next_state.setdefault("memory", {})
         recent_turns = _normalize_recent_turns(memory.get("recent_turns", []) or [])
