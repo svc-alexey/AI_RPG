@@ -117,8 +117,8 @@ class AppResponsiveData {
     AppBreakpoint.phoneSmall => width,
     AppBreakpoint.phone => width,
     AppBreakpoint.phoneLarge => width,
-    AppBreakpoint.tablet => 240,
-    AppBreakpoint.desktop => 240,
+    AppBreakpoint.tablet => 280,
+    AppBreakpoint.desktop => 300,
   };
 
   double get overlayMaxWidth => switch (breakpoint) {

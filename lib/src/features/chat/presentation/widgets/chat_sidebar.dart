@@ -102,63 +102,96 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
 
     final tabController = _tabController!;
 
+    final double contentPadding = responsive.isCompact ? 8 : 14;
+
     return AetherCard(
-      padding: EdgeInsets.all(responsive.isCompact ? 8 : 14),
-      child: Column(
-        children: <Widget>[
-          // 1. Portrait + name
-          _CharacterPortraitCard(campaign: campaign),
-          SizedBox(height: responsive.sectionSpacing - 4),
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(responsive.cardRadius),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // 1. Portrait image — bleeds to card edges
+            _CharacterPortraitCard(campaign: campaign),
 
-          // 2. Meta info
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
-              _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
-            ],
-          ),
-          SizedBox(height: responsive.isCompact ? 8 : 6),
+            // 2. Content below portrait
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  contentPadding,
+                  10,
+                  contentPadding,
+                  contentPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // Character name
+                    Text(
+                      campaign.character.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AetherPalette.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: responsive.sectionSpacing - 4),
 
-          // Location + Objective
-          _SidebarInfoLine(label: l10n.location, value: campaign.location),
-          SizedBox(height: responsive.isCompact ? 8 : 6),
-          if (campaign.hasDisplayObjective) ...[
-            _SidebarInfoLine(
-              label: l10n.objective,
-              value: campaign.displayObjectiveLine,
+                    // Meta info
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+                        _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
+                      ],
+                    ),
+                    SizedBox(height: responsive.isCompact ? 8 : 6),
+
+                    // Location + Objective
+                    _SidebarInfoLine(label: l10n.location, value: campaign.location),
+                    SizedBox(height: responsive.isCompact ? 8 : 6),
+                    if (campaign.hasDisplayObjective) ...[
+                      _SidebarInfoLine(
+                        label: l10n.objective,
+                        value: campaign.displayObjectiveLine,
+                      ),
+                      SizedBox(height: responsive.isCompact ? 8 : 6),
+                    ],
+
+                    // TabBar
+                    TabBar(
+                      controller: tabController,
+                      isScrollable: false,
+                      indicatorColor: const Color(0xFFBFA76F),
+                      labelColor: AetherPalette.textPrimary,
+                      unselectedLabelColor: AetherPalette.textMuted,
+                      tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
+                    ),
+
+                    // TabBarView
+                    Expanded(
+                      child: TabBarView(
+                        controller: tabController,
+                        children: tabs.map((m) => _buildTabContent(m, context)).toList(),
+                      ),
+                    ),
+
+                    // Exit button
+                    const SizedBox(height: 8),
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.home_outlined, size: 20),
+                      title: Text(l10n.exitToMainMenu),
+                      onTap: widget.onExitToMainMenu,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: responsive.isCompact ? 8 : 6),
           ],
-
-          // 3. TabBar
-          TabBar(
-            controller: tabController,
-            isScrollable: false,
-            indicatorColor: const Color(0xFFBFA76F),
-            labelColor: AetherPalette.textPrimary,
-            unselectedLabelColor: AetherPalette.textMuted,
-            tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
-          ),
-
-          // 4. TabBarView
-          Expanded(
-            child: TabBarView(
-              controller: tabController,
-              children: tabs.map((m) => _buildTabContent(m, context)).toList(),
-            ),
-          ),
-
-          // 5. Exit button
-          const SizedBox(height: 8),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.home_outlined, size: 20),
-            title: Text(l10n.exitToMainMenu),
-            onTap: widget.onExitToMainMenu,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -212,23 +245,44 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
     final l10n = context.l10n;
     final campaign = widget.campaign;
 
+    final double contentPadding = context.responsive.isCompact ? 8 : 14;
+
     return AetherCard(
-      padding: EdgeInsets.all(context.responsive.isCompact ? 8 : 14),
-      child: ListView(
-        padding: EdgeInsets.all(context.responsive.isCompact ? 8 : 12),
-        children: <Widget>[
-          _CharacterPortraitCard(campaign: campaign),
-          const SizedBox(height: 12),
-          Text(l10n.summary),
-          const SizedBox(height: 8),
-          Text(campaign.summary),
-          const SizedBox(height: 24),
-          ListTile(
-            leading: const Icon(Icons.home_outlined),
-            title: Text(l10n.exitToMainMenu),
-            onTap: widget.onExitToMainMenu,
-          ),
-        ],
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(context.responsive.cardRadius),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _CharacterPortraitCard(campaign: campaign),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.all(contentPadding),
+                children: <Widget>[
+                  Text(
+                    campaign.character.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AetherPalette.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(l10n.summary),
+                  const SizedBox(height: 8),
+                  Text(campaign.summary),
+                  const SizedBox(height: 24),
+                  ListTile(
+                    leading: const Icon(Icons.home_outlined),
+                    title: Text(l10n.exitToMainMenu),
+                    onTap: widget.onExitToMainMenu,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -571,51 +625,18 @@ class _CharacterPortraitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
+    final double height = responsive.isMobile ? 200 : 220;
     final String imagePath = campaign.portraitPath.trim().isNotEmpty
         ? campaign.portraitPath.trim()
         : _portraitAssetForCampaign(campaign);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AetherPalette.backgroundElevated,
-        borderRadius: BorderRadius.circular(responsive.isCompact ? 16 : 20),
-        border: Border.all(color: AetherPalette.accent.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ClipRRect(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(responsive.isCompact ? 16 : 20),
-            ),
-            child: buildPortraitImage(
-              portraitPath: imagePath,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: responsive.isCompact ? 140 : 160,
-              errorBuilder: (_, __, ___) =>
-                  _PortraitFallbackLabel(label: campaign.character.name),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              responsive.isCompact ? 12 : 14,
-              10,
-              responsive.isCompact ? 12 : 14,
-              responsive.isCompact ? 12 : 14,
-            ),
-            child: Text(
-              campaign.character.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AetherPalette.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return buildPortraitImage(
+      portraitPath: imagePath,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: height,
+      errorBuilder: (_, __, ___) =>
+          _PortraitFallbackLabel(label: campaign.character.name),
     );
   }
 }
@@ -626,18 +647,23 @@ class _PortraitFallbackLabel extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 180,
-    color: AetherPalette.panel.withValues(alpha: 0.94),
-    alignment: Alignment.center,
-    child: Text(
-      label,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: AetherPalette.textMuted,
+  Widget build(BuildContext context) {
+    final responsive = context.responsive;
+    final double height = responsive.isMobile ? 200 : 220;
+    return Container(
+      height: height,
+      width: double.infinity,
+      color: AetherPalette.panel.withValues(alpha: 0.94),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: AetherPalette.textMuted,
+        ),
+        textAlign: TextAlign.center,
       ),
-      textAlign: TextAlign.center,
-    ),
-  );
+    );
+  }
 }
 
 class _SidebarMetaChip extends StatelessWidget {

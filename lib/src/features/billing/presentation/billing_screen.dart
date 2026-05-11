@@ -1,8 +1,10 @@
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
+import 'package:ai_prg/src/app/browser_location.dart';
 import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/billing_models.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -145,8 +147,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       );
       if (!mounted) return;
       await repo.savePendingOrderId(result.orderId);
-      await launchUrl(Uri.parse(result.confirmationUrl),
-          mode: LaunchMode.externalApplication);
+      if (kIsWeb) {
+        navigateBrowserUrl(result.confirmationUrl);
+      } else {
+        await launchUrl(Uri.parse(result.confirmationUrl),
+            mode: LaunchMode.externalApplication);
+      }
       _startPolling(result.orderId);
     } catch (e) {
       if (!mounted) return;
