@@ -267,10 +267,15 @@ async def get_campaign_state(
         select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
     )
     portrait = portrait_result.scalar_one_or_none()
-    settings = get_settings()
     if portrait is not None:
-        base = settings.web_public_origin.rstrip("/")
-        state["portrait_url"] = f"{base}/v1/campaigns/{campaign_id}/portrait/image"
+        blob = portrait.image_webp
+        if blob.startswith(b"http://") or blob.startswith(b"https://"):
+            # External URL — client fetches directly (no CORS for <img> tags)
+            state["portrait_url"] = blob.decode("utf-8")
+        else:
+            settings = get_settings()
+            base = settings.web_public_origin.rstrip("/")
+            state["portrait_url"] = f"{base}/v1/campaigns/{campaign_id}/portrait/image"
     else:
         state["portrait_url"] = None
 

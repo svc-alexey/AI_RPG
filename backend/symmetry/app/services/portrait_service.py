@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import logging
 import random
 import uuid
@@ -83,15 +84,14 @@ class PortraitService:
 
         task_id = await self._post_generation(prompt)
         image_url = await self._poll_until_complete(task_id)
-        image_bytes = await self._download_image(image_url)
-        logger.info("portrait_download_done campaign=%s bytes=%d", campaign_id, len(image_bytes))
-
-        compressed, _ = optimize_portrait(image_bytes, "image/png")
+        # Store external URL — server can't reach mfile.z.ai (network/Docker),
+        # but browser can. Client fetches directly, no redirect, no CORS issue.
+        logger.info("portrait_store_url campaign=%s url=%s", campaign_id, image_url[:120])
 
         portrait = CampaignPortrait(
             id=str(uuid.uuid4()),
             campaign_id=campaign_id,
-            image_webp=compressed,
+            image_webp=image_url.encode("utf-8"),
             prompt_used=prompt,
             model_used=self._config.image_model,
         )
@@ -136,19 +136,14 @@ class PortraitService:
             data = response.json()
             logger.info("portrait_post_response data_keys=%s", list(data.keys()))
         except httpx.HTTPError as exc:
-            raise PolzaApiError(
-                f"Image generation request failed: {exc}"
-            ) from exc
+            raise PolzaApiError(f"Image generation request failed: {exc}") from exc
 
         task_id = data.get("id")
         if task_id:
             logger.info("portrait_async_task id=%s", task_id)
             return task_id
 
-        logger.warning("portrait_post_unknown_format data=%s", str(data)[:500])
-        raise PolzaApiError(
-            f"Unexpected generation response, missing id: {data}"
-        )
+        raise PolzaApiError(f"Unexpected response, missing id: {data}")
 
     async def _poll_until_complete(self, task_id: str) -> str:
         """Poll z.ai async result endpoint until SUCCESS, return image URL."""
@@ -206,29 +201,32 @@ class PortraitService:
             await asyncio.sleep(1.0)
 
     async def _download_image(self, image_url: str) -> bytes:
-        max_attempts = 6
-        last_exc: Exception | None = None
+        """Download via curl — Python HTTP libs have TLS issues with
+        mfile.z.ai (ReadTimeout), but curl works reliably on Linux."""
+        max_attempts = 4
+        last_err = ""
         for attempt in range(max_attempts):
             try:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(45.0)) as dl_client:
-                    response = await dl_client.get(image_url)
-                    response.raise_for_status()
-                    return response.content
-            except httpx.HTTPStatusError:
-                raise  # 4xx/5xx are not transient — don't retry
-            except (httpx.TransportError, httpx.HTTPError) as exc:
-                last_exc = exc
-                if attempt < max_attempts - 1:
-                    wait = (2 ** attempt) + random.uniform(0, 0.5)
-                    logger.info(
-                        "portrait_download_retry attempt=%d/%d wait=%.1fs url=%s",
-                        attempt + 1, max_attempts, wait, image_url[:100],
-                    )
-                    await asyncio.sleep(wait)
-        raise PolzaApiError(
-            f"Failed to download after {max_attempts} attempts: "
-            f"{type(last_exc).__name__}: {last_exc}"
-        ) from last_exc
+                proc = await asyncio.create_subprocess_exec(
+                    "curl",
+                    "-s", "-S",
+                    "--max-time", "60",
+                    "-o", "-",
+                    image_url,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0 and stdout:
+                    return stdout
+                last_err = stderr.decode(errors="replace")[:200] if stderr else f"rc={proc.returncode}"
+            except Exception as exc:
+                last_err = f"{type(exc).__name__}: {exc}"
+            if attempt < max_attempts - 1:
+                wait = (2 ** attempt) + random.uniform(0, 0.5)
+                logger.info("portrait_curl_retry attempt=%d/%d wait=%.1fs", attempt + 1, max_attempts, wait)
+                await asyncio.sleep(wait)
+        raise PolzaApiError(f"Failed to download after {max_attempts} attempts: {last_err}")
 
     async def close(self) -> None:
         await self._client.aclose()
