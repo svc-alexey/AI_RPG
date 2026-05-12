@@ -1,7 +1,9 @@
 from io import BytesIO
 
 from fastapi import HTTPException, status
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageFile, ImageOps, UnidentifiedImageError
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 _PORTRAIT_TARGET_BYTES = 120 * 1024
 _PORTRAIT_HARD_BYTES = 200 * 1024
@@ -18,7 +20,7 @@ def optimize_portrait(data: bytes, mime: str) -> tuple[bytes, str]:
         with Image.open(BytesIO(data)) as opened:
             base = ImageOps.exif_transpose(opened)
             source = base.copy()
-    except (UnidentifiedImageError, OSError) as exc:
+    except UnidentifiedImageError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="invalid_portrait_image",

@@ -206,7 +206,7 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   void cancelGeneration() {}
 
-  static const int _maxPortraitPollAttempts = 15; // 15 × 3s = 45s safety net
+  static const int _maxPortraitPollAttempts = 30; // 30 × 3s = 90s safety net
 
   void _startPortraitPolling() {
     _portraitPollTimer?.cancel();
@@ -217,15 +217,18 @@ class ChatController extends StateNotifier<ChatViewState> {
   void _scheduleNextPortraitPoll() {
     if (_disposed) return;
     if (_portraitPollAttempts >= _maxPortraitPollAttempts) {
-      if (!_disposed) {
-        state = state.copyWith(
-          campaign: state.campaign?.copyWith(isPortraitGenerating: false),
-        );
-      }
+      state = state.copyWith(
+        campaign: state.campaign?.copyWith(isPortraitGenerating: false),
+      );
       return;
     }
-    // Capture before async gap to avoid using ref after dispose.
-    final SymmetryCampaignRepository repo = _campaignRepository;
+    // Capture repo before async gap; guard against ref-after-dispose.
+    final SymmetryCampaignRepository repo;
+    try {
+      repo = _campaignRepository;
+    } catch (_) {
+      return; // ref already disposed
+    }
     final String campaignId = _campaignId;
     _portraitPollTimer = Timer(const Duration(seconds: 3), () async {
       if (_disposed) return;
@@ -236,8 +239,11 @@ class ChatController extends StateNotifier<ChatViewState> {
         if (refreshed.portraitUrl != null &&
             refreshed.portraitUrl!.isNotEmpty) {
           _portraitPollTimer?.cancel();
+          if (_disposed) return;
+          // Keep isPortraitGenerating=true — image still loading in browser.
+          // Sidebar will clear it via callback when Image.network renders.
           state = state.copyWith(
-            campaign: refreshed.copyWith(isPortraitGenerating: false),
+            campaign: refreshed.copyWith(isPortraitGenerating: true),
           );
           return;
         }

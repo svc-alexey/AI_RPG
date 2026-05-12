@@ -98,6 +98,7 @@ async def get_portrait_image(
         media_type="image/webp",
         headers={
             "Cache-Control": "public, max-age=86400, immutable",
+            "Access-Control-Allow-Origin": "*",
         },
     )
 

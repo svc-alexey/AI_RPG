@@ -84,14 +84,14 @@ class PortraitService:
 
         task_id = await self._post_generation(prompt)
         image_url = await self._poll_until_complete(task_id)
-        # Store external URL — server can't reach mfile.z.ai (network/Docker),
-        # but browser can. Client fetches directly, no redirect, no CORS issue.
-        logger.info("portrait_store_url campaign=%s url=%s", campaign_id, image_url[:120])
+        image_bytes = await self._download_image(image_url)
+        logger.info("portrait_download_done campaign=%s bytes=%d", campaign_id, len(image_bytes))
+        compressed, _ = optimize_portrait(image_bytes, "image/png")
 
         portrait = CampaignPortrait(
             id=str(uuid.uuid4()),
             campaign_id=campaign_id,
-            image_webp=image_url.encode("utf-8"),
+            image_webp=compressed,
             prompt_used=prompt,
             model_used=self._config.image_model,
         )
@@ -210,7 +210,12 @@ class PortraitService:
                 proc = await asyncio.create_subprocess_exec(
                     "curl",
                     "-s", "-S",
-                    "--max-time", "60",
+                    "--http1.1",
+                    "--max-time", "30",
+                    "--connect-timeout", "15",
+                    "--speed-limit", "100",
+                    "--speed-time", "8",
+                    "-H", "Accept-Encoding: identity",
                     "-o", "-",
                     image_url,
                     stdout=asyncio.subprocess.PIPE,
@@ -218,6 +223,12 @@ class PortraitService:
                 )
                 stdout, stderr = await proc.communicate()
                 if proc.returncode == 0 and stdout:
+                    return stdout
+                # mfile.z.ai often closes connection without FIN (Docker NAT
+                # loses it). Content-Length may be wrong. Accept partial data
+                # if we received enough bytes for a real image.
+                if len(stdout) > 1000:
+                    logger.info("portrait_curl_partial size=%d", len(stdout))
                     return stdout
                 last_err = stderr.decode(errors="replace")[:200] if stderr else f"rc={proc.returncode}"
             except Exception as exc:
