@@ -77,8 +77,12 @@ class PortraitService:
             setting=setting,
         )
 
-        request_id = await self._post_generation(prompt)
-        image_url = await self._poll_until_complete(request_id)
+        result = await self._post_generation(prompt)
+        # result is either a URL (OpenAI sync) or a requestId (Polza async)
+        if result.startswith(("http://", "https://")):
+            image_url = result
+        else:
+            image_url = await self._poll_until_complete(result)
         image_bytes = await self._download_image(image_url)
 
         compressed, _ = optimize_portrait(image_bytes, "image/png")
@@ -117,6 +121,11 @@ class PortraitService:
         )
 
     async def _post_generation(self, prompt: str) -> str:
+        """POST to the image generation endpoint.
+
+        Returns either a direct image URL (OpenAI-compatible sync API)
+        or a requestId for later polling (Polza async API).
+        """
         try:
             response = await self._client.post(
                 f"{self._config.base_url}/images/generations",
@@ -131,15 +140,23 @@ class PortraitService:
             data = response.json()
         except httpx.HTTPError as exc:
             raise PolzaApiError(
-                f"Polza.ai generation request failed: {exc}"
+                f"Image generation request failed: {exc}"
             ) from exc
 
+        # OpenAI-compatible sync response: {"data": [{"url": "..."}]}
+        if isinstance(data.get("data"), list) and len(data["data"]) > 0:
+            image_url = data["data"][0].get("url")
+            if image_url:
+                return image_url
+
+        # Polza async response: {"requestId": "gen_..."}
         request_id = data.get("requestId")
-        if not request_id:
-            raise PolzaApiError(
-                f"Polza.ai response missing requestId: {data}"
-            )
-        return request_id
+        if request_id:
+            return request_id
+
+        raise PolzaApiError(
+            f"Unexpected generation response: {data}"
+        )
 
     async def _poll_until_complete(self, request_id: str) -> str:
         deadline = asyncio.get_event_loop().time() + self._config.timeout_seconds
