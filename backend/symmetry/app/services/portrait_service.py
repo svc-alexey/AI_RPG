@@ -81,17 +81,8 @@ class PortraitService:
             setting=setting,
         )
 
-        result = await self._post_generation(prompt)
-        logger.info("portrait_post_done campaign=%s result_type=%s result=%s",
-                     campaign_id, "url" if result.startswith(("http://", "https://")) else "requestId",
-                     result[:120] if result.startswith(("http://", "https://")) else result)
-        # result is either a URL (OpenAI sync) or a requestId (Polza async)
-        if result.startswith(("http://", "https://")):
-            image_url = result
-        else:
-            image_url = await self._poll_until_complete(result)
-        logger.info("portrait_download_start campaign=%s url=%s", campaign_id, image_url[:120])
-        await self._warmup_cdn(image_url)
+        task_id = await self._post_generation(prompt)
+        image_url = await self._poll_until_complete(task_id)
         image_bytes = await self._download_image(image_url)
         logger.info("portrait_download_done campaign=%s bytes=%d", campaign_id, len(image_bytes))
 
@@ -131,20 +122,14 @@ class PortraitService:
         )
 
     async def _post_generation(self, prompt: str) -> str:
-        """POST to the image generation endpoint.
-
-        Returns either a direct image URL (OpenAI-compatible sync API)
-        or a requestId for later polling (Polza async API).
-        """
+        """POST to z.ai async image generation. Returns task id for polling."""
         try:
             response = await self._client.post(
-                f"{self._config.base_url}/images/generations",
+                f"{self._config.base_url}/async/images/generations",
                 json={
                     "model": self._config.image_model,
                     "prompt": prompt,
-                    "n": 1,
                     "size": "1024x1024",
-                    "quality": "standard",
                 },
             )
             response.raise_for_status()
@@ -155,25 +140,18 @@ class PortraitService:
                 f"Image generation request failed: {exc}"
             ) from exc
 
-        # OpenAI-compatible sync response: {"data": [{"url": "..."}]}
-        if isinstance(data.get("data"), list) and len(data["data"]) > 0:
-            image_url = data["data"][0].get("url")
-            if image_url:
-                logger.info("portrait_post_format=openai_sync url=%s", image_url[:120])
-                return image_url
-
-        # Polza async response: {"requestId": "gen_..."}
-        request_id = data.get("requestId")
-        if request_id:
-            logger.info("portrait_post_format=polza_async request_id=%s", request_id)
-            return request_id
+        task_id = data.get("id")
+        if task_id:
+            logger.info("portrait_async_task id=%s", task_id)
+            return task_id
 
         logger.warning("portrait_post_unknown_format data=%s", str(data)[:500])
         raise PolzaApiError(
-            f"Unexpected generation response: {data}"
+            f"Unexpected generation response, missing id: {data}"
         )
 
-    async def _poll_until_complete(self, request_id: str) -> str:
+    async def _poll_until_complete(self, task_id: str) -> str:
+        """Poll z.ai async result endpoint until SUCCESS, return image URL."""
         deadline = asyncio.get_event_loop().time() + self._config.timeout_seconds
         while True:
             if asyncio.get_event_loop().time() > deadline:
@@ -182,32 +160,33 @@ class PortraitService:
                 )
             try:
                 response = await self._client.get(
-                    f"{self._config.base_url}/media/{request_id}"
+                    f"{self._config.base_url}/async-result/{task_id}"
                 )
                 response.raise_for_status()
                 data = response.json()
             except httpx.HTTPError as exc:
                 raise PolzaApiError(
-                    f"Polza.ai poll failed for {request_id}: {exc}"
+                    f"z.ai poll failed for {task_id}: {exc}"
                 ) from exc
 
-            status = data.get("status", "")
-            if status == "completed":
-                items = data.get("data", [])
+            task_status = data.get("task_status", "")
+            if task_status == "SUCCESS":
+                items = data.get("image_result", [])
                 if not items:
                     raise PolzaApiError(
-                        f"Polza.ai completed but returned no images for {request_id}"
+                        f"z.ai SUCCESS but no image_result for {task_id}"
                     )
                 image_url = items[0].get("url")
                 if not image_url:
                     raise PolzaApiError(
-                        f"Polza.ai image URL missing for {request_id}"
+                        f"z.ai image URL missing for {task_id}"
                     )
+                logger.info("portrait_async_done task_id=%s url=%s", task_id, image_url[:120])
                 return image_url
-            if status == "failed":
-                error_msg = data.get("error", "Unknown error")
+            if task_status == "FAIL":
+                error_msg = str(data)[:300]
                 raise PolzaApiError(
-                    f"Polza.ai generation failed: {error_msg}"
+                    f"z.ai generation failed: {error_msg}"
                 )
 
             await asyncio.sleep(self._config.poll_interval_seconds)
@@ -231,7 +210,7 @@ class PortraitService:
         last_exc: Exception | None = None
         for attempt in range(max_attempts):
             try:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as dl_client:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(45.0)) as dl_client:
                     response = await dl_client.get(image_url)
                     response.raise_for_status()
                     return response.content
