@@ -2,41 +2,77 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Лицензионный договор (Оферта) — Стирая Грань. Условия использования AI-RPG сервиса.">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="/offer.html">
+<link rel="canonical" href="https://beyondtheverge.online/offer.html">
+<link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/offer.html?lang=ru">
+<link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/offer.html">
 <title>Оферта — Стирая Грань</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,300;0,400;0,500;0,700;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/legal.css">
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+:root{--bg:#0a0908;--text:#e8e4e0;--muted:#837b74;--dim:#5b5550;--accent:#c87941;--surface:rgba(16,13,11,0.92);--border:rgba(200,121,65,0.22)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:50}
+.topbar-brand{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--accent);text-decoration:none}
+.topbar-back{color:var(--muted);text-decoration:none;font-size:14px;display:flex;align-items:center;gap:6px}
+.topbar-back:hover{color:var(--text)}
+.lang-toggle{display:flex;gap:4px}
+.lang-toggle button{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:13px;font-family:Inter,sans-serif}
+.lang-toggle button.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100%;background:var(--surface);border-right:1px solid var(--border);padding:73px 24px 32px;z-index:5;overflow-y:auto}
+.sidebar-title{font-family:'Playfair Display',serif;font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px}
+.sidebar nav{display:flex;flex-direction:column;gap:4px}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:14px;transition:all .15s}
+.sidebar a:hover{background:rgba(200,121,65,.06);color:var(--text)}
+.sidebar a.active{background:rgba(200,121,65,.12);color:var(--accent);font-weight:500}
+.sidebar a .material-symbols-outlined{font-size:20px}
+.main-content{margin-left:calc(240px + max(20px, (100vw - 240px - 980px) / 2));margin-right:max(20px, (100vw - 240px - 980px) / 2);max-width:980px;padding:48px 24px}
+.bottom-nav{position:fixed;bottom:0;width:100%;z-index:50;display:none;justify-content:space-around;align-items:center;padding:10px 16px;background:var(--bg);border-top:1px solid var(--border);box-shadow:0 -4px 12px rgba(0,0,0,.5)}
+.bottom-nav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);text-decoration:none;font-size:10px;font-weight:500}
+.bottom-nav a.active{color:var(--accent)}
+.footer{text-align:center;padding:24px;color:var(--dim);font-size:13px;border-top:1px solid var(--border);margin-top:48px}
+.footer a{color:var(--muted);text-decoration:none;margin:0 8px}
+.footer a:hover{color:var(--accent)}
+.legal-section-header{border-bottom:1px solid var(--border);padding-bottom:24px;margin-bottom:40px}
+.legal-section-header .label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);display:block;margin-bottom:8px}
+.legal-section-header h2{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,42px);font-style:italic;font-weight:600;margin:0}
+.legal-content{line-height:1.8;max-width:780px}
+.legal-content h4{font-family:'Playfair Display',serif;font-size:26px;line-height:1.3;font-weight:500;color:var(--text);margin:40px 0 16px}
+.legal-content p{font-size:15px;line-height:1.7;color:var(--muted);margin:0 0 16px}
+.legal-card{background:var(--surface);border:1px solid var(--border);padding:24px;border-radius:12px}
+.legal-card.highlight{background:rgba(200,121,65,.05);border-color:rgba(200,121,65,.3)}
+.legal-cta{margin-top:48px;padding:32px;background:var(--surface);border-radius:12px;border:1px solid var(--border);text-align:center}
+.legal-cta p{color:var(--muted);margin-bottom:24px;font-size:16px}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--bg);padding:14px 36px;border-radius:8px;border:none;font-family:Inter,sans-serif;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;transition:opacity .15s}
+.btn-primary:hover{opacity:.9}
+html[lang="ru"] section[lang="en"]{display:none}
+html[lang="en"] section[lang="ru"]{display:none}
+html[lang="ru"] span[lang="en"]{display:none}
+html[lang="en"] span[lang="ru"]{display:none}
+@media(max-width:1099px){.sidebar{display:none}.main-content{margin-left:0;margin-right:0;padding:24px 16px 96px;max-width:100%}.bottom-nav{display:flex}.topbar{padding:12px 16px}.topbar-brand{font-size:16px}.legal-section-header h2{font-size:28px}.legal-content h4{font-size:22px}}
+@media(min-width:1100px){.bottom-nav{display:none}}
+</style>
 </head>
 <body>
 
-<!-- Header -->
-<header class="legal-header">
-  <div class="legal-header-inner">
-    <div style="display:flex;align-items:center;gap:16px;">
-      <a href="/" style="color:var(--text-dim);text-decoration:none;">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </a>
-      <h1 class="legal-header-title"><span lang="ru">Правовая информация</span><span lang="en">Legal Center</span></h1>
-    </div>
-    <div style="display:flex;align-items:center;gap:16px;">
-      <div class="lang-toggle">
-        <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
-        <button id="btn-en" onclick="switchLang('en')">EN</button>
-      </div>
-          </div>
+<header class="topbar">
+  <a href="/" class="topbar-back">← <span lang="ru">На главную</span><span lang="en">Home</span></a>
+  <span class="topbar-brand"><span lang="ru">Правовая информация</span><span lang="en">Legal Center</span></span>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
   </div>
 </header>
 
-<div style="display:flex;min-height:100vh;">
-<!-- Desktop Sidebar -->
-<aside class="legal-sidebar">
-  <div class="legal-sidebar-title"><span lang="ru">Документы</span><span lang="en">Documents</span></div>
+<aside class="sidebar">
+  <div class="sidebar-title"><span lang="ru">Документы</span><span lang="en">Documents</span></div>
   <nav>
     <a href="/offer.html" class="active">
       <span class="material-symbols-outlined">description</span><span lang="ru">Оферта</span><span lang="en">License Offer</span>
@@ -59,8 +95,8 @@
   </nav>
 </aside>
 
-<!-- Main Content -->
-<main class="legal-main">
+<div class="main-content">
+
   <div class="legal-section-header">
     <span class="label">Notice of Compliance</span>
     <h2 lang="ru">Лицензионный договор (Оферта)</h2>
@@ -69,7 +105,6 @@
 
   <article class="legal-content">
 
-<!-- RUSSIAN -->
 <section lang="ru">
 <p><strong>Редакция от 04 мая 2026 г.</strong></p>
 <p>Настоящий документ является официальной офертой (далее — «Оферта») Администрации сервиса «Стирая Грань» (далее — «Сервис») и определяет условия использования Сервиса, а также права и обязанности Пользователя и Администрации.</p>
@@ -111,12 +146,12 @@
 <p>6.3. Администрация оставляет за собой право вводить ограничения на частоту запросов для предотвращения злоупотреблений.</p>
 
 <h4>7. Обработка персональных данных</h4>
-<p>7.1. Обработка персональных данных Пользователя осуществляется в соответствии с Политикой обработки персональных данных, размещённой по адресу <a href="/privacy.html" style="color:var(--primary)">Политике обработки персональных данных</a>.</p>
+<p>7.1. Обработка персональных данных Пользователя осуществляется в соответствии с <a href="/privacy.html" style="color:var(--accent)">Политикой обработки персональных данных</a>.</p>
 <p>7.2. Платёжные данные (номер карты, срок действия, CVC) не хранятся на серверах Сервиса и передаются напрямую в процессинг ЮKassa по защищённому каналу.</p>
 
 <h4>8. Отмена и возврат</h4>
 <p>8.1. Пользователь вправе отказаться от использования Сервиса в любой момент.</p>
-<p>8.2. Возврат средств за приобретённые токены осуществляется в соответствии с Условиями возврата, размещёнными по адресу <a href="/refunds.html" style="color:var(--primary)">Условиями возврата</a>.</p>
+<p>8.2. Возврат средств за приобретённые токены осуществляется в соответствии с <a href="/refunds.html" style="color:var(--accent)">Условиями возврата</a>.</p>
 <p>8.3. Приветственные токены возврату и обмену не подлежат.</p>
 
 <h4>9. Ограничение ответственности</h4>
@@ -133,11 +168,10 @@
 
 <div class="legal-cta">
   <p>Остались вопросы по условиям использования?</p>
-  <a href="/contacts.html" class="btn-primary" style="display:inline-block;text-decoration:none;">Связаться с нами</a>
+  <a href="/contacts.html" class="btn-primary">Связаться с нами</a>
 </div>
 </section>
 
-<!-- ENGLISH -->
 <section lang="en">
 <p><strong>Version dated May 4, 2026</strong></p>
 <p>This document constitutes the official offer (the "Agreement") of the Administration of the "Blurring the Line" service (the "Service") and governs the terms of use of the Service, as well as the rights and obligations of the User and the Administration.</p>
@@ -178,12 +212,12 @@
 <p>6.2. Prohibited: automated request submission (scripting), attempts to bypass restrictions, using the Service to generate illegal content, distributing malware through the Service.</p>
 
 <h4>7. Personal Data Processing</h4>
-<p>7.1. Processing of User personal data is carried out in accordance with the Privacy Policy at <a href="/privacy.html">Политике обработки персональных данных</a>.</p>
+<p>7.1. Processing of User personal data is carried out in accordance with the <a href="/privacy.html" style="color:var(--accent)">Privacy Policy</a>.</p>
 <p>7.2. Payment data (card number, expiration date, CVC) is not stored on the Service servers and is transmitted directly to YooKassa processing via a secure channel.</p>
 
 <h4>8. Cancellation and Refunds</h4>
 <p>8.1. The User may discontinue use of the Service at any time.</p>
-<p>8.2. Refunds for purchased tokens are processed in accordance with the Refund Policy at <a href="/refunds.html">Условиями возврата</a>.</p>
+<p>8.2. Refunds for purchased tokens are processed in accordance with the <a href="/refunds.html" style="color:var(--accent)">Refund Policy</a>.</p>
 
 <h4>9. Limitation of Liability</h4>
 <p>9.1. The Service is provided "as is". The Administration makes no warranties regarding the Service's suitability for specific User purposes.</p>
@@ -196,46 +230,39 @@
 
 <div class="legal-cta">
   <p>Questions about the terms of use?</p>
-  <a href="/contacts.html" class="btn-primary" style="display:inline-block;text-decoration:none;">Contact Us</a>
+  <a href="/contacts.html" class="btn-primary">Contact Us</a>
 </div>
 </section>
 
   </article>
-</main>
+
+  <footer class="footer">
+    <a href="/offer.html"><span lang="ru">Оферта</span><span lang="en">License</span></a>
+    <a href="/privacy.html"><span lang="ru">Конфиденциальность</span><span lang="en">Privacy</span></a>
+    <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+    <a href="/contacts.html"><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+    <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+  </footer>
+
 </div>
 
-<!-- Mobile Bottom Nav -->
-<nav class="legal-bottom-nav">
-  <a href="/" style="flex-direction:column;">
-    <span class="material-symbols-outlined">home</span><span lang="ru">Главная</span><span lang="en">Home</span>
-  </a>
-  <a href="/offer.html" class="active">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL'1;">gavel</span>Offer
-  </a>
-  <a href="/privacy.html">
-    <span class="material-symbols-outlined">policy</span>Privacy
-  </a>
-  <a href="/refunds.html">
-    <span class="material-symbols-outlined">receipt_long</span><span lang="ru">Возврат</span><span lang="en">Refunds</span>
-  </a>
-  <a href="/contacts.html">
-    <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
-  </a>
-  <a href="/pricing.html">
-    <span class="material-symbols-outlined">sell</span><span lang="ru">Цены</span><span lang="en">Pricing</span>
-  </a>
+<nav class="bottom-nav">
+  <a href="/"><span class="material-symbols-outlined">home</span><span lang="ru">Главная</span><span lang="en">Home</span></a>
+  <a href="/offer.html" class="active"><span class="material-symbols-outlined">description</span>Offer</a>
+  <a href="/privacy.html"><span class="material-symbols-outlined">policy</span>Privacy</a>
+  <a href="/refunds.html"><span class="material-symbols-outlined">receipt_long</span><span lang="ru">Возврат</span><span lang="en">Refunds</span></a>
+  <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
 </nav>
 
 <script>
-// Language switch
 function switchLang(lang) {
   document.documentElement.lang = lang;
   document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
   document.getElementById('btn-en').classList.toggle('active', lang === 'en');
   try { localStorage.setItem('legal-lang', lang); } catch(e) {}
 }
-// Load saved preference or URL param
 (function(){
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
   var p = new URLSearchParams(location.search).get('lang');
   var s;

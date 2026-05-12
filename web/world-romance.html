@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Романтическая RPG с нейросетью — тайные встречи и судьбоносные выборы | Стирая Грань</title>
+  <meta name="description" content="Проживите романтический роман в викторианской эпохе: тайные письма, запретная любовь и выбор между страстью и репутацией. ИИ создаёт уникальную любовную историю под ваши решения. Играйте онлайн бесплатно.">
+  <meta name="keywords" content="романтическая RPG, романтический роман игра, любовная история игра, викторианская эпоха RPG, драма игра, романтика с нейросетью, интерактивный роман, dating sim RPG, визуальная новелла текст">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Романтическая RPG с нейросетью — тайные встречи и судьбоносные выборы">
+  <meta property="og:description" content="Проживите романтический роман в викторианской эпохе: тайные письма, запретная любовь и выбор между страстью и репутацией.">
+  <meta property="og:image" content="https://beyondtheverge.online/landing/romance.jpg">
+  <meta property="og:url" content="https://beyondtheverge.online/world-romance.html">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Романтическая RPG с нейросетью — тайные встречи и судьбоносные выборы">
+  <meta name="twitter:description" content="Проживите романтический роман в викторианской эпохе: тайные письма, запретная любовь.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/landing/romance.jpg">
+  <link rel="canonical" href="https://beyondtheverge.online/world-romance.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/world-romance.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/world-romance.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Романтический роман — Стирая Грань",
+    "description": "Драматическая RPG о любви в викторианской эпохе. Искусственный интеллект создаёт уникальную любовную историю под ваши решения.",
+    "genre": ["Romance", "Drama", "RPG", "Visual Novel"],
+    "playMode": "SinglePlayer",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "RUB" },
+    "author": { "@type": "Organization", "name": "Стирая Грань", "url": "https://beyondtheverge.online" },
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root { --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550; --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 73px 24px 32px;
+      z-index: 5;
+      overflow-y: auto;
+    }
+    .sidebar-title { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover { background: rgba(200,121,65,0.06); color: var(--text); }
+    .sidebar a.active { background: rgba(200,121,65,0.12); color: var(--accent); font-weight: 500; }
+    .sidebar a .material-symbols-outlined { font-size: 20px; }
+
+    .main-content {
+      margin-left: calc(240px + max(20px, (100vw - 240px - 980px) / 2));
+      margin-right: max(20px, (100vw - 240px - 980px) / 2);
+      max-width: 980px;
+      padding: 48px 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bottom-nav a.active { color: var(--accent); }
+    .bottom-nav a .material-symbols-outlined { font-size: 22px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .topbar-back:hover { color: var(--text); }
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-toggle button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: Inter, sans-serif; }
+    .lang-toggle button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+    .world-hero { text-align: center; padding: 64px 24px 48px; max-width: 800px; margin: 0 auto; }
+    .world-hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(30px, 5vw, 42px); line-height: 1.2; margin-bottom: 12px; }
+    .world-hero .world-subtitle { color: var(--muted); font-size: 18px; line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; padding: 0 24px 48px; }
+    h2 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 48px 0 16px; }
+    h3 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+    p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 16px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .feature-card h3 { margin: 0 0 8px; font-size: 15px; }
+    .feature-card p { margin: 0; font-size: 14px; }
+    .sample-scene { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin: 24px 0; font-style: italic; color: var(--text); line-height: 1.8; }
+    .cta-section { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 24px; margin: 48px auto; max-width: 800px; }
+    .cta-section h2 { margin: 0 0 8px; font-size: 24px; }
+    .cta-section p { margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+    @media (max-width: 1099px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; margin-right: 0; padding: 24px 16px 96px; max-width: 100%; }
+      .bottom-nav { display: flex; }
+      .world-hero { padding: 40px 16px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/worlds.html" class="topbar-back">← <span lang="ru">Все миры</span><span lang="en">All Worlds</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+  <aside class="sidebar">
+    <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+    <nav>
+      <a href="/worlds.html" class="active">
+        <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+      </a>
+      <a href="/blog/">
+        <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+      </a>
+      <a href="/roadmap.html">
+        <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+      </a>
+      <a href="/contacts.html">
+        <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+
+    <div class="world-hero">
+      <h1>Романтический роман — RPG о любви, тайнах и судьбе</h1>
+      <p class="world-subtitle">1892 год. Поместье Эшфорд. Леди Кэтрин возвращается из Лондона после смерти отца — и обнаруживает, что дом, где она выросла, хранит тайну. Письма от незнакомца, спрятанные в библиотеке, предлагают выбор: сохранить репутацию или последовать за чувством, которое разрушит всё.</p>
+    </div>
+
+    <div class="container">
+  <h2>О мире</h2>
+  <p>Романтический роман — это не «выбери, с кем пойти на бал». Это полноценная драма в духе Бронте и Остин, усиленная возможностями нейросети. Здесь каждое письмо, каждый взгляд на балу, каждый шёпот в саду может стать поворотным моментом. Репутация, долг, страсть и предательство — карты в этой игре.</p>
+  <p>Нейросеть ведёт повествование в стиле викторианского романа: длинные описания чувств, формальные диалоги с двойным дном, письма и дневниковые записи. Ты не просто наблюдаешь за историей любви — ты пишешь её каждым решением.</p>
+
+  <h2>Твой герой</h2>
+  <p>Наследница поместья, обнаружившая, что её сердце принадлежит не тому, кого одобряет семья? Молодой врач без титула, полюбивший аристократку и вынужденный бороться с сословными барьерами? Гувернантка с тёмным прошлым, которая узнаёт, что её работодатель хранит секрет, способный их обоих погубить?</p>
+  <p>В отличие от боевых RPG, здесь конфликты решаются не мечом, а словом, выбором и — иногда — молчанием. Правильное письмо в нужный момент может изменить больше, чем дуэль. А неправильный взгляд на балу может стоить репутации.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card"><h3>Письма и тайны</h3><p>Переписка — ключевая механика. Через письма раскрываются характеры, плетутся интриги и рождается близость</p></div>
+    <div class="feature-card"><h3>Репутация на кону</h3><p>Каждое публичное действие влияет на то, как тебя видят. Скандал может закрыть двери, которые никогда не откроются снова</p></div>
+    <div class="feature-card"><h3>Чувства с последствиями</h3><p>Нейросеть отслеживает эмоциональное состояние всех персонажей. Обида, ревность, надежда — это механики, а не декорации</p></div>
+  </div>
+
+  <h2>Пример истории</h2>
+  <div class="sample-scene">
+    <p>Библиотека поместья Эшфорд, полночь. Единственная свеча на столе освещает пожелтевшие страницы писем.</p>
+    <p>Ты держишь в руках пятое письмо от незнакомца. Почерк — изящный, с лёгким наклоном. Чёрные чернила. Бумага пахнет лавандой.</p>
+    <p>«Вы были правы, — говорится в письме. — Между нашими семьями лежит то, чего не исправить словами. Но я не могу перестать писать. И я знаю, что вы не можете перестать читать. Если вы готовы узнать правду — приходите в оранжерею завтра, когда часы пробьют одиннадцать. Я буду ждать. Если нет — сожгите это письмо, и мы никогда не встретимся.»</p>
+    <p>За дверью библиотеки — шаги. Твой дядя, опекун поместья, не спит. Если он найдёт тебя здесь с этими письмами...</p>
+  </div>
+
+  <div class="cta-section">
+    <h2>Напиши свою историю любви</h2>
+    <p>5 бесплатных ходов. Первое письмо уже ждёт.</p>
+    <a href="/" class="cta-button">Играть бесплатно</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="/worlds.html"><span lang="ru">Все миры</span><span lang="en">All Worlds</span></a>
+  <a href="/world-cybernoir.html">Кибер-нуар</a>
+  <a href="/world-dark-fantasy.html">Тёмное фэнтези</a>
+  <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+</footer>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('[lang]').forEach(el => { if (el.tagName === 'HTML') return; el.style.display = el.getAttribute('lang') === lang ? '' : 'none'; });
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[lang="en"]').forEach(el => el.style.display = 'none');
+});
+</script>
+  </div>
+<nav class="bottom-nav">
+    <a href="/worlds.html" class="active"><span class="material-symbols-outlined">public</span>Миры</a>
+    <a href="/blog/"><span class="material-symbols-outlined">article</span>Блог</a>
+    <a href="/roadmap.html"><span class="material-symbols-outlined">timeline</span>Карта</a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+  </nav>
+
+</body>
+</html>

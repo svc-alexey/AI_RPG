@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Текстовые RPG с нейросетью: как начать играть за 5 минут | Блог «Стирая Грань»</title>
+  <meta name="description" content="Пошаговый гайд для новичков: как начать играть в текстовую RPG с нейросетью. От выбора мира до первого хода — всё, что нужно знать, чтобы начать приключение за 5 минут.">
+  <meta name="keywords" content="текстовая RPG с нейросетью, как начать играть, RPG для новичков, гайд по RPG, текстовая игра обучение, AI RPG туториал, первый ход в RPG">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Текстовые RPG с нейросетью: как начать играть за 5 минут">
+  <meta property="og:description" content="Пошаговый гайд: от выбора мира до первого хода.">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/blog/text-rpg-how-to-start.html">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Текстовые RPG с нейросетью: как начать играть за 5 минут">
+  <meta name="twitter:description" content="Пошаговый гайд: от выбора мира до первого хода.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <link rel="canonical" href="https://beyondtheverge.online/blog/text-rpg-how-to-start.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/blog/text-rpg-how-to-start.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/blog/text-rpg-how-to-start.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Текстовые RPG с нейросетью: как начать играть за 5 минут",
+    "description": "Пошаговый гайд для новичков: от выбора мира до первого хода за 5 минут.",
+    "author": { "@type": "Organization", "name": "Стирая Грань" },
+    "publisher": { "@type": "Organization", "name": "Стирая Грань", "url": "https://beyondtheverge.online" },
+    "datePublished": "2026-05-12",
+    "dateModified": "2026-05-12",
+    "mainEntityOfPage": "https://beyondtheverge.online/blog/text-rpg-how-to-start.html",
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root { --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550; --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 10; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .topbar-back:hover { color: var(--text); }
+    .container { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
+    .breadcrumb { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .blog-meta { color: var(--dim); font-size: 14px; margin: 12px 0 32px; display: flex; gap: 16px; flex-wrap: wrap; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(26px, 5vw, 36px); line-height: 1.3; margin-bottom: 8px; }
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 40px; }
+    .toc h2 { font-size: 16px; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; color: var(--accent); }
+    .toc li { margin: 6px 0; }
+    .toc a { color: var(--text); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    h2 { font-family: 'Playfair Display', serif; font-size: 24px; margin: 48px 0 16px; }
+    h3 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+    p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 16px; }
+    ul, ol { color: var(--muted); line-height: 1.8; margin-bottom: 16px; padding-left: 24px; font-size: 16px; }
+    li { margin-bottom: 6px; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin: 24px 0; }
+    .step-num { display: inline-block; background: var(--accent); color: var(--bg); width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: 700; font-size: 14px; margin-right: 10px; }
+    .step h3 { display: inline; font-size: 18px; }
+    .step p { margin-top: 12px; }
+    .tip { background: rgba(200,121,65,0.08); border-left: 3px solid var(--accent); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+    .tip p { margin: 0; font-size: 15px; }
+    .cta-section { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 24px; margin: 48px 0; }
+    .cta-section h2 { margin: 0 0 8px; font-size: 24px; }
+    .cta-section p { margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+    @media (max-width: 768px) { .container { padding: 32px 16px; } }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/blog/" class="topbar-back">← <span lang="ru">Блог</span><span lang="en">Blog</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <span></span>
+</header>
+
+<div class="container">
+  <nav class="breadcrumb">
+    <a href="/">Главная</a> / <a href="/blog/">Блог</a> / <span>Как начать играть за 5 минут</span>
+  </nav>
+
+  <h1>Текстовые RPG с нейросетью: как начать играть за 5 минут</h1>
+  <div class="blog-meta">
+    <span>12 мая 2026</span>
+    <span>·</span>
+    <span>Гайд</span>
+    <span>·</span>
+    <span>4 мин чтения</span>
+  </div>
+
+  <nav class="toc">
+    <h2>Содержание</h2>
+    <ol>
+      <li><a href="#step1">Шаг 1: Откройте браузер</a></li>
+      <li><a href="#step2">Шаг 2: Выберите мир</a></li>
+      <li><a href="#step3">Шаг 3: Опишите героя</a></li>
+      <li><a href="#step4">Шаг 4: Сделайте первый ход</a></li>
+      <li><a href="#tips">5 советов для убедительной игры</a></li>
+    </ol>
+  </nav>
+
+  <p>Вы слышали о текстовых RPG с нейросетью, но не знаете, с чего начать? Этот гайд проведёт вас от открытия браузера до первого хода за пять минут. Никакой подготовки не требуется.</p>
+
+  <section id="step1">
+    <div class="step">
+      <span class="step-num">1</span><h3>Откройте браузер</h3>
+      <p>«Стирая Грань» работает прямо в браузере — на компьютере, планшете или телефоне. Ничего скачивать не нужно. Перейдите на <a href="https://beyondtheverge.online">beyondtheverge.online</a> — и вы уже на месте. Гостю даётся 5 бесплатных ходов без регистрации.</p>
+    </div>
+  </section>
+
+  <section id="step2">
+    <div class="step">
+      <span class="step-num">2</span><h3>Выберите мир</h3>
+      <p>На главном экране вам предложат три мира. У каждого — своя атмосфера, жанр и стиль повествования:</p>
+      <ul>
+        <li><strong>Кибер-нуар</strong> — детектив в неоновом мегаполисе 2147 года. Выбирайте, если любите расследования, киберпанк и морально-серые истории.</li>
+        <li><strong>Тёмное фэнтези</strong> — эпик о проклятых замках и древней магии. Для фанатов мрачных вселенных в духе Dark Souls и Berserk.</li>
+        <li><strong>Романтический роман</strong> — драма о любви в викторианской эпохе. Если вы цените чувства, письма и судьбоносные выборы.</li>
+      </ul>
+      <p>Не переживайте о «правильном» выборе — вы всегда сможете начать новую кампанию в другом мире.</p>
+    </div>
+  </section>
+
+  <section id="step3">
+    <div class="step">
+      <span class="step-num">3</span><h3>Опишите героя — или позвольте ИИ создать его</h3>
+      <p>Вы можете описать персонажа в нескольких предложениях: имя, внешность, характер, мотивацию. Например: «Кира, 28 лет, бывший полицейский детектив с кибернетическим глазом. Циничная, но справедливая. Расследует исчезновение напарника.»</p>
+      <p>А можете просто нажать «Создать героя» — и нейросеть придумает персонажа за вас, адаптировав его под выбранный мир.</p>
+
+      <div class="tip">
+        <p><strong>Совет:</strong> Чем конкретнее вы опишете героя, тем интереснее будет история. Достаточно трёх деталей: имя, род занятий и одна слабость или тайна.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="step4">
+    <div class="step">
+      <span class="step-num">4</span><h3>Сделайте первый ход</h3>
+      <p>После создания героя нейросеть сгенерирует вступительную сцену и опишет ситуацию. Теперь ваш черёд. Напишите, что делает ваш персонаж — любыми словами, в любом стиле.</p>
+      <p>Не нужно использовать специальные команды или выбирать из меню. Пишите как думаете:</p>
+      <ul>
+        <li>«Осматриваюсь в баре, ищу глазами информатора»</li>
+        <li>«Подхожу к алтарю и читаю надпись на древнем языке»</li>
+        <li>«Беру письмо дрожащими руками и подношу к свече»</li>
+      </ul>
+      <p>Нейросеть поймёт намерение и продолжит историю. Вы удивитесь, насколько естественно она реагирует.</p>
+    </div>
+  </section>
+
+  <section id="tips">
+    <h2>5 советов для убедительной игры</h2>
+
+    <h3>1. Играйте в своего персонажа</h3>
+    <p>Не пытайтесь «выиграть». Принимайте решения, которые принял бы ваш герой — даже если они не оптимальны. Именно ошибки и слабости создают лучшие истории.</p>
+
+    <h3>2. Будьте конкретны</h3>
+    <p>Вместо «атакую врага» напишите «выхватываю клинок и делаю выпад, целясь в сочленение доспеха». Детали дают нейросети материал для ответа.</p>
+
+    <h3>3. Используйте диалоги</h3>
+    <p>Говорите с NPC. Задавайте вопросы. Угрожайте, флиртуйте, допрашивайте. Нейросеть отыгрывает каждого персонажа с его характером и мотивацией.</p>
+
+    <h3>4. Не бойтесь неожиданных действий</h3>
+    <p>Хотите вместо битвы предложить врагу сделку? Вместо расследования — подделать улики? Нейросеть не ломается от нестандартных ходов — она использует их чтобы развернуть сюжет в новом направлении.</p>
+
+    <h3>5. Ведите записи, если хотите</h3>
+    <p>Игра помнит всё, что произошло — вам не нужно конспектировать. Но если вы любите вести дневник персонажа или записывать важные улики — это усилит погружение.</p>
+
+    <div class="tip">
+      <p><strong>Главный секрет:</strong> Нейросеть — не противник и не судья. Она — соавтор. Она хочет рассказать захватывающую историю вместе с вами. Чем больше вы вкладываете в описание действий, тем богаче ответ.</p>
+    </div>
+  </section>
+
+  <div class="cta-section">
+    <h2>5 минут — и вы в игре</h2>
+    <p>5 бесплатных ходов ждут. Без регистрации, без скачивания.</p>
+    <a href="/" class="cta-button">Начать приключение</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="/blog/"><span lang="ru">Блог</span><span lang="en">Blog</span></a>
+  <a href="/worlds.html"><span lang="ru">Миры</span><span lang="en">Worlds</span></a>
+  <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+</footer>
+</body>
+</html>

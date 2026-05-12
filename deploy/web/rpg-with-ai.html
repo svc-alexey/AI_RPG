@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG с искусственным интеллектом — как нейросеть стала мастером игры | Стирая Грань</title>
+  <meta name="description" content="Узнайте, как искусственный интеллект ведёт сюжет в ролевых играх. Нейросеть генерирует уникальные миры, реагирует на каждое действие игрока и создаёт бесконечные истории. Попробуйте бесплатно в браузере.">
+  <meta name="keywords" content="RPG с искусственным интеллектом, игры с нейросетью, AI RPG, ии сторителлинг, нейросеть мастер игры, генерация сюжета, нарративная RPG, D&D с ИИ, текстовый квест онлайн">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="RPG с искусственным интеллектом — как нейросеть стала мастером игры">
+  <meta property="og:description" content="Нейросеть генерирует уникальные миры, реагирует на каждое действие и создаёт бесконечные истории.">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/rpg-with-ai.html">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RPG с искусственным интеллектом — как нейросеть стала мастером игры">
+  <meta name="twitter:description" content="Нейросеть генерирует уникальные миры, реагирует на каждое действие и создаёт бесконечные истории.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <link rel="canonical" href="https://beyondtheverge.online/rpg-with-ai.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/rpg-with-ai.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/rpg-with-ai.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "RPG с искусственным интеллектом — как нейросеть стала мастером игры",
+    "description": "Узнайте, как искусственный интеллект ведёт сюжет в ролевых играх. Нейросеть генерирует уникальные миры, реагирует на каждое действие игрока и создаёт бесконечные истории.",
+    "author": { "@type": "Organization", "name": "Стирая Грань" },
+    "publisher": { "@type": "Organization", "name": "Стирая Грань", "url": "https://beyondtheverge.online" },
+    "datePublished": "2026-05-11",
+    "mainEntityOfPage": "https://beyondtheverge.online/rpg-with-ai.html",
+    "about": "AI role-playing game",
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root { --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550; --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .topbar-back:hover { color: var(--text); }
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-toggle button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: Inter, sans-serif; }
+    .lang-toggle button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 73px 24px 32px;
+      z-index: 5;
+      overflow-y: auto;
+    }
+    .sidebar-title { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover { background: rgba(200,121,65,0.06); color: var(--text); }
+    .sidebar a.active { background: rgba(200,121,65,0.12); color: var(--accent); font-weight: 500; }
+    .sidebar a .material-symbols-outlined { font-size: 20px; }
+
+    .main-content {
+      margin-left: calc(240px + max(20px, (100vw - 240px - 980px) / 2));
+      margin-right: max(20px, (100vw - 240px - 980px) / 2);
+      max-width: 980px;
+      padding: 48px 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bottom-nav a.active { color: var(--accent); }
+    .bottom-nav a .material-symbols-outlined { font-size: 22px; }
+
+    .container { max-width: 780px; margin: 0 auto; padding: 48px 24px; }
+    .breadcrumb { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 40px); line-height: 1.2; margin-bottom: 12px; }
+    .subtitle { color: var(--muted); font-size: 18px; line-height: 1.6; margin-bottom: 40px; }
+
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 40px; }
+    .toc h2 { font-size: 16px; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; color: var(--accent); }
+    .toc li { margin: 6px 0; }
+    .toc a { color: var(--text); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    h2 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 48px 0 16px; }
+    h3 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+    p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 16px; }
+    .highlight-box { background: var(--surface); border-left: 3px solid var(--accent); padding: 20px 24px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+    .highlight-box p { margin: 0; color: var(--text); }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 24px 0; }
+    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .feature-card h3 { margin: 0 0 8px; font-size: 15px; }
+    .feature-card p { margin: 0; font-size: 14px; }
+    .cta-section { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 24px; margin: 48px 0; }
+    .cta-section h2 { margin: 0 0 8px; font-size: 24px; }
+    .cta-section p { margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+    @media (max-width: 1099px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; margin-right: 0; padding: 24px 16px 96px; max-width: 100%; }
+      .bottom-nav { display: flex; }
+      .container { padding: 32px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/" class="topbar-back">← <span lang="ru">На главную</span><span lang="en">Home</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+  <aside class="sidebar">
+    <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+    <nav>
+      <a href="/worlds.html" class="active">
+        <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+      </a>
+      <a href="/blog/">
+        <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+      </a>
+      <a href="/roadmap.html">
+        <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+      </a>
+      <a href="/contacts.html">
+        <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+
+    <div class="container">
+      <nav class="breadcrumb">
+        <a href="/">Главная</a> / <a href="/worlds.html">Миры</a> / <span>Что такое RPG с нейросетью</span>
+      </nav>
+
+  <h1>RPG с искусственным интеллектом — как нейросеть стала твоим мастером игры</h1>
+  <p class="subtitle">Раньше ролевые игры требовали живого ведущего, книги правил и часов подготовки. Теперь нейросеть берёт на себя роль рассказчика: она создаёт миры, играет за всех персонажей и реагирует на каждое твоё действие. Это не скриптовое приключение с ограниченным выбором — это живая история.</p>
+
+  <nav class="toc">
+    <h2>Содержание</h2>
+    <ol>
+      <li><a href="#what-is">Что такое нарративная RPG с ИИ</a></li>
+      <li><a href="#how-works">Как нейросеть создаёт сюжет</a></li>
+      <li><a href="#why-better">Почему это интереснее обычных RPG</a></li>
+      <li><a href="#start">Как начать играть прямо сейчас</a></li>
+    </ol>
+  </nav>
+
+  <section id="what-is">
+    <h2>Что такое нарративная RPG с ИИ</h2>
+
+    <h3>Не фиксированный сюжет, а живая история</h3>
+    <p>В обычной RPG сценарий написан заранее. Ты можешь выбрать реплику из трёх вариантов, но история идёт по rails. В RPG с нейросетью нет rails. Ты пишешь что угодно — от «достаю меч» до «шепчу молитву забытому богу». Нейросеть понимает контекст и продолжает историю так, как это сделал бы живой ведущий.</p>
+
+    <div class="highlight-box">
+      <p>«Я решил не убивать стражника, а договориться. Через три хода этот стражник вернулся и спас моего героя от засады. Я не ожидал — игра помнила мой выбор.»</p>
+    </div>
+
+    <h3>ИИ помнит каждое твоё решение</h3>
+    <p>Ключевое отличие от обычных RPG — <strong>память мира</strong>. Каждое твоё действие сохраняется в векторной памяти и всплывает позже в сюжете. Персонаж, которого ты пощадил в первом акте, может стать твоим союзником в третьем. Город, который ты сжёг, будет дымиться на горизонте три сессии спустя. Это не иллюзия выбора — это настоящая причинность.</p>
+
+    <h3>Бесконечные миры и персонажи</h3>
+    <p>Нейросеть не ограничена количеством ассетов или записанных диалогов. Каждый NPC — полноценная личность со своей мотивацией. Каждая локация может быть описана в деталях. Ты можешь свернуть с главной дороги в случайную деревню и обнаружить там сюжетную линию, которую нейросеть создала на лету специально для тебя.</p>
+  </section>
+
+  <section id="how-works">
+    <h2>Как нейросеть создаёт сюжет</h2>
+
+    <h3>Языковая модель как рассказчик</h3>
+    <p>В основе лежит большая языковая модель — та же технология, что у ChatGPT и Claude. Но вместо вопросов-ответов она работает в режиме нарративного движка: получает описание мира, твой ход и историю предыдущих событий, а затем генерирует следующую сцену. Модель учитывает тон, стиль, темп и жанр выбранного мира.</p>
+
+    <h3>Векторная память мира</h3>
+    <p>Все ключевые события кампании — битвы, диалоги, найденные предметы, союзы и предательства — сохраняются в векторной базе данных. Когда сюжет делает поворот, система извлекает релевантные прошлые события и подаёт их модели как контекст. Так история остаётся связной даже после десятков часов игры. Это не «помню последние 10 сообщений» — это семантический поиск по всей истории кампании.</p>
+
+    <h3>Последствия выборов — причинно-следственные связи</h3>
+    <p>Движок игры отслеживает не только что ты сделал, но и <strong>почему</strong>. Ты украл артефакт ради спасения друга или ради наживы? Для истории важна мотивация. Нейросеть строит причинно-следственные цепочки: твой выбор → реакция мира → новая ситуация → новый выбор. Это цикл, который никогда не повторяется.</p>
+  </section>
+
+  <section id="why-better">
+    <h2>Почему это интереснее обычных RPG</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Никаких скриптов</h3>
+        <p>Ни один диалог не написан заранее. Ты не выбираешь из меню — ты говоришь своими словами.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Ты влияешь на мир</h3>
+        <p>Сюжет не возвращается на rails после твоего выбора. Мир меняется навсегда.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Каждое прохождение уникально</h3>
+        <p>Нет двух одинаковых кампаний. Другой игрок в том же мире проживёт совершенно иную историю.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Никакой подготовки</h3>
+        <p>Не нужно читать правила, создавать лист персонажа или ждать ведущего. Открываешь браузер и играешь.</p>
+      </div>
+    </div>
+
+    <h3>Для фанатов D&D и настольных ролевых игр</h3>
+    <p>Если ты играл в D&D, Pathfinder или НРИ — ты знаешь главную проблему: нужен мастер. Найти хорошего мастера сложно, а собираться в одно время с группой из 4-5 человек — ещё сложнее. Нейросеть решает обе проблемы: она всегда доступна и ведёт игру один на один, полностью адаптируясь под твой стиль.</p>
+
+    <h3>Для любителей интерактивной литературы</h3>
+    <p>Если ты вырос на книгах-играх вроде Fighting Fantasy или Lone Wolf — это следующий шаг. Вместо «если хочешь открыть дверь, перейди на страницу 147» ты просто пишешь «открываю дверь». Нейросеть знает, что за ней.</p>
+  </section>
+
+  <section id="start">
+    <h2>Как начать играть прямо сейчас</h2>
+
+    <p>Всё, что нужно — открыть браузер. Без скачивания, без регистрации (гостю даётся 5 бесплатных ходов). Ты выбираешь один из трёх миров, описываешь своего героя — и история начинается.</p>
+
+    <h3>Бесплатные ходы для новых игроков</h3>
+    <p>Каждый новый игрок получает <strong>5 бесплатных ходов</strong>. Этого достаточно чтобы пройти первую сцену, познакомиться с миром и понять, хочешь ли ты продолжить приключение. Никаких пробных периодов с ограниченным функционалом — полный доступ с первого хода.</p>
+
+    <h3>Миры на любой вкус</h3>
+    <p>Нейросеть создаёт бесконечное множество миров. Вот несколько примеров: <a href="/world-cybernoir.html">кибер-нуар</a> для любителей детективов и неона, <a href="/world-dark-fantasy.html">тёмное фэнтези</a> для фанатов магии и проклятых замков, <a href="/world-romance.html">романтический роман</a> для тех, кто ценит чувства и драму. Каждый игрок получает уникальную вселенную — ваша история не повторится ни у кого другого.</p>
+  </section>
+
+  <div class="cta-section">
+    <h2>Попробуйте сами</h2>
+    <p>5 бесплатных ходов — и вы поймёте, почему RPG с нейросетью это новый способ играть.</p>
+    <a href="/" class="cta-button">Играть бесплатно</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="/worlds.html"><span lang="ru">Миры</span><span lang="en">Worlds</span></a>
+  <a href="/offer.html"><span lang="ru">Оферта</span><span lang="en">License</span></a>
+  <a href="/privacy.html"><span lang="ru">Конфиденциальность</span><span lang="en">Privacy</span></a>
+  <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  <a href="/contacts.html"><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+  <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+</footer>
+  </div>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('[lang]').forEach(el => { if (el.tagName === 'HTML') return; el.style.display = el.getAttribute('lang') === lang ? '' : 'none'; });
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[lang="en"]').forEach(el => el.style.display = 'none');
+});
+</script>
+  </div>
+<nav class="bottom-nav">
+    <a href="/worlds.html" class="active"><span class="material-symbols-outlined">public</span>Миры</a>
+    <a href="/blog/"><span class="material-symbols-outlined">article</span>Блог</a>
+    <a href="/roadmap.html"><span class="material-symbols-outlined">timeline</span>Карта</a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+  </nav>
+
+</body>
+</html>

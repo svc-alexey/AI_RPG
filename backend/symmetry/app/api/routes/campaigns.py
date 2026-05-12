@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_verified_user
 from app.core.billing_errors import InsufficientTokensError
 from app.core.config import get_settings
-from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
+from app.db.models import Campaign, CampaignMember, CampaignPortrait, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
 from app.db.session import get_db_session
 from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
 from app.services.ai_gateway import AiGatewayService, classify_provider_error
@@ -211,10 +211,23 @@ async def get_campaign_state(
     snapshot = await session.get(CampaignSnapshot, campaign.current_snapshot_id)
     if snapshot is None:
         raise HTTPException(status_code=404, detail="snapshot_not_found")
+
+    state = snapshot.state_json
+    portrait_result = await session.execute(
+        select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
+    )
+    portrait = portrait_result.scalar_one_or_none()
+    settings = get_settings()
+    if portrait is not None:
+        base = settings.web_public_origin.rstrip("/")
+        state["portrait_url"] = f"{base}/v1/campaigns/{campaign_id}/portrait/image"
+    else:
+        state["portrait_url"] = None
+
     return CampaignStateResponse(
         campaign=CampaignResponse.model_validate(campaign),
         snapshot_version=snapshot.version,
-        state=snapshot.state_json,
+        state=state,
     )
 
 

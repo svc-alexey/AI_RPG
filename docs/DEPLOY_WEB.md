@@ -68,7 +68,9 @@ backend with:
 - working `POST /v1/auth/*`
 - working `POST /v1/campaigns/*`
 - working `GET /v1/campaigns/{id}/rumors`
-- valid backend `.env`
+- working `POST /v1/campaigns/{id}/portrait` (portrait generation)
+- working `GET /v1/campaigns/{id}/portrait/image` (portrait serving)
+- valid backend `.env` (включая `SYMMETRY_POLZA_AI_*` для портретов)
 - working DNS or relay reachability for the configured AI endpoint
 - valid Yandex OAuth callback configuration if `Sign in with Yandex` is enabled
 - valid feedback SMTP credentials in `backend/symmetry/.env` if the landing
@@ -277,3 +279,42 @@ Caddy обрывал соединение с `aborting with incomplete response:
 - Authenticated cover images on web were adjusted to reduce visible blinking
   during reloads or token refreshes by keeping the previous image visible while
   the refreshed bytes are loading.
+
+### Portrait generation (Polza.ai)
+
+**Backend requirements:**
+- `SYMMETRY_POLZA_AI_API_KEY` — API-ключ Polza.ai
+- `SYMMETRY_POLZA_AI_BASE_URL=https://polza.ai/api/v1`
+- `SYMMETRY_POLZA_AI_IMAGE_MODEL=google/gemini-2.5-flash-image`
+- `SYMMETRY_POLZA_AI_TIMEOUT_SECONDS=30`
+- `SYMMETRY_POLZA_AI_POLL_INTERVAL_SECONDS=1.5`
+- Таблица `campaign_portraits` создана через миграцию
+
+**Deploy portrait files (docker cp):**
+```bash
+# Новые файлы
+docker cp backend/symmetry/app/services/portrait_optimizer.py ai-rpg-api:/app/app/services/
+docker cp backend/symmetry/app/services/portrait_prompt_builder.py ai-rpg-api:/app/app/services/
+docker cp backend/symmetry/app/services/portrait_service.py ai-rpg-api:/app/app/services/
+docker cp backend/symmetry/app/api/routes/portraits.py ai-rpg-api:/app/app/api/routes/
+docker cp backend/symmetry/app/schemas/portraits.py ai-rpg-api:/app/app/schemas/
+
+# Изменённые файлы
+docker cp backend/symmetry/app/api/routes/__init__.py ai-rpg-api:/app/app/api/routes/
+docker cp backend/symmetry/app/main.py ai-rpg-api:/app/app/main.py
+docker cp backend/symmetry/app/core/config.py ai-rpg-api:/app/app/core/
+docker cp backend/symmetry/app/db/models.py ai-rpg-api:/app/app/db/
+docker cp backend/symmetry/app/api/routes/campaigns.py ai-rpg-api:/app/app/api/routes/
+
+# Миграция
+docker cp backend/symmetry/alembic/versions/20260511_000015_campaign_portraits.py ai-rpg-api:/app/alembic/versions/
+
+# Применить
+docker exec ai-rpg-api find /app -type d -name '__pycache__' -exec rm -rf '{}' ';'
+docker exec ai-rpg-api alembic upgrade head
+docker restart ai-rpg-api
+```
+
+**Клиент (Flutter):** стандартный `flutter build web` деплой, портретная кнопка
+и `Image.network` уже в коде клиента. `portrait_url` приходит в ответе
+`GET /v1/campaigns/{id}/state`.

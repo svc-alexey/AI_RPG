@@ -1438,6 +1438,21 @@ class AppLocalizations {
     AppLanguage.en => 'Automatic portrait generation is currently disabled.',
   };
 
+  String get generatePortrait => switch (language) {
+    AppLanguage.ru => 'Сгенерировать портрет',
+    AppLanguage.en => 'Generate Portrait',
+  };
+
+  String get portraitGenerationFailed => switch (language) {
+    AppLanguage.ru => 'Не удалось сгенерировать портрет. Попробуйте позже.',
+    AppLanguage.en => 'Failed to generate portrait. Please try again later.',
+  };
+
+  String get loginToGeneratePortraits => switch (language) {
+    AppLanguage.ru => 'Войдите для генерации портретов',
+    AppLanguage.en => 'Login to generate portraits',
+  };
+
   String campaignModuleLabel(final CampaignModule value) =>
       switch ((language, value)) {
         (AppLanguage.ru, CampaignModule.inventory) => 'Инвентарь',

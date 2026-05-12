@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Текстовые RPG онлайн — новая эра с нейросетью | Стирая Грань</title>
+  <meta name="description" content="Текстовые ролевые игры возвращаются с искусственным интеллектом. Никакой графики — только твоё воображение и нейросеть, которая ведёт захватывающий сюжет. Играй бесплатно в браузере, без скачивания.">
+  <meta name="keywords" content="текстовая RPG онлайн, текстовый квест, браузерная RPG, интерактивная книга, choice of games, текстовое приключение, RPG в браузере, игра без скачивания, текстовая игра с нейросетью">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Текстовые RPG онлайн — новая эра с нейросетью">
+  <meta property="og:description" content="Текстовые ролевые игры возвращаются с искусственным интеллектом. Только воображение и нейросеть.">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/text-rpg-online.html">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Текстовые RPG онлайн — новая эра с нейросетью">
+  <meta name="twitter:description" content="Текстовые ролевые игры возвращаются с искусственным интеллектом. Только воображение и нейросеть.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <link rel="canonical" href="https://beyondtheverge.online/text-rpg-online.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/text-rpg-online.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/text-rpg-online.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Текстовые RPG онлайн — новая эра с нейросетью",
+    "description": "Текстовые ролевые игры возвращаются с искусственным интеллектом. Никакой графики — только воображение и нейросеть.",
+    "author": { "@type": "Organization", "name": "Стирая Грань" },
+    "publisher": { "@type": "Organization", "name": "Стирая Грань", "url": "https://beyondtheverge.online" },
+    "datePublished": "2026-05-11",
+    "mainEntityOfPage": "https://beyondtheverge.online/text-rpg-online.html",
+    "about": "Text RPG online",
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root { --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550; --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 73px 24px 32px;
+      z-index: 5;
+      overflow-y: auto;
+    }
+    .sidebar-title { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover { background: rgba(200,121,65,0.06); color: var(--text); }
+    .sidebar a.active { background: rgba(200,121,65,0.12); color: var(--accent); font-weight: 500; }
+    .sidebar a .material-symbols-outlined { font-size: 20px; }
+
+    .main-content {
+      margin-left: calc(240px + max(20px, (100vw - 240px - 980px) / 2));
+      margin-right: max(20px, (100vw - 240px - 980px) / 2);
+      max-width: 980px;
+      padding: 48px 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bottom-nav a.active { color: var(--accent); }
+    .bottom-nav a .material-symbols-outlined { font-size: 22px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .topbar-back:hover { color: var(--text); }
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-toggle button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: Inter, sans-serif; }
+    .lang-toggle button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+    .container { max-width: 780px; margin: 0 auto; padding: 48px 24px; }
+    .breadcrumb { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 40px); line-height: 1.2; margin-bottom: 12px; }
+    .subtitle { color: var(--muted); font-size: 18px; line-height: 1.6; margin-bottom: 40px; }
+
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 40px; }
+    .toc h2 { font-size: 16px; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; color: var(--accent); }
+    .toc li { margin: 6px 0; }
+    .toc a { color: var(--text); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    h2 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 48px 0 16px; }
+    h3 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+    p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 16px; }
+    .compare-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+    .compare-table th { text-align: left; padding: 12px 16px; background: var(--surface); border-bottom: 2px solid var(--border); color: var(--accent); }
+    .compare-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .compare-table tr:nth-child(even) td { background: rgba(16,13,11,0.4); }
+    .highlight-box { background: var(--surface); border-left: 3px solid var(--accent); padding: 20px 24px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+    .highlight-box p { margin: 0; color: var(--text); }
+    .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+    .audience-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; }
+    .audience-card h3 { margin: 0 0 8px; font-size: 16px; }
+    .audience-card p { margin: 0; font-size: 14px; }
+    .cta-section { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 24px; margin: 48px 0; }
+    .cta-section h2 { margin: 0 0 8px; font-size: 24px; }
+    .cta-section p { margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+    @media (max-width: 1099px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; margin-right: 0; padding: 24px 16px 96px; max-width: 100%; }
+      .bottom-nav { display: flex; }
+      .compare-table { font-size: 12px; }
+      .compare-table td, .compare-table th { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/" class="topbar-back">← <span lang="ru">На главную</span><span lang="en">Home</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+  <aside class="sidebar">
+    <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+    <nav>
+      <a href="/worlds.html" class="active">
+        <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+      </a>
+      <a href="/blog/">
+        <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+      </a>
+      <a href="/roadmap.html">
+        <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+      </a>
+      <a href="/contacts.html">
+        <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+
+    <div class="container">
+      <nav class="breadcrumb">
+    <a href="/">Главная</a> / <span>Текстовые RPG онлайн</span>
+  </nav>
+
+  <h1>Текстовые RPG онлайн — воображение встречается с искусственным интеллектом</h1>
+  <p class="subtitle">Текстовые ролевые игры переживают второе рождение. Нейросеть заменила парсер команд, движок на if-else и заскриптованные диалоги. Теперь ты просто пишешь — а ИИ ведёт историю так, как не смог бы ни один программист.</p>
+
+  <nav class="toc">
+    <h2>Содержание</h2>
+    <ol>
+      <li><a href="#revival">Почему текстовые RPG снова в тренде</a></li>
+      <li><a href="#difference">Чем «Стирая Грань» отличается от классических текстовых RPG</a></li>
+      <li><a href="#audience">Для кого эта игра</a></li>
+      <li><a href="#start">Начни своё приключение</a></li>
+    </ol>
+  </nav>
+
+  <section id="revival">
+    <h2>Почему текстовые RPG снова в тренде</h2>
+
+    <h3>Графика ограничивает — текст освобождает</h3>
+    <p>AAA-игры тратят миллионы на графику, но каждое новое действие игрока требует новой анимации, новой модели, новой сцены. Текстовая RPG не имеет этих ограничений. Ты можешь оказаться где угодно, сделать что угодно, встретить кого угодно — и нейросеть опишет это в деталях. Твоё воображение рисует картинку, а ИИ подаёт материал.</p>
+
+    <h3>Нейросеть понимает любое твоё действие</h3>
+    <p>Классические текстовые RPG (Interactive Fiction) использовали парсеры: ты вводил «GO NORTH» или «TAKE LAMP», и движок искал совпадение в словаре. Если твоя команда не была запрограммирована — ты получал «I don't understand that». Нейросеть понимает естественный язык. «Подкрадываюсь к окну и заглядываю внутрь, стараясь не шуметь» — она поймёт и намерение, и тон, и контекст.</p>
+
+    <h3>Игра в браузере без установки</h3>
+    <p>Никаких лаунчеров, патчей, системных требований. Открыл браузер на телефоне или ноутбуке — и играешь. Текстовая RPG с нейросетью — это самый доступный жанр. Нужен только интернет и желание придумывать.</p>
+  </section>
+
+  <section id="difference">
+    <h2>Чем «Стирая Грань» отличается от классических текстовых RPG</h2>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th>Характеристика</th><th>Классическая текстовая RPG</th><th>Стирая Грань (AI RPG)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Команды</td><td>Жёсткий парсер (GO, TAKE, USE)</td><td>Свободный текст — пиши как думаешь</td></tr>
+        <tr><td>Открытый мир</td><td>Ограничен запрограммированными локациями</td><td>Бесконечен — нейросеть создаёт новые места на лету</td></tr>
+        <tr><td>NPC</td><td>Фиксированный набор диалогов</td><td>Каждый NPC — живая личность с мотивацией</td></tr>
+        <tr><td>Сюжет</td><td>Ветвистый, но конечный</td><td>Процедурный — каждое прохождение уникально</td></tr>
+        <tr><td>Память</td><td>Флаги и переменные</td><td>Векторная память — семантический поиск по всей истории</td></tr>
+        <tr><td>Последствия</td><td>Запрограммированы заранее</td><td>Вычисляются на лету из причинно-следственных связей</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Нет жёстких команд — пиши как думаешь</h3>
+    <p>Ты не ограничен словарём команд. Хочешь — опиши жест. Хочешь — внутренний монолог. Хочешь — диалог на два голоса. Нейросеть понимает любой формат и продолжает историю в том же стиле.</p>
+
+    <h3>Мир реагирует на эмоции и тон</h3>
+    <p>Если ты описываешь действия героя мрачно и цинично — история становится темнее. Если с юмором — нейросеть подхватывает. Тон повествования — это твой выбор, не фиксированная настройка.</p>
+
+    <div class="highlight-box">
+      <p>«Мой герой-детектив начал циничным одиночкой, но к середине кампании он обзавёлся напарницей, которую ИИ создал как полноценного персонажа со своей аркой. Я не просил — история сама к этому привела.»</p>
+    </div>
+  </section>
+
+  <section id="audience">
+    <h2>Для кого эта игра</h2>
+
+    <div class="audience-grid">
+      <div class="audience-card">
+        <h3>Фанаты D&D и НРИ</h3>
+        <p>Ищете мастера, который всегда доступен? Нейросеть ведёт игру один на один, адаптируясь под ваш стиль.</p>
+      </div>
+      <div class="audience-card">
+        <h3>Любители интерактивной литературы</h3>
+        <p>Выросли на Fighting Fantasy и «choice of» играх? Здесь нет страниц и параграфов — только ваша фантазия.</p>
+      </div>
+      <div class="audience-card">
+        <h3>Те, кто ищет новый опыт</h3>
+        <p>Устали от однотипных RPG с открытым миром? Попробуйте игру, где сюжет действительно создаётся вами.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <h2>Начни своё приключение</h2>
+
+    <h3>Миры на любой вкус — от киберпанка до романтического романа</h3>
+    <p>Нейросеть создаёт уникальный мир под каждого игрока. Вот несколько направлений: <a href="/world-cybernoir.html">кибер-нуар</a> — детектив в неоновом мегаполисе, <a href="/world-dark-fantasy.html">тёмное фэнтези</a> — эпик о проклятых замках и древней магии, <a href="/world-romance.html">романтический роман</a> — драма о любви и судьбе в викторианской эпохе. А дальше — только ваше воображение и нейросеть.</p>
+
+    <h3>5 бесплатных ходов при регистрации</h3>
+    <p>Новые игроки получают 5 ходов бесплатно — этого хватит на первую полноценную сцену. Понравится — пополняй токены и продолжай кампанию. Нет — ты ничего не потерял.</p>
+  </section>
+
+  <div class="cta-section">
+    <h2>Готов написать свою историю?</h2>
+    <p>5 бесплатных ходов. Без скачивания. Прямо в браузере.</p>
+    <a href="/" class="cta-button">Играть бесплатно</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="/worlds.html"><span lang="ru">Миры</span><span lang="en">Worlds</span></a>
+  <a href="/offer.html"><span lang="ru">Оферта</span><span lang="en">License</span></a>
+  <a href="/privacy.html"><span lang="ru">Конфиденциальность</span><span lang="en">Privacy</span></a>
+  <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  <a href="/contacts.html"><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+  <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+</footer>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('[lang]').forEach(el => { if (el.tagName === 'HTML') return; el.style.display = el.getAttribute('lang') === lang ? '' : 'none'; });
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[lang="en"]').forEach(el => el.style.display = 'none');
+});
+</script>
+  </div>
+<nav class="bottom-nav">
+    <a href="/worlds.html" class="active"><span class="material-symbols-outlined">public</span>Миры</a>
+    <a href="/blog/"><span class="material-symbols-outlined">article</span>Блог</a>
+    <a href="/roadmap.html"><span class="material-symbols-outlined">timeline</span>Карта</a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+  </nav>
+
+</body>
+</html>

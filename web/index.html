@@ -7,17 +7,19 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta
     name="description"
-    content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор."
+    content="Стирая Грань — нарративная ИИ-RPG, где каждая история уникальна. Искусственный интеллект ведёт сюжет, мир помнит твои решения, а выбор меняет судьбу героя. Играй бесплатно в браузере."
   >
+  <meta name="keywords" content="игры с нейросетью, RPG с искусственным интеллектом, текстовая RPG онлайн, нарративная игра, AI RPG, нейросеть игры, D&D с ИИ, интерактивная книга, сторителлинг">
+  <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Стирая Грань">
   <meta property="og:description" content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор.">
-  <meta property="og:image" content="/icons/Icon-512.png">
-  <meta property="og:url" content="/">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Стирая Грань">
   <meta name="twitter:description" content="Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор.">
-  <meta name="twitter:image" content="/icons/Icon-512.png">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0A0908">
 
@@ -28,10 +30,13 @@
 
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="canonical" href="/">
-  <title>Стирая Грань</title>
+  <link rel="canonical" href="https://beyondtheverge.online/">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/">
+  <title>Стирая Грань — нарративная RPG с нейросетью | Играй онлайн</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -469,14 +474,37 @@
       font: inherit;
       font-weight: 700;
       cursor: pointer;
+      text-decoration: none;
       transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
     }
 
     .button-primary {
+      position: relative;
+      overflow: hidden;
       border: 0;
       background: linear-gradient(180deg, #d4ba7e, var(--gold));
       color: #0c0a09;
       box-shadow: 0 0 36px rgba(191, 167, 111, 0.24);
+      animation: btnPulse 2.4s ease-in-out infinite alternate;
+    }
+
+    .button-primary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        transparent 35%,
+        rgba(255, 255, 255, 0.16) 50%,
+        transparent 65%,
+        transparent 100%
+      );
+      animation: btnShimmer 3.2s ease-in-out infinite;
+      pointer-events: none;
     }
 
     .button-secondary {
@@ -742,6 +770,73 @@
       color: var(--muted);
       line-height: 1.65;
       font-size: 15px;
+    }
+
+    /* ── Blog CTA (landing) ── */
+    .blog-cta {
+      margin-top: 34px;
+      position: relative;
+      display: block;
+      min-height: 332px;
+      padding: clamp(18px, 2.4vw, 36px);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(191, 167, 111, 0.26);
+      background: rgba(12, 10, 9, 0.94);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .blog-cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(10, 9, 8, 0.94) 0%, rgba(10, 9, 8, 0.88) 24%, rgba(10, 9, 8, 0.58) 42%, rgba(10, 9, 8, 0.08) 62%, rgba(10, 9, 8, 0.12) 100%),
+        linear-gradient(180deg, rgba(10, 9, 8, 0.22), rgba(10, 9, 8, 0.38));
+    }
+
+    .blog-cta::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 72% 52%, rgba(200, 121, 65, 0.2), transparent 28%),
+        radial-gradient(circle at 82% 34%, rgba(255, 214, 145, 0.12), transparent 18%);
+      pointer-events: none;
+    }
+
+    .blog-cta-copy {
+      position: relative;
+      z-index: 1;
+      max-width: min(44%, 560px);
+      padding: 6px 0;
+    }
+
+    .blog-cta-eyebrow {
+      display: none;
+    }
+
+    .blog-cta-title {
+      margin: 14px 0 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(40px, 5vw, 72px);
+      line-height: 0.9;
+      text-transform: uppercase;
+      letter-spacing: -0.04em;
+    }
+
+    .blog-cta-text {
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.72;
+      font-size: 17px;
+    }
+
+    .blog-cta-actions {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
     }
 
     .feedback-cta {
@@ -1240,6 +1335,24 @@
       100% { content: "..."; }
     }
 
+    @keyframes btnPulse {
+      0% {
+        box-shadow: 0 0 36px rgba(191, 167, 111, 0.24);
+      }
+      100% {
+        box-shadow: 0 0 52px rgba(191, 167, 111, 0.42), 0 0 80px rgba(191, 167, 111, 0.12);
+      }
+    }
+
+    @keyframes btnShimmer {
+      0% {
+        left: -60%;
+      }
+      100% {
+        left: 120%;
+      }
+    }
+
     @media (max-width: 980px) {
       .world-grid,
       .tech-grid {
@@ -1257,6 +1370,14 @@
       }
 
       .feedback-cta-copy {
+        max-width: min(56%, 460px);
+      }
+
+      .blog-cta {
+        min-height: 320px;
+      }
+
+      .blog-cta-copy {
         max-width: min(56%, 460px);
       }
 
@@ -1342,6 +1463,21 @@
         max-width: 100%;
       }
 
+      .blog-cta {
+        min-height: 300px;
+        padding: 18px 18px 20px;
+      }
+
+      .blog-cta::before {
+        background:
+          linear-gradient(180deg, rgba(10, 9, 8, 0.9) 0%, rgba(10, 9, 8, 0.78) 34%, rgba(10, 9, 8, 0.34) 68%, rgba(10, 9, 8, 0.16) 100%),
+          linear-gradient(180deg, rgba(10, 9, 8, 0.18), rgba(10, 9, 8, 0.44));
+      }
+
+      .blog-cta-copy {
+        max-width: 100%;
+      }
+
       .feedback-page-title {
         font-size: clamp(28px, 8vw, 42px);
       }
@@ -1382,8 +1518,44 @@
       display: none !important;
     }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Стирая Грань",
+    "alternateName": "Beyond The Verge",
+    "url": "https://beyondtheverge.online",
+    "description": "Нарративная ИИ-RPG, где история отвечает на каждый ваш выбор. Искусственный интеллект ведёт сюжет, а мир помнит последствия ваших решений.",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "RUB"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "Стирая Грань",
+      "url": "https://beyondtheverge.online"
+    },
+    "inLanguage": ["ru", "en"]
+  }
+  </script>
 </head>
 <body>
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109149224', 'ym');
+
+    ym(109149224, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109149224" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika counter -->
   <div id="loading-container">
     <main class="landing-shell">
       <header class="landing-topbar">
@@ -1457,6 +1629,17 @@
           <div id="tech-grid" class="tech-grid"></div>
         </section>
 
+        <section class="blog-cta section" data-reveal>
+          <div class="blog-cta-copy">
+            <p id="blog-cta-eyebrow" class="blog-cta-eyebrow"></p>
+            <h2 id="blog-cta-title" class="blog-cta-title"></h2>
+            <p id="blog-cta-text" class="blog-cta-text"></p>
+            <div class="blog-cta-actions">
+              <a id="blog-cta-link" class="button-primary" href="/blog/"></a>
+            </div>
+          </div>
+        </section>
+
         <section class="feedback-cta section" data-reveal>
           <div class="feedback-cta-copy">
             <p id="feedback-cta-eyebrow" class="feedback-cta-eyebrow"></p>
@@ -1509,6 +1692,12 @@
             <a class="footer-legal-link" href="/contacts.html"><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
             <span class="footer-legal-sep" aria-hidden="true">·</span>
             <a class="footer-legal-link" href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+            <span class="footer-legal-sep" aria-hidden="true">·</span>
+            <a class="footer-legal-link" href="/worlds.html"><span lang="ru">Миры</span><span lang="en">Worlds</span></a>
+            <span class="footer-legal-sep" aria-hidden="true">·</span>
+            <a class="footer-legal-link" href="/blog/"><span lang="ru">Блог</span><span lang="en">Blog</span></a>
+            <span class="footer-legal-sep" aria-hidden="true">·</span>
+            <a class="footer-legal-link" href="/roadmap.html"><span lang="ru">Карта</span><span lang="en">Roadmap</span></a>
           </div>
         </footer>
       </div>
@@ -1704,6 +1893,10 @@
               copy: 'Грань между историей и реальным миром стирается - ваша сага начинается здесь и сейчас.'
             }
           ],
+          blogCtaEyebrow: 'Блог',
+          blogCtaTitle: 'Узнайте больше о мире AI-RPG',
+          blogCtaText: 'Гайды для новичков, разборы технологий и готовые сценарии для твоих кампаний.',
+          blogCtaButton: 'Читать блог',
           loadingTitle: 'Приложение загружается, подождите',
           loadingStages: [
             'Подготавливаем запуск',
@@ -1817,6 +2010,10 @@
               copy: 'The line between story and the real world fades away - your saga begins here and now.'
             }
           ],
+          blogCtaEyebrow: 'Blog',
+          blogCtaTitle: 'Dive deeper into AI-RPG',
+          blogCtaText: 'Newcomer guides, technology deep-dives, and ready-to-run campaign scenarios.',
+          blogCtaButton: 'Read the blog',
           loadingTitle: 'The app is loading, please wait',
           loadingStages: [
             'Preparing the launch',
@@ -2096,7 +2293,7 @@
           if (!avatar) {
             avatar = document.createElement('div');
             avatar.className = 'teaser-avatar';
-            avatar.innerHTML = '<img src="landing/master_img.jpg" alt="">';
+            avatar.innerHTML = '<img src="landing/master_img.jpg" alt="" loading="lazy" width="92" height="50">';
             bubble.appendChild(avatar);
           }
         } else if (avatar) {
@@ -2126,12 +2323,12 @@
       function animateTeaserEntry(node, role) {
         const keyframes = role === 'player'
           ? [
-              { opacity: 0, transform: 'translate3d(0, 28px, 0) scale(0.985)', filter: 'blur(10px)' },
-              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)', filter: 'blur(0)' }
+              { opacity: 0, transform: 'translate3d(0, 28px, 0) scale(0.985)' },
+              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' }
             ]
           : [
-              { opacity: 0, transform: 'translate3d(0, 22px, 0) scale(0.99)', filter: 'blur(12px)' },
-              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)', filter: 'blur(0)' }
+              { opacity: 0, transform: 'translate3d(0, 22px, 0) scale(0.99)' },
+              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' }
             ];
 
         node.animate(keyframes, {
@@ -2206,7 +2403,7 @@
           card.style.transitionDelay = `${index * 90}ms`;
           card.innerHTML = `
             <div class="world-art">
-              <img src="${world.image}" alt="${world.title}">
+              <img src="${world.image}" alt="${world.title}" loading="lazy">
             </div>
             <div class="world-body">
               <h3 class="world-title">${world.title}</h3>
@@ -2346,6 +2543,10 @@
         setText('landing-subtitle', text.heroSubtitle);
         setText('gallery-title', text.galleryTitle);
         setText('tech-title', text.techTitle);
+        setText('blog-cta-eyebrow', text.blogCtaEyebrow);
+        setText('blog-cta-title', text.blogCtaTitle);
+        setText('blog-cta-text', text.blogCtaText);
+        setText('blog-cta-link', text.blogCtaButton);
         setText('footer-brand-name', text.brand);
         setText('footer-brand-copy', text.footerBrandCopy);
         setText('footer-contacts-title', text.footerContactsTitle);

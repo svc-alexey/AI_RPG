@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://example.com/sitemap.xml
+User-agent: Yandex
+Allow: /
+Clean-param: lang&utm_source&utm_medium&utm_campaign
+
+Sitemap: https://beyondtheverge.online/sitemap.xml
+Host: beyondtheverge.online

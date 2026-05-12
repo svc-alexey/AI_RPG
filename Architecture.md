@@ -86,6 +86,8 @@ flowchart TB
 1. `app/api/routes/*`:
    - auth
    - campaigns
+   - map_routes
+   - portraits (character portrait generation via Polza.ai)
    - prompts
    - providers
    - stories
@@ -98,6 +100,9 @@ flowchart TB
    - simulation
    - RAG
    - embeddings
+   - portrait_optimizer (WebP compression, face-safe q≥75)
+   - portrait_prompt_builder (Python port of Dart CharacterPortraitPromptBuilder)
+   - portrait_service (Polza.ai async API orchestration)
 3. `app/db/*`:
    - SQLAlchemy models
    - async session
@@ -119,6 +124,7 @@ flowchart TB
    - `campaign_members`
    - `campaign_snapshots`
    - `campaign_turns`
+   - `campaign_portraits` (AI-generated character portraits, WebP blobs)
 3. world:
    - `world_state`
    - `world_locations`
@@ -173,7 +179,40 @@ sequenceDiagram
 3. Проверка и выбор источника кредов идут через
    `CredentialResolutionService`.
 
-## 8. Локальное хранение на клиенте
+## 8. Портретная генерация (Polza.ai)
+
+```mermaid
+sequenceDiagram
+    participant C as Flutter Client
+    participant B as Symmetry Backend
+    participant P as Polza.ai
+    participant S as S3 (Polza CDN)
+
+    C->>B: POST /v1/campaigns/{id}/portrait
+    B->>B: Проверить verified user (не гость)
+    B->>B: Проверить существующий портрет (idempotency)
+    B->>B: Построить промпт (portrait_prompt_builder)
+    B->>P: POST /v1/images/generations (async)
+    P-->>B: {"requestId": "gen_..."}
+    B->>P: Poll GET /v1/media/{requestId} (1.5s × 30s)
+    P-->>B: {"status": "completed", "data": [{"url": "..."}]}
+    B->>S: Download image
+    S-->>B: PNG/JPEG bytes
+    B->>B: portrait_optimizer → WebP ≤200KB
+    B->>B: INSERT INTO campaign_portraits
+    B-->>C: {portrait_id, portrait_url}
+    C->>B: GET /v1/campaigns/{id}/portrait/image
+    B-->>C: image/webp (Cache-Control: public, max-age=86400)
+```
+
+**Ключевые инварианты:**
+- API-ключ Polza.ai хранится только в `.env` бэкенда, никогда не передаётся клиенту
+- Промпты всегда на английском (лучшее качество image models)
+- Генерация доступна только verified пользователям (гости видят fallback-ассеты)
+- Портреты сохраняются как WebP блобы в БД, отдаются через GET эндпоинт
+- Компрессия: q_min=75 (face-safe), max_dim=512px, hard limit=200KB
+
+## 9. Локальное хранение на клиенте
 
 Локальное хранилище в клиенте остаётся только для:
 
@@ -185,7 +224,7 @@ sequenceDiagram
 
 Это больше не campaign storage.
 
-## 9. Миграции и rollout
+## 10. Миграции и rollout
 
 1. Схема БД обновляется через `Alembic`, а не через `create_all`.
 2. Локально и на сервере используется один и тот же шаг:
@@ -197,7 +236,7 @@ sequenceDiagram
    - поднять новую версию backend;
    - проверить `/health` и ключевые API.
 
-## 10. Инварианты
+## 11. Инварианты
 
 1. AI output недоверенный до валидации.
 2. Свободный текст модели не применяется напрямую к state.

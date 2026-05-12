@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кибер-нуар RPG с нейросетью — дождливые мегаполисы и взломанные импланты | Стирая Грань</title>
+  <meta name="description" content="Погрузитесь в мир кибер-нуара: неоновые мегаполисы, корпоративные заговоры и взломанные импланты. Искусственный интеллект ведёт детективный сюжет, где каждое решение меняет исход расследования. Играйте онлайн бесплатно.">
+  <meta name="keywords" content="киберпанк игра, кибер-нуар, нуар детектив, RPG киберпанк, киберпанк браузерная игра, неоновый город, корпоративный заговор, детективная RPG, текстовая RPG киберпанк">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Кибер-нуар RPG с нейросетью — дождливые мегаполисы и взломанные импланты">
+  <meta property="og:description" content="Погрузитесь в мир кибер-нуара: неон, корпоративные заговоры и ИИ-ведущий детективного сюжета.">
+  <meta property="og:image" content="https://beyondtheverge.online/landing/kiber_nuar.jpg">
+  <meta property="og:url" content="https://beyondtheverge.online/world-cybernoir.html">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Кибер-нуар RPG с нейросетью — дождливые мегаполисы и взломанные импланты">
+  <meta name="twitter:description" content="Погрузитесь в мир кибер-нуара: неон, корпоративные заговоры и ИИ-ведущий.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/landing/kiber_nuar.jpg">
+  <link rel="canonical" href="https://beyondtheverge.online/world-cybernoir.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/world-cybernoir.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/world-cybernoir.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Кибер-нуар — Стирая Грань",
+    "description": "Детективная RPG в мире неоновых мегаполисов и взломанных имплантов. Искусственный интеллект ведёт сюжет расследования.",
+    "genre": ["Cyberpunk", "Noir", "RPG", "Detective"],
+    "playMode": "SinglePlayer",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "RUB" },
+    "author": { "@type": "Organization", "name": "Стирая Грань", "url": "https://beyondtheverge.online" },
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root { --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550; --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 73px 24px 32px;
+      z-index: 5;
+      overflow-y: auto;
+    }
+    .sidebar-title { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover { background: rgba(200,121,65,0.06); color: var(--text); }
+    .sidebar a.active { background: rgba(200,121,65,0.12); color: var(--accent); font-weight: 500; }
+    .sidebar a .material-symbols-outlined { font-size: 20px; }
+
+    .main-content {
+      margin-left: calc(240px + max(20px, (100vw - 240px - 980px) / 2));
+      margin-right: max(20px, (100vw - 240px - 980px) / 2);
+      max-width: 980px;
+      padding: 48px 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bottom-nav a.active { color: var(--accent); }
+    .bottom-nav a .material-symbols-outlined { font-size: 22px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .topbar-back:hover { color: var(--text); }
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-toggle button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: Inter, sans-serif; }
+    .lang-toggle button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+    .world-hero { text-align: center; padding: 64px 24px 48px; max-width: 800px; margin: 0 auto; }
+    .world-hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(30px, 5vw, 42px); line-height: 1.2; margin-bottom: 12px; }
+    .world-hero .world-subtitle { color: var(--muted); font-size: 18px; line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; padding: 0 24px 48px; }
+    h2 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 48px 0 16px; }
+    h3 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+    p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 16px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .feature-card h3 { margin: 0 0 8px; font-size: 15px; }
+    .feature-card p { margin: 0; font-size: 14px; }
+    .sample-scene { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin: 24px 0; font-style: italic; color: var(--text); line-height: 1.8; }
+    .cta-section { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 24px; margin: 48px auto; max-width: 800px; }
+    .cta-section h2 { margin: 0 0 8px; font-size: 24px; }
+    .cta-section p { margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+    @media (max-width: 1099px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; margin-right: 0; padding: 24px 16px 96px; max-width: 100%; }
+      .bottom-nav { display: flex; }
+      .world-hero { padding: 40px 16px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/worlds.html" class="topbar-back">← <span lang="ru">Все миры</span><span lang="en">All Worlds</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+  <aside class="sidebar">
+    <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+    <nav>
+      <a href="/worlds.html" class="active">
+        <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+      </a>
+      <a href="/blog/">
+        <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+      </a>
+      <a href="/roadmap.html">
+        <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+      </a>
+      <a href="/contacts.html">
+        <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+
+    <div class="world-hero">
+      <h1>Кибер-нуар — детективная RPG в мире неона и имплантов</h1>
+      <p class="world-subtitle">2147 год. Мегаполис Аэтер. Дождь не прекращается уже третий месяц. Корпорация «Омни-Тек» только что объявила о прорыве в нейроинтерфейсах — и в ту же ночь исчез её ведущий инженер. Твоё расследование начинается.</p>
+    </div>
+
+    <div class="container">
+  <h2>О мире</h2>
+  <p>Кибер-нуар — это не киберпанк-боевик про стрельбу и взрывы. Это мир, где информация стоит дороже оружия, а доверие — дефицитный ресурс. Ты играешь за детектива (или журналиста, или хакера, или корпората — выбор за тобой), который распутывает многослойные заговоры в мегаполисе, где каждый источник света отбрасывает две тени.</p>
+  <p>Атмосфера вдохновлена классическим нуаром (дождливый город, моральная серость, femme fatale) и современными киберпанк-темами (нейроимпланты, корпоративный тоталитаризм, цифровое неравенство). Нейросеть поддерживает эту эстетику: описания мрачные, диалоги — остроумные и циничные, повороты — неожиданные.</p>
+
+  <h2>Твой герой</h2>
+  <p>Ты создаёшь персонажа с нуля. Бывший полицейский, которого уволили за отказ закрыть «неудобное» дело? Журналистка, которая получила анонимную наводку и теперь не может остановиться? Хакер, случайно взломавший не тот сервер? Корпоративный безопасник, который узнал о проекте слишком много?</p>
+  <p>Нейросеть адаптирует сюжет под твою роль. У каждого архетипа — своя стартовая сцена, свои контакты, свои враги. И свои моральные дилеммы.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card"><h3>Расследование</h3><p>Собирай улики, допрашивай свидетелей, взламывай базы данных — ИИ отслеживает нити расследования</p></div>
+    <div class="feature-card"><h3>Моральная серость</h3><p>Нет «хороших» и «плохих». Есть люди с разной степенью отчаяния. Твой выбор — кого защищать</p></div>
+    <div class="feature-card"><h3>Живой город</h3><p>Аэтер меняется в зависимости от твоих действий. Районы становятся опаснее или безопаснее</p></div>
+  </div>
+
+  <h2>Пример истории</h2>
+  <div class="sample-scene">
+    <p>Бар «Последний бит» на 143-м уровне. За окном — бесконечный дождь и голографическая реклама нейроимплантов «Омни-Тек».</p>
+    <p>— Ты коп? — бармен протирает стакан, не глядя на тебя.</p>
+    <p>Ты кладёшь на стойку чип с данными. — Бывший. Ищу человека. Анна Кирова, ведущий инженер. Исчезла три дня назад.</p>
+    <p>Бармен замирает. Потом наклоняется ближе: — Анна заходила во вторник. Сказала, что нашла что-то в коде их новых имплантов. Что-то, чего не должно было быть. И спросила, знаю ли я человека, который умеет прятать людей от корпораций.</p>
+    <p>Дождь за окном усиливается. В углу бара оживает твой нейроинтерфейс — входящий вызов с зашифрованного номера.</p>
+  </div>
+
+  <div class="cta-section">
+    <h2>Начать расследование</h2>
+    <p>5 бесплатных ходов. Улики уже ждут.</p>
+    <a href="/" class="cta-button">Играть бесплатно</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="/worlds.html"><span lang="ru">Все миры</span><span lang="en">All Worlds</span></a>
+  <a href="/world-dark-fantasy.html">Тёмное фэнтези</a>
+  <a href="/world-romance.html">Романтический роман</a>
+  <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+</footer>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('[lang]').forEach(el => { if (el.tagName === 'HTML') return; el.style.display = el.getAttribute('lang') === lang ? '' : 'none'; });
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[lang="en"]').forEach(el => el.style.display = 'none');
+});
+</script>
+  </div>
+<nav class="bottom-nav">
+    <a href="/worlds.html" class="active"><span class="material-symbols-outlined">public</span>Миры</a>
+    <a href="/blog/"><span class="material-symbols-outlined">article</span>Блог</a>
+    <a href="/roadmap.html"><span class="material-symbols-outlined">timeline</span>Карта</a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+  </nav>
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Блог «Стирая Грань» — гайды, статьи и истории о RPG с нейросетью</title>
+  <meta name="description" content="Читайте о текстовых RPG с нейросетью: гайды для новичков, разборы технологий AI в геймдизайне, сценарии для кампаний и истории миров.">
+  <meta name="keywords" content="блог RPG, AI RPG статьи, гайды текстовые RPG, технологии геймдизайна, нейросеть игры, статьи о RPG, сценарии RPG">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Блог «Стирая Грань» — гайды, статьи и истории о RPG с нейросетью">
+  <meta property="og:description" content="Гайды для новичков, разборы технологий и сценарии для кампаний.">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/blog/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Блог «Стирая Грань»">
+  <meta name="twitter:description" content="Гайды, статьи и истории о RPG с нейросетью.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <link rel="canonical" href="https://beyondtheverge.online/blog/">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/blog/?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/blog/">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "Блог «Стирая Грань»",
+    "description": "Гайды, статьи и истории о RPG с нейросетью",
+    "url": "https://beyondtheverge.online/blog/",
+    "publisher": { "@type": "Organization", "name": "Стирая Грань", "url": "https://beyondtheverge.online" },
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root { --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550; --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .topbar-back:hover { color: var(--text); }
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 73px 24px 32px;
+      z-index: 5;
+      overflow-y: auto;
+    }
+    .sidebar-title { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover { background: rgba(200,121,65,0.06); color: var(--text); }
+    .sidebar a.active { background: rgba(200,121,65,0.12); color: var(--accent); font-weight: 500; }
+    .sidebar a .material-symbols-outlined { font-size: 20px; }
+
+    .main-content {
+      margin-left: calc(240px + max(20px, (100vw - 240px - 980px) / 2));
+      margin-right: max(20px, (100vw - 240px - 980px) / 2);
+      max-width: 980px;
+      padding: 48px 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bottom-nav a.active { color: var(--accent); }
+    .bottom-nav a .material-symbols-outlined { font-size: 22px; }
+    .breadcrumb { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 40px); line-height: 1.2; margin-bottom: 12px; }
+    .subtitle { color: var(--muted); font-size: 18px; line-height: 1.6; margin-bottom: 40px; }
+    .article-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px; margin-bottom: 20px; transition: border-color 0.2s; }
+    .article-card:hover { border-color: var(--accent); }
+    .article-card .category { display: inline-block; background: rgba(200,121,65,0.12); color: var(--accent); padding: 3px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 12px; }
+    .article-card h2 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 8px; }
+    .article-card h2 a { color: var(--text); text-decoration: none; }
+    .article-card h2 a:hover { color: var(--accent); }
+    .article-card .excerpt { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+    .article-card .meta { color: var(--dim); font-size: 13px; }
+    .cta-section { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 24px; margin: 48px 0; }
+    .cta-section h2 { margin: 0 0 8px; font-size: 24px; font-family: 'Playfair Display', serif; }
+    .cta-section p { color: var(--muted); margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+    @media (max-width: 1099px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; margin-right: 0; padding: 24px 16px 96px; max-width: 100%; }
+      .bottom-nav { display: flex; }
+    }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/" class="topbar-back">← <span lang="ru">На главную</span><span lang="en">Home</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <span></span>
+</header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+    <nav>
+      <a href="/worlds.html">
+        <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+      </a>
+      <a href="/blog/" class="active">
+        <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+      </a>
+      <a href="/roadmap.html">
+        <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+      </a>
+      <a href="/contacts.html">
+        <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+    <nav class="breadcrumb">
+      <a href="/">Главная</a> / <span>Блог</span>
+    </nav>
+
+    <h1>Блог «Стирая Грань»</h1>
+    <p class="subtitle">Гайды, разборы технологий и сценарии для кампаний. Всё о текстовых RPG с нейросетью.</p>
+
+    <article class="article-card">
+      <span class="category">Гайд</span>
+      <h2><a href="/blog/text-rpg-how-to-start.html">Текстовые RPG с нейросетью: как начать играть за 5 минут</a></h2>
+      <p class="excerpt">Пошаговый гайд для новичков: от выбора мира до первого хода. Никакой подготовки не требуется — просто откройте браузер.</p>
+      <div class="meta">12 мая 2026 · 4 мин чтения</div>
+    </article>
+
+    <article class="article-card">
+      <span class="category">Технологии</span>
+      <h2><a href="/blog/ai-in-game-design.html">Искусственный интеллект в геймдизайне: как AI меняет RPG</a></h2>
+      <p class="excerpt">Как нейросети превращают ролевые игры из «дерева диалогов» в живой мир. Векторная память, процедурный сюжет и почему это навсегда изменит геймдизайн.</p>
+      <div class="meta">12 мая 2026 · 6 мин чтения</div>
+    </article>
+
+    <div class="cta-section">
+      <h2>Готовы попробовать?</h2>
+      <p>5 бесплатных ходов. Без регистрации, прямо в браузере.</p>
+      <a href="/" class="cta-button">Играть бесплатно</a>
+    </div>
+
+  </div>
+<nav class="bottom-nav">
+    <a href="/worlds.html"><span class="material-symbols-outlined">public</span>Миры</a>
+    <a href="/blog/" class="active"><span class="material-symbols-outlined">article</span>Блог</a>
+    <a href="/roadmap.html"><span class="material-symbols-outlined">timeline</span>Карта</a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+  </nav>
+
+</body>
+</html>

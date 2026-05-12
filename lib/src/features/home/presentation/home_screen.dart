@@ -784,7 +784,7 @@ class _HomeBentoPrimaryCard extends StatefulWidget {
 }
 
 class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _hoverCtrl = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 320),
@@ -796,9 +796,39 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
     reverseCurve: Curves.easeInCubic,
   );
 
+  late final AnimationController _pulseCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  );
+
+  late final AnimationController _shimmerCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3200),
+  );
+
+  bool get _animationsEnabled {
+    final String bindingName = WidgetsBinding.instance.runtimeType.toString();
+    return bindingName != 'AutomatedTestWidgetsFlutterBinding' &&
+        bindingName != 'LiveTestWidgetsFlutterBinding';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (_animationsEnabled) {
+      _pulseCtrl.repeat(reverse: true);
+      _shimmerCtrl.repeat();
+    } else {
+      _pulseCtrl.value = 0.5;
+      _shimmerCtrl.value = 0.0;
+    }
+  }
+
   @override
   void dispose() {
     _hoverCtrl.dispose();
+    _pulseCtrl.dispose();
+    _shimmerCtrl.dispose();
     super.dispose();
   }
 
@@ -825,9 +855,10 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
         behavior: HitTestBehavior.opaque,
         child: RepaintBoundary(
           child: AnimatedBuilder(
-            animation: _hoverT,
+            animation: Listenable.merge([_hoverT, _pulseCtrl]),
             builder: (context, _) {
               final double t = _hoverT.value;
+              final double pulse = _pulseCtrl.value;
               final Color borderColor = Color.lerp(
                 AetherPalette.accent.withValues(alpha: 0.28),
                 AetherPalette.accent.withValues(alpha: 0.52),
@@ -840,9 +871,9 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
                   boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: AetherPalette.accent.withValues(
-                        alpha: 0.08 + t * 0.18,
+                        alpha: 0.08 + t * 0.18 + pulse * 0.14,
                       ),
-                      blurRadius: 12 + t * 28,
+                      blurRadius: 12 + t * 28 + pulse * 24,
                       spreadRadius: -4 + t * 2,
                       offset: Offset(0, 4 + t * 4),
                     ),
@@ -943,37 +974,51 @@ class _HomeBentoPrimaryCardState extends State<_HomeBentoPrimaryCard>
                             SizedBox(
                               height: widget.responsive.isCompact ? 18 : 22,
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                  widget.l10n.homeBentoPrimaryLink,
-                                  style: widget.theme.textTheme.labelLarge
-                                      ?.copyWith(
-                                        color:
-                                            Color.lerp(
-                                              AetherPalette.accent,
-                                              AetherPalette.accentHover,
-                                              t,
-                                            ) ??
-                                            AetherPalette.accent,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 18,
-                                  color:
-                                      Color.lerp(
-                                        AetherPalette.accent,
-                                        AetherPalette.accentHover,
-                                        t,
-                                      ) ??
+                            AnimatedBuilder(
+                              animation: _shimmerCtrl,
+                              builder: (context, _) {
+                                final double s = _shimmerCtrl.value;
+                                return ShaderMask(
+                                  shaderCallback: (bounds) =>
+                                      LinearGradient(
+                                    begin: Alignment(
+                                      -1.0 + s * 2.2,
+                                      0.0,
+                                    ),
+                                    end: Alignment(
+                                      -0.3 + s * 2.2,
+                                      0.0,
+                                    ),
+                                    colors: const [
                                       AetherPalette.accent,
-                                ),
-                              ],
+                                      Color(0xFFF0CFB0),
+                                      AetherPalette.accent,
+                                    ],
+                                    stops: const [0.0, 0.35, 1.0],
+                                  ).createShader(bounds),
+                                  blendMode: BlendMode.srcIn,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                        widget.l10n.homeBentoPrimaryLink,
+                                        style: widget.theme.textTheme.labelLarge
+                                            ?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 18,
+                                        color: Colors.white,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),

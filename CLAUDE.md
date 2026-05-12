@@ -64,8 +64,8 @@ lib/src/
                   settings, story_admin, story_library, update
 backend/symmetry/
   app/
-    api/routes/ — auth, campaigns, prompts, providers, stories
-    services/   — AI gateway, campaign runtime, RAG, embeddings, auth
+    api/routes/ — auth, billing, campaigns, map_routes, portraits, prompts, providers, stories
+    services/   — AI gateway, campaign runtime, portrait (optimizer, prompt builder, service), RAG, embeddings, auth
     db/         — SQLAlchemy models, async session
     schemas/    — Pydantic-схемы
     core/       — config, security
@@ -332,18 +332,23 @@ cd /home/alexeyko/ai-rpg/app
 cp -r deploy/web deploy/web.bak_$(date +%Y%m%d_%H%M)
 # Сохранить статические HTML (они НЕ из Flutter build!)
 mkdir -p /tmp/web_static
-for f in offer.html privacy.html consent.html refunds.html contacts.html pricing.html subscribe.html; do
+ALL_STATIC="offer.html privacy.html consent.html refunds.html contacts.html pricing.html subscribe.html robots.txt sitemap.xml legal.css worlds.html world-cybernoir.html world-dark-fantasy.html world-romance.html rpg-with-ai.html text-rpg-online.html roadmap.html"
+for f in $ALL_STATIC; do
     [ -f "deploy/web/$f" ] && cp "deploy/web/$f" "/tmp/web_static/$f"
 done
+[ -d "deploy/web/blog" ] && cp -r "deploy/web/blog" "/tmp/web_static/blog"
+[ -d "deploy/web/landing" ] && cp -r "deploy/web/landing" "/tmp/web_static/landing"
 # Очистить Flutter-файлы (не удалять статические .html!)
 rm -rf deploy/web/assets deploy/web/canvaskit deploy/web/icons
 rm -f deploy/web/*.js deploy/web/*.wasm deploy/web/*.json deploy/web/*.png deploy/web/*.svg deploy/web/*.ico deploy/web/index.html
 # Распаковать новую сборку
 tar -xzf /tmp/deploy-flutter.tar.gz -C deploy/web/
 # Восстановить статические HTML
-for f in offer.html privacy.html consent.html refunds.html contacts.html pricing.html subscribe.html; do
+for f in $ALL_STATIC; do
     [ -f "/tmp/web_static/$f" ] && cp "/tmp/web_static/$f" "deploy/web/$f"
 done
+[ -d "/tmp/web_static/blog" ] && cp -r "/tmp/web_static/blog" "deploy/web/blog" && rm -rf "/tmp/web_static/blog"
+[ -d "/tmp/web_static/landing" ] && rm -rf "deploy/web/landing" && mv "/tmp/web_static/landing" "deploy/web/landing"
 rm -rf /tmp/web_static
 # Обновить version.json
 cat > deploy/web/version.json << EOF
@@ -370,7 +375,7 @@ docker cp backend/symmetry/app/api/routes/__init__.py ai-rpg-api:/app/app/api/ro
 docker cp backend/symmetry/app/main.py ai-rpg-api:/app/app/main.py
 
 # Очистить кэш Python после изменений
-docker exec ai-rpg-api find /app -type d -name __pycache__ -exec rm -rf {} +
+docker exec ai-rpg-api find /app -type d -name __pycache__ -exec rm -rf {} ';'
 
 # Перезапустить контейнер
 docker restart ai-rpg-api
@@ -383,6 +388,55 @@ docker compose -f docker-compose.prod.yml up -d --force-recreate symmetry-api
 docker compose -f docker-compose.prod.yml build symmetry-api --no-cache
 docker compose -f docker-compose.prod.yml up -d --force-recreate symmetry-api
 ```
+
+### Portrait Generation Deploy
+
+При деплое портретной фичи — копировать ВСЕ новые и изменённые файлы:
+
+```bash
+# Новые файлы (CREATE):
+docker cp backend/symmetry/app/services/portrait_optimizer.py ai-rpg-api:/app/app/services/
+docker cp backend/symmetry/app/services/portrait_prompt_builder.py ai-rpg-api:/app/app/services/
+docker cp backend/symmetry/app/services/portrait_service.py ai-rpg-api:/app/app/services/
+docker cp backend/symmetry/app/api/routes/portraits.py ai-rpg-api:/app/app/api/routes/
+docker cp backend/symmetry/app/schemas/portraits.py ai-rpg-api:/app/app/schemas/
+
+# Изменённые файлы (EDIT):
+docker cp backend/symmetry/app/api/routes/__init__.py ai-rpg-api:/app/app/api/routes/
+docker cp backend/symmetry/app/main.py ai-rpg-api:/app/app/main.py
+docker cp backend/symmetry/app/core/config.py ai-rpg-api:/app/app/core/
+docker cp backend/symmetry/app/db/models.py ai-rpg-api:/app/app/db/
+docker cp backend/symmetry/app/api/routes/campaigns.py ai-rpg-api:/app/app/api/routes/
+
+# Миграция:
+docker cp backend/symmetry/alembic/versions/20260511_000015_campaign_portraits.py ai-rpg-api:/app/alembic/versions/
+
+# Очистить кэш и применить миграцию:
+docker exec ai-rpg-api find /app -type d -name '__pycache__' -exec rm -rf '{}' ';'
+docker exec ai-rpg-api alembic upgrade head
+docker restart ai-rpg-api
+```
+
+**Важно:** После `docker compose up -d --force-recreate` ВСЕ `docker cp` портретных файлов нужно применять заново (pitfall #2).
+
+### Polza.ai Image Generation Config
+
+В `.env` (локальный и продовый) должны быть настроены:
+
+```env
+SYMMETRY_POLZA_AI_API_KEY=pza_...
+SYMMETRY_POLZA_AI_BASE_URL=https://polza.ai/api/v1
+SYMMETRY_POLZA_AI_IMAGE_MODEL=google/gemini-2.5-flash-image
+SYMMETRY_POLZA_AI_TIMEOUT_SECONDS=30
+SYMMETRY_POLZA_AI_POLL_INTERVAL_SECONDS=1.5
+```
+
+**Модель:** `google/gemini-2.5-flash-image` (~3₽/изображение). Можно переключить на `flux-2-flex` или `flux-2-pro` через `SYMMETRY_POLZA_AI_IMAGE_MODEL`.
+
+**API flow (асинхронный):**
+1. `POST https://polza.ai/api/v1/images/generations` → `{"requestId": "gen_..."}`
+2. Poll `GET /v1/media/{requestId}` каждые 1.5s, таймаут 30s
+3. Download из `data[0].url` (S3 signed URL)
 
 ### Version Check Mechanism
 
@@ -477,3 +531,7 @@ location / {
 25. **D20 бросок — клиент решает, сервер хранит.** `DeterministicCheckService` на клиенте анализирует действие игрока по ключевым словам (атака/взлом/убеждение/поиск/...). Если проверка нужна — бросает D20, передаёт `dice_roll` в `ProcessTurnRequest`. Бэкенд сохраняет в `campaign_turns.dice_roll` и в `state_json.messages[].dice_roll`. Если проверка не нужна — `dice_roll` = null, анимации нет. Сервер НЕ генерирует бросок сам (`secrets.randbelow` убран).
 26. **Порт 8080 — конфликт Flutter и Docker.** Docker-контейнер `ai-rpg-api` мапит порт 8080. При локальном запуске `flutter run -d web-server` всегда указывать `--web-port=8081` или `8088`. Старый процесс `dartvm` может продолжать держать порт после падения — проверять через `netstat -ano | findstr ":8080"` и `taskkill /PID X /F`.
 27. **`flutter run -d chrome` не работает на этой Windows-машине.** Flutter пытается запустить Chrome со своим `--user-data-dir`, падает с "Failed to launch browser after 3 tries". Использовать `-d web-server`. MCP Marionette в web-server режиме может не показывать VM Service URI в новых версиях Flutter.
+28. **`campaigns.id` — VARCHAR(36), не нативный UUID.** Миграции, ссылающиеся на `campaigns.id` через FK, должны использовать `sa.String(36)`, а не `sa.Uuid()`. Несовпадение типов даёт `DatatypeMismatch: foreign key constraint cannot be implemented`.
+29. **Портретная генерация требует verified user.** `POST /v1/campaigns/{id}/portrait` использует `get_current_verified_user` — гость и неverified получат 401/403. Это предотвращает бесплатную генерацию портретов вне биллинговой системы. Клиент должен скрывать кнопку "Сгенерировать портрет" для гостей (`session.isGuest`).
+30. **Портретный промпт — всегда на английском.** `portrait_prompt_builder.py` генерирует промпты на английском независимо от языка UI — модели изображений дают лучшие результаты на английском. `language` не передаётся в POST-запросе на генерацию.
+31. **Портретный оптимизатор — face-safe параметры.** `portrait_optimizer.py` использует q_min=75 (не ниже, иначе артефакты на лицах), max_dim=512px, target=120KB, hard limit=200KB. Не использовать `cover_image_optimizer.py` для портретов — там q падает до 50 и размер до 640px.

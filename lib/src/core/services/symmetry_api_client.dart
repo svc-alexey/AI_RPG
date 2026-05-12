@@ -270,6 +270,12 @@ class SymmetryApiClient {
     return SymmetryCampaignStateResponse.fromJson(response);
   }
 
+  Future<Map<String, Object?>> generatePortrait({
+    required final String accessToken,
+    required final String campaignId,
+    required final Map<String, Object?> body,
+  }) => _post('/campaigns/$campaignId/portrait', bearerToken: accessToken, body: body);
+
   Future<List<SymmetryCampaignSummary>> listCampaigns({
     required final String accessToken,
   }) async {

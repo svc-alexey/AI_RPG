@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дорожная карта — что дальше | Стирая Грань</title>
+  <meta name="description" content="Дорожная карта развития «Стирая Грань»: что уже работает, что в разработке и какие возможности ждут игроков в будущем. От конструктора миров до голосового нарратива.">
+  <meta name="keywords" content="дорожная карта, планы развития, roadmap, AI RPG будущее, обновления игры, что дальше, фичи RPG">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Дорожная карта «Стирая Грань» — что дальше">
+  <meta property="og:description" content="Что уже работает, что в разработке и какие возможности ждут игроков.">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/roadmap.html">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Дорожная карта «Стирая Грань»">
+  <meta name="twitter:description" content="Что уже работает, что в разработке и какие возможности ждут игроков.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <link rel="canonical" href="https://beyondtheverge.online/roadmap.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/roadmap.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/roadmap.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Дорожная карта «Стирая Грань»",
+    "description": "План развития нарративной AI-RPG: текущие возможности и будущие фичи.",
+    "url": "https://beyondtheverge.online/roadmap.html",
+    "isPartOf": { "@type": "WebApplication", "name": "Стирая Грань", "url": "https://beyondtheverge.online" }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --phase-now: #c87941; --phase-next: #7b5ea7; --phase-later: #4a7fa7; --phase-vision: #5b8c5a;
+    }
+
+    /* Timeline */
+    .timeline { position: relative; padding: 0 0 64px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--phase-now), var(--phase-next), var(--phase-later), var(--phase-vision), transparent);
+    }
+
+    .phase { margin-bottom: 64px; position: relative; padding-left: 64px; }
+    .phase:last-child { margin-bottom: 0; }
+
+    .phase-marker {
+      position: absolute;
+      left: 10px;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 3px solid;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+    .phase-now .phase-marker { border-color: var(--phase-now); box-shadow: 0 0 16px rgba(200,121,65,0.3); }
+    .phase-next .phase-marker { border-color: var(--phase-next); box-shadow: 0 0 12px rgba(123,94,167,0.2); }
+    .phase-later .phase-marker { border-color: var(--phase-later); }
+    .phase-vision .phase-marker { border-color: var(--phase-vision); }
+
+    .phase-marker-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .phase-now .phase-marker-dot { background: var(--phase-now); }
+    .phase-next .phase-marker-dot { background: var(--phase-next); }
+    .phase-later .phase-marker-dot { background: var(--phase-later); }
+    .phase-vision .phase-marker-dot { background: var(--phase-vision); }
+
+    .phase-label {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .phase-now .phase-label { background: rgba(200,121,65,0.15); color: var(--phase-now); }
+    .phase-next .phase-label { background: rgba(123,94,167,0.15); color: var(--phase-next); }
+    .phase-later .phase-label { background: rgba(74,127,167,0.15); color: var(--phase-later); }
+    .phase-vision .phase-label { background: rgba(91,140,90,0.15); color: var(--phase-vision); }
+
+    .phase h2 { font-family: 'Playfair Display', serif; font-size: 28px; margin-bottom: 8px; }
+    .phase-subtitle { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
+
+    .features { display: grid; gap: 16px; }
+    .feature { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; transition: border-color 0.2s; }
+    .feature:hover { border-color: rgba(255,255,255,0.15); }
+
+    .feature-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 8px; }
+    .feature-icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .phase-now .feature-icon { background: rgba(200,121,65,0.12); color: var(--phase-now); }
+    .phase-next .feature-icon { background: rgba(123,94,167,0.12); color: var(--phase-next); }
+    .phase-later .feature-icon { background: rgba(74,127,167,0.12); color: var(--phase-later); }
+    .phase-vision .feature-icon { background: rgba(91,140,90,0.12); color: var(--phase-vision); }
+
+    .feature-text h3 { font-size: 17px; margin-bottom: 4px; }
+    .feature-text p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .feature-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .badge-done { background: rgba(91,140,90,0.15); color: #5b8c5a; }
+    .badge-progress { background: rgba(200,121,65,0.15); color: var(--accent); }
+
+    /* Progress bar */
+    .progress-section { margin-bottom: 64px; padding-left: 64px; }
+    .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 16px 0 8px; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 1s ease; }
+    .progress-meta { display: flex; justify-content: space-between; color: var(--dim); font-size: 12px; }
+
+    @media (max-width: 1099px) {
+      .phase { padding-left: 48px; }
+      .timeline::before { left: 16px; }
+      .phase-marker { left: 2px; width: 26px; height: 26px; }
+      .phase-marker-dot { width: 10px; height: 10px; }
+      .progress-section { padding-left: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/" class="topbar-back">← <span lang="ru">На главную</span><span lang="en">Home</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+<aside class="sidebar">
+  <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+  <nav>
+    <a href="/worlds.html">
+      <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+    </a>
+    <a href="/blog/">
+      <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+    </a>
+    <a href="/roadmap.html" class="active">
+      <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+    </a>
+    <a href="/contacts.html">
+      <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+    </a>
+  </nav>
+</aside>
+
+<div class="main-content">
+
+  <section class="hero">
+    <h1>Дорожная карта</h1>
+    <p>«Стирая Грань» — живой проект. Вот что уже работает, что строится прямо сейчас и куда мы движемся. Вы можете повлиять на приоритеты — пишите в обратную связь.</p>
+  </section>
+
+  <div class="timeline">
+
+    <!-- Phase 1: СЕЙЧАС -->
+    <div class="phase phase-now">
+      <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+      <span class="phase-label">Фаза I · Сейчас</span>
+      <h2>Основа: нарративное ядро</h2>
+      <p class="phase-subtitle">То, что уже работает и доступно каждому игроку.</p>
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">auto_stories</span></div>
+            <div class="feature-text">
+              <h3>Живой рассказчик <span class="feature-badge badge-done">Готово</span></h3>
+              <p>Нейросеть ведёт сюжет в реальном времени, адаптируясь под каждое действие игрока. Никаких скриптов — только импровизация, как у живого мастера за столом.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">public</span></div>
+            <div class="feature-text">
+              <h3>Тематические миры <span class="feature-badge badge-done">Готово</span></h3>
+              <p>Кибер-нуар, тёмное фэнтези, романтический роман — и бесконечное множество вселенных, которые нейросеть создаёт под каждого игрока.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">psychology</span></div>
+            <div class="feature-text">
+              <h3>Память мира <span class="feature-badge badge-done">Готово</span></h3>
+              <p>Векторная база данных хранит все ключевые события кампании. Персонаж, которого вы пощадили пять сессий назад, может вернуться в решающий момент.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">casino</span></div>
+            <div class="feature-text">
+              <h3>D20 — механика проверок <span class="feature-badge badge-done">Готово</span></h3>
+              <p>Классический бросок двадцатигранника для ключевых действий: атака, взлом, убеждение, поиск. Успех или провал определяет кубик — а нейросеть драматически обыгрывает результат.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">account_circle</span></div>
+            <div class="feature-text">
+              <h3>Гостевой режим <span class="feature-badge badge-done">Готово</span></h3>
+              <p>5 бесплатных ходов без регистрации. Открываете браузер — и через минуту вы уже в игре.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Phase 2: ДАЛЬШЕ -->
+    <div class="phase phase-next">
+      <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+      <span class="phase-label">Фаза II · В разработке</span>
+      <h2>Мастерская: инструменты творца</h2>
+      <p class="phase-subtitle">Функции, которые превращают игрока в создателя миров.</p>
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">draw</span></div>
+            <div class="feature-text">
+              <h3>Конструктор миров <span class="feature-badge badge-progress">В плане</span></h3>
+              <p>Опишите вселенную своими словами — жанр, эпоху, ключевые законы, тон повествования. Нейросеть построит мир по вашему брифингу: от географии до политических фракций. Хотите стимпанк-Атлантиду с магией крови? Будет.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">image</span></div>
+            <div class="feature-text">
+              <h3>AI-портреты персонажей <span class="feature-badge badge-progress">В плане</span></h3>
+              <p>Генерация изображений вашего героя (и ключевых NPC) по текстовому описанию. Портрет появляется в интерфейсе и обновляется при значительных изменениях персонажа — шрамы, снаряжение, возраст.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">inventory_2</span></div>
+            <div class="feature-text">
+              <h3>Инвентарь и предметы <span class="feature-badge badge-progress">В плане</span></h3>
+              <p>Система предметов с AI-генерацией: каждый найденный меч, артефакт или письмо получает уникальное описание, свойства и сюжетный вес. Предметы могут быть ключами к побочным квестам.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">forum</span></div>
+            <div class="feature-text">
+              <h3>Кооперативный режим (2-4 игрока) <span class="feature-badge badge-progress">В плане</span></h3>
+              <p>Партийная игра: каждый участник управляет своим персонажем, а нейросеть ведёт сюжет для всей группы. Ходы по очереди, общие и личные цели, динамика отношений внутри партии.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">share</span></div>
+            <div class="feature-text">
+              <h3>Экспорт кампании <span class="feature-badge badge-progress">В плане</span></h3>
+              <p>Выгрузка пройденной кампании в формате книги: PDF, ePub или просто веб-страница для чтения. Поделитесь историей с друзьями или сохраните на память. Каждая кампания — готовый роман.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Phase 3: ПОТОМ -->
+    <div class="phase phase-later">
+      <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+      <span class="phase-label">Фаза III · На горизонте</span>
+      <h2>Погружение: мультимедиа и тактика</h2>
+      <p class="phase-subtitle">Когда базовые механики отшлифованы — добавляем новые измерения.</p>
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">mic</span></div>
+            <div class="feature-text">
+              <h3>Голосовой ввод и озвучка</h3>
+              <p>Диктуйте действия голосом — нейросеть понимает устную речь. Ответное narration может зачитываться вслух синтезированным голосом с интонацией, соответствующей настроению сцены. Игра в формате аудиокниги, которую вы пишете голосом.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">music_note</span></div>
+            <div class="feature-text">
+              <h3>AI-саундтрек</h3>
+              <p>Генерация фоновой музыки под настроение текущей сцены. Тревожный эмбиент в заброшенном склепе, неоновый синтвейв в баре кибер-нуара, романтическое фортепиано в сцене бала. Музыка меняется плавно, следуя за поворотами сюжета.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">map</span></div>
+            <div class="feature-text">
+              <h3>Интерактивная карта мира</h3>
+              <p>Визуальная карта, которая растёт по мере исследования. Открытые локации, известные NPC, активные квесты — всё отображается на карте, которая эволюционирует вместе с кампанией.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">tactic</span></div>
+            <div class="feature-text">
+              <h3>Тактическая боёвка</h3>
+              <p>Для ключевых сражений — переход от текстового режима к тактической карте. Позиционирование, укрытия, комбинации умений. D20 определяет попадание, ваша тактика — исход боя.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Phase 4: ВИДЕНИЕ -->
+    <div class="phase phase-vision">
+      <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+      <span class="phase-label">Фаза IV · Видение</span>
+      <h2>Экосистема: за пределами одиночной игры</h2>
+      <p class="phase-subtitle">Когда продукт становится платформой.</p>
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">groups</span></div>
+            <div class="feature-text">
+              <h3>Мастерская сообщества</h3>
+              <p>Игроки публикуют созданные миры и сценарии. Лучшие — всплывают в рейтинге. Можно запустить кампанию в мире, который придумал другой игрок. Как Steam Workshop для нарративов.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">terminal</span></div>
+            <div class="feature-text">
+              <h3>API для разработчиков</h3>
+              <p>Публичный API нарративного движка. Сторонние разработчики смогут встраивать AI-повествование в свои игры и приложения. «Стирая Грань» как нарративный backend-as-a-service.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">stadia_controller</span></div>
+            <div class="feature-text">
+              <h3>GM Mode — режим мастера</h3>
+              <p>Вы становитесь мастером игры для группы друзей. Нейросеть ассистирует: играет за NPC, описывает сцены, предлагает сюжетные повороты. Но решения — за вами. Инструмент для проведения настольных RPG нового поколения.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-header">
+            <div class="feature-icon"><span class="material-symbols-outlined">translate</span></div>
+            <div class="feature-text">
+              <h3>Мультиязычные кампании</h3>
+              <p>Игра автоматически переводит нарратив на лету. Игрок из Токио и игрок из Москвы в одной партии — каждый видит историю на своём языке. AI сохраняет стиль и атмосферу при переводе.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section">
+    <div style="margin-bottom:4px;font-weight:600;">Прогресс Фазы I</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:85%"></div></div>
+    <div class="progress-meta">
+      <span>5 из 6 ключевых фич готовы</span>
+      <span>85%</span>
+    </div>
+  </div>
+
+  <div class="cta-section">
+    <h2>Чего не хватает вам?</h2>
+    <p>Дорожная карта — не догма. Самые важные фичи подсказываете вы. Напишите, что вы ждёте от игры — и это повлияет на приоритеты.</p>
+    <a href="/?lang=ru&view=feedback" class="cta-button">Предложить фичу</a>
+  </div>
+
+  <footer class="footer">
+    <a href="/worlds.html"><span lang="ru">Миры</span><span lang="en">Worlds</span></a>
+    <a href="/blog/"><span lang="ru">Блог</span><span lang="en">Blog</span></a>
+    <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+    <a href="/contacts.html"><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+    <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+  </footer>
+
+</div>
+
+<nav class="bottom-nav">
+  <a href="/worlds.html"><span class="material-symbols-outlined">public</span>Миры</a>
+  <a href="/blog/"><span class="material-symbols-outlined">article</span>Блог</a>
+  <a href="/roadmap.html" class="active"><span class="material-symbols-outlined">timeline</span>Карта</a>
+  <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+</nav>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('[lang]').forEach(el => { if (el.tagName === 'HTML') return; el.style.display = el.getAttribute('lang') === lang ? '' : 'none'; });
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[lang="en"]').forEach(el => el.style.display = 'none');
+});
+</script>
+
+</body>
+</html>

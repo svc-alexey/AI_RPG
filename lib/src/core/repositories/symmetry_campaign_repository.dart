@@ -140,6 +140,28 @@ class SymmetryCampaignRepository {
     return _campaignStateFromServer(response.state);
   }
 
+  Future<Map<String, Object?>> generatePortrait({
+    required final String campaignId,
+    required final CharacterProfile character,
+    required final String storyContext,
+    required final CampaignSetting setting,
+  }) => _authRepository.runWithAuthorizedSession(
+    (final session) => _client(session.baseUrl).generatePortrait(
+      accessToken: session.tokens.accessToken,
+      campaignId: campaignId,
+      body: <String, Object?>{
+        'character_name': character.name,
+        'race': character.race,
+        'class': character.characterClass.name,
+        'gender': character.gender.name,
+        'personality': character.personality,
+        'prompt_fragment': character.promptFragment,
+        'story_context': storyContext,
+        'setting': setting.name,
+      },
+    ),
+  );
+
   Future<void> deleteCampaign(final String id) =>
       _authRepository.runWithAuthorizedSession(
         (final session) => _client(session.baseUrl).deleteCampaign(
@@ -280,6 +302,8 @@ class SymmetryCampaignRepository {
           json['custom_story_prompt'] ?? json['customStoryPrompt'] ?? '',
       'characterPrompt':
           json['character_prompt'] ?? character['prompt_fragment'] ?? '',
+      'portraitUrl':
+          json['portrait_url'] ?? json['portraitUrl'],
     };
   }
 

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Миры «Стирая Грань» — киберпанк, тёмное фэнтези, романтика | Играй с нейросетью</title>
+  <meta name="description" content="Исследуйте бесконечные миры в «Стирая Грань»: кибер-нуар с неоновыми мегаполисами, тёмное фэнтези с древней магией, романтические романы викторианской эпохи. Каждый мир — уникальная история, которую ведёт искусственный интеллект.">
+  <meta name="keywords" content="миры RPG, киберпанк игра, тёмное фэнтези, романтическая RPG, нарративная игра, AI RPG, нейросеть мастер игры, генерация миров, текстовое приключение">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Миры «Стирая Грань» — киберпанк, тёмное фэнтези, романтика">
+  <meta property="og:description" content="Исследуйте бесконечные миры в «Стирая Грань». Каждый мир — уникальная история, которую ведёт искусственный интеллект.">
+  <meta property="og:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <meta property="og:url" content="https://beyondtheverge.online/worlds.html">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Миры «Стирая Грань» — киберпанк, тёмное фэнтези, романтика">
+  <meta name="twitter:description" content="Исследуйте бесконечные миры в «Стирая Грань». Каждый мир — уникальная история, которую ведёт искусственный интеллект.">
+  <meta name="twitter:image" content="https://beyondtheverge.online/icons/Icon-512.png">
+  <link rel="canonical" href="https://beyondtheverge.online/worlds.html">
+  <link rel="alternate" hreflang="ru" href="https://beyondtheverge.online/worlds.html?lang=ru">
+  <link rel="alternate" hreflang="x-default" href="https://beyondtheverge.online/worlds.html">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Миры «Стирая Грань»",
+    "description": "Каталог игровых миров нарративной ИИ-RPG «Стирая Грань»: кибер-нуар, тёмное фэнтези, романтический роман.",
+    "url": "https://beyondtheverge.online/worlds.html",
+    "isPartOf": {
+      "@type": "WebApplication",
+      "name": "Стирая Грань",
+      "url": "https://beyondtheverge.online"
+    },
+    "hasPart": [
+      { "@type": "VideoGame", "name": "Кибер-нуар", "url": "https://beyondtheverge.online/world-cybernoir.html", "genre": ["Cyberpunk", "Noir", "RPG"] },
+      { "@type": "VideoGame", "name": "Тёмное фэнтези", "url": "https://beyondtheverge.online/world-dark-fantasy.html", "genre": ["Dark Fantasy", "RPG"] },
+      { "@type": "VideoGame", "name": "Романтический роман", "url": "https://beyondtheverge.online/world-romance.html", "genre": ["Romance", "RPG"] }
+    ],
+    "inLanguage": "ru"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --bg: #0a0908; --text: #e8e4e0; --muted: #837b74; --dim: #5b5550;
+      --accent: #c87941; --surface: rgba(16,13,11,0.92); --border: rgba(200,121,65,0.22);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 73px 24px 32px;
+      z-index: 5;
+      overflow-y: auto;
+    }
+    .sidebar-title { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover { background: rgba(200,121,65,0.06); color: var(--text); }
+    .sidebar a.active { background: rgba(200,121,65,0.12); color: var(--accent); font-weight: 500; }
+    .sidebar a .material-symbols-outlined { font-size: 20px; }
+
+    .main-content {
+      margin-left: calc(240px + max(20px, (100vw - 240px - 980px) / 2));
+      margin-right: max(20px, (100vw - 240px - 980px) / 2);
+      max-width: 980px;
+      padding: 48px 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bottom-nav a.active { color: var(--accent); }
+    .bottom-nav a .material-symbols-outlined { font-size: 22px; }
+
+    /* Header */
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+    .topbar-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    .topbar-back { color: var(--muted); text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .topbar-back:hover { color: var(--text); }
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-toggle button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: Inter, sans-serif; }
+    .lang-toggle button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+    /* Hero */
+    .hero { text-align: center; padding: 64px 24px 48px; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(32px, 6vw, 48px); line-height: 1.2; margin-bottom: 16px; }
+    .hero p { color: var(--muted); font-size: 18px; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+    /* World cards */
+    .worlds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; padding: 0 0 64px; }
+    .world-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+    .world-card:hover { border-color: var(--accent); }
+    .world-card-img { width: 100%; height: 220px; object-fit: cover; background: var(--surface); }
+    .world-card-body { padding: 24px; }
+    .world-card-body h2 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 8px; }
+    .world-card-body p { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 16px; }
+    .world-card-body .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .world-card-body .tag { background: rgba(200,121,65,0.12); color: var(--accent); padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+    .world-card-body .cta { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+    .world-card-body .cta:hover { text-decoration: underline; }
+
+    /* How to start */
+    .how-to { padding: 64px 24px; text-align: center; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .how-to h2 { font-family: 'Playfair Display', serif; font-size: 32px; margin-bottom: 32px; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; max-width: 900px; margin: 0 auto; }
+    .step { text-align: center; }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--bg); font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .step h3 { font-size: 16px; margin-bottom: 6px; }
+    .step p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    /* CTA */
+    .cta-section { text-align: center; padding: 64px 24px; }
+    .cta-section h2 { font-family: 'Playfair Display', serif; font-size: 28px; margin-bottom: 12px; }
+    .cta-section p { color: var(--muted); font-size: 16px; margin-bottom: 24px; }
+    .cta-button { display: inline-block; background: var(--accent); color: var(--bg); padding: 16px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .cta-button:hover { opacity: 0.9; }
+
+    .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    .footer a:hover { color: var(--accent); }
+
+    @media (max-width: 1099px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; margin-right: 0; padding: 24px 16px 96px; max-width: 100%; }
+      .bottom-nav { display: flex; }
+      .hero { padding: 40px 16px 32px; }
+      .worlds-grid { grid-template-columns: 1fr; padding: 0 16px 32px; }
+      .how-to { padding: 40px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/" class="topbar-back">← <span lang="ru">На главную</span><span lang="en">Home</span></a>
+  <a href="/" class="topbar-brand">Стирая Грань</a>
+  <div class="lang-toggle">
+    <button id="btn-ru" class="active" onclick="switchLang('ru')">RU</button>
+    <button id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+  <aside class="sidebar">
+    <div class="sidebar-title"><span lang="ru">Навигация</span><span lang="en">Navigation</span></div>
+    <nav>
+      <a href="/worlds.html" class="active">
+        <span class="material-symbols-outlined">public</span><span lang="ru">Миры</span><span lang="en">Worlds</span>
+      </a>
+      <a href="/blog/">
+        <span class="material-symbols-outlined">article</span><span lang="ru">Блог</span><span lang="en">Blog</span>
+      </a>
+      <a href="/roadmap.html">
+        <span class="material-symbols-outlined">timeline</span><span lang="ru">Дорожная карта</span><span lang="en">Roadmap</span>
+      </a>
+      <a href="/contacts.html">
+        <span class="material-symbols-outlined">contact_mail</span><span lang="ru">Контакты</span><span lang="en">Contacts</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+    <section class="hero">
+      <h1>Миры, которые ждут твоего героя</h1>
+      <p>Бесконечное множество миров, создаваемых нейросетью. Ниже — три примера: от неоновых мегаполисов до проклятых замков и викторианских поместий. Выберите направление — и ИИ построит вселенную под вашего героя.</p>
+    </section>
+
+    <div class="container">
+      <div class="worlds-grid">
+
+    <article class="world-card" id="world-cybernoir">
+      <img src="landing/kiber_nuar.jpg" alt="КИБЕР-НУАР" class="world-card-img" loading="lazy" width="654" height="220">
+      <div class="world-card-body">
+        <h2>КИБЕР-НУАР</h2>
+        <p>Дождливые мегаполисы, корпоративные заговоры и взломанные импланты. Расследуй преступления в мире, где каждая улика пахнет неоном и предательством.</p>
+        <div class="tags">
+          <span class="tag">Киберпанк</span><span class="tag">Детектив</span><span class="tag">Нуар</span>
+        </div>
+        <a href="/world-cybernoir.html" class="cta">Подробнее о мире →</a>
+      </div>
+    </article>
+
+    <article class="world-card" id="world-dark-fantasy">
+      <img src="landing/dark_fantasy.jpg" alt="ТЁМНОЕ ФЭНТЕЗИ" class="world-card-img" loading="lazy" width="654" height="220">
+      <div class="world-card-body">
+        <h2>ТЁМНОЕ ФЭНТЕЗИ</h2>
+        <p>Проклятые замки, древняя магия и тяжёлые решения. Цена силы чувствуется в каждом выборе героя — а мир помнит каждую жертву.</p>
+        <div class="tags">
+          <span class="tag">Тёмное фэнтези</span><span class="tag">Магия</span><span class="tag">Эпик</span>
+        </div>
+        <a href="/world-dark-fantasy.html" class="cta">Подробнее о мире →</a>
+      </div>
+    </article>
+
+    <article class="world-card" id="world-romance">
+      <img src="landing/romance.jpg" alt="РОМАНТИЧЕСКИЙ РОМАН" class="world-card-img" loading="lazy" width="654" height="220">
+      <div class="world-card-body">
+        <h2>РОМАНТИЧЕСКИЙ РОМАН</h2>
+        <p>Тайные письма, forbidden love и выбор между страстью и репутацией. В викторианской эпохе каждое чувство способно изменить судьбу.</p>
+        <div class="tags">
+          <span class="tag">Романтика</span><span class="tag">Драма</span><span class="tag">Викторианская эпоха</span>
+        </div>
+        <a href="/world-romance.html" class="cta">Подробнее о мире →</a>
+      </div>
+    </article>
+
+  </div>
+</div>
+
+<section class="how-to">
+  <h2>Как начать играть</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Выбери мир</h3>
+      <p>Кибер-нуар, тёмное фэнтези или романтический роман — начни с того, что тебе ближе</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Создай героя</h3>
+      <p>Опиши персонажа — от внешности до мотивации. ИИ подстроит сюжет под твой образ</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>ИИ ведёт историю</h3>
+      <p>Пиши что угодно — нейросеть реагирует, мир запоминает, сюжет разворачивается</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2>Готов войти в историю?</h2>
+  <p>5 бесплатных ходов ждут тебя. Без скачивания, прямо в браузере.</p>
+  <a href="/" class="cta-button">Играть бесплатно</a>
+</section>
+
+<footer class="footer">
+  <a href="/offer.html"><span lang="ru">Оферта</span><span lang="en">License</span></a>
+  <a href="/privacy.html"><span lang="ru">Конфиденциальность</span><span lang="en">Privacy</span></a>
+  <a href="/pricing.html"><span lang="ru">Цены</span><span lang="en">Pricing</span></a>
+  <a href="/contacts.html"><span lang="ru">Контакты</span><span lang="en">Contacts</span></a>
+  <p style="margin-top:12px;">© Стирая Грань / Beyond The Verge</p>
+</footer>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('[lang]').forEach(el => { if (el.tagName === 'HTML') return; el.style.display = el.getAttribute('lang') === lang ? '' : 'none'; });
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[lang="en"]').forEach(el => el.style.display = 'none');
+});
+</script>
+  </div>
+<nav class="bottom-nav">
+    <a href="/worlds.html" class="active"><span class="material-symbols-outlined">public</span>Миры</a>
+    <a href="/blog/"><span class="material-symbols-outlined">article</span>Блог</a>
+    <a href="/roadmap.html"><span class="material-symbols-outlined">timeline</span>Карта</a>
+    <a href="/contacts.html"><span class="material-symbols-outlined">contact_mail</span>Контакты</a>
+  </nav>
+
+</body>
+</html>
