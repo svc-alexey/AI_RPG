@@ -364,12 +364,25 @@ class ChatController extends StateNotifier<ChatViewState> {
       _scheduleRumorRefresh(nextCampaign.id);
       _checkLowBalance();
 
-      // Auto-generate portrait after the first turn
+      // After first turn, backend generates portrait in background.
+      // Reload campaign state after a short delay to pick up the portrait_url.
       if (nextCampaign.turnNumber == 1 &&
           (nextCampaign.portraitUrl == null ||
-              nextCampaign.portraitUrl!.isEmpty) &&
-          l10n != null) {
-        unawaited(generatePortrait(l10n: l10n));
+              nextCampaign.portraitUrl!.isEmpty)) {
+        state = state.copyWith(
+          campaign: state.campaign?.copyWith(isPortraitGenerating: true),
+        );
+        Timer(const Duration(seconds: 4), () async {
+          if (_disposed) return;
+          final CampaignState? refreshed =
+              await _campaignRepository.loadCampaign(_campaignId);
+          if (_disposed || refreshed == null) return;
+          state = state.copyWith(
+            campaign: refreshed.copyWith(
+              isPortraitGenerating: false,
+            ),
+          );
+        });
       }
 
       AppLogger.logDiagnostic(
