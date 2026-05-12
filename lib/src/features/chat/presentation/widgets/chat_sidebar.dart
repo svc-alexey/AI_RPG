@@ -653,31 +653,26 @@ class _CharacterPortraitCard extends StatelessWidget {
       return _buildNetworkPortrait(context, height, campaign.portraitUrl!);
     }
 
+    // Portrait is being auto-generated in the background
+    if (isPortraitGenerating) {
+      return _PortraitLoadingPlaceholder(
+        height: height,
+        label: campaign.character.name,
+      );
+    }
+
     // Fallback: local asset or portrait path
     final String imagePath = campaign.portraitPath.trim().isNotEmpty
         ? campaign.portraitPath.trim()
         : _portraitAssetForCampaign(campaign);
 
-    return Stack(
-      children: <Widget>[
-        buildPortraitImage(
-          portraitPath: imagePath,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: height,
-          errorBuilder: (_, __, ___) =>
-              _PortraitFallbackLabel(label: campaign.character.name),
-        ),
-        if (!isGuest && onGeneratePortrait != null)
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: _PortraitGenerateButton(
-              isGenerating: isPortraitGenerating,
-              onGenerate: onGeneratePortrait,
-            ),
-          ),
-      ],
+    return buildPortraitImage(
+      portraitPath: imagePath,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: height,
+      errorBuilder: (_, __, ___) =>
+          _PortraitFallbackLabel(label: campaign.character.name),
     );
   }
 

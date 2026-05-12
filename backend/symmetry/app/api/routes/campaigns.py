@@ -1,4 +1,5 @@
 
+import asyncio
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,10 +10,11 @@ from app.api.deps import get_current_verified_user
 from app.core.billing_errors import InsufficientTokensError
 from app.core.config import get_settings
 from app.db.models import Campaign, CampaignMember, CampaignPortrait, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
-from app.db.session import get_db_session
+from app.db.session import SessionLocal, get_db_session
 from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
 from app.services.ai_gateway import AiGatewayService, classify_provider_error
 from app.services.butterfly import ButterflyService
+from app.services.portrait_service import PolzaApiError, PolzaTimeoutError, PortraitService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
@@ -177,6 +179,33 @@ async def _load_owned_campaign(
     if campaign is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="campaign_not_found")
     return campaign
+
+
+async def _auto_generate_portrait(
+    campaign_id: str,
+    character: dict,
+    setting: str,
+) -> None:
+    """Fire-and-forget portrait generation after the first turn."""
+    try:
+        async with SessionLocal() as db:
+            service = PortraitService.from_settings(db)
+            try:
+                await service.generate_portrait(
+                    campaign_id=campaign_id,
+                    character_name=str(character.get("name", "")),
+                    character_race=str(character.get("race", "")),
+                    character_class=str(character.get("character_class", "")),
+                    character_gender=str(character.get("gender", "")),
+                    character_personality=str(character.get("personality", "")),
+                    character_prompt_fragment=str(character.get("prompt_fragment", "")),
+                    story_context="",  # first turn — no story context yet
+                    setting=setting,
+                )
+            finally:
+                await service.close()
+    except Exception:
+        pass  # Silent failure — portrait remains null, fallback asset shown
 
 
 @router.get("/{campaign_id}", response_model=CampaignResponse)
@@ -460,6 +489,22 @@ async def process_turn(
             metadata_json=llm_payload.get("state_changes", {}),
         )
     await session.commit()
+
+    # Auto-generate portrait on first turn (fire-and-forget)
+    turn_number = int(next_state.get("turn_number", 0))
+    if turn_number == 1:
+        existing = await session.execute(
+            select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
+        )
+        if existing.scalar_one_or_none() is None:
+            character = current_state.get("character", {})
+            asyncio.create_task(
+                _auto_generate_portrait(
+                    campaign_id=campaign_id,
+                    character=character,
+                    setting=str(current_state.get("setting", "romantasy")),
+                )
+            )
 
     # Sync spatial map with narrative location
     new_location = str(next_state.get("location", ""))

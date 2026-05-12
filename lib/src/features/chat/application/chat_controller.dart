@@ -363,6 +363,15 @@ class ChatController extends StateNotifier<ChatViewState> {
       );
       _scheduleRumorRefresh(nextCampaign.id);
       _checkLowBalance();
+
+      // Auto-generate portrait after the first turn
+      if (nextCampaign.turnNumber == 1 &&
+          (nextCampaign.portraitUrl == null ||
+              nextCampaign.portraitUrl!.isEmpty) &&
+          l10n != null) {
+        unawaited(generatePortrait(l10n: l10n));
+      }
+
       AppLogger.logDiagnostic(
         level: 'INFO',
         event: 'turn_completed',
