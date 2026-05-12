@@ -650,10 +650,7 @@ class _CharacterPortraitCard extends StatelessWidget {
 
     // Generated portrait from server
     if (campaign.portraitUrl != null && campaign.portraitUrl!.isNotEmpty) {
-      return _buildNetworkPortrait(
-        context, height, campaign.portraitUrl!,
-        showSpinner: isPortraitGenerating,
-      );
+      return _buildNetworkPortrait(context, height, campaign.portraitUrl!);
     }
 
     // Portrait is being auto-generated in the background
@@ -682,16 +679,8 @@ class _CharacterPortraitCard extends StatelessWidget {
   Widget _buildNetworkPortrait(
     BuildContext context,
     double height,
-    String url, {
-    bool showSpinner = false,
-  }) {
-    if (showSpinner) {
-      return _NetworkPortraitWithSpinner(
-        url: url,
-        height: height,
-        characterName: campaign.character.name,
-      );
-    }
+    String url,
+  ) {
     return Image.network(
       url,
       fit: BoxFit.cover,
@@ -706,60 +695,6 @@ class _CharacterPortraitCard extends StatelessWidget {
           label: campaign.character.name,
         );
       },
-    );
-  }
-}
-
-class _NetworkPortraitWithSpinner extends StatefulWidget {
-  const _NetworkPortraitWithSpinner({
-    required this.url,
-    required this.height,
-    required this.characterName,
-  });
-
-  final String url;
-  final double height;
-  final String characterName;
-
-  @override
-  State<_NetworkPortraitWithSpinner> createState() =>
-      _NetworkPortraitWithSpinnerState();
-}
-
-class _NetworkPortraitWithSpinnerState
-    extends State<_NetworkPortraitWithSpinner> {
-  bool _loaded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        Image.network(
-          widget.url,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: widget.height,
-          errorBuilder: (_, __, ___) =>
-              _PortraitFallbackLabel(label: widget.characterName),
-          frameBuilder: (context, child, frame, _) {
-            if (frame != null && !_loaded) {
-              _loaded = true;
-              // Schedule state update after this frame to avoid
-              // calling setState during build.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) setState(() {});
-              });
-            }
-            return child;
-          },
-        ),
-        if (!_loaded)
-          _PortraitLoadingPlaceholder(
-            height: widget.height,
-            label: widget.characterName,
-          ),
-      ],
     );
   }
 }
