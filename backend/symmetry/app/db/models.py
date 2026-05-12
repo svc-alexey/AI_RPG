@@ -566,16 +566,3 @@ class BillingOrder(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
-
-
-class CampaignPortrait(Base):
-    __tablename__ = "campaign_portraits"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    campaign_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("campaigns.id", ondelete="CASCADE"), unique=True, index=True
-    )
-    image_webp: Mapped[bytes] = mapped_column(LargeBinary)
-    prompt_used: Mapped[str] = mapped_column(Text)
-    model_used: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -64,17 +64,6 @@ class OpenAiCompatibleAiClient implements AiClient {
     cancelToken: cancelToken,
   );
 
-  /// Intentional stub: image generation pipeline not chosen yet.
-  @override
-  Future<GeneratedPortrait?> generateCharacterPortrait({
-    required AiSettings settings,
-    required AppLanguage language,
-    required CampaignSetting setting,
-    required String storyPrompt,
-    required CharacterProfile character,
-    CancelToken? cancelToken,
-  }) async => null;
-
   @override
   Future<TurnResult> generateTurn({
     required AiSettings settings,

@@ -316,12 +316,6 @@ class StoryStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Text(
-          l10n.portraitAutoGenerateHint,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AetherPalette.textMuted,
-          ),
-        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,

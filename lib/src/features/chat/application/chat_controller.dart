@@ -129,8 +129,6 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   Timer? _notificationTimer;
   Timer? _rumorRefreshTimer;
-  Timer? _portraitPollTimer;
-  int _portraitPollAttempts = 0;
   String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
@@ -160,7 +158,6 @@ class ChatController extends StateNotifier<ChatViewState> {
     _disposed = true;
     _notificationTimer?.cancel();
     _rumorRefreshTimer?.cancel();
-    _portraitPollTimer?.cancel();
     super.dispose();
   }
 
@@ -205,93 +202,6 @@ class ChatController extends StateNotifier<ChatViewState> {
   }
 
   void cancelGeneration() {}
-
-  static const int _maxPortraitPollAttempts = 30; // 30 × 3s = 90s safety net
-
-  void _startPortraitPolling() {
-    _portraitPollTimer?.cancel();
-    _portraitPollAttempts = 0;
-    _scheduleNextPortraitPoll();
-  }
-
-  void _scheduleNextPortraitPoll() {
-    if (_disposed) return;
-    if (_portraitPollAttempts >= _maxPortraitPollAttempts) {
-      state = state.copyWith(
-        campaign: state.campaign?.copyWith(isPortraitGenerating: false),
-      );
-      return;
-    }
-    // Capture repo before async gap; guard against ref-after-dispose.
-    final SymmetryCampaignRepository repo;
-    try {
-      repo = _campaignRepository;
-    } catch (_) {
-      return; // ref already disposed
-    }
-    final String campaignId = _campaignId;
-    _portraitPollTimer = Timer(const Duration(seconds: 3), () async {
-      if (_disposed) return;
-      _portraitPollAttempts++;
-      try {
-        final CampaignState? refreshed = await repo.loadCampaign(campaignId);
-        if (_disposed || refreshed == null) return;
-        if (refreshed.portraitUrl != null &&
-            refreshed.portraitUrl!.isNotEmpty) {
-          _portraitPollTimer?.cancel();
-          if (_disposed) return;
-          // Keep isPortraitGenerating=true — image still loading in browser.
-          // Sidebar will clear it via callback when Image.network renders.
-          state = state.copyWith(
-            campaign: refreshed.copyWith(isPortraitGenerating: true),
-          );
-          return;
-        }
-      } catch (_) {
-        // Transient error — continue polling
-      }
-      _scheduleNextPortraitPoll();
-    });
-  }
-
-  Future<void> generatePortrait({
-    required final AppLocalizations l10n,
-  }) async {
-    final CampaignState? campaign = state.campaign;
-    if (campaign == null) return;
-
-    state = state.copyWith(
-      campaign: campaign.copyWith(isPortraitGenerating: true),
-    );
-
-    try {
-      final Map<String, Object?> result = await _campaignRepository
-          .generatePortrait(
-        campaignId: _campaignId,
-        character: campaign.character,
-        storyContext: campaign.memory.rollingSummary,
-        setting: campaign.setting,
-      );
-
-      if (_disposed) return;
-
-      final String? portraitUrl =
-          result['portrait_url']?.toString() ?? result['portraitUrl']?.toString();
-
-      state = state.copyWith(
-        campaign: state.campaign?.copyWith(
-          portraitUrl: portraitUrl,
-          isPortraitGenerating: false,
-        ),
-      );
-    } on Exception {
-      if (_disposed) return;
-      state = state.copyWith(
-        campaign: state.campaign?.copyWith(isPortraitGenerating: false),
-        status: l10n.portraitGenerationFailed,
-      );
-    }
-  }
 
   Future<void> runTurn({
     required final AppLocalizations? l10n,
@@ -369,13 +279,6 @@ class ChatController extends StateNotifier<ChatViewState> {
       language: _appLanguage,
     );
 
-    // First turn: show spinner immediately — portrait starts in parallel on backend.
-    if (campaign.turnNumber == 0 && !suggestionsOnly) {
-      state = state.copyWith(
-        campaign: state.campaign?.copyWith(isPortraitGenerating: true),
-      );
-    }
-
     try {
       final AiSettings settings = await _settingsRepository.loadAiSettings();
       final CampaignState nextCampaign = await _campaignRepository.processTurn(
@@ -421,35 +324,6 @@ class ChatController extends StateNotifier<ChatViewState> {
       );
       _scheduleRumorRefresh(nextCampaign.id);
       _checkLowBalance();
-
-      // After first turn: portrait_url may already be in the response
-      // (backend injects it if background task completed during LLM call).
-      if (nextCampaign.turnNumber == 1) {
-        final bool hasPortrait = nextCampaign.portraitUrl != null &&
-            nextCampaign.portraitUrl!.isNotEmpty;
-        if (hasPortrait) {
-          state = state.copyWith(
-            campaign: nextCampaign.copyWith(isPortraitGenerating: false),
-          );
-        } else {
-          // One immediate reload — portrait might have committed milliseconds ago.
-          CampaignState? refreshed;
-          try {
-            refreshed = await _campaignRepository.loadCampaign(_campaignId);
-          } catch (_) {
-            // Fall through to polling
-          }
-          if (!_disposed && refreshed != null &&
-              refreshed.portraitUrl != null &&
-              refreshed.portraitUrl!.isNotEmpty) {
-            state = state.copyWith(
-              campaign: refreshed.copyWith(isPortraitGenerating: false),
-            );
-          } else if (!_disposed) {
-            _startPortraitPolling();
-          }
-        }
-      }
 
       AppLogger.logDiagnostic(
         level: 'INFO',

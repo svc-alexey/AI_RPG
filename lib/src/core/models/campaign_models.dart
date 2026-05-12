@@ -956,7 +956,6 @@ class CampaignState {
       portraitPath: _jsonString(json['portraitPath']),
       portraitPrompt: _jsonString(json['portraitPrompt']),
       portraitUrl: _jsonString(json['portrait_url'] ?? json['portraitUrl']),
-      isPortraitGenerating: false,
     );
   }
 
@@ -988,7 +987,6 @@ class CampaignState {
     this.portraitPath = '',
     this.portraitPrompt = '',
     this.portraitUrl,
-    this.isPortraitGenerating = false,
   });
 
   final String id;
@@ -1018,7 +1016,6 @@ class CampaignState {
   final String portraitPath;
   final String portraitPrompt;
   final String? portraitUrl;
-  final bool isPortraitGenerating;
 
   String get summary => memory.rollingSummary;
   String get activeGoal => memory.activeGoal;
@@ -1077,7 +1074,6 @@ class CampaignState {
     final String? portraitPath,
     final String? portraitPrompt,
     final String? portraitUrl,
-    final bool? isPortraitGenerating,
   }) => CampaignState(
     id: id,
     schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -1106,7 +1102,6 @@ class CampaignState {
     portraitPath: portraitPath ?? this.portraitPath,
     portraitPrompt: portraitPrompt ?? this.portraitPrompt,
     portraitUrl: portraitUrl ?? this.portraitUrl,
-    isPortraitGenerating: isPortraitGenerating ?? this.isPortraitGenerating,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -1299,16 +1294,4 @@ class CampaignPromptGenerationRequest {
   final DifficultyLevel difficulty;
   final String storyWish;
   final CharacterProfile? characterProfile;
-}
-
-class GeneratedPortrait {
-  const GeneratedPortrait({
-    required this.bytesBase64,
-    required this.mimeType,
-    required this.promptUsed,
-  });
-
-  final String bytesBase64;
-  final String mimeType;
-  final String promptUsed;
 }

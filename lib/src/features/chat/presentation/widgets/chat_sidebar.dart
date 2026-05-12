@@ -18,7 +18,6 @@ class ChatSidebar extends ConsumerStatefulWidget {
     required this.newlyUnlockedModules,
     required this.worldRumors,
     required this.onExitToMainMenu,
-    this.onGeneratePortrait,
     super.key,
   });
 
@@ -28,7 +27,6 @@ class ChatSidebar extends ConsumerStatefulWidget {
   final List<CampaignModule> newlyUnlockedModules;
   final List<SymmetryWorldRumor> worldRumors;
   final VoidCallback onExitToMainMenu;
-  final Future<void> Function()? onGeneratePortrait;
 
   @override
   ConsumerState<ChatSidebar> createState() => _ChatSidebarState();
@@ -115,12 +113,7 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             // 1. Portrait image — bleeds to card edges
-            _CharacterPortraitCard(
-              campaign: campaign,
-              isPortraitGenerating: campaign.isPortraitGenerating,
-              isGuest: ref.read(symmetrySessionProvider).valueOrNull?.isGuest ?? true,
-              onGeneratePortrait: widget.onGeneratePortrait,
-            ),
+            _CharacterPortraitCard(campaign: campaign),
 
             // 2. Content below portrait
             Expanded(
@@ -262,12 +255,7 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            _CharacterPortraitCard(
-              campaign: campaign,
-              isPortraitGenerating: campaign.isPortraitGenerating,
-              isGuest: ref.read(symmetrySessionProvider).valueOrNull?.isGuest ?? true,
-              onGeneratePortrait: widget.onGeneratePortrait,
-            ),
+            _CharacterPortraitCard(campaign: campaign),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.all(contentPadding),
@@ -631,17 +619,9 @@ class _EmptyState extends StatelessWidget {
 // ─── Reused widget classes ─────────────────────────────────────────────────
 
 class _CharacterPortraitCard extends StatelessWidget {
-  const _CharacterPortraitCard({
-    required this.campaign,
-    this.isPortraitGenerating = false,
-    this.isGuest = true,
-    this.onGeneratePortrait,
-  });
+  const _CharacterPortraitCard({required this.campaign});
 
   final CampaignState campaign;
-  final bool isPortraitGenerating;
-  final bool isGuest;
-  final Future<void> Function()? onGeneratePortrait;
 
   @override
   Widget build(BuildContext context) {
@@ -650,14 +630,20 @@ class _CharacterPortraitCard extends StatelessWidget {
 
     // Generated portrait from server
     if (campaign.portraitUrl != null && campaign.portraitUrl!.isNotEmpty) {
-      return _buildNetworkPortrait(context, height, campaign.portraitUrl!);
-    }
-
-    // Portrait is being auto-generated in the background
-    if (isPortraitGenerating) {
-      return _PortraitLoadingPlaceholder(
+      return Image.network(
+        campaign.portraitUrl!,
+        fit: BoxFit.cover,
+        width: double.infinity,
         height: height,
-        label: campaign.character.name,
+        errorBuilder: (_, __, ___) =>
+            _PortraitFallbackLabel(label: campaign.character.name),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _PortraitLoadingPlaceholder(
+            height: height,
+            label: campaign.character.name,
+          );
+        },
       );
     }
 
@@ -673,118 +659,6 @@ class _CharacterPortraitCard extends StatelessWidget {
       height: height,
       errorBuilder: (_, __, ___) =>
           _PortraitFallbackLabel(label: campaign.character.name),
-    );
-  }
-
-  Widget _buildNetworkPortrait(
-    BuildContext context,
-    double height,
-    String url,
-  ) {
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: height,
-      errorBuilder: (_, __, ___) =>
-          _PortraitFallbackLabel(label: campaign.character.name),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return _PortraitLoadingPlaceholder(
-          height: height,
-          label: campaign.character.name,
-        );
-      },
-    );
-  }
-}
-
-class _PortraitGenerateButton extends StatefulWidget {
-  const _PortraitGenerateButton({
-    required this.isGenerating,
-    required this.onGenerate,
-  });
-
-  final bool isGenerating;
-  final Future<void> Function()? onGenerate;
-
-  @override
-  State<_PortraitGenerateButton> createState() => _PortraitGenerateButtonState();
-}
-
-class _PortraitGenerateButtonState extends State<_PortraitGenerateButton> {
-  bool _loading = false;
-
-  Future<void> _handleTap() async {
-    if (_loading || widget.isGenerating) return;
-    setState(() => _loading = true);
-    try {
-      await widget.onGenerate?.call();
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final loading = _loading || widget.isGenerating;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: loading ? null : _handleTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A2520).withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFFBFA76F).withValues(alpha: 0.5),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (loading)
-                const Padding(
-                  padding: EdgeInsets.only(right: 6),
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation(Color(0xFFBFA76F)),
-                    ),
-                  ),
-                )
-              else
-                const Padding(
-                  padding: EdgeInsets.only(right: 4),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 14,
-                    color: Color(0xFFBFA76F),
-                  ),
-                ),
-              Flexible(
-                child: Text(
-                  loading ? l10n.generatingPortrait : l10n.generatePortrait,
-                  style: const TextStyle(
-                    color: Color(0xFFD4C5A0),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

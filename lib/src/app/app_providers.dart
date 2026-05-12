@@ -8,7 +8,6 @@ import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/repositories/update_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
-import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/core/services/version_check_service.dart';
 import 'package:ai_prg/src/core/repositories/billing_repository.dart';
 import 'package:flutter/widgets.dart';
@@ -59,11 +58,6 @@ final Provider<GameEngine> gameEngineProvider = Provider<GameEngine>((
 ) {
   throw UnimplementedError('gameEngineProvider was not overridden.');
 });
-
-final Provider<PortraitStorage> portraitStorageProvider =
-    Provider<PortraitStorage>((final ref) {
-      throw UnimplementedError('portraitStorageProvider was not overridden.');
-    });
 
 final Provider<UpdateRepository> updateRepositoryProvider =
     Provider<UpdateRepository>(
@@ -116,7 +110,6 @@ List<Override> buildAppProviderOverrides({
   required final SettingsRepository settingsRepository,
   required final AiServiceFactory aiServiceFactory,
   required final GameEngine gameEngine,
-  required final PortraitStorage portraitStorage,
   required final ValueNotifier<AppLanguage> appLanguageListenable,
   final SymmetryAuthRepository? symmetryAuthRepository,
   final SymmetryCampaignRepository? symmetryCampaignRepository,
@@ -150,7 +143,6 @@ List<Override> buildAppProviderOverrides({
     billingRepositoryProvider.overrideWithValue(resolvedBillingRepository),
     aiServiceFactoryProvider.overrideWithValue(aiServiceFactory),
     gameEngineProvider.overrideWithValue(gameEngine),
-    portraitStorageProvider.overrideWithValue(portraitStorage),
     appLanguageListenableProvider.overrideWithValue(appLanguageListenable),
   ];
 }

@@ -1,9 +1,5 @@
 
-import asyncio
-import logging
 from datetime import datetime
-
-logger = logging.getLogger("symmetry.portrait")
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
@@ -12,12 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_verified_user
 from app.core.billing_errors import InsufficientTokensError
 from app.core.config import get_settings
-from app.db.models import Campaign, CampaignMember, CampaignPortrait, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
-from app.db.session import SessionLocal, get_db_session
+from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
+from app.db.session import get_db_session
 from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
 from app.services.ai_gateway import AiGatewayService, classify_provider_error
 from app.services.butterfly import ButterflyService
-from app.services.portrait_service import PolzaApiError, PolzaTimeoutError, PortraitService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
 from app.services.credentials import CredentialResolutionService
 from app.services.embeddings import get_embedding_service
@@ -184,51 +179,6 @@ async def _load_owned_campaign(
     return campaign
 
 
-async def _auto_generate_portrait(
-    campaign_id: str,
-    character: dict,
-    setting: str,
-) -> None:
-    """Fire-and-forget portrait generation after the first turn."""
-    logger.info(
-        "portrait_auto_start campaign=%s name=%s race=%s class=%s",
-        campaign_id,
-        character.get("name", ""),
-        character.get("race", ""),
-        character.get("character_class", ""),
-    )
-    try:
-        async with SessionLocal() as db:
-            service = PortraitService.from_settings(db)
-            try:
-                result = await service.generate_portrait(
-                    campaign_id=campaign_id,
-                    character_name=str(character.get("name", "")),
-                    character_race=str(character.get("race", "")),
-                    character_class=str(character.get("character_class", "")),
-                    character_gender=str(character.get("gender", "")),
-                    character_personality=str(character.get("personality", "")),
-                    character_prompt_fragment=str(character.get("prompt_fragment", "")),
-                    story_context="",
-                    setting=setting,
-                )
-                logger.info(
-                    "portrait_auto_done campaign=%s id=%s url=%s",
-                    campaign_id,
-                    result.portrait_id,
-                    result.url,
-                )
-            finally:
-                await service.close()
-    except Exception as exc:
-        logger.warning(
-            "portrait_auto_failed campaign=%s error=%s: %s",
-            campaign_id,
-            type(exc).__name__,
-            exc,
-        )
-
-
 @router.get("/{campaign_id}", response_model=CampaignResponse)
 async def get_campaign(
     campaign_id: str,
@@ -263,16 +213,6 @@ async def get_campaign_state(
         raise HTTPException(status_code=404, detail="snapshot_not_found")
 
     state = snapshot.state_json
-    portrait_result = await session.execute(
-        select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
-    )
-    portrait = portrait_result.scalar_one_or_none()
-    settings = get_settings()
-    if portrait is not None:
-        base = settings.web_public_origin.rstrip("/")
-        state["portrait_url"] = f"{base}/v1/campaigns/{campaign_id}/portrait/image"
-    else:
-        state["portrait_url"] = None
 
     return CampaignStateResponse(
         campaign=CampaignResponse.model_validate(campaign),
@@ -394,26 +334,6 @@ async def process_turn(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # Start portrait generation BEFORE the LLM call (true parallelism).
-    # Character data is already in current_state — no dependency on LLM response.
-    upcoming_turn_number = int(current_state.get("turn_number", 0)) + 1
-    portrait_task_started = False
-    if upcoming_turn_number == 1:
-        existing = await session.execute(
-            select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
-        )
-        if existing.scalar_one_or_none() is None:
-            character = current_state.get("character", {})
-            if character:
-                portrait_task_started = True
-                asyncio.create_task(
-                    _auto_generate_portrait(
-                        campaign_id=campaign_id,
-                        character=character,
-                        setting=str(current_state.get("setting", "romantasy")),
-                    )
-                )
-
     try:
         llm_result = await ai_gateway.generate_turn(
             credentials=credentials,
@@ -531,27 +451,6 @@ async def process_turn(
             metadata_json=llm_payload.get("state_changes", {}),
         )
     await session.commit()
-
-    # If portrait was started in background, check if it already committed.
-    # Need a separate session — the main transaction can't see the bg task's
-    # committed row due to PostgreSQL MVCC snapshot isolation.
-    if portrait_task_started:
-        try:
-            async with SessionLocal() as check_session:
-                check_result = await check_session.execute(
-                    select(CampaignPortrait).where(
-                        CampaignPortrait.campaign_id == campaign_id
-                    )
-                )
-                portrait_row = check_result.scalar_one_or_none()
-                if portrait_row is not None:
-                    settings = get_settings()
-                    base = settings.web_public_origin.rstrip("/")
-                    next_state["portrait_url"] = (
-                        f"{base}/v1/campaigns/{campaign_id}/portrait/image"
-                    )
-        except Exception:
-            pass  # Best-effort — fallback to client polling
 
     # Sync spatial map with narrative location
     new_location = str(next_state.get("location", ""))

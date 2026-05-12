@@ -107,14 +107,4 @@ class _DemoAiClient implements AiClient {
     required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
-
-  @override
-  Future<GeneratedPortrait?> generateCharacterPortrait({
-    required final AiSettings settings,
-    required final AppLanguage language,
-    required final CampaignSetting setting,
-    required final String storyPrompt,
-    required final CharacterProfile character,
-    final CancelToken? cancelToken,
-  }) async => null;
 }

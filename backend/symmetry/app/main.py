@@ -16,7 +16,6 @@ from app.api.routes import (
     feedback,
     literary_genres,
     map_routes,
-    portraits,
     prompts,
     providers,
     stories,
@@ -129,7 +128,6 @@ app.include_router(providers.router, prefix=settings.api_prefix)
 app.include_router(stories.router, prefix=settings.api_prefix)
 app.include_router(story_admin.router, prefix=settings.api_prefix)
 app.include_router(billing.router, prefix=settings.api_prefix)
-app.include_router(portraits.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")

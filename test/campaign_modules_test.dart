@@ -13,7 +13,6 @@ import 'package:ai_prg/src/core/services/campaign_module_resolver.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
-import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1131,7 +1130,6 @@ List<Override> _buildServerOverrides({
     symmetryCampaignRepository: symmetryCampaignRepository,
     aiServiceFactory: const AiServiceFactory(),
     gameEngine: const GameEngine(),
-    portraitStorage: const PortraitStorage(),
     appLanguageListenable: ValueNotifier<AppLanguage>(AppLanguage.en),
   );
 }
@@ -1252,6 +1250,7 @@ class _FakeSymmetryCampaignRepository extends SymmetryCampaignRepository {
     required final AppLanguage language,
     required final AiSettings aiSettings,
     final String triggerSource = 'manual',
+    final int? diceRoll,
   }) async {
     final CampaignState current = _campaigns[campaign.id] ?? campaign;
     final DeterministicTurnContext deterministicContext =
@@ -1335,16 +1334,6 @@ class _OverlayAiClient implements AiClient {
     required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
-
-  @override
-  Future<GeneratedPortrait?> generateCharacterPortrait({
-    required final AiSettings settings,
-    required final AppLanguage language,
-    required final CampaignSetting setting,
-    required final String storyPrompt,
-    required final CharacterProfile character,
-    final CancelToken? cancelToken,
-  }) async => null;
 }
 
 class _NotesOnlyAiClient implements AiClient {
@@ -1389,16 +1378,6 @@ class _NotesOnlyAiClient implements AiClient {
     required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
-
-  @override
-  Future<GeneratedPortrait?> generateCharacterPortrait({
-    required final AiSettings settings,
-    required final AppLanguage language,
-    required final CampaignSetting setting,
-    required final String storyPrompt,
-    required final CharacterProfile character,
-    final CancelToken? cancelToken,
-  }) async => null;
 }
 
 class _ChecksAiClient implements AiClient {
@@ -1437,16 +1416,6 @@ class _ChecksAiClient implements AiClient {
     required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
-
-  @override
-  Future<GeneratedPortrait?> generateCharacterPortrait({
-    required final AiSettings settings,
-    required final AppLanguage language,
-    required final CampaignSetting setting,
-    required final String storyPrompt,
-    required final CharacterProfile character,
-    final CancelToken? cancelToken,
-  }) async => null;
 }
 
 class _DetectiveChromeAiClient implements AiClient {
@@ -1492,14 +1461,4 @@ class _DetectiveChromeAiClient implements AiClient {
     required final CampaignPromptGenerationRequest request,
     final CancelToken? cancelToken,
   }) async => const GeneratedPrompts(storyPrompt: '', characterPrompt: '');
-
-  @override
-  Future<GeneratedPortrait?> generateCharacterPortrait({
-    required final AiSettings settings,
-    required final AppLanguage language,
-    required final CampaignSetting setting,
-    required final String storyPrompt,
-    required final CharacterProfile character,
-    final CancelToken? cancelToken,
-  }) async => null;
 }

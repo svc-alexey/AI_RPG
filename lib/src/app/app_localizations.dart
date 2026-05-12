@@ -1422,37 +1422,6 @@ class AppLocalizations {
     AppLanguage.en => 'Hero portrait',
   };
 
-  String get portraitAiHint => switch (language) {
-    AppLanguage.ru => 'В будущем здесь появится сгенерированный ИИ-портрет.',
-    AppLanguage.en =>
-      'An AI-generated portrait will appear here in a future update.',
-  };
-
-  String get portraitAiReadyHint => switch (language) {
-    AppLanguage.ru => 'Портрет сгенерирован на основе истории и персонажа.',
-    AppLanguage.en => 'Portrait generated from the story and character.',
-  };
-
-  String get portraitAutoGenerateHint => switch (language) {
-    AppLanguage.ru => 'Автоматическая генерация портрета временно отключена.',
-    AppLanguage.en => 'Automatic portrait generation is currently disabled.',
-  };
-
-  String get generatePortrait => switch (language) {
-    AppLanguage.ru => 'Сгенерировать портрет',
-    AppLanguage.en => 'Generate Portrait',
-  };
-
-  String get portraitGenerationFailed => switch (language) {
-    AppLanguage.ru => 'Не удалось сгенерировать портрет. Попробуйте позже.',
-    AppLanguage.en => 'Failed to generate portrait. Please try again later.',
-  };
-
-  String get loginToGeneratePortraits => switch (language) {
-    AppLanguage.ru => 'Войдите для генерации портретов',
-    AppLanguage.en => 'Login to generate portraits',
-  };
-
   String campaignModuleLabel(final CampaignModule value) =>
       switch ((language, value)) {
         (AppLanguage.ru, CampaignModule.inventory) => 'Инвентарь',
@@ -1647,11 +1616,6 @@ class AppLocalizations {
   String get generatingResponse => switch (language) {
     AppLanguage.ru => 'Генерируется ответ...',
     AppLanguage.en => 'Generating response...',
-  };
-
-  String get generatingPortrait => switch (language) {
-    AppLanguage.ru => 'Генерируется портрет...',
-    AppLanguage.en => 'Generating portrait...',
   };
 
   String get creatingCampaign => switch (language) {

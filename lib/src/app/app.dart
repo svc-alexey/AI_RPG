@@ -15,7 +15,6 @@ import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_service_factory.dart';
 import 'package:ai_prg/src/core/services/game_engine.dart';
-import 'package:ai_prg/src/core/services/portrait_storage.dart';
 import 'package:ai_prg/src/features/auth/presentation/auth_gate_screen.dart';
 import 'package:ai_prg/src/features/update/presentation/update_gate_overlay.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +27,6 @@ class AiRpgApp extends StatefulWidget {
     this.settingsRepository,
     this.aiServiceFactory,
     this.gameEngine,
-    this.portraitStorage,
     this.appLanguageListenable,
     this.onLaunchUiReady,
   });
@@ -37,7 +35,6 @@ class AiRpgApp extends StatefulWidget {
   final SettingsRepository? settingsRepository;
   final AiServiceFactory? aiServiceFactory;
   final GameEngine? gameEngine;
-  final PortraitStorage? portraitStorage;
   final ValueNotifier<AppLanguage>? appLanguageListenable;
   final VoidCallback? onLaunchUiReady;
 
@@ -53,7 +50,6 @@ class _AiRpgAppState extends State<AiRpgApp> {
   late final StoryLibraryRepository _storyLibraryRepository;
   late final AiServiceFactory _aiServiceFactory;
   late final GameEngine _gameEngine;
-  late final PortraitStorage _portraitStorage;
   late final ValueNotifier<AppLanguage> _appLanguageListenable;
   late final bool _ownsLanguageListenable;
   bool _didBootstrap = false;
@@ -77,7 +73,6 @@ class _AiRpgAppState extends State<AiRpgApp> {
     );
     _aiServiceFactory = widget.aiServiceFactory ?? const AiServiceFactory();
     _gameEngine = widget.gameEngine ?? const GameEngine();
-    _portraitStorage = widget.portraitStorage ?? const PortraitStorage();
     _appLanguageListenable =
         widget.appLanguageListenable ??
         ValueNotifier<AppLanguage>(AppLanguage.ru);
@@ -168,7 +163,6 @@ class _AiRpgAppState extends State<AiRpgApp> {
         storyLibraryRepository: _storyLibraryRepository,
         aiServiceFactory: _aiServiceFactory,
         gameEngine: _gameEngine,
-        portraitStorage: _portraitStorage,
         appLanguageListenable: _appLanguageListenable,
       ),
       child: ValueListenableBuilder<AppLanguage>(

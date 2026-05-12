@@ -275,9 +275,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     newlyUnlockedModules: chatState.newlyUnlockedModules,
                     worldRumors: chatState.worldRumors,
                     onExitToMainMenu: _exitToMainMenu,
-                    onGeneratePortrait: () => ref
-                        .read(chatControllerProvider(widget.campaignId).notifier)
-                        .generatePortrait(l10n: l10n),
                   ),
                 ),
               ),
@@ -322,9 +319,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             newlyUnlockedModules: chatState.newlyUnlockedModules,
                             worldRumors: chatState.worldRumors,
                             onExitToMainMenu: _exitToMainMenu,
-                            onGeneratePortrait: () => ref
-                                .read(chatControllerProvider(widget.campaignId).notifier)
-                                .generatePortrait(l10n: l10n),
                           ),
                         ),
                         SizedBox(width: responsive.sectionSpacing + 4),
@@ -392,9 +386,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               newlyUnlockedModules: newlyUnlockedModules,
               worldRumors: worldRumors,
               onExitToMainMenu: _exitToMainMenu,
-              onGeneratePortrait: () => ref
-                  .read(chatControllerProvider(widget.campaignId).notifier)
-                  .generatePortrait(l10n: context.l10n),
             ),
           ),
         ),
