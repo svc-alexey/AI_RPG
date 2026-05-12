@@ -1,6 +1,9 @@
 
 import asyncio
+import logging
 from datetime import datetime
+
+logger = logging.getLogger("symmetry.portrait")
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
@@ -187,11 +190,18 @@ async def _auto_generate_portrait(
     setting: str,
 ) -> None:
     """Fire-and-forget portrait generation after the first turn."""
+    logger.info(
+        "portrait_auto_start campaign=%s name=%s race=%s class=%s",
+        campaign_id,
+        character.get("name", ""),
+        character.get("race", ""),
+        character.get("character_class", ""),
+    )
     try:
         async with SessionLocal() as db:
             service = PortraitService.from_settings(db)
             try:
-                await service.generate_portrait(
+                result = await service.generate_portrait(
                     campaign_id=campaign_id,
                     character_name=str(character.get("name", "")),
                     character_race=str(character.get("race", "")),
@@ -199,13 +209,24 @@ async def _auto_generate_portrait(
                     character_gender=str(character.get("gender", "")),
                     character_personality=str(character.get("personality", "")),
                     character_prompt_fragment=str(character.get("prompt_fragment", "")),
-                    story_context="",  # first turn — no story context yet
+                    story_context="",
                     setting=setting,
+                )
+                logger.info(
+                    "portrait_auto_done campaign=%s id=%s url=%s",
+                    campaign_id,
+                    result.portrait_id,
+                    result.url,
                 )
             finally:
                 await service.close()
-    except Exception:
-        pass  # Silent failure — portrait remains null, fallback asset shown
+    except Exception as exc:
+        logger.warning(
+            "portrait_auto_failed campaign=%s error=%s: %s",
+            campaign_id,
+            type(exc).__name__,
+            exc,
+        )
 
 
 @router.get("/{campaign_id}", response_model=CampaignResponse)
