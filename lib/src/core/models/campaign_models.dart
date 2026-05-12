@@ -124,6 +124,15 @@ class CharacterStats {
         might: (json['might'] as num?)?.toInt() ?? 2,
         wit: (json['wit'] as num?)?.toInt() ?? 2,
         spirit: (json['spirit'] as num?)?.toInt() ?? 2,
+        gender: _jsonString(json['gender']),
+        race: _jsonString(json['race']),
+        characterClass: _jsonString(
+          json['character_class'] ?? json['characterClass'],
+        ),
+        personality: _jsonString(json['personality']),
+        promptFragment: _jsonString(
+          json['prompt_fragment'] ?? json['promptFragment'],
+        ),
       );
 
   const CharacterStats({
@@ -135,6 +144,11 @@ class CharacterStats {
     required this.might,
     required this.wit,
     required this.spirit,
+    this.gender = '',
+    this.race = '',
+    this.characterClass = '',
+    this.personality = '',
+    this.promptFragment = '',
   });
 
   final String name;
@@ -145,6 +159,11 @@ class CharacterStats {
   final int might;
   final int wit;
   final int spirit;
+  final String gender;
+  final String race;
+  final String characterClass;
+  final String personality;
+  final String promptFragment;
 
   CharacterStats copyWith({
     final String? name,
@@ -155,6 +174,11 @@ class CharacterStats {
     final int? might,
     final int? wit,
     final int? spirit,
+    final String? gender,
+    final String? race,
+    final String? characterClass,
+    final String? personality,
+    final String? promptFragment,
   }) => CharacterStats(
     name: name ?? this.name,
     hp: hp ?? this.hp,
@@ -164,6 +188,11 @@ class CharacterStats {
     might: might ?? this.might,
     wit: wit ?? this.wit,
     spirit: spirit ?? this.spirit,
+    gender: gender ?? this.gender,
+    race: race ?? this.race,
+    characterClass: characterClass ?? this.characterClass,
+    personality: personality ?? this.personality,
+    promptFragment: promptFragment ?? this.promptFragment,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -175,6 +204,11 @@ class CharacterStats {
     'might': might,
     'wit': wit,
     'spirit': spirit,
+    'gender': gender,
+    'race': race,
+    'characterClass': characterClass,
+    'personality': personality,
+    'promptFragment': promptFragment,
   };
 }
 

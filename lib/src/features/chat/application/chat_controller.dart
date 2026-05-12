@@ -203,6 +203,45 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   void cancelGeneration() {}
 
+  Future<void> generatePortrait({
+    required final AppLocalizations l10n,
+  }) async {
+    final CampaignState? campaign = state.campaign;
+    if (campaign == null) return;
+
+    state = state.copyWith(
+      campaign: campaign.copyWith(isPortraitGenerating: true),
+    );
+
+    try {
+      final Map<String, Object?> result = await _campaignRepository
+          .generatePortrait(
+        campaignId: _campaignId,
+        character: campaign.character,
+        storyContext: campaign.memory.rollingSummary,
+        setting: campaign.setting,
+      );
+
+      if (_disposed) return;
+
+      final String? portraitUrl =
+          result['portrait_url']?.toString() ?? result['portraitUrl']?.toString();
+
+      state = state.copyWith(
+        campaign: state.campaign?.copyWith(
+          portraitUrl: portraitUrl,
+          isPortraitGenerating: false,
+        ),
+      );
+    } on Exception {
+      if (_disposed) return;
+      state = state.copyWith(
+        campaign: state.campaign?.copyWith(isPortraitGenerating: false),
+        status: l10n.portraitGenerationFailed,
+      );
+    }
+  }
+
   Future<void> runTurn({
     required final AppLocalizations? l10n,
     required final String action,

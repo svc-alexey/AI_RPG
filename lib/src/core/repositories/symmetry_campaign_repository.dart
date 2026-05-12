@@ -142,7 +142,7 @@ class SymmetryCampaignRepository {
 
   Future<Map<String, Object?>> generatePortrait({
     required final String campaignId,
-    required final CharacterProfile character,
+    required final CharacterStats character,
     required final String storyContext,
     required final CampaignSetting setting,
   }) => _authRepository.runWithAuthorizedSession(
@@ -152,8 +152,8 @@ class SymmetryCampaignRepository {
       body: <String, Object?>{
         'character_name': character.name,
         'race': character.race,
-        'class': character.characterClass.name,
-        'gender': character.gender.name,
+        'class': character.characterClass,
+        'gender': character.gender,
         'personality': character.personality,
         'prompt_fragment': character.promptFragment,
         'story_context': storyContext,
