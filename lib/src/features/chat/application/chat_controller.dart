@@ -206,25 +206,33 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   void cancelGeneration() {}
 
-  static const int _maxPortraitPollAttempts = 40; // 40 × 3s = 2 min
+  static const int _maxPortraitPollAttempts = 15; // 15 × 3s = 45s safety net
 
   void _startPortraitPolling() {
     _portraitPollTimer?.cancel();
     _portraitPollAttempts = 0;
-    _portraitPollTimer = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) async {
-        if (_disposed) {
-          _portraitPollTimer?.cancel();
-          return;
-        }
-        _portraitPollAttempts++;
-        final CampaignState? refreshed =
-            await _campaignRepository.loadCampaign(_campaignId);
-        if (_disposed || refreshed == null) {
-          _portraitPollTimer?.cancel();
-          return;
-        }
+    _scheduleNextPortraitPoll();
+  }
+
+  void _scheduleNextPortraitPoll() {
+    if (_disposed) return;
+    if (_portraitPollAttempts >= _maxPortraitPollAttempts) {
+      if (!_disposed) {
+        state = state.copyWith(
+          campaign: state.campaign?.copyWith(isPortraitGenerating: false),
+        );
+      }
+      return;
+    }
+    // Capture before async gap to avoid using ref after dispose.
+    final SymmetryCampaignRepository repo = _campaignRepository;
+    final String campaignId = _campaignId;
+    _portraitPollTimer = Timer(const Duration(seconds: 3), () async {
+      if (_disposed) return;
+      _portraitPollAttempts++;
+      try {
+        final CampaignState? refreshed = await repo.loadCampaign(campaignId);
+        if (_disposed || refreshed == null) return;
         if (refreshed.portraitUrl != null &&
             refreshed.portraitUrl!.isNotEmpty) {
           _portraitPollTimer?.cancel();
@@ -233,14 +241,11 @@ class ChatController extends StateNotifier<ChatViewState> {
           );
           return;
         }
-        if (_portraitPollAttempts >= _maxPortraitPollAttempts) {
-          _portraitPollTimer?.cancel();
-          state = state.copyWith(
-            campaign: state.campaign?.copyWith(isPortraitGenerating: false),
-          );
-        }
-      },
-    );
+      } catch (_) {
+        // Transient error — continue polling
+      }
+      _scheduleNextPortraitPoll();
+    });
   }
 
   Future<void> generatePortrait({
@@ -358,6 +363,13 @@ class ChatController extends StateNotifier<ChatViewState> {
       language: _appLanguage,
     );
 
+    // First turn: show spinner immediately — portrait starts in parallel on backend.
+    if (campaign.turnNumber == 0 && !suggestionsOnly) {
+      state = state.copyWith(
+        campaign: state.campaign?.copyWith(isPortraitGenerating: true),
+      );
+    }
+
     try {
       final AiSettings settings = await _settingsRepository.loadAiSettings();
       final CampaignState nextCampaign = await _campaignRepository.processTurn(
@@ -404,16 +416,33 @@ class ChatController extends StateNotifier<ChatViewState> {
       _scheduleRumorRefresh(nextCampaign.id);
       _checkLowBalance();
 
-      // After first turn, backend generates portrait in background (Polza:
-      // 5-60s). Poll campaign state every 3s until portrait_url appears or
-      // 40 attempts exhausted (~2 min).
-      if (nextCampaign.turnNumber == 1 &&
-          (nextCampaign.portraitUrl == null ||
-              nextCampaign.portraitUrl!.isEmpty)) {
-        state = state.copyWith(
-          campaign: state.campaign?.copyWith(isPortraitGenerating: true),
-        );
-        _startPortraitPolling();
+      // After first turn: portrait_url may already be in the response
+      // (backend injects it if background task completed during LLM call).
+      if (nextCampaign.turnNumber == 1) {
+        final bool hasPortrait = nextCampaign.portraitUrl != null &&
+            nextCampaign.portraitUrl!.isNotEmpty;
+        if (hasPortrait) {
+          state = state.copyWith(
+            campaign: nextCampaign.copyWith(isPortraitGenerating: false),
+          );
+        } else {
+          // One immediate reload — portrait might have committed milliseconds ago.
+          CampaignState? refreshed;
+          try {
+            refreshed = await _campaignRepository.loadCampaign(_campaignId);
+          } catch (_) {
+            // Fall through to polling
+          }
+          if (!_disposed && refreshed != null &&
+              refreshed.portraitUrl != null &&
+              refreshed.portraitUrl!.isNotEmpty) {
+            state = state.copyWith(
+              campaign: refreshed.copyWith(isPortraitGenerating: false),
+            );
+          } else if (!_disposed) {
+            _startPortraitPolling();
+          }
+        }
       }
 
       AppLogger.logDiagnostic(

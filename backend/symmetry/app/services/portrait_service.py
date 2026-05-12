@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import random
 import uuid
 from dataclasses import dataclass
 
@@ -8,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.db.models import CampaignPortrait
+
+logger = logging.getLogger("symmetry.portrait")
 from app.services.portrait_optimizer import optimize_portrait
 from app.services.portrait_prompt_builder import build_portrait_prompt
 
@@ -78,12 +82,18 @@ class PortraitService:
         )
 
         result = await self._post_generation(prompt)
+        logger.info("portrait_post_done campaign=%s result_type=%s result=%s",
+                     campaign_id, "url" if result.startswith(("http://", "https://")) else "requestId",
+                     result[:120] if result.startswith(("http://", "https://")) else result)
         # result is either a URL (OpenAI sync) or a requestId (Polza async)
         if result.startswith(("http://", "https://")):
             image_url = result
         else:
             image_url = await self._poll_until_complete(result)
+        logger.info("portrait_download_start campaign=%s url=%s", campaign_id, image_url[:120])
+        await self._warmup_cdn(image_url)
         image_bytes = await self._download_image(image_url)
+        logger.info("portrait_download_done campaign=%s bytes=%d", campaign_id, len(image_bytes))
 
         compressed, _ = optimize_portrait(image_bytes, "image/png")
 
@@ -134,10 +144,12 @@ class PortraitService:
                     "prompt": prompt,
                     "n": 1,
                     "size": "1024x1024",
+                    "quality": "standard",
                 },
             )
             response.raise_for_status()
             data = response.json()
+            logger.info("portrait_post_response data_keys=%s", list(data.keys()))
         except httpx.HTTPError as exc:
             raise PolzaApiError(
                 f"Image generation request failed: {exc}"
@@ -147,13 +159,16 @@ class PortraitService:
         if isinstance(data.get("data"), list) and len(data["data"]) > 0:
             image_url = data["data"][0].get("url")
             if image_url:
+                logger.info("portrait_post_format=openai_sync url=%s", image_url[:120])
                 return image_url
 
         # Polza async response: {"requestId": "gen_..."}
         request_id = data.get("requestId")
         if request_id:
+            logger.info("portrait_post_format=polza_async request_id=%s", request_id)
             return request_id
 
+        logger.warning("portrait_post_unknown_format data=%s", str(data)[:500])
         raise PolzaApiError(
             f"Unexpected generation response: {data}"
         )
@@ -197,15 +212,44 @@ class PortraitService:
 
             await asyncio.sleep(self._config.poll_interval_seconds)
 
+    async def _warmup_cdn(self, image_url: str) -> None:
+        """HEAD the CDN URL to trigger propagation. Best-effort only for mfile.z.ai."""
+        if "mfile.z.ai" not in image_url:
+            return
+        for _ in range(5):
+            try:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(8.0)) as client:
+                    resp = await client.head(image_url)
+                    if resp.status_code == 200:
+                        return
+            except httpx.HTTPError:
+                pass
+            await asyncio.sleep(1.0)
+
     async def _download_image(self, image_url: str) -> bytes:
-        try:
-            response = await self._client.get(image_url)
-            response.raise_for_status()
-            return response.content
-        except httpx.HTTPError as exc:
-            raise PolzaApiError(
-                f"Failed to download generated image: {exc}"
-            ) from exc
+        max_attempts = 6
+        last_exc: Exception | None = None
+        for attempt in range(max_attempts):
+            try:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as dl_client:
+                    response = await dl_client.get(image_url)
+                    response.raise_for_status()
+                    return response.content
+            except httpx.HTTPStatusError:
+                raise  # 4xx/5xx are not transient — don't retry
+            except (httpx.TransportError, httpx.HTTPError) as exc:
+                last_exc = exc
+                if attempt < max_attempts - 1:
+                    wait = (2 ** attempt) + random.uniform(0, 0.5)
+                    logger.info(
+                        "portrait_download_retry attempt=%d/%d wait=%.1fs url=%s",
+                        attempt + 1, max_attempts, wait, image_url[:100],
+                    )
+                    await asyncio.sleep(wait)
+        raise PolzaApiError(
+            f"Failed to download after {max_attempts} attempts: "
+            f"{type(last_exc).__name__}: {last_exc}"
+        ) from last_exc
 
     async def close(self) -> None:
         await self._client.aclose()

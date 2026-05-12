@@ -393,6 +393,27 @@ async def process_turn(
         credentials = credential_service.resolve(payload.provider_credentials)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Start portrait generation BEFORE the LLM call (true parallelism).
+    # Character data is already in current_state — no dependency on LLM response.
+    upcoming_turn_number = int(current_state.get("turn_number", 0)) + 1
+    portrait_task_started = False
+    if upcoming_turn_number == 1:
+        existing = await session.execute(
+            select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
+        )
+        if existing.scalar_one_or_none() is None:
+            character = current_state.get("character", {})
+            if character:
+                portrait_task_started = True
+                asyncio.create_task(
+                    _auto_generate_portrait(
+                        campaign_id=campaign_id,
+                        character=character,
+                        setting=str(current_state.get("setting", "romantasy")),
+                    )
+                )
+
     try:
         llm_result = await ai_gateway.generate_turn(
             credentials=credentials,
@@ -511,21 +532,26 @@ async def process_turn(
         )
     await session.commit()
 
-    # Auto-generate portrait on first turn (fire-and-forget)
-    turn_number = int(next_state.get("turn_number", 0))
-    if turn_number == 1:
-        existing = await session.execute(
-            select(CampaignPortrait).where(CampaignPortrait.campaign_id == campaign_id)
-        )
-        if existing.scalar_one_or_none() is None:
-            character = current_state.get("character", {})
-            asyncio.create_task(
-                _auto_generate_portrait(
-                    campaign_id=campaign_id,
-                    character=character,
-                    setting=str(current_state.get("setting", "romantasy")),
+    # If portrait was started in background, check if it already committed.
+    # Need a separate session — the main transaction can't see the bg task's
+    # committed row due to PostgreSQL MVCC snapshot isolation.
+    if portrait_task_started:
+        try:
+            async with SessionLocal() as check_session:
+                check_result = await check_session.execute(
+                    select(CampaignPortrait).where(
+                        CampaignPortrait.campaign_id == campaign_id
+                    )
                 )
-            )
+                portrait_row = check_result.scalar_one_or_none()
+                if portrait_row is not None:
+                    settings = get_settings()
+                    base = settings.web_public_origin.rstrip("/")
+                    next_state["portrait_url"] = (
+                        f"{base}/v1/campaigns/{campaign_id}/portrait/image"
+                    )
+        except Exception:
+            pass  # Best-effort — fallback to client polling
 
     # Sync spatial map with narrative location
     new_location = str(next_state.get("location", ""))
