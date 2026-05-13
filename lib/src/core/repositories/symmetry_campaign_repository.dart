@@ -33,20 +33,24 @@ class SymmetryCampaignRepository {
             ),
             allowGuest: false,
           );
-      campaigns.add(_campaignStateFromServer(response.state));
+      campaigns.add(_campaignStateFromServer(response.state, portraitStatus: response.portraitStatus, baseUrl: null));
     }
     return campaigns;
   }
 
   Future<CampaignState?> loadCampaign(final String id) async {
+    String? baseUrl;
     final SymmetryCampaignStateResponse response = await _authRepository
         .runWithAuthorizedSession(
-          (final session) => _client(session.baseUrl).getCampaignState(
-            accessToken: session.tokens.accessToken,
-            campaignId: id,
-          ),
+          (final session) {
+            baseUrl = session.baseUrl;
+            return _client(session.baseUrl).getCampaignState(
+              accessToken: session.tokens.accessToken,
+              campaignId: id,
+            );
+          },
         );
-    return _campaignStateFromServer(response.state);
+    return _campaignStateFromServer(response.state, portraitStatus: response.portraitStatus, baseUrl: baseUrl);
   }
 
   Future<List<SymmetryWorldRumor>> loadCampaignRumors(
@@ -158,10 +162,18 @@ class SymmetryCampaignRepository {
   SymmetryApiClient _client(final String baseUrl) =>
       _clientFactory?.call(baseUrl) ?? SymmetryApiClient(baseUrl: baseUrl);
 
-  CampaignState _campaignStateFromServer(final Map<String, Object?> json) =>
-      CampaignState.fromJson(_normalizeServerState(json));
+  CampaignState _campaignStateFromServer(
+    final Map<String, Object?> json, {
+    final String? portraitStatus,
+    final String? baseUrl,
+  }) =>
+      CampaignState.fromJson(_normalizeServerState(json, portraitStatus: portraitStatus, baseUrl: baseUrl));
 
-  Map<String, Object?> _normalizeServerState(final Map<String, Object?> json) {
+  Map<String, Object?> _normalizeServerState(
+    final Map<String, Object?> json, {
+    final String? portraitStatus,
+    final String? baseUrl,
+  }) {
     final Map<String, Object?> memory =
         (json['memory'] as Map<Object?, Object?>?)?.map(
           (final key, final value) => MapEntry(key.toString(), value),
@@ -282,7 +294,11 @@ class SymmetryCampaignRepository {
       'characterPrompt':
           json['character_prompt'] ?? character['prompt_fragment'] ?? '',
       'portraitUrl':
-          json['portrait_url'] ?? json['portraitUrl'],
+          portraitStatus == 'ready' && baseUrl != null
+              ? '$baseUrl/campaigns/${json['id']}/portrait/image'
+              : json['portrait_url'] ?? json['portraitUrl'],
+      'portraitStatus':
+          portraitStatus ?? json['portrait_status'] ?? json['portraitStatus'],
     };
   }
 

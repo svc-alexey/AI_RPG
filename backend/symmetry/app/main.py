@@ -16,6 +16,7 @@ from app.api.routes import (
     feedback,
     literary_genres,
     map_routes,
+    portraits,
     prompts,
     providers,
     stories,
@@ -119,6 +120,7 @@ async def log_requests(request: Request, call_next):
 
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(campaigns.router, prefix=settings.api_prefix)
+app.include_router(portraits.router, prefix=settings.api_prefix)
 app.include_router(map_routes.router, prefix=settings.api_prefix)
 app.include_router(dev.router, prefix=settings.api_prefix)
 app.include_router(feedback.router, prefix=settings.api_prefix)

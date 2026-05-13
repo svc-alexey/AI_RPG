@@ -110,12 +110,11 @@ class Settings(BaseSettings):
     auth_email_verification_token_ttl_hours: int = 24
     auth_email_verification_base_url: str = ""  # fallback → web_public_origin
 
-    # --- Polza.ai image generation ---
-    polza_ai_api_key: str = ""
-    polza_ai_base_url: str = "https://polza.ai/api/v1"
-    polza_ai_image_model: str = "google/gemini-2.5-flash-image"
-    polza_ai_timeout_seconds: int = 30
-    polza_ai_poll_interval_seconds: float = 1.5
+    # --- YandexArt image generation ---
+    yandex_art_api_key: str = ""
+    yandex_art_folder_id: str = ""
+    yandex_art_timeout_seconds: int = 60
+    yandex_art_poll_interval_seconds: float = 2.0
 
 
 @lru_cache

@@ -147,6 +147,22 @@ class Campaign(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    portrait_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class CampaignPortrait(Base):
+    __tablename__ = "campaign_portraits"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    campaign_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("campaigns.id", ondelete="CASCADE"), unique=True
+    )
+    image_webp: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    prompt_used: Mapped[str] = mapped_column(Text, default="")
+    model_used: Mapped[str] = mapped_column(String(64), default="yandex-art")
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class CampaignMember(Base):

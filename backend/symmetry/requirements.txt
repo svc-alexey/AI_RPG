@@ -20,3 +20,4 @@ Pillow==11.2.1
 yookassa==3.10.1
 python-dateutil==2.9.0
 cryptography==44.0.2
+yandex-ai-studio-sdk>=0.20.2

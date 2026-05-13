@@ -1,4 +1,5 @@
 
+import asyncio
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -451,6 +452,27 @@ async def process_turn(
             metadata_json=llm_payload.get("state_changes", {}),
         )
     await session.commit()
+
+    # Auto-trigger portrait generation on first turn
+    next_turn_number = int(next_state.get("turn_number", 0))
+    if next_turn_number == 1 and campaign.portrait_status is None:
+        is_guest = user.email.startswith("guest-")
+        can_generate_portrait = (
+            is_guest and await count_guest_turns(session, user.id) < settings.free_guest_turns
+        ) or (not is_guest and await check_access(session, user))
+        if can_generate_portrait:
+            from app.services.portrait_service import generate_and_store
+
+            character = next_state.get("character", {})
+            story_prompt = str(next_state.get("story_prompt", ""))
+            asyncio.create_task(
+                generate_and_store(
+                    campaign_id=campaign.id,
+                    character=character,
+                    setting=campaign.setting,
+                    story_prompt=story_prompt,
+                )
+            )
 
     # Sync spatial map with narrative location
     new_location = str(next_state.get("location", ""))

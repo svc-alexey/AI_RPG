@@ -140,6 +140,7 @@ class CampaignResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    portrait_status: str | None = None
 
 
 class CampaignStateResponse(BaseModel):

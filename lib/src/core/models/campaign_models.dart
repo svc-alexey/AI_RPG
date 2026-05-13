@@ -956,6 +956,7 @@ class CampaignState {
       portraitPath: _jsonString(json['portraitPath']),
       portraitPrompt: _jsonString(json['portraitPrompt']),
       portraitUrl: _jsonString(json['portrait_url'] ?? json['portraitUrl']),
+      portraitStatus: _jsonString(json['portrait_status'] ?? json['portraitStatus']),
     );
   }
 
@@ -987,6 +988,7 @@ class CampaignState {
     this.portraitPath = '',
     this.portraitPrompt = '',
     this.portraitUrl,
+    this.portraitStatus,
   });
 
   final String id;
@@ -1016,6 +1018,7 @@ class CampaignState {
   final String portraitPath;
   final String portraitPrompt;
   final String? portraitUrl;
+  final String? portraitStatus;
 
   String get summary => memory.rollingSummary;
   String get activeGoal => memory.activeGoal;
@@ -1074,6 +1077,7 @@ class CampaignState {
     final String? portraitPath,
     final String? portraitPrompt,
     final String? portraitUrl,
+    final String? portraitStatus,
   }) => CampaignState(
     id: id,
     schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -1102,6 +1106,7 @@ class CampaignState {
     portraitPath: portraitPath ?? this.portraitPath,
     portraitPrompt: portraitPrompt ?? this.portraitPrompt,
     portraitUrl: portraitUrl ?? this.portraitUrl,
+    portraitStatus: portraitStatus ?? this.portraitStatus,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -1134,6 +1139,7 @@ class CampaignState {
     'portraitPath': portraitPath,
     'portraitPrompt': portraitPrompt,
     if (portraitUrl != null) 'portrait_url': portraitUrl,
+    if (portraitStatus != null) 'portraitStatus': portraitStatus,
   };
 
   static List<CampaignModuleState> inferLegacyModules({

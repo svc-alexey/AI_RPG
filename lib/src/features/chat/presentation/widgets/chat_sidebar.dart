@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
@@ -5,10 +8,12 @@ import 'package:ai_prg/src/app/responsive.dart';
 import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/features/chat/presentation/widgets/stats_radar.dart';
 import 'package:ai_prg/src/features/chat/widgets/portrait_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 class ChatSidebar extends ConsumerStatefulWidget {
   const ChatSidebar({
@@ -113,7 +118,7 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             // 1. Portrait image — bleeds to card edges
-            _CharacterPortraitCard(campaign: campaign),
+            _CharacterPortraitCard(campaign: campaign, campaignId: widget.campaignId),
 
             // 2. Content below portrait
             Expanded(
@@ -255,7 +260,7 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            _CharacterPortraitCard(campaign: campaign),
+            _CharacterPortraitCard(campaign: campaign, campaignId: widget.campaignId),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.all(contentPadding),
@@ -618,39 +623,179 @@ class _EmptyState extends StatelessWidget {
 
 // ─── Reused widget classes ─────────────────────────────────────────────────
 
-class _CharacterPortraitCard extends StatelessWidget {
-  const _CharacterPortraitCard({required this.campaign});
+class _CharacterPortraitCard extends ConsumerStatefulWidget {
+  const _CharacterPortraitCard({required this.campaign, required this.campaignId});
 
   final CampaignState campaign;
+  final String campaignId;
+
+  @override
+  ConsumerState<_CharacterPortraitCard> createState() =>
+      _CharacterPortraitCardState();
+}
+
+class _CharacterPortraitCardState
+    extends ConsumerState<_CharacterPortraitCard> {
+  String? _polledStatus;
+  String? _polledUrl;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _polledStatus = widget.campaign.portraitStatus;
+    _polledUrl = widget.campaign.portraitUrl;
+
+    final needsPoll =
+        (widget.campaign.turnNumber == 1 &&
+            _polledStatus != 'ready' &&
+            _polledStatus != 'failed') ||
+        _polledStatus == 'pending';
+    print('[PORTRAIT] initState turn=${widget.campaign.turnNumber} '
+        'status=$_polledStatus url=$_polledUrl needsPoll=$needsPoll '
+        'cid=${widget.campaignId}');
+    if (needsPoll) {
+      _startPolling();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _CharacterPortraitCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newStatus = widget.campaign.portraitStatus;
+    final newUrl = widget.campaign.portraitUrl;
+
+    if (newStatus == 'ready' && newUrl != null) {
+      print('[PORTRAIT] didUpdateWidget READY sync cid=${widget.campaignId}');
+      _polledStatus = newStatus;
+      _polledUrl = newUrl;
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      return;
+    }
+
+    final justTurnedOne = widget.campaign.turnNumber == 1 &&
+        oldWidget.campaign.turnNumber != 1;
+    final becamePending = newStatus == 'pending' &&
+        oldWidget.campaign.portraitStatus != 'pending';
+    print('[PORTRAIT] didUpdateWidget '
+        'oldTurn=${oldWidget.campaign.turnNumber} '
+        'newTurn=${widget.campaign.turnNumber} '
+        'oldStatus=${oldWidget.campaign.portraitStatus} '
+        'newStatus=$newStatus '
+        'justTurnedOne=$justTurnedOne '
+        'becamePending=$becamePending '
+        'timerActive=${_pollTimer != null} '
+        'cid=${widget.campaignId}');
+    if ((justTurnedOne || becamePending) && _pollTimer == null) {
+      _polledStatus = newStatus;
+      _polledUrl = newUrl;
+      _startPolling();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    print('[PORTRAIT] Poll START cid=${widget.campaignId}');
+    final stopwatch = Stopwatch()..start();
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted) {
+        print('[PORTRAIT] Poll TICK not-mounted, cancel');
+        timer.cancel();
+        return;
+      }
+      final elapsed = stopwatch.elapsedMilliseconds;
+      if (elapsed > 60000) {
+        print('[PORTRAIT] Poll TIMEOUT elapsed=$elapsed');
+        timer.cancel();
+        if (mounted) {
+          setState(() => _polledStatus = 'failed');
+        }
+        return;
+      }
+      try {
+        final authRepo = ref.read(symmetryAuthRepositoryProvider);
+        final session = await authRepo.ensureSession(allowGuest: true);
+        final apiUrl = '${session.baseUrl}/campaigns/${widget.campaignId}/state';
+        final response = await http.get(
+          Uri.parse(apiUrl),
+          headers: {'Authorization': 'Bearer ${session.tokens.accessToken}'},
+        );
+        if (response.statusCode != 200) {
+          print('[PORTRAIT] Poll HTTP ${response.statusCode}');
+          return;
+        }
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final cj = data['campaign'] as Map<String, dynamic>?;
+        final newStatus = cj?['portrait_status'] as String?;
+        print('[PORTRAIT] Poll TICK status=$newStatus elapsed=$elapsed');
+
+        if (newStatus == 'ready' && mounted) {
+          final newUrl =
+              '${session.baseUrl}/campaigns/${widget.campaignId}/portrait/image';
+          print('[PORTRAIT] Poll READY url=$newUrl');
+          setState(() {
+            _polledStatus = 'ready';
+            _polledUrl = newUrl;
+          });
+          timer.cancel();
+        } else if (newStatus == 'failed' && mounted) {
+          print('[PORTRAIT] Poll FAILED');
+          setState(() => _polledStatus = 'failed');
+          timer.cancel();
+        }
+      } catch (e) {
+        print('[PORTRAIT] Poll ERROR $e');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
     final double height = responsive.isMobile ? 200 : 220;
+    final String? status = _polledStatus ?? widget.campaign.portraitStatus;
+    final String? url = _polledUrl ?? widget.campaign.portraitUrl;
+    final bool hasImageUrl = url != null && url.isNotEmpty;
 
-    // Generated portrait from server
-    if (campaign.portraitUrl != null && campaign.portraitUrl!.isNotEmpty) {
+    if (widget.campaign.turnNumber == 1 &&
+        status != 'ready' &&
+        status != 'failed' &&
+        !hasImageUrl) {
+      return _PortraitLoadingPlaceholder(
+          height: height, label: widget.campaign.character.name);
+    }
+
+    if (status == 'pending') {
+      return _PortraitLoadingPlaceholder(
+          height: height, label: widget.campaign.character.name);
+    }
+
+    if (hasImageUrl) {
       return Image.network(
-        campaign.portraitUrl!,
+        url!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: height,
         errorBuilder: (_, __, ___) =>
-            _PortraitFallbackLabel(label: campaign.character.name),
+            _PortraitFallbackLabel(label: widget.campaign.character.name),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return _PortraitLoadingPlaceholder(
-            height: height,
-            label: campaign.character.name,
-          );
+              height: height, label: widget.campaign.character.name);
         },
       );
     }
 
-    // Fallback: local asset or portrait path
-    final String imagePath = campaign.portraitPath.trim().isNotEmpty
-        ? campaign.portraitPath.trim()
-        : _portraitAssetForCampaign(campaign);
+    final String imagePath = widget.campaign.portraitPath.trim().isNotEmpty
+        ? widget.campaign.portraitPath.trim()
+        : _portraitAssetForCampaign(widget.campaign);
 
     return buildPortraitImage(
       portraitPath: imagePath,
@@ -658,7 +803,7 @@ class _CharacterPortraitCard extends StatelessWidget {
       width: double.infinity,
       height: height,
       errorBuilder: (_, __, ___) =>
-          _PortraitFallbackLabel(label: campaign.character.name),
+          _PortraitFallbackLabel(label: widget.campaign.character.name),
     );
   }
 }

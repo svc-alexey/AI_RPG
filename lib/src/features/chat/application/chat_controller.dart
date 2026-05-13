@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:ai_prg/src/app/app_localizations.dart';
 import 'package:ai_prg/src/app/app_providers.dart';
@@ -7,11 +8,13 @@ import 'package:ai_prg/src/core/models/app_language.dart';
 import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:ai_prg/src/core/models/symmetry_models.dart';
 import 'package:ai_prg/src/core/repositories/settings_repository.dart';
+import 'package:ai_prg/src/core/repositories/symmetry_auth_repository.dart';
 import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart' show AiTurnException;
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 final chatControllerProvider = StateNotifierProvider.autoDispose
     .family<ChatController, ChatViewState, String>(
@@ -129,6 +132,7 @@ class ChatController extends StateNotifier<ChatViewState> {
 
   Timer? _notificationTimer;
   Timer? _rumorRefreshTimer;
+  Timer? _portraitPollingTimer;
   String? _activeFlowId;
   bool _didLoad = false;
   bool _disposed = false;
@@ -158,6 +162,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     _disposed = true;
     _notificationTimer?.cancel();
     _rumorRefreshTimer?.cancel();
+    _portraitPollingTimer?.cancel();
     super.dispose();
   }
 
@@ -185,6 +190,9 @@ class ChatController extends StateNotifier<ChatViewState> {
       worldRumors: worldRumors,
       isLoading: false,
     );
+    if (campaign != null) {
+      _startPortraitPollingIfNeeded(campaign);
+    }
   }
 
   Future<void> save({required final AppLocalizations l10n}) async {
@@ -281,7 +289,7 @@ class ChatController extends StateNotifier<ChatViewState> {
 
     try {
       final AiSettings settings = await _settingsRepository.loadAiSettings();
-      final CampaignState nextCampaign = await _campaignRepository.processTurn(
+      CampaignState nextCampaign = await _campaignRepository.processTurn(
         playerAction: trimmedAction,
         language: language,
         campaign: campaign,
@@ -289,6 +297,17 @@ class ChatController extends StateNotifier<ChatViewState> {
         triggerSource: triggerSource,
         diceRoll: checkContext.resolvedCheck?.roll,
       );
+
+      // Preserve portrait info from previous state — the server doesn't
+      // include portrait_status in turn responses (it's a DB-level field).
+      if (nextCampaign.portraitStatus == null &&
+          nextCampaign.portraitUrl == null &&
+          (campaign.portraitStatus != null || campaign.portraitUrl != null)) {
+        nextCampaign = nextCampaign.copyWith(
+          portraitStatus: campaign.portraitStatus,
+          portraitUrl: campaign.portraitUrl,
+        );
+      }
 
       if (_disposed) {
         return;
@@ -323,6 +342,7 @@ class ChatController extends StateNotifier<ChatViewState> {
             : state.clearInputRevision + 1,
       );
       _scheduleRumorRefresh(nextCampaign.id);
+      _startPortraitPollingIfNeeded(nextCampaign);
       _checkLowBalance();
 
       AppLogger.logDiagnostic(
@@ -445,6 +465,81 @@ class ChatController extends StateNotifier<ChatViewState> {
         state = state.copyWith(worldRumors: worldRumors);
       } catch (_) {}
     });
+  }
+
+  void _startPortraitPollingIfNeeded(final CampaignState campaign) {
+    final bool shouldPoll = campaign.portraitStatus == 'pending' ||
+        (campaign.turnNumber == 1 && campaign.portraitStatus == null);
+    if (!shouldPoll) {
+      return;
+    }
+    _portraitPollingTimer?.cancel();
+    final stopwatch = Stopwatch()..start();
+    _portraitPollingTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (final timer) async {
+        if (_disposed) {
+          timer.cancel();
+          return;
+        }
+        // Timeout after 60 seconds
+        if (stopwatch.elapsedMilliseconds > 60000) {
+          timer.cancel();
+          if (!_disposed) {
+            final CampaignState fallback =
+                (state.campaign ?? campaign).copyWith(
+              portraitStatus: 'failed',
+            );
+            state = state.copyWith(campaign: fallback);
+          }
+          return;
+        }
+        try {
+          final authRepo = _ref.read(symmetryAuthRepositoryProvider);
+          final session = await authRepo.ensureSession(allowGuest: true);
+          final apiUrl =
+              '${session.baseUrl}/campaigns/$_campaignId/state';
+          final response = await http.get(
+            Uri.parse(apiUrl),
+            headers: {
+              'Authorization': 'Bearer ${session.tokens.accessToken}',
+            },
+          );
+          if (response.statusCode != 200) {
+            return; // Retry next tick
+          }
+          final data = json.decode(response.body) as Map<String, dynamic>;
+          final campaignJson =
+              data['campaign'] as Map<String, dynamic>?;
+          final newStatus =
+              campaignJson?['portrait_status'] as String?;
+
+          if (newStatus == null && campaign.turnNumber > 1) {
+            timer.cancel(); // Not first turn, no portrait expected
+            return;
+          }
+
+          String? portraitUrl;
+          if (newStatus == 'ready') {
+            portraitUrl =
+                '${session.baseUrl}/campaigns/$_campaignId/portrait/image';
+          }
+
+          final CampaignState updated = (state.campaign ?? campaign).copyWith(
+            portraitStatus: newStatus,
+            portraitUrl: portraitUrl,
+          );
+          if (!_disposed) {
+            state = state.copyWith(campaign: updated);
+          }
+          if (newStatus == 'ready' || newStatus == 'failed') {
+            timer.cancel();
+          }
+        } catch (_) {
+          // Retry next tick
+        }
+      },
+    );
   }
 
   Future<List<SymmetryWorldRumor>> _safeLoadRumors(

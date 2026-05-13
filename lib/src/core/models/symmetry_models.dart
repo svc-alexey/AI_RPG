@@ -89,6 +89,7 @@ class SymmetryCampaignStateResponse {
     required this.campaignId,
     required this.snapshotVersion,
     required this.state,
+    this.portraitStatus,
   });
 
   factory SymmetryCampaignStateResponse.fromJson(
@@ -99,12 +100,14 @@ class SymmetryCampaignStateResponse {
       campaignId: (campaign['id'] as String?) ?? '',
       snapshotVersion: (json['snapshot_version'] as int?) ?? 0,
       state: _jsonMap(json['state']),
+      portraitStatus: campaign['portrait_status'] as String?,
     );
   }
 
   final String campaignId;
   final int snapshotVersion;
   final Map<String, Object?> state;
+  final String? portraitStatus;
 }
 
 class SymmetryCampaignSummary {
