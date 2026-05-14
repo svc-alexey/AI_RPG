@@ -104,7 +104,7 @@ void main() {
       final CampaignState state = CampaignState.fromJson(<String, Object?>{
         'id': 'server-1',
         'title': 'Server state',
-        'setting': CampaignSetting.grimdarkFantasy.name,
+        'setting': CampaignSetting.cozyCrime.name,
         'mode': StoryMode.longCampaign.name,
         'difficulty': DifficultyLevel.medium.name,
         'character': const <String, Object?>{
@@ -126,6 +126,7 @@ void main() {
         'updatedAt': DateTime(2026, 4, 7).toIso8601String(),
       });
 
+      // cozyCrime does not auto-enable vitality (unlike grimdarkFantasy).
       expect(state.isModuleActive(CampaignModule.vitality), isFalse);
     },
   );
