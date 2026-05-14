@@ -200,6 +200,38 @@ void main() {
 
       expect(state.turnNumber, 1);
     });
+
+    test('preserves portraitStatus and constructs portraitUrl from baseUrl', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          '{"narration":"Done.","choices":["Yes"],"state_changes":{},"memory_entry":"mem","request_id":"r1","state":{"id":"c1","title":"Test","setting":"fantasy","turn_number":2},"campaign_snapshot_version":3}',
+          200,
+        );
+      });
+
+      final repo = SymmetryCampaignRepository(
+        authRepository: _FakeAuthRepository(_testSession),
+        clientFactory: (baseUrl) => SymmetryApiClient(httpClient: mock, baseUrl: baseUrl),
+      );
+
+      final campaignWithPortrait = _sampleCampaign().copyWith(
+        turnNumber: 1,
+        portraitStatus: 'ready',
+      );
+
+      final state = await repo.processTurn(
+        campaign: campaignWithPortrait,
+        playerAction: 'Continue',
+        language: AppLanguage.ru,
+        aiSettings: const AiSettings.defaults(),
+      );
+
+      expect(state.portraitStatus, 'ready');
+      expect(
+        state.portraitUrl,
+        '${_testSession.baseUrl}/campaigns/${campaignWithPortrait.id}/portrait/image',
+      );
+    });
   });
 
   group('loadCampaign', () {

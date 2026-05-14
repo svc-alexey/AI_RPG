@@ -1,4 +1,4 @@
-"""Tests for my-stories, delete-own-story, and bulk-delete flows."""
+"""Tests for my-stories, delete-own-story, bulk-delete, and route ordering."""
 
 import pytest
 from fastapi import HTTPException
@@ -154,3 +154,35 @@ async def test_bulk_delete_logic():
     ok2 = await service.delete_template(session, template_id="missing")
     # rowcount is non-zero even for non-existent rows in fake session
     assert ok2 is True
+
+
+@pytest.mark.asyncio
+async def test_my_route_not_captured_by_template_id():
+    """GET /story-templates/my must not be captured by /{template_id}.
+
+    Regression: FastAPI matches routes in declaration order.
+    /my must be registered BEFORE /{template_id} or the literal
+    path segment "my" gets parsed as a template_id parameter,
+    causing a 404 (no template with id="my").
+    """
+    from app.api.routes.stories import router
+
+    # Collect GET routes in declaration order
+    get_routes = [r for r in router.routes if "GET" in r.methods]
+    my_idx = next(
+        (i for i, r in enumerate(get_routes) if r.path == "/story-templates/my"),
+        None,
+    )
+    template_by_id_idx = next(
+        (i for i, r in enumerate(get_routes)
+         if r.path == "/story-templates/{template_id}"),
+        None,
+    )
+
+    assert my_idx is not None, "/my route must exist"
+    assert template_by_id_idx is not None, "/{template_id} route must exist"
+    assert my_idx < template_by_id_idx, (
+        f"/my route (index {my_idx}) must be registered BEFORE "
+        f"/{{template_id}} route (index {template_by_id_idx}) "
+        f"to prevent FastAPI from capturing 'my' as a template_id"
+    )

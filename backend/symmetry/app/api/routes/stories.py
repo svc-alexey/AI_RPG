@@ -66,6 +66,14 @@ async def create_story_template(
     return resolved
 
 
+@router.get("/my", response_model=list[StoryTemplateResponse])
+async def list_my_story_templates(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> list[StoryTemplateResponse]:
+    return await story_service.list_user_templates(session, user_id=user.id)
+
+
 @router.get("/{template_id}/cover")
 async def get_story_template_cover(
     template_id: str,
@@ -146,14 +154,6 @@ async def toggle_bookmark(
     await story_service.toggle_bookmark(session, template_id=template_id, user_id=user.id)
     await session.commit()
     return MessageResponse(message="bookmark_toggled")
-
-
-@router.get("/my", response_model=list[StoryTemplateResponse])
-async def list_my_story_templates(
-    user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session),
-) -> list[StoryTemplateResponse]:
-    return await story_service.list_user_templates(session, user_id=user.id)
 
 
 @router.delete("/{template_id}", response_model=MessageResponse)

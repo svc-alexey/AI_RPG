@@ -129,19 +129,27 @@ class SymmetryCampaignRepository {
     final String triggerSource = 'manual',
     final int? diceRoll,
   }) async {
+    String? baseUrl;
     final SymmetryTurnResponse response = await _authRepository
         .runWithAuthorizedSession(
-          (final session) => _client(session.baseUrl).processTurn(
-            accessToken: session.tokens.accessToken,
-            campaignId: campaign.id,
-            playerAction: playerAction,
-            languageCode: language.code,
-            aiSettings: aiSettings,
-            triggerSource: triggerSource,
-            diceRoll: diceRoll,
-          ),
+          (final session) {
+            baseUrl = session.baseUrl;
+            return _client(session.baseUrl).processTurn(
+              accessToken: session.tokens.accessToken,
+              campaignId: campaign.id,
+              playerAction: playerAction,
+              languageCode: language.code,
+              aiSettings: aiSettings,
+              triggerSource: triggerSource,
+              diceRoll: diceRoll,
+            );
+          },
         );
-    return _campaignStateFromServer(response.state);
+    return _campaignStateFromServer(
+      response.state,
+      portraitStatus: campaign.portraitStatus,
+      baseUrl: baseUrl,
+    );
   }
 
 
