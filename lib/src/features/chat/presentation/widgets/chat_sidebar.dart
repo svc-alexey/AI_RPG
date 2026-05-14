@@ -771,7 +771,7 @@ class _CharacterPortraitCardState
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
-    final double height = responsive.isMobile ? 200 : 220;
+    final double height = responsive.isMobile ? 170 : 195;
     final String? status = _polledStatus ?? widget.campaign.portraitStatus;
     final String? url = _polledUrl ?? widget.campaign.portraitUrl;
     final bool hasImageUrl = url != null && url.isNotEmpty;
@@ -865,7 +865,7 @@ class _PortraitFallbackLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
-    final double height = responsive.isMobile ? 200 : 220;
+    final double height = responsive.isMobile ? 170 : 195;
     return Container(
       height: height,
       width: double.infinity,
