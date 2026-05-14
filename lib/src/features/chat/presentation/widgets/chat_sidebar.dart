@@ -501,7 +501,7 @@ class _NotesTab extends StatelessWidget {
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: notes.map((item) => Padding(
+      children: notes.reversed.map((item) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text('- $item'),
       )).toList(),
