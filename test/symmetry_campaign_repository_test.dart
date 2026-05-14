@@ -229,7 +229,7 @@ void main() {
       expect(state.portraitStatus, 'ready');
       expect(
         state.portraitUrl,
-        '${_testSession.baseUrl}/campaigns/${campaignWithPortrait.id}/portrait/image',
+        '${_testSession.baseUrl}/campaigns/c1/portrait/image',
       );
     });
   });
