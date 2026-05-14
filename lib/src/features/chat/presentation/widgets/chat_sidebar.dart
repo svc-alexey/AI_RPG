@@ -120,70 +120,82 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
             // 1. Portrait image — bleeds to card edges
             _CharacterPortraitCard(campaign: campaign, campaignId: widget.campaignId),
 
-            // 2. Content below portrait
+            // 2. Header info above tabs
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                contentPadding,
+                10,
+                contentPadding,
+                0,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  // Character name
+                  Text(
+                    campaign.character.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AetherPalette.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: responsive.sectionSpacing - 4),
+
+                  // Meta info
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+                      _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
+                    ],
+                  ),
+                  SizedBox(height: responsive.isCompact ? 8 : 6),
+
+                  // Location + Objective
+                  _SidebarInfoLine(label: l10n.location, value: campaign.location),
+                  SizedBox(height: responsive.isCompact ? 8 : 6),
+                  if (campaign.hasDisplayObjective) ...[
+                    _SidebarInfoLine(
+                      label: l10n.objective,
+                      value: campaign.displayObjectiveLine,
+                    ),
+                    SizedBox(height: responsive.isCompact ? 8 : 6),
+                  ],
+                ],
+              ),
+            ),
+
+            // 3. TabBar + TabBarView — fills remaining space
+            TabBar(
+              controller: tabController,
+              isScrollable: false,
+              indicatorColor: const Color(0xFFBFA76F),
+              labelColor: AetherPalette.textPrimary,
+              unselectedLabelColor: AetherPalette.textMuted,
+              tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
+            ),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   contentPadding,
-                  10,
+                  0,
                   contentPadding,
                   contentPadding,
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.max,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    // Character name
-                    Text(
-                      campaign.character.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AetherPalette.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: responsive.sectionSpacing - 4),
-
-                    // Meta info
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: <Widget>[
-                        _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
-                        _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
-                      ],
-                    ),
-                    SizedBox(height: responsive.isCompact ? 8 : 6),
-
-                    // Location + Objective
-                    _SidebarInfoLine(label: l10n.location, value: campaign.location),
-                    SizedBox(height: responsive.isCompact ? 8 : 6),
-                    if (campaign.hasDisplayObjective) ...[
-                      _SidebarInfoLine(
-                        label: l10n.objective,
-                        value: campaign.displayObjectiveLine,
-                      ),
-                      SizedBox(height: responsive.isCompact ? 8 : 6),
-                    ],
-
-                    // TabBar
-                    TabBar(
-                      controller: tabController,
-                      isScrollable: false,
-                      indicatorColor: const Color(0xFFBFA76F),
-                      labelColor: AetherPalette.textPrimary,
-                      unselectedLabelColor: AetherPalette.textMuted,
-                      tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
-                    ),
-
-                    // TabBarView
                     Expanded(
                       child: TabBarView(
                         controller: tabController,
                         children: tabs.map((m) => _buildTabContent(m, context)).toList(),
                       ),
                     ),
-
                     // Exit button
                     const SizedBox(height: 8),
                     ListTile(
