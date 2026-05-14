@@ -79,6 +79,7 @@ class TestCheckout:
         session.execute = mock_execute
         session.add = MagicMock()
         session.flush = AsyncMock()
+        session.commit = AsyncMock()
 
         mock_yookassa = MagicMock(spec=YooKassaClient)
         mock_yookassa.create_payment.return_value = YooKassaPaymentResult(
@@ -129,6 +130,7 @@ class TestProcessPaymentSucceeded:
         session = MagicMock()
         session.add = MagicMock()
         session.flush = AsyncMock()
+        session.commit = AsyncMock()
 
         call_count = 0
 
