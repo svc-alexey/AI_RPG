@@ -2898,6 +2898,8 @@
         const remaining = Math.max(0, 650 - elapsed);
         window.setTimeout(() => {
           loadingContainer.classList.add('is-exiting');
+          landingView.hidden = true;
+          feedbackView.hidden = true;
           window.setTimeout(() => {
             loadingContainer.remove();
           }, 460);
@@ -3231,6 +3233,7 @@
         runStartupVersionCheck();
       });
       window.addEventListener('popstate', function () {
+        if (launchCompleted) return;
         currentView = resolveView(new URLSearchParams(window.location.search).get('view'));
         setView(currentView, { updateUrl: false, skipScroll: true });
       });
@@ -3257,6 +3260,8 @@
 
       window.__codexHideLanding = function () {
         loadingContainer.remove();
+        landingView.hidden = true;
+        feedbackView.hidden = true;
       };
     })();
   </script>
