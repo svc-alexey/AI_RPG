@@ -33,7 +33,7 @@ void main() {
           result: TurnResult(
             narration:
                 'Turn ${turn + 1}: Mira pushes deeper into the vault, reads the ancient pressure in the room, and finds a clearer path toward chamber ${turn + 1}.',
-            choices: const <String>['Advance', 'Listen', 'Mark the route'],
+            choices: choiceList(['Advance', 'Listen', 'Mark the route']),
             stateChanges: StateChanges(
               hpDelta: turn.isEven ? -1 : 0,
               energyDelta: -1,
@@ -151,6 +151,6 @@ CampaignState _initialFantasyCampaign() => CampaignState(
   resources: const <CampaignResource>[],
   progression: null,
   messages: const <ChatMessage>[],
-  choices: const <String>[],
+  choices: const <Choice>[],
   updatedAt: DateTime(2026, 3, 20, 12),
 );

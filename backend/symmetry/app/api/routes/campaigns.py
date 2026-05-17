@@ -11,7 +11,7 @@ from app.core.billing_errors import InsufficientTokensError
 from app.core.config import get_settings
 from app.db.models import Campaign, CampaignMember, CampaignSnapshot, CampaignTurn, User, WorldChronicle, WorldState
 from app.db.session import get_db_session
-from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
+from app.schemas.campaigns import CampaignResponse, CampaignStateResponse, ChoiceSchema, CreateCampaignRequest, ProcessTurnRequest, ProcessTurnResponse, WorldRumorResponse
 from app.services.ai_gateway import AiGatewayService, classify_provider_error
 from app.services.butterfly import ButterflyService
 from app.services.campaign_runtime import CampaignRuntimeService, build_initial_state
@@ -471,6 +471,8 @@ async def process_turn(
                     character=character,
                     setting=campaign.setting,
                     story_prompt=story_prompt,
+                    target_width=300,
+                    target_height=400,
                 )
             )
 
@@ -496,9 +498,22 @@ async def process_turn(
     except Exception:
         pass
 
+    raw_choices = [c for c in llm_payload.get("choices", []) or [] if c]
+    normalized: list[ChoiceSchema] = []
+    for c in raw_choices:
+        if isinstance(c, dict):
+            normalized.append(ChoiceSchema(
+                id=str(c.get("id", "")).strip(),
+                label=str(c.get("label", "")).strip(),
+                hint=str(c.get("hint", "")).strip() if c.get("hint") else None,
+                tag=str(c.get("tag", "")).strip() if c.get("tag") else None,
+            ))
+        elif isinstance(c, str):
+            slug = c.strip().lower().replace(" ", "-")[:24]
+            normalized.append(ChoiceSchema(id=slug, label=c.strip()))
     return ProcessTurnResponse(
         narration=str(llm_payload.get("narration", "")).strip(),
-        choices=[str(item) for item in llm_payload.get("choices", []) if str(item).strip()],
+        choices=normalized,
         state_changes=state_changes,
         memory_entry=str(llm_payload.get("memory_entry", "")).strip(),
         request_id=new_id(),
@@ -506,4 +521,5 @@ async def process_turn(
         state=next_state,
         map_context=map_context,
         dice_roll=dice_roll,
+        portrait_status=campaign.portrait_status,
     )

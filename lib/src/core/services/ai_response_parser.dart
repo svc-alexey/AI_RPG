@@ -163,13 +163,13 @@ class AiResponseParser {
     }
 
     final String narration = narrationParts.join('\n\n').trim();
-    final List<String> choices = recoveredChoices.take(3).toList();
-    if (narration.isEmpty && choices.isEmpty) {
+    final List<String> rawChoices = recoveredChoices.take(3).toList();
+    if (narration.isEmpty && rawChoices.isEmpty) {
       return null;
     }
 
-    final List<String> fallbackChoices = choices.isNotEmpty
-        ? choices
+    final List<String> fallbackLabels = rawChoices.isNotEmpty
+        ? rawChoices
         : switch (language) {
             AppLanguage.ru => const <String>[
               'Осмотреться',
@@ -182,6 +182,9 @@ class AiResponseParser {
               'Take action',
             ],
           };
+    final List<Choice> fallbackChoices = fallbackLabels
+        .map((final s) => Choice(id: s.toLowerCase().replaceAll(' ', '-'), label: s))
+        .toList();
 
     final String resolvedNarration = narration.isNotEmpty
         ? narration
@@ -254,7 +257,7 @@ class AiResponseParser {
       return null;
     }
 
-    final List<String> fallbackChoices = choices.isNotEmpty
+    final List<String> fallbackLabels = choices.isNotEmpty
         ? choices.take(3).toList()
         : switch (language) {
             AppLanguage.ru => const <String>[
@@ -268,6 +271,9 @@ class AiResponseParser {
               'Take action',
             ],
           };
+    final List<Choice> fallbackChoices = fallbackLabels
+        .map((final s) => Choice(id: s.toLowerCase().replaceAll(' ', '-'), label: s))
+        .toList();
 
     final String resolvedNarration = resolvedStructuredNarration.isNotEmpty
         ? resolvedStructuredNarration
@@ -278,7 +284,7 @@ class AiResponseParser {
 
     return TurnResult.fromJson(<String, Object?>{
       'narration': resolvedNarration,
-      'choices': fallbackChoices,
+      'choices': fallbackChoices.map((final c) => c.toJson()).toList(),
       'state_changes': <String, Object?>{
         'location': resolvedStructuredLocation,
       },

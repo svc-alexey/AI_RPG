@@ -59,19 +59,22 @@ class _DemoAiClient implements AiClient {
                   : 'Without a configured model, the game runs in demo mode. ${state.character.name} attempts to: $action. ${resolvedCheck.summary}. The scene now follows that known outcome.',
           };
 
+    const List<Choice> defaultChoicesRu = <Choice>[
+      Choice(id: 'look-closer', label: 'Осмотреться внимательнее'),
+      Choice(id: 'decisive-step', label: 'Сделать решительный шаг к цели'),
+      Choice(id: 'open-settings', label: 'Открыть настройки и настроить endpoint'),
+    ];
+    const List<Choice> defaultChoicesEn = <Choice>[
+      Choice(id: 'look-closer', label: 'Look around more carefully'),
+      Choice(id: 'decisive-step', label: 'Take a decisive step toward the goal'),
+      Choice(id: 'open-settings', label: 'Open settings and configure endpoint'),
+    ];
+
     final TurnResult result = TurnResult(
       narration: narration,
       choices: switch (language) {
-        AppLanguage.ru => const <String>[
-          'Осмотреться внимательнее',
-          'Сделать решительный шаг к цели',
-          'Открыть настройки и настроить endpoint',
-        ],
-        AppLanguage.en => const <String>[
-          'Look around more carefully',
-          'Take a decisive step toward the goal',
-          'Open settings and configure endpoint',
-        ],
+        AppLanguage.ru => defaultChoicesRu,
+        AppLanguage.en => defaultChoicesEn,
       },
       stateChanges: suggestionsOnly
           ? const StateChanges.empty()

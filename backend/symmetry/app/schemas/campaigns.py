@@ -159,13 +159,46 @@ class WorldRumorResponse(BaseModel):
     created_at: datetime
 
 
+class ChoiceSchema(BaseModel):
+    id: str
+    label: str
+    hint: str | None = None
+    tag: str | None = None
+
+    @field_validator("id")
+    @classmethod
+    def id_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("choice.id must not be empty")
+        return v
+
+    @field_validator("label")
+    @classmethod
+    def label_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("choice.label must not be empty")
+        if len(v) > 200:
+            raise ValueError("choice.label must be <= 200 characters")
+        return v
+
+
 class ProcessTurnResponse(BaseModel):
     narration: str
-    choices: list[str]
+    choices: list[ChoiceSchema] = []
     state_changes: dict[str, Any]
+
+    @field_validator("choices")
+    @classmethod
+    def choices_count(cls, v: list[ChoiceSchema]) -> list[ChoiceSchema]:
+        if len(v) < 2:
+            raise ValueError("choices must have at least 2 items")
+        if len(v) > 5:
+            raise ValueError("choices must have at most 5 items")
+        return v
     memory_entry: str
     request_id: str
     campaign_snapshot_version: int
     state: dict[str, Any]
     map_context: dict[str, Any] | None = None
     dice_roll: int | None = None
+    portrait_status: str | None = None

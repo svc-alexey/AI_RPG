@@ -147,7 +147,7 @@ class SymmetryCampaignRepository {
         );
     return _campaignStateFromServer(
       response.state,
-      portraitStatus: campaign.portraitStatus,
+      portraitStatus: response.portraitStatus ?? campaign.portraitStatus,
       baseUrl: baseUrl,
     );
   }
@@ -253,20 +253,44 @@ class SymmetryCampaignRepository {
             final Map<Object?, Object?> map =
                 item as Map<Object?, Object?>? ?? const <Object?, Object?>{};
             final num? diceRoll = map['dice_roll'] as num?;
+            final List<Object?> msgChoices = (map['choices'] as List<Object?>?)?.toList() ?? const <Object?>[];
             return <String, Object?>{
               'id': DateTime.now().microsecondsSinceEpoch.toString(),
               'role': map['role'] == 'player' ? 'player' : 'narrator',
               'text': map['text'] ?? '',
               'createdAt': DateTime.now().toIso8601String(),
               if (diceRoll != null) 'dice_roll': diceRoll.toInt(),
+              if (msgChoices.isNotEmpty)
+                'choices': msgChoices.map((final c) {
+                  if (c is Map<Object?, Object?>) {
+                    return <String, Object?>{
+                      'id': c['id']?.toString() ?? '',
+                      'label': c['label']?.toString() ?? '',
+                      if (c['hint']?.toString().trim().isNotEmpty ?? false) 'hint': c['hint']?.toString().trim(),
+                      if (c['tag']?.toString().trim().isNotEmpty ?? false) 'tag': c['tag']?.toString().trim(),
+                    };
+                  }
+                  return <String, Object?>{'id': c.toString(), 'label': c.toString()};
+                }).toList(),
             };
           }).toList() ??
           const <Map<String, Object?>>[],
       'choices': _normalizeChoices(
         (json['choices'] as List<Object?>?)
-                ?.map((final item) => item.toString())
+                ?.map((final item) {
+                  if (item is Map<Object?, Object?>) {
+                    return <String, Object?>{
+                      'id': item['id']?.toString() ?? '',
+                      'label': item['label']?.toString() ?? '',
+                      if (item['hint']?.toString().trim().isNotEmpty ?? false) 'hint': item['hint']?.toString().trim(),
+                      if (item['tag']?.toString().trim().isNotEmpty ?? false) 'tag': item['tag']?.toString().trim(),
+                    };
+                  }
+                  final String label = item.toString();
+                  return <String, Object?>{'id': label.toLowerCase().replaceAll(' ', '-'), 'label': label};
+                })
                 .toList() ??
-            const <String>[],
+            const <Map<String, Object?>>[],
       ),
       'inventory':
           (json['inventory'] as List<Object?>?)
@@ -381,27 +405,30 @@ class SymmetryCampaignRepository {
     return _trimTrailingConnector(cleaned);
   }
 
-  List<String> _normalizeChoices(final List<String> rawChoices) {
-    final List<String> result = <String>[];
-    for (final String raw in rawChoices) {
-      String cleaned = raw.replaceFirst(
-        RegExp(r'^\s*(?:[-*•]|\d+[.)])\s*'),
-        '',
-      );
-      cleaned = _extractFirstPhrase(cleaned);
-      cleaned = _stripLeadingConnector(cleaned);
-      cleaned = _cleanDisplayText(cleaned);
-      cleaned = _limitWords(cleaned, 4);
-      cleaned = _trimTrailingConnector(cleaned);
-      cleaned = _truncateAtWord(cleaned, 24);
-      cleaned = _trimTrailingConnector(cleaned);
-      if (cleaned.isEmpty || result.contains(cleaned)) {
-        continue;
-      }
-      result.add(cleaned);
-      if (result.length >= 3) {
-        break;
-      }
+  List<Map<String, Object?>> _normalizeChoices(final List<Map<String, Object?>> rawChoices) {
+    final List<Map<String, Object?>> result = <Map<String, Object?>>[];
+    final Set<String> seenLabels = <String>{};
+    for (final Map<String, Object?> raw in rawChoices) {
+      String label = (raw['label']?.toString() ?? '').trim();
+      if (label.isEmpty) continue;
+      label = label.replaceFirst(RegExp(r'^\s*(?:[-*•]|\d+[.)])\s*'), '');
+      label = _extractFirstPhrase(label);
+      label = _stripLeadingConnector(label);
+      label = _cleanDisplayText(label);
+      label = _limitWords(label, 4);
+      label = _trimTrailingConnector(label);
+      label = _truncateAtWord(label, 24);
+      label = _trimTrailingConnector(label);
+      if (label.isEmpty || seenLabels.contains(label.toLowerCase())) continue;
+      final String id = (raw['id']?.toString() ?? label.toLowerCase().replaceAll(' ', '-')).trim();
+      seenLabels.add(label.toLowerCase());
+      result.add(<String, Object?>{
+        'id': id,
+        'label': label,
+        if (raw['hint']?.toString().trim().isNotEmpty ?? false) 'hint': raw['hint']?.toString().trim(),
+        if (raw['tag']?.toString().trim().isNotEmpty ?? false) 'tag': raw['tag']?.toString().trim(),
+      });
+      if (result.length >= 3) break;
     }
     return result;
   }

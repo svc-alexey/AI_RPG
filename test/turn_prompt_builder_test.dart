@@ -114,7 +114,7 @@ CampaignState _sampleCampaign() => CampaignState(
   resources: const <CampaignResource>[],
   progression: null,
   messages: const <ChatMessage>[],
-  choices: const <String>['Scout ahead', 'Light the lantern'],
+  choices: choiceList(['Scout ahead', 'Light the lantern']),
   updatedAt: DateTime(2026, 3, 20, 12),
   customStoryPrompt: 'A fading city where every promise has a cost.',
   characterPrompt: 'A guarded investigator who trusts patterns over charm.',

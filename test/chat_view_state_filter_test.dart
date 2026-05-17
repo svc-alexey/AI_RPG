@@ -57,7 +57,7 @@ void main() {
               createdAt: DateTime(2026, 4, 7),
             ),
           ],
-          choices: const <String>[],
+          choices: const <Choice>[],
           updatedAt: DateTime(2026, 4, 7),
         ),
         settings: AiSettings.withEnvFallbacks(const AiSettings.defaults()),

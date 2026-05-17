@@ -55,10 +55,10 @@ void main() {
     final CampaignMemory updated = manager.updateMemory(
       language: AppLanguage.en,
       previousState: campaign,
-      result: const TurnResult(
+      result:        TurnResult(
         narration:
             'Alex corners the broker on the upper platform and forces a confession.',
-        choices: <String>['Arrest', 'Interrogate'],
+        choices: choiceList(['Arrest', 'Interrogate']),
         stateChanges: StateChanges(
           hpDelta: 0,
           energyDelta: -1,
@@ -343,6 +343,6 @@ CampaignState _sampleCampaign() => CampaignState(
   resources: const <CampaignResource>[],
   progression: null,
   messages: const <ChatMessage>[],
-  choices: const <String>['Ask around', 'Hide', 'Run'],
+  choices: choiceList(['Ask around', 'Hide', 'Run']),
   updatedAt: DateTime(2026, 3, 20, 12),
 );

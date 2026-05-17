@@ -24,7 +24,7 @@ Return valid JSON only with keys:
 - needs_background_followup
 - impact_seeds
 Rules:
-- choices: up to 3 concise options, usually 1-4 words, never full sentences.
+- choices: array of 2-5 objects, each with id (kebab-case slug, 2-24 chars), label (concise action, 1-5 words), hint (optional flavour text, <=80 chars), tag (optional category: combat/dialogue/exploration/stealth/magic/social/travel). Never return choices as plain strings — always objects with id+label. Labels must be distinct, idiomatic, and in the target language.
 - location: human-readable place name in the target language, 2-4 words, no snake_case or kebab-case.
 - objective and quest_note: short goal summaries in the target language, not narration, <=56 characters.
 - omit empty arrays or objects in state_changes completely.

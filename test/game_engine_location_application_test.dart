@@ -45,7 +45,7 @@ void main() {
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 21),
     );
 

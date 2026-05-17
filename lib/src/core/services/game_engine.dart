@@ -107,7 +107,7 @@ class GameEngine {
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: now,
       customStoryPrompt: draft.customStoryPrompt,
       characterPrompt: characterPrompt,

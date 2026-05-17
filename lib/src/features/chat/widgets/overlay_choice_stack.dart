@@ -1,5 +1,6 @@
 import 'package:ai_prg/src/app/aether_shell.dart';
 import 'package:ai_prg/src/app/responsive.dart';
+import 'package:ai_prg/src/core/models/campaign_models.dart';
 import 'package:flutter/material.dart';
 
 /// Стек плавающих кнопок выбора справа от текста.
@@ -12,8 +13,8 @@ class OverlayChoiceStack extends StatelessWidget {
     super.key,
   });
 
-  final List<String> choices;
-  final void Function(String) onChoiceSelected;
+  final List<Choice> choices;
+  final void Function(String choiceId) onChoiceSelected;
   final bool enabled;
 
   @override
@@ -25,10 +26,11 @@ class OverlayChoiceStack extends StatelessWidget {
     final List<Widget> buttons = <Widget>[];
 
     for (int i = 0; i < choices.length; i++) {
+      final Choice choice = choices[i];
       buttons.add(
         OverlayChoiceButton(
-          label: choices[i],
-          onPressed: enabled ? () => onChoiceSelected(choices[i]) : null,
+          label: choice.label,
+          onPressed: enabled ? () => onChoiceSelected(choice.id) : null,
           index: i,
         ),
       );

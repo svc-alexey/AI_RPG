@@ -141,7 +141,7 @@ CampaignState _introStateWithInventory() => CampaignState(
   resources: const <CampaignResource>[],
   progression: null,
   messages: const <ChatMessage>[],
-  choices: const <String>[],
+  choices: const <Choice>[],
   updatedAt: DateTime.utc(2026, 4, 5),
   customStoryPrompt: 'A test realm.',
   characterPrompt: 'A wary traveler.',

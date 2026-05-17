@@ -204,7 +204,7 @@ void main() {
           rank: 'Runner',
         ),
         messages: const <ChatMessage>[],
-        choices: const <String>[],
+        choices: const <Choice>[],
         updatedAt: DateTime(2026, 3, 20, 12),
         portraitPath: 'C:/tmp/roundtrip-1.png',
         portraitPrompt: 'cinematic portrait',
@@ -268,15 +268,15 @@ void main() {
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 10),
     );
 
     final ReconciliationResult result = service.reconcile(
       state: state,
-      result: const TurnResult(
+      result:        TurnResult(
         narration: 'Mara joins you in the alley and agrees to watch your back.',
-        choices: <String>['Move'],
+        choices: choiceList(['Move']),
         stateChanges: StateChanges.empty(),
         memoryEntry: 'Mara joins you as a trusted ally.',
       ),
@@ -343,16 +343,16 @@ void main() {
         resources: const <CampaignResource>[],
         progression: null,
         messages: const <ChatMessage>[],
-        choices: const <String>[],
+        choices: const <Choice>[],
         updatedAt: DateTime(2026, 3, 20, 11),
       );
 
       final ReconciliationResult result = service.reconcile(
         state: state,
-        result: const TurnResult(
+        result:        TurnResult(
           narration:
               'You gained 15 credits from the broker and reached level 2 after earning 20 XP.',
-          choices: <String>['Leave'],
+          choices: choiceList(['Leave']),
           stateChanges: StateChanges.empty(),
           memoryEntry: 'Credits +15. Level 2. XP +20.',
         ),
@@ -422,7 +422,7 @@ void main() {
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 12),
     );
 
@@ -446,9 +446,9 @@ void main() {
       language: AppLanguage.en,
       state: state,
       playerAction: 'Pick the ancient lock carefully',
-      result: const TurnResult(
+      result:        TurnResult(
         narration: 'The lock answers your touch with a reluctant click.',
-        choices: <String>['Open the vault'],
+        choices: choiceList(['Open the vault']),
         stateChanges: StateChanges.empty(),
         memoryEntry: 'The vault lock gives way.',
       ),
@@ -514,7 +514,7 @@ void main() {
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 12),
     );
 
@@ -525,7 +525,7 @@ void main() {
         playerAction: 'Review clue $index',
         result: TurnResult(
           narration: 'You uncover another clue in the forged entries.',
-          choices: const <String>['Continue'],
+          choices: choiceList(['Continue']),
           stateChanges: StateChanges(
             hpDelta: -2,
             energyDelta: -1,
@@ -596,7 +596,7 @@ void main() {
       resources: const <CampaignResource>[],
       progression: null,
       messages: const <ChatMessage>[],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 12),
     );
 
@@ -607,7 +607,7 @@ void main() {
         playerAction: 'Interpret the next letter $index',
         result: TurnResult(
           narration: 'Another emotional thread appears in the correspondence.',
-          choices: const <String>['Read on'],
+          choices: choiceList(['Read on']),
           stateChanges: StateChanges(
             hpDelta: -3,
             energyDelta: -2,
@@ -684,7 +684,7 @@ void main() {
           createdAt: DateTime(2026, 3, 20, 10),
         ),
       ],
-      choices: const <String>['Go to pier 9'],
+      choices: choiceList(['Go to pier 9']),
       updatedAt: DateTime(2026, 3, 20, 10, 5),
     );
 
@@ -757,7 +757,7 @@ void main() {
           createdAt: DateTime(2026, 3, 20, 10),
         ),
       ],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 10, 5),
     );
 
@@ -843,7 +843,7 @@ void main() {
           createdAt: DateTime(2026, 3, 20, 10),
         ),
       ],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 10, 5),
     );
 
@@ -924,7 +924,7 @@ void main() {
           createdAt: DateTime(2026, 3, 20, 10),
         ),
       ],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 10, 5),
     );
 
@@ -1000,7 +1000,7 @@ void main() {
           createdAt: DateTime(2026, 3, 20, 10),
         ),
       ],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 10, 5),
     );
 
@@ -1078,7 +1078,7 @@ void main() {
           createdAt: DateTime(2026, 3, 20, 10),
         ),
       ],
-      choices: const <String>[],
+      choices: const <Choice>[],
       updatedAt: DateTime(2026, 3, 20, 10, 5),
     );
 
@@ -1311,9 +1311,9 @@ class _OverlayAiClient implements AiClient {
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
-    const TurnResult result = TurnResult(
+    final TurnResult result = TurnResult(
       narration: 'Mara joins you as you grab the toolkit from the crate.',
-      choices: <String>['Run', 'Hide'],
+      choices: choiceList(['Run', 'Hide']),
       stateChanges: StateChanges(
         hpDelta: 0,
         energyDelta: 0,
@@ -1355,9 +1355,9 @@ class _NotesOnlyAiClient implements AiClient {
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
-    const TurnResult result = TurnResult(
+    final TurnResult result = TurnResult(
       narration: 'You spot a fresh entry in the ledger.',
-      choices: <String>['Go to warehouse 12'],
+      choices: choiceList(['Go to warehouse 12']),
       stateChanges: StateChanges(
         hpDelta: 0,
         energyDelta: 0,
@@ -1399,10 +1399,10 @@ class _ChecksAiClient implements AiClient {
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
-    const TurnResult result = TurnResult(
+    final TurnResult result = TurnResult(
       narration:
           'You test the lock and the mechanism answers with a harsh click.',
-      choices: <String>['Open the vault'],
+      choices: choiceList(['Open the vault']),
       stateChanges: StateChanges.empty(),
       memoryEntry: 'The vault lock reacts to your attempt.',
     );
@@ -1437,10 +1437,10 @@ class _DetectiveChromeAiClient implements AiClient {
     final NarrationDeltaCallback? onNarrationDelta,
     final CancelToken? cancelToken,
   }) async {
-    const TurnResult result = TurnResult(
+    final TurnResult result = TurnResult(
       narration:
           'You find the forged ledger tucked behind the municipal tax books.',
-      choices: <String>['Read the ledger'],
+      choices: choiceList(['Read the ledger']),
       stateChanges: StateChanges(
         hpDelta: -2,
         energyDelta: -1,

@@ -1,3 +1,5 @@
+import 'campaign_models.dart';
+
 class SymmetryTokenPair {
   const SymmetryTokenPair({
     required this.accessToken,
@@ -150,6 +152,7 @@ class SymmetryTurnResponse {
     required this.requestId,
     required this.snapshotVersion,
     required this.state,
+    this.portraitStatus,
   });
 
   factory SymmetryTurnResponse.fromJson(final Map<String, Object?> json) =>
@@ -157,23 +160,33 @@ class SymmetryTurnResponse {
         narration: (json['narration'] as String?) ?? '',
         choices:
             (json['choices'] as List<Object?>?)
-                ?.map((final item) => item.toString())
+                ?.map((final item) {
+                  if (item is Map) {
+                    return Choice.fromJson(_jsonMap(item));
+                  }
+                  final String label = item.toString();
+                  if (label.isEmpty) return null;
+                  return Choice(id: label.toLowerCase().replaceAll(' ', '-'), label: label);
+                })
+                .whereType<Choice>()
                 .toList() ??
-            const <String>[],
+            const <Choice>[],
         stateChanges: _jsonMap(json['state_changes']),
         memoryEntry: (json['memory_entry'] as String?) ?? '',
         requestId: (json['request_id'] as String?) ?? '',
         snapshotVersion: (json['campaign_snapshot_version'] as int?) ?? 0,
         state: _jsonMap(json['state']),
+        portraitStatus: json['portrait_status'] as String?,
       );
 
   final String narration;
-  final List<String> choices;
+  final List<Choice> choices;
   final Map<String, Object?> stateChanges;
   final String memoryEntry;
   final String requestId;
   final int snapshotVersion;
   final Map<String, Object?> state;
+  final String? portraitStatus;
 }
 
 class SymmetryWorldRumor {

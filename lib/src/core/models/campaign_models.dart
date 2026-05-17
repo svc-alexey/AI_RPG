@@ -478,6 +478,15 @@ class ChatMessage {
     createdAt:
         DateTime.tryParse(_jsonString(json['createdAt'])) ?? DateTime.now(),
     diceRoll: (json['dice_roll'] as num?)?.toInt(),
+    choices: _jsonList(json['choices'])
+        .map((final item) {
+          if (item is Map) return Choice.fromJson(_jsonMap(item));
+          final String label = item.toString().trim();
+          if (label.isEmpty) return null;
+          return Choice(id: label.toLowerCase().replaceAll(' ', '-'), label: label);
+        })
+        .whereType<Choice>()
+        .toList(),
   );
 
   const ChatMessage({
@@ -486,6 +495,7 @@ class ChatMessage {
     required this.text,
     required this.createdAt,
     this.diceRoll,
+    this.choices = const <Choice>[],
   });
 
   final String id;
@@ -493,6 +503,7 @@ class ChatMessage {
   final String text;
   final DateTime createdAt;
   final int? diceRoll;
+  final List<Choice> choices;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
@@ -500,6 +511,7 @@ class ChatMessage {
     'text': text,
     'createdAt': createdAt.toIso8601String(),
     if (diceRoll != null) 'dice_roll': diceRoll,
+    if (choices.isNotEmpty) 'choices': choices.map((final c) => c.toJson()).toList(),
   };
 }
 
@@ -620,13 +632,49 @@ class StateChanges {
   };
 }
 
+class Choice {
+  factory Choice.fromJson(final Map<String, Object?> json) => Choice(
+    id: _jsonString(json['id']),
+    label: _jsonString(json['label']),
+    hint: _jsonString(json['hint']).trim().isEmpty ? null : _jsonString(json['hint']).trim(),
+    tag: _jsonString(json['tag']).trim().isEmpty ? null : _jsonString(json['tag']).trim(),
+  );
+
+  factory Choice.fromLabel(final String label) {
+    final String id = label.toLowerCase().replaceAll(RegExp(r'[^a-zа-яё0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+    return Choice(id: id, label: label);
+  }
+
+  const Choice({
+    required this.id,
+    required this.label,
+    this.hint,
+    this.tag,
+  });
+
+  final String id;
+  final String label;
+  final String? hint;
+  final String? tag;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'label': label,
+    if (hint != null && hint!.isNotEmpty) 'hint': hint,
+    if (tag != null && tag!.isNotEmpty) 'tag': tag,
+  };
+}
+
+List<Choice> choiceList(final List<String> labels) =>
+    labels.map(Choice.fromLabel).toList();
+
 class TurnResult {
   factory TurnResult.fromJson(final Map<String, Object?> json) {
     final String narration = _resolveTurnNarration(
       json,
       fallback: 'Мир ненадолго замирает в тишине.',
     );
-    final List<String> choices = _resolveTurnChoices(json);
+    final List<Choice> choices = _resolveTurnChoices(json);
     final Map<String, Object?> stateChangesJson = _resolveTurnStateChanges(
       json,
     );
@@ -649,7 +697,7 @@ class TurnResult {
   });
 
   final String narration;
-  final List<String> choices;
+  final List<Choice> choices;
   final StateChanges stateChanges;
   final String memoryEntry;
   final int? diceRoll;
@@ -701,7 +749,7 @@ String _firstNonEmptyStringPath(final Object? root, final List<String> paths) {
   return '';
 }
 
-List<String> _resolveTurnChoices(final Map<String, Object?> json) {
+List<Choice> _resolveTurnChoices(final Map<String, Object?> json) {
   final List<Object?> rawChoices = _jsonList(
     json['choices'] ??
         json['options'] ??
@@ -712,8 +760,16 @@ List<String> _resolveTurnChoices(final Map<String, Object?> json) {
         _jsonPathValue(json, 'result.actions'),
   );
   return rawChoices
-      .map((final item) => _choiceLabel(item))
-      .where((final item) => item.isNotEmpty)
+      .map((final item) {
+        if (item is Map) {
+          return Choice.fromJson(_jsonMap(item));
+        }
+        // Legacy: plain string → id=slug, label=string
+        final String label = _choiceLabel(item);
+        if (label.isEmpty) return null;
+        return Choice(id: label.toLowerCase().replaceAll(' ', '-'), label: label);
+      })
+      .whereType<Choice>()
       .toList();
 }
 
@@ -943,8 +999,15 @@ class CampaignState {
           .map((final item) => ChatMessage.fromJson(_jsonMap(item)))
           .toList(),
       choices: _jsonList(json['choices'])
-          .map((final item) => _choiceLabel(item))
-          .where((final item) => item.isNotEmpty)
+          .map((final item) {
+            if (item is Map) {
+              return Choice.fromJson(_jsonMap(item));
+            }
+            final String label = _choiceLabel(item);
+            if (label.isEmpty) return null;
+            return Choice(id: label.toLowerCase().replaceAll(' ', '-'), label: label);
+          })
+          .whereType<Choice>()
           .toList(),
       updatedAt:
           DateTime.tryParse(_jsonString(json['updatedAt'])) ?? DateTime.now(),
@@ -1011,7 +1074,7 @@ class CampaignState {
   final CampaignProgression? progression;
   final List<CampaignCheck> checks;
   final List<ChatMessage> messages;
-  final List<String> choices;
+  final List<Choice> choices;
   final DateTime updatedAt;
   final String customStoryPrompt;
   final String characterPrompt;
@@ -1070,7 +1133,7 @@ class CampaignState {
     final CampaignProgression? progression,
     final List<CampaignCheck>? checks,
     final List<ChatMessage>? messages,
-    final List<String>? choices,
+    final List<Choice>? choices,
     final DateTime? updatedAt,
     final String? customStoryPrompt,
     final String? characterPrompt,
@@ -1132,7 +1195,7 @@ class CampaignState {
     'progression': progression?.toJson(),
     'checks': checks.map((final item) => item.toJson()).toList(),
     'messages': messages.map((final item) => item.toJson()).toList(),
-    'choices': choices,
+    'choices': choices.map((final c) => c.toJson()).toList(),
     'updatedAt': updatedAt.toIso8601String(),
     'customStoryPrompt': customStoryPrompt,
     'characterPrompt': characterPrompt,
