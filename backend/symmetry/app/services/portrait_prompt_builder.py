@@ -5,6 +5,8 @@ def build_portrait_messages(
     character: dict,
     setting: str,
     story_prompt: str,
+    target_width: int | None = None,
+    target_height: int | None = None,
 ) -> list[dict]:
     name = character.get("name", "") or "Персонаж"
     gender = character.get("gender", "") or ""
@@ -25,6 +27,13 @@ def build_portrait_messages(
     if personality:
         char_desc += f". Характер: {personality}"
     char_desc += ". Стиль: детализированный портрет, драматическое освещение, фокус на лице"
+
+    if target_width and target_height:
+        char_desc += (
+            f". Изображение предназначено для отображения в области "
+            f"шириной {target_width}px и высотой {target_height}px. "
+            f"Композиция должна учитывать это соотношение сторон."
+        )
 
     messages: list[dict] = [
         {"text": char_desc, "weight": 5},

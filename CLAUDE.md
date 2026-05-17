@@ -535,3 +535,41 @@ location / {
 29. **Портретная генерация требует verified user.** `POST /v1/campaigns/{id}/portrait` использует `get_current_verified_user` — гость и неverified получат 401/403. Это предотвращает бесплатную генерацию портретов вне биллинговой системы. Клиент должен скрывать кнопку "Сгенерировать портрет" для гостей (`session.isGuest`).
 30. **Портретный промпт — всегда на английском.** `portrait_prompt_builder.py` генерирует промпты на английском независимо от языка UI — модели изображений дают лучшие результаты на английском. `language` не передаётся в POST-запросе на генерацию.
 31. **Портретный оптимизатор — face-safe параметры.** `portrait_optimizer.py` использует q_min=75 (не ниже, иначе артефакты на лицах), max_dim=512px, target=120KB, hard limit=200KB. Не использовать `cover_image_optimizer.py` для портретов — там q падает до 50 и размер до 640px.
+
+## GBrain Configuration (configured by /setup-gbrain)
+- Mode: local-stdio
+- Engine: pglite
+- Config file: ~/.gbrain/config.json (mode 0600)
+- Setup date: 2026-05-17
+- MCP registered: yes (user scope, wrapper: ~/gbrain/bin/gbrain.sh)
+- Embedding model: text-embedding-bge-m3 (1024 dim, via LM Studio http://127.0.0.1:1234/v1)
+- Embedding provider: OPENAI_API_KEY=lm-studio OPENAI_BASE_URL=http://127.0.0.1:1234/v1
+- Pages: 102 imported, 179 chunks embedded (100%)
+- Artifacts sync: artifacts-only → https://github.com/svc-alexey/-gstack-artifacts-Alexey.git (federated source: gstack-artifacts)
+- Current repo policy: read-write
+- Transcript ingest: incremental
+
+## GBrain Search Guidance (configured by /sync-gbrain)
+<!-- gstack-gbrain-search-guidance:start -->
+
+GBrain is set up and synced on this machine. The agent should prefer gbrain
+over Grep when the question is semantic or when you don't know the exact
+identifier yet.
+
+gbrain 0.18.2 — available search commands:
+- `gbrain search "<terms>"` — keyword search (tsvector)
+- `gbrain query "<question>"` — hybrid RAG search (RRF + query expansion)
+- `gbrain ask "<question>"` — alias for query
+
+Prefer gbrain when:
+- "Where is X handled?" / semantic intent, no exact string yet:
+    `gbrain search "<terms>"` or `gbrain query "<question>"`
+- "What did we decide last time?" / past plans, retros, learnings:
+    `gbrain search "<terms>"` (across all indexed pages)
+- Exploring imported docs/markdown:
+    `gbrain list` (list pages), `gbrain get <slug>` (read a page)
+
+Grep is still right for known exact strings, regex, multiline patterns, and
+file globs. Run `/sync-gbrain` to force-refresh code/docs indexing.
+
+<!-- gstack-gbrain-search-guidance:end -->

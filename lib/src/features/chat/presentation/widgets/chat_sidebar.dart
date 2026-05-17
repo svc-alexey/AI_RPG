@@ -22,7 +22,6 @@ class ChatSidebar extends ConsumerStatefulWidget {
     required this.highlightedModules,
     required this.newlyUnlockedModules,
     required this.worldRumors,
-    required this.onExitToMainMenu,
     super.key,
   });
 
@@ -31,7 +30,6 @@ class ChatSidebar extends ConsumerStatefulWidget {
   final List<CampaignModule> highlightedModules;
   final List<CampaignModule> newlyUnlockedModules;
   final List<SymmetryWorldRumor> worldRumors;
-  final VoidCallback onExitToMainMenu;
 
   @override
   ConsumerState<ChatSidebar> createState() => _ChatSidebarState();
@@ -109,6 +107,8 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
     final tabController = _tabController!;
 
     final double contentPadding = responsive.isCompact ? 8 : 14;
+    final int block1Flex = responsive.isDesktop || responsive.isTablet ? 9 : 4;
+    final int block2Flex = responsive.isDesktop || responsive.isTablet ? 11 : 6;
 
     return AetherCard(
       padding: EdgeInsets.zero,
@@ -117,59 +117,76 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // 1. Portrait image — bleeds to card edges
-            _CharacterPortraitCard(campaign: campaign, campaignId: widget.campaignId),
-
-            // 2. Header info above tabs (mainAxisSize.min)
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                contentPadding,
-                10,
-                contentPadding,
-                0,
-              ),
+            // Block 1: Portrait (3/4) + info (1/4, scrollable)
+            Expanded(
+              flex: block1Flex,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  // Character name
-                  Text(
-                    campaign.character.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AetherPalette.textPrimary,
-                      fontWeight: FontWeight.w600,
+                  // Portrait takes 3/4 of Block 1
+                  Flexible(
+                    flex: 3,
+                    child: _CharacterPortraitCard(
+                      campaign: campaign,
+                      campaignId: widget.campaignId,
                     ),
                   ),
-                  SizedBox(height: responsive.sectionSpacing - 4),
 
-                  // Meta info
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: <Widget>[
-                      _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
-                      _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
-                    ],
-                  ),
-                  SizedBox(height: responsive.isCompact ? 8 : 6),
+                  // Header info — 1/4 of Block 1, scrollable if needed
+                  Flexible(
+                    flex: 1,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        contentPadding,
+                        4,
+                        contentPadding,
+                        2,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          // Character name
+                          Text(
+                            campaign.character.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AetherPalette.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: responsive.isCompact ? 6 : 4),
 
-                  // Location + Objective
-                  _SidebarInfoLine(label: l10n.location, value: campaign.location),
-                  SizedBox(height: responsive.isCompact ? 8 : 6),
-                  if (campaign.hasDisplayObjective) ...[
-                    _SidebarInfoLine(
-                      label: l10n.objective,
-                      value: campaign.displayObjectiveLine,
+                          // Meta info
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: <Widget>[
+                              _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+                              _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
+                            ],
+                          ),
+                          SizedBox(height: responsive.isCompact ? 4 : 2),
+
+                          // Location + Objective
+                          _SidebarInfoLine(label: l10n.location, value: campaign.location),
+                          if (campaign.hasDisplayObjective) ...[
+                            SizedBox(height: responsive.isCompact ? 4 : 2),
+                            _SidebarInfoLine(
+                              label: l10n.objective,
+                              value: campaign.displayObjectiveLine,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    SizedBox(height: responsive.isCompact ? 8 : 6),
-                  ],
+                  ),
                 ],
               ),
             ),
 
-            // TabBar
+            // TabBar (intrinsic height)
             TabBar(
               controller: tabController,
               isScrollable: false,
@@ -179,39 +196,12 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
               tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
             ),
 
-            // 3. TabBarView + exit — fills remaining space
+            // Block 2: Module content — fills remaining space
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  contentPadding,
-                  0,
-                  contentPadding,
-                  contentPadding,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      SizedBox(
-                        height: 120,
-                        child: TabBarView(
-                          controller: tabController,
-                          children: tabs.map((m) => _buildTabContent(m, context)).toList(),
-                        ),
-                      ),
-
-                      // Exit button
-                      const SizedBox(height: 8),
-                      ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.home_outlined, size: 20),
-                        title: Text(l10n.exitToMainMenu),
-                        onTap: widget.onExitToMainMenu,
-                      ),
-                    ],
-                  ),
-                ),
+              flex: block2Flex,
+              child: TabBarView(
+                controller: tabController,
+                children: tabs.map((m) => _buildTabContent(m, context)).toList(),
               ),
             ),
           ],
@@ -296,12 +286,6 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
                   Text(l10n.summary),
                   const SizedBox(height: 8),
                   Text(campaign.summary),
-                  const SizedBox(height: 24),
-                  ListTile(
-                    leading: const Icon(Icons.home_outlined),
-                    title: Text(l10n.exitToMainMenu),
-                    onTap: widget.onExitToMainMenu,
-                  ),
                 ],
               ),
             ),
@@ -924,13 +908,6 @@ class _CharacterPortraitCardState
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final double height = responsive.isMobile
-        ? 170
-        : screenHeight < 700
-            ? 140
-            : 195;
     final String? status = _polledStatus ?? widget.campaign.portraitStatus;
     final String? url = _polledUrl ?? widget.campaign.portraitUrl;
     final bool hasImageUrl = url != null && url.isNotEmpty;
@@ -939,13 +916,11 @@ class _CharacterPortraitCardState
         status != 'ready' &&
         status != 'failed' &&
         !hasImageUrl) {
-      return _PortraitLoadingPlaceholder(
-          height: height, label: widget.campaign.character.name);
+      return _PortraitLoadingPlaceholder(label: widget.campaign.character.name);
     }
 
     if (status == 'pending') {
-      return _PortraitLoadingPlaceholder(
-          height: height, label: widget.campaign.character.name);
+      return _PortraitLoadingPlaceholder(label: widget.campaign.character.name);
     }
 
     if (hasImageUrl) {
@@ -953,13 +928,11 @@ class _CharacterPortraitCardState
         url!,
         fit: BoxFit.cover,
         width: double.infinity,
-        height: height,
         errorBuilder: (_, __, ___) =>
             _PortraitFallbackLabel(label: widget.campaign.character.name),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return _PortraitLoadingPlaceholder(
-              height: height, label: widget.campaign.character.name);
+          return _PortraitLoadingPlaceholder(label: widget.campaign.character.name);
         },
       );
     }
@@ -972,7 +945,6 @@ class _CharacterPortraitCardState
       portraitPath: imagePath,
       fit: BoxFit.cover,
       width: double.infinity,
-      height: height,
       errorBuilder: (_, __, ___) =>
           _PortraitFallbackLabel(label: widget.campaign.character.name),
     );
@@ -980,18 +952,13 @@ class _CharacterPortraitCardState
 }
 
 class _PortraitLoadingPlaceholder extends StatelessWidget {
-  const _PortraitLoadingPlaceholder({
-    required this.height,
-    required this.label,
-  });
+  const _PortraitLoadingPlaceholder({required this.label});
 
-  final double height;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height,
       width: double.infinity,
       color: AetherPalette.panel.withValues(alpha: 0.94),
       alignment: Alignment.center,
@@ -1023,15 +990,7 @@ class _PortraitFallbackLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final double height = responsive.isMobile
-        ? 170
-        : screenHeight < 700
-            ? 140
-            : 195;
     return Container(
-      height: height,
       width: double.infinity,
       color: AetherPalette.panel.withValues(alpha: 0.94),
       alignment: Alignment.center,

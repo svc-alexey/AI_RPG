@@ -17,6 +17,8 @@ logger = logging.getLogger("symmetry.portrait")
 
 async def generate_portrait(
     messages: list[dict],
+    target_width: int | None = None,
+    target_height: int | None = None,
 ) -> bytes:
     settings = get_settings()
     ai = AsyncAIStudio(
@@ -24,7 +26,11 @@ async def generate_portrait(
         auth=settings.yandex_art_api_key,
     )
     model = ai.models.image_generation("yandex-art")
-    model = model.configure(width_ratio=1, height_ratio=1)
+
+    if target_width and target_height and target_width > 0 and target_height > 0:
+        model = model.configure(width_ratio=target_width, height_ratio=target_height)
+    else:
+        model = model.configure(width_ratio=3, height_ratio=4)
 
     operation = await model.run_deferred(messages, timeout=settings.yandex_art_timeout_seconds)
     result = await operation.wait(
@@ -40,6 +46,8 @@ async def generate_and_store(
     character: dict,
     setting: str,
     story_prompt: str,
+    target_width: int | None = None,
+    target_height: int | None = None,
 ) -> None:
     async with SessionLocal() as session:
         try:
@@ -57,8 +65,15 @@ async def generate_and_store(
             session.add(portrait)
             await session.commit()
 
-            messages = build_portrait_messages(character, setting, story_prompt)
-            raw_bytes = await generate_portrait(messages)
+            messages = build_portrait_messages(
+                character, setting, story_prompt,
+                target_width=target_width, target_height=target_height,
+            )
+            raw_bytes = await generate_portrait(
+                messages,
+                target_width=target_width,
+                target_height=target_height,
+            )
 
             webp_bytes, width, height = optimize_portrait(raw_bytes)
 
@@ -71,8 +86,9 @@ async def generate_and_store(
             await session.commit()
 
             logger.info(
-                "portrait_ready campaign_id=%s size=%d dimensions=%dx%d",
+                "portrait_ready campaign_id=%s size=%d dimensions=%dx%d target=%dx%d",
                 campaign_id, len(webp_bytes), width, height,
+                target_width or 0, target_height or 0,
             )
 
         except Exception:

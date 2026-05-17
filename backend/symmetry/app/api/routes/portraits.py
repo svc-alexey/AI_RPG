@@ -10,7 +10,7 @@ from app.api.deps import get_current_verified_user
 from app.core.config import get_settings
 from app.db.models import Campaign, CampaignPortrait, CampaignSnapshot, User
 from app.db.session import get_db_session
-from app.schemas.portraits import PortraitStatusResponse
+from app.schemas.portraits import PortraitGenerateRequest, PortraitStatusResponse
 from app.services.entitlement import check_access, count_guest_turns
 from app.services.ids import new_id
 from app.services.portrait_service import generate_and_store
@@ -46,6 +46,7 @@ async def get_portrait_image(
 @router.post("/{campaign_id}/portrait", response_model=PortraitStatusResponse)
 async def request_portrait(
     campaign_id: str,
+    body: PortraitGenerateRequest = PortraitGenerateRequest(),
     user: User = Depends(get_current_verified_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> PortraitStatusResponse:
@@ -83,6 +84,8 @@ async def request_portrait(
             character=character,
             setting=campaign.setting,
             story_prompt=story_prompt,
+            target_width=body.target_width,
+            target_height=body.target_height,
         )
     )
 
