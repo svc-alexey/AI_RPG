@@ -1257,6 +1257,9 @@ class _ChronicleSection extends StatelessWidget {
         ],
       );
     }
+    final credits = txList.where((final tx) => tx.isCredit).toList();
+    final debits = txList.where((final tx) => tx.isDebit).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1270,7 +1273,92 @@ class _ChronicleSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        ...txList.map((final tx) => _TransactionItem(tx: tx, l10n: l10n)),
+        if (credits.isNotEmpty)
+          _TransactionGroup(
+            title: l10n.billingChronicleDeposits,
+            count: credits.length,
+            transactions: credits,
+            l10n: l10n,
+          ),
+        if (debits.isNotEmpty)
+          _TransactionGroup(
+            title: l10n.billingChronicleSpendings,
+            count: debits.length,
+            transactions: debits,
+            l10n: l10n,
+          ),
+      ],
+    );
+  }
+}
+
+class _TransactionGroup extends StatefulWidget {
+  const _TransactionGroup({
+    required this.title,
+    required this.count,
+    required this.transactions,
+    required this.l10n,
+  });
+
+  final String title;
+  final int count;
+  final List<TransactionEntry> transactions;
+  final AppLocalizations l10n;
+
+  @override
+  State<_TransactionGroup> createState() => _TransactionGroupState();
+}
+
+class _TransactionGroupState extends State<_TransactionGroup> {
+  bool _expanded = false;
+
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            child: Row(
+              children: [
+                AnimatedRotation(
+                  turns: _expanded ? 0.25 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: Color(0xFF7A7570),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${widget.title} (${widget.count})',
+                  style: const TextStyle(
+                    color: Color(0xFFBFA76F),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(left: 16, top: 4),
+            child: Column(
+              children: widget.transactions
+                  .map((final tx) => _TransactionItem(tx: tx, l10n: widget.l10n))
+                  .toList(),
+            ),
+          ),
+          crossFadeState:
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
       ],
     );
   }

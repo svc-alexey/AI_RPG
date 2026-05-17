@@ -427,15 +427,34 @@ class CampaignRuntimeService:
         if isinstance(companion_raw, dict):
             name = str(companion_raw.get("name", "")).strip()
             brief = str(companion_raw.get("brief", "")).strip()
+            status = str(companion_raw.get("status", "")).strip()
             if name:
                 companions = list(next_state.get("companions", []) or [])
-                cid = f"comp_{turn_num}_{len(companions) + 1}"
-                companions.append({
-                    "id": cid,
-                    "name": name,
-                    "status": "neutral",
-                    "notes": brief or name,
-                })
+                existing_idx = next(
+                    (
+                        i
+                        for i, c in enumerate(companions)
+                        if isinstance(c, dict)
+                        and c.get("name", "").strip().lower() == name.lower()
+                    ),
+                    None,
+                )
+                if existing_idx is not None:
+                    existing = companions[existing_idx]
+                    if brief:
+                        existing["notes"] = brief
+                    if status:
+                        existing["status"] = status
+                    elif not existing.get("status"):
+                        existing["status"] = "neutral"
+                else:
+                    cid = f"comp_{turn_num}_{len(companions) + 1}"
+                    companions.append({
+                        "id": cid,
+                        "name": name,
+                        "status": status or "neutral",
+                        "notes": brief or name,
+                    })
                 next_state["companions"] = companions[:20]
 
         # 4. resources_delta → resources
@@ -499,6 +518,19 @@ class CampaignRuntimeService:
                     "turn": turn_num,
                 })
                 next_state["checks"] = checks[-20:]
+
+        # 7. extract progression from narration (fallback when AI omits progression_event)
+        prog = next_state.get("progression") or {}
+        if not isinstance(prog, dict) or not prog:
+            narration_raw = str(result.get("narration", ""))
+            memory_raw = str(result.get("memory_entry", ""))
+            xp_extracted = _extract_xp_from_text(f"{narration_raw}\n{memory_raw}")
+            if xp_extracted > 0:
+                progression = {}
+                progression["experience"] = xp_extracted
+                progression["level"] = (xp_extracted // 100) + 1
+                progression["rank"] = ""
+                next_state["progression"] = progression
 
         narration = normalize_prompt_text(str(result.get("narration", "")))
         memory_entry = normalize_prompt_text(
@@ -1117,3 +1149,38 @@ def _looks_like_character_name(text: str) -> bool:
             return False
         meaningful_parts += 1
     return meaningful_parts > 0
+
+
+def _extract_xp_from_text(source: str) -> int:
+    """Fallback: extract XP gain from narration when AI omits progression_event."""
+    if not source:
+        return 0
+
+    # Pattern 1: +25 xp, -10 xp, +25 опыта, -5 опыта
+    m = re.search(
+        r'([+-]\d+)\s*(?:xp|experience|опыта|опыт)\b',
+        source,
+        re.IGNORECASE,
+    )
+    if m:
+        return int(m.group(1))
+
+    # Pattern 2: xp +25, опыт +25
+    m = re.search(
+        r'\b(?:xp|experience|опыта|опыт)\s*([+-]\d+)',
+        source,
+        re.IGNORECASE,
+    )
+    if m:
+        return int(m.group(1))
+
+    # Pattern 3: gained 25 xp, earned 25 xp, получил 25 опыта
+    m = re.search(
+        r'(?:gain(?:ed)?|earn(?:ed)?|получ(?:ает|ил|ено)?)\s+(\d+)\s*(?:xp|experience|опыта|опыт)\b',
+        source,
+        re.IGNORECASE,
+    )
+    if m:
+        return int(m.group(1))
+
+    return 0

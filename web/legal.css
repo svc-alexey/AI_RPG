@@ -23,9 +23,13 @@
   font-family: Inter, system-ui, sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+html {
+  background: #0a0908;
+  color-scheme: dark;
+  overflow-x: hidden;
+}
 
-html { overflow-x: hidden; }
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin: 0;

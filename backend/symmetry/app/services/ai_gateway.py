@@ -44,7 +44,7 @@ Rules:
 - if the player references something that was established in the immediately previous scene or recent_turns, treat it as an already known fact and answer coherently instead of forgetting it.
 - notes_added: optional list of short observation or clue strings (max 2 per turn), in target language, each <=100 chars. Include only when the hero genuinely discovers or notices something new worth recording.
 - inventory_found: optional list of item names the hero finds, receives, or picks up (max 2 per turn), in target language, each 1-4 words.
-- companion_encountered: optional object {name, brief} for a new character who joins or becomes relevant to the hero. Name 1-3 words, brief <=60 chars. Max 1 per turn.
+- companion_encountered: optional object {name, brief, status} for a character who joins or whose status changes (becomes relevant, injured, leaves, etc). Name 1-3 words, brief <=60 chars. status is optional: neutral, friendly, hostile, suspicious, loyal, injured, missing, departed. Max 1 per turn.
 - resources_delta: optional object {label, amount} for a single resource change. Label like "gold", "supplies", "fuel", "credits". Positive amount = gained, negative = spent/lost.
 - progression_event: optional object {xp_gained} when the hero achieves something notable. Usually 10-40 XP. Omit for routine actions.
 - check_occurred: optional object {label, stat, difficulty, outcome} when a skill check or dice roll happens in the narrative. Stat is one of: might, wit, spirit. Outcome: success, failure, mixed.

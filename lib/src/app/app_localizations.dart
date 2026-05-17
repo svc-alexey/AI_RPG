@@ -1531,15 +1531,6 @@ class AppLocalizations {
     AppLanguage.en => 'Nothing tracked yet',
   };
 
-  String progressionLabel(
-    final CampaignProgression progression,
-  ) => switch (language) {
-    AppLanguage.ru =>
-      'Уровень ${progression.level} • Опыт ${progression.experience}${progression.rank.trim().isEmpty ? '' : ' • ${progression.rank}'}',
-    AppLanguage.en =>
-      'Level ${progression.level} • XP ${progression.experience}${progression.rank.trim().isEmpty ? '' : ' • ${progression.rank}'}',
-  };
-
   String campaignCheckLabel(final CampaignCheck check) {
     if (check.summary.trim().isNotEmpty) {
       return check.summary;
@@ -2977,6 +2968,16 @@ class AppLocalizations {
     AppLanguage.en => 'Subscription renewal',
   };
 
+  String get billingChronicleDeposits => switch (language) {
+    AppLanguage.ru => 'Пополнения',
+    AppLanguage.en => 'Deposits',
+  };
+
+  String get billingChronicleSpendings => switch (language) {
+    AppLanguage.ru => 'Списания',
+    AppLanguage.en => 'Spendings',
+  };
+
   String get billingOfflineBanner => switch (language) {
     AppLanguage.ru => 'Нет соединения — показаны кэшированные данные',
     AppLanguage.en => 'No connection — showing cached data',
@@ -2996,6 +2997,27 @@ class AppLocalizations {
     AppLanguage.ru => 'Эссенция на исходе — осталось $remaining',
     AppLanguage.en => 'Essence running low — $remaining remaining',
   };
+
+  String companionStatusLabel(final String status) {
+    final String key = status.trim().toLowerCase();
+    return switch (language) {
+      AppLanguage.ru => switch (key) {
+        'neutral' => 'нейтральна',
+        'friendly' => 'друг',
+        'hostile' => 'враждебна',
+        'suspicious' => 'насторожена',
+        'loyal' => 'верна',
+        'injured' => 'ранена',
+        'missing' => 'пропала',
+        'departed' => 'ушла',
+        'active' => 'активна',
+        _ => status,
+      },
+      AppLanguage.en => switch (key) {
+        _ => status,
+      },
+    };
+  }
 }
 
 class AppLocalizationsScope extends InheritedWidget {

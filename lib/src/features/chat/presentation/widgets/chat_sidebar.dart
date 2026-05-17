@@ -120,79 +120,97 @@ class _ChatSidebarState extends ConsumerState<ChatSidebar>
             // 1. Portrait image — bleeds to card edges
             _CharacterPortraitCard(campaign: campaign, campaignId: widget.campaignId),
 
-            // 2. Content below portrait
+            // 2. Header info above tabs (mainAxisSize.min)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                contentPadding,
+                10,
+                contentPadding,
+                0,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  // Character name
+                  Text(
+                    campaign.character.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AetherPalette.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: responsive.sectionSpacing - 4),
+
+                  // Meta info
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
+                      _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
+                    ],
+                  ),
+                  SizedBox(height: responsive.isCompact ? 8 : 6),
+
+                  // Location + Objective
+                  _SidebarInfoLine(label: l10n.location, value: campaign.location),
+                  SizedBox(height: responsive.isCompact ? 8 : 6),
+                  if (campaign.hasDisplayObjective) ...[
+                    _SidebarInfoLine(
+                      label: l10n.objective,
+                      value: campaign.displayObjectiveLine,
+                    ),
+                    SizedBox(height: responsive.isCompact ? 8 : 6),
+                  ],
+                ],
+              ),
+            ),
+
+            // TabBar
+            TabBar(
+              controller: tabController,
+              isScrollable: false,
+              indicatorColor: const Color(0xFFBFA76F),
+              labelColor: AetherPalette.textPrimary,
+              unselectedLabelColor: AetherPalette.textMuted,
+              tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
+            ),
+
+            // 3. TabBarView + exit — fills remaining space
             Expanded(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   contentPadding,
-                  10,
+                  0,
                   contentPadding,
                   contentPadding,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    // Character name
-                    Text(
-                      campaign.character.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AetherPalette.textPrimary,
-                        fontWeight: FontWeight.w600,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      SizedBox(
+                        height: 120,
+                        child: TabBarView(
+                          controller: tabController,
+                          children: tabs.map((m) => _buildTabContent(m, context)).toList(),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: responsive.sectionSpacing - 4),
 
-                    // Meta info
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: <Widget>[
-                        _SidebarMetaChip(label: '${l10n.turn}: ${campaign.turnNumber}'),
-                        _SidebarMetaChip(label: l10n.settingLabel(campaign.setting)),
-                      ],
-                    ),
-                    SizedBox(height: responsive.isCompact ? 8 : 6),
-
-                    // Location + Objective
-                    _SidebarInfoLine(label: l10n.location, value: campaign.location),
-                    SizedBox(height: responsive.isCompact ? 8 : 6),
-                    if (campaign.hasDisplayObjective) ...[
-                      _SidebarInfoLine(
-                        label: l10n.objective,
-                        value: campaign.displayObjectiveLine,
+                      // Exit button
+                      const SizedBox(height: 8),
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.home_outlined, size: 20),
+                        title: Text(l10n.exitToMainMenu),
+                        onTap: widget.onExitToMainMenu,
                       ),
-                      SizedBox(height: responsive.isCompact ? 8 : 6),
                     ],
-
-                    // TabBar
-                    TabBar(
-                      controller: tabController,
-                      isScrollable: false,
-                      indicatorColor: const Color(0xFFBFA76F),
-                      labelColor: AetherPalette.textPrimary,
-                      unselectedLabelColor: AetherPalette.textMuted,
-                      tabs: tabs.map((m) => _buildTab(m, l10n, responsive)).toList(),
-                    ),
-
-                    // TabBarView
-                    Expanded(
-                      child: TabBarView(
-                        controller: tabController,
-                        children: tabs.map((m) => _buildTabContent(m, context)).toList(),
-                      ),
-                    ),
-
-                    // Exit button
-                    const SizedBox(height: 8),
-                    ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.home_outlined, size: 20),
-                      title: Text(l10n.exitToMainMenu),
-                      onTap: widget.onExitToMainMenu,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -473,7 +491,7 @@ class _CompanionsTab extends StatelessWidget {
       children: companions.whereType<CampaignCompanion>().map((item) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text(
-          '- ${item.name} (${item.status})${item.notes.trim().isEmpty ? '' : ' • ${item.notes}'}',
+          '- ${item.name} (${l10n.companionStatusLabel(item.status)})${item.notes.trim().isEmpty ? '' : ' • ${item.notes}'}',
         ),
       )).toList(),
     );
@@ -553,13 +571,161 @@ class _ProgressionTab extends StatelessWidget {
         icon: Icons.insights_outlined,
         text: switch (l10n.language) {
           AppLanguage.ru =>
-            'Прогресс героя будет отображаться здесь по мере прохождения.',
+            'Прогресс героя появится когда он совершит значимое действие — победит врага, раскроет тайну или завершит важное дело.',
           AppLanguage.en =>
-            'Hero progression will appear here as you advance.',
+            'Hero progression will appear when they achieve something notable — defeating a foe, uncovering a secret, or completing a key task.',
         },
       );
     }
-    return Text(l10n.progressionLabel(progression!));
+
+    final prog = progression!;
+    final int xpInLevel = prog.experience % 100;
+    final double xpRatio =
+        (xpInLevel / 100.0).clamp(0.0, 1.0);
+    final bool hasRank = prog.rank.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        // Level badge
+        Center(
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: <Color>[Color(0xFFBFA76F), Color(0xFF8B7A4E)],
+              ),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: const Color(0xFFBFA76F).withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  switch (l10n.language) {
+                    AppLanguage.ru => 'Ур.',
+                    AppLanguage.en => 'Lv.',
+                  },
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFFF5E6C8),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${prog.level}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // XP progress bar
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: xpRatio,
+            minHeight: 8,
+            backgroundColor: AetherPalette.panelBorderSolid.withValues(
+              alpha: 0.4,
+            ),
+            valueColor: const AlwaysStoppedAnimation(Color(0xFFBFA76F)),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          switch (l10n.language) {
+            AppLanguage.ru => '$xpInLevel / 100 XP',
+            AppLanguage.en => '$xpInLevel / 100 XP',
+          },
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textMuted,
+          ),
+        ),
+
+        // Divider
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Divider(color: Color(0xFF3D3328), height: 1),
+        ),
+
+        // Total XP
+        _ProgressionStatRow(
+          icon: Icons.star_outline,
+          label: switch (l10n.language) {
+            AppLanguage.ru => 'Всего опыта',
+            AppLanguage.en => 'Total XP',
+          },
+          value: '${prog.experience}',
+        ),
+
+        // Rank (only if non-empty)
+        if (hasRank) ...[
+          const SizedBox(height: 8),
+          _ProgressionStatRow(
+            icon: Icons.military_tech_outlined,
+            label: switch (l10n.language) {
+              AppLanguage.ru => 'Ранг',
+              AppLanguage.en => 'Rank',
+            },
+            value: prog.rank,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProgressionStatRow extends StatelessWidget {
+  const _ProgressionStatRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Icon(icon, size: 16, color: const Color(0xFFBFA76F)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AetherPalette.textMuted,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AetherPalette.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -759,7 +925,12 @@ class _CharacterPortraitCardState
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
-    final double height = responsive.isMobile ? 170 : 195;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double height = responsive.isMobile
+        ? 170
+        : screenHeight < 700
+            ? 140
+            : 195;
     final String? status = _polledStatus ?? widget.campaign.portraitStatus;
     final String? url = _polledUrl ?? widget.campaign.portraitUrl;
     final bool hasImageUrl = url != null && url.isNotEmpty;
@@ -853,7 +1024,12 @@ class _PortraitFallbackLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
-    final double height = responsive.isMobile ? 170 : 195;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double height = responsive.isMobile
+        ? 170
+        : screenHeight < 700
+            ? 140
+            : 195;
     return Container(
       height: height,
       width: double.infinity,

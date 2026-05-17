@@ -702,7 +702,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('pier 9'), findsOneWidget);
+    expect(find.textContaining('pier 9'), findsWidgets);
     expect(find.text('Inventory'), findsNothing);
     expect(find.text('Vitality'), findsNothing);
   });

@@ -820,11 +820,50 @@ class EntityExtractionService {
         .toList();
   }
 
+  /// Fallback: extract XP gain from narration when server didn't process
+  /// progression_event. Returns 0 if no XP pattern found.
+  static int extractExperienceDeltaFromNarration(
+    final String narration,
+    final String memoryEntry,
+  ) {
+    final String source = '$narration\n$memoryEntry';
+    // Pattern 1: +25 xp, -10 xp, +25 опыта
+    final RegExp xpSignedPattern = RegExp(
+      r'([+-]\d+)\s*(?:xp|experience|опыта|опыт)\b',
+      caseSensitive: false,
+      unicode: true,
+    );
+    final RegExpMatch? xpSignedMatch = xpSignedPattern.firstMatch(source);
+    if (xpSignedMatch != null) {
+      return int.tryParse(xpSignedMatch.group(1) ?? '') ?? 0;
+    }
+    // Pattern 2: xp +25, опыт +25
+    final RegExp xpSuffixPattern = RegExp(
+      r'\b(?:xp|experience|опыта|опыт)\s*([+-]\d+)',
+      caseSensitive: false,
+      unicode: true,
+    );
+    final RegExpMatch? xpSuffixMatch = xpSuffixPattern.firstMatch(source);
+    if (xpSuffixMatch != null) {
+      return int.tryParse(xpSuffixMatch.group(1) ?? '') ?? 0;
+    }
+    // Pattern 3: gained 25 xp, earned 25 xp, получил 25 опыта
+    final RegExp xpGainPattern = RegExp(
+      r'(?:gain(?:ed)?|earn(?:ed)?|получ(?:ает|ил|ено)?)\s+(\d+)\s*(?:xp|experience|опыта|опыт)\b',
+      caseSensitive: false,
+      unicode: true,
+    );
+    final RegExpMatch? xpGainMatch = xpGainPattern.firstMatch(source);
+    if (xpGainMatch != null) {
+      return int.tryParse(xpGainMatch.group(1) ?? '') ?? 0;
+    }
+    return 0;
+  }
+
   _ProgressionUpdate? _extractProgressionUpdate(final TurnResult result) {
     final String source = '${result.narration}\n${result.memoryEntry}';
     int? level;
     String? rank;
-    int experienceDelta = 0;
 
     final RegExp levelPattern = RegExp(
       r'(?:level up(?: to)?|reaches level|level)\s+(\d+)|(?:уровень|до уровня)\s+(\d+)',
@@ -836,35 +875,10 @@ class EntityExtractionService {
       level = int.tryParse(levelMatch.group(1) ?? levelMatch.group(2) ?? '');
     }
 
-    final RegExp xpSignedPattern = RegExp(
-      r'([+-]\d+)\s*(?:xp|experience|опыта|опыт)',
-      caseSensitive: false,
-      unicode: true,
+    final int experienceDelta = extractExperienceDeltaFromNarration(
+      result.narration,
+      result.memoryEntry,
     );
-    final RegExpMatch? xpSignedMatch = xpSignedPattern.firstMatch(source);
-    if (xpSignedMatch != null) {
-      experienceDelta = int.tryParse(xpSignedMatch.group(1) ?? '') ?? 0;
-    } else {
-      final RegExp xpSuffixPattern = RegExp(
-        r'(?:xp|experience|опыта|опыт)\s*([+-]\d+)',
-        caseSensitive: false,
-        unicode: true,
-      );
-      final RegExpMatch? xpSuffixMatch = xpSuffixPattern.firstMatch(source);
-      if (xpSuffixMatch != null) {
-        experienceDelta = int.tryParse(xpSuffixMatch.group(1) ?? '') ?? 0;
-      } else {
-        final RegExp xpGainPattern = RegExp(
-          r'(?:gain(?:ed)?|earning|earn(?:ed)?|получ(?:ает|ил|ено)?)\s+(\d+)\s*(?:xp|experience|опыта|опыт)',
-          caseSensitive: false,
-          unicode: true,
-        );
-        final RegExpMatch? xpGainMatch = xpGainPattern.firstMatch(source);
-        if (xpGainMatch != null) {
-          experienceDelta = int.tryParse(xpGainMatch.group(1) ?? '') ?? 0;
-        }
-      }
-    }
 
     final RegExp rankPattern = RegExp(
       r'(?:rank|title|ранг|звание)\s*[:=]?\s*([A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё\s-]+)',

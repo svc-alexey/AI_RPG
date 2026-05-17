@@ -13,6 +13,7 @@ import 'package:ai_prg/src/core/repositories/symmetry_campaign_repository.dart';
 import 'package:ai_prg/src/core/services/ai_client.dart' show AiTurnException;
 import 'package:ai_prg/src/core/services/app_logger.dart';
 import 'package:ai_prg/src/core/services/deterministic_check_service.dart';
+import 'package:ai_prg/src/core/services/entity_extraction_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -307,6 +308,32 @@ class ChatController extends StateNotifier<ChatViewState> {
           portraitStatus: campaign.portraitStatus,
           portraitUrl: campaign.portraitUrl,
         );
+      }
+
+      // Fallback: extract progression from narration when server didn't
+      // process a progression_event (AI mentioned XP in text only).
+      if (nextCampaign.progression == null &&
+          nextCampaign.isModuleActive(CampaignModule.progression)) {
+        final String? latestNarration = nextCampaign.messages
+            .where((final m) => m.role == ChatRole.narrator)
+            .map((final m) => m.text)
+            .lastOrNull;
+        if (latestNarration != null) {
+          final int xpDelta =
+              EntityExtractionService.extractExperienceDeltaFromNarration(
+            latestNarration,
+            '',
+          );
+          if (xpDelta != 0) {
+            nextCampaign = nextCampaign.copyWith(
+              progression: CampaignProgression(
+                level: (xpDelta > 0 ? xpDelta : 0) ~/ 100 + 1,
+                experience: xpDelta > 0 ? xpDelta : 0,
+                rank: '',
+              ),
+            );
+          }
+        }
       }
 
       if (_disposed) {
@@ -712,6 +739,43 @@ class ChatController extends StateNotifier<ChatViewState> {
               : 'Note: $latestNote',
         ),
       );
+    }
+
+    final CampaignProgression? prevProg = previousCampaign.progression;
+    final CampaignProgression? nextProg = nextCampaign.progression;
+    if (prevProg == null && nextProg != null) {
+      notifications.add(
+        StateChangeNotification(
+          id: 'progression_init_${now.microsecondsSinceEpoch}',
+          kind: StateChangeNotificationKind.progressionChanged,
+          message: language == AppLanguage.ru
+              ? 'Уровень ${nextProg.level} • Опыт ${nextProg.experience}'
+              : 'Level ${nextProg.level} • XP ${nextProg.experience}',
+        ),
+      );
+    } else if (prevProg != null && nextProg != null) {
+      if (nextProg.level > prevProg.level) {
+        notifications.add(
+          StateChangeNotification(
+            id: 'progression_level_${now.microsecondsSinceEpoch}',
+            kind: StateChangeNotificationKind.progressionChanged,
+            message: language == AppLanguage.ru
+                ? 'Повышение уровня: ${nextProg.level}!'
+                : 'Level up: ${nextProg.level}!',
+          ),
+        );
+      } else if (nextProg.experience > prevProg.experience) {
+        final int gained = nextProg.experience - prevProg.experience;
+        notifications.add(
+          StateChangeNotification(
+            id: 'progression_xp_${now.microsecondsSinceEpoch}',
+            kind: StateChangeNotificationKind.progressionChanged,
+            message: language == AppLanguage.ru
+                ? '+$gained опыта'
+                : '+$gained XP',
+          ),
+        );
+      }
     }
 
     for (final CampaignModule module in _deriveNewlyUnlockedModules(
