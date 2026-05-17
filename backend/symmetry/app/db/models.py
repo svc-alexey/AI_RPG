@@ -142,6 +142,7 @@ class Campaign(Base):
     difficulty: Mapped[str] = mapped_column(String(50))
     language: Mapped[str] = mapped_column(String(8), default="ru")
     status: Mapped[str] = mapped_column(String(32), default="active")
+    ended_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     current_snapshot_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("campaign_snapshots.id", ondelete="SET NULL"), nullable=True
     )

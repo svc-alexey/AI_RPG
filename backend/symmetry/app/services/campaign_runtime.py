@@ -142,6 +142,13 @@ def build_initial_state(payload) -> dict[str, Any]:
 
 
 class CampaignRuntimeService:
+    def __init__(self, consequence_service=None):
+        if consequence_service is not None:
+            self.consequence = consequence_service
+        else:
+            from app.services.consequence_service import ConsequenceService
+            self.consequence = ConsequenceService()
+
     def ensure_bootstrap_state(self, *, state: dict[str, Any]) -> dict[str, Any]:
         next_state = deepcopy(state)
         language = str(next_state.get("language", "ru")).strip() or "ru"
